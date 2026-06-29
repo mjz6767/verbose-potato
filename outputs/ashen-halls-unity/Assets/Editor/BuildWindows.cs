@@ -11,7 +11,7 @@ namespace AshenHalls.Editor
 {
     public static class BuildWindows
     {
-        private const string PackageVersion = "v0.50.0";
+        private const string PackageVersion = "v0.50.1";
 
         public static void Build()
         {
@@ -45,8 +45,8 @@ namespace AshenHalls.Editor
 
             PlayerSettings.productName = "Ashen Halls";
             PlayerSettings.companyName = "High Desert Cosmos";
-            PlayerSettings.defaultScreenWidth = 1600;
-            PlayerSettings.defaultScreenHeight = 960;
+            PlayerSettings.defaultScreenWidth = 1920;
+            PlayerSettings.defaultScreenHeight = 1080;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
             EditorUserBuildSettings.SwitchActiveBuildTarget(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64);
 

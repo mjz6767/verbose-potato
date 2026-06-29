@@ -1,31 +1,30 @@
-Ashen Halls v0.50.0 - Beta RPG Scaffold
+Ashen Halls v0.50.1 - Beta RPG Scaffold
 
 Unzip the folder, then run AshenHalls.exe.
 
 Launch note: the game opens windowed and shows an Ashen Halls: The Old Road title splash clearly marked Beta RPG Scaffold while the first screen settles in. Clicks now pass through the splash; Enter quick-starts from muster and B begins the current custom company.
-Display note: the default window now targets 1800x1040 when the display allows it, so the board, party panel, and exploration map have more room.
+Display note: the default window now targets 1920x1080 when the display allows it, so the board, party panel, and exploration map have more room.
 
 Controls:
 - Muster screen: after the splash, the game opens on a tavern scene. Quick Start begins immediately, or tune the 4-person tavern company first.
-- Tavern menu v0.47.1: after the splash, the first playable screen is now a Midgaard tavern landing with Start Game, Customize Company, Beta Lab, Settings, and Exit Game.
+- Tavern menu v0.50.1: after the splash, the first playable screen is now a Midgaard tavern landing with Start Game, Customize Party, Beta Lab, Settings, and Exit Game.
 - Tavern art/music v0.49: the landing screen now prefers a generated tavern backdrop with hearth, tables, lanterns, and musicians, plus a warmer sparse lute/hearth loop.
-- Tavern UI v0.49: Start Game, Customize Company, Beta Lab, Settings, and Exit Game now have generated tavern UI icons.
-- Tavern UI v0.50: the landing screen is now a real tavern menu again, with the company preview hidden behind Customize Company, a compact translucent top bar, and a small route footer so the tavern art is visible.
+- Tavern UI v0.49/v0.50.1: Start Game, Customize Party, Beta Lab, Settings, and Exit Game use generated tavern UI icons.
+- Tavern UI v0.50.1: the landing screen is now a cleaner tavern menu with Customize Party wording, no party-summary clutter, no route footer, and the character editor kept behind Customize Party.
 - Runtime art v0.50: new generated sheets add brighter creature sprites, combat command icons, and consumable/loot icons for food, elixirs, supplies, coins, scrolls, herbs, and cache rewards.
-- Tavern route preview v0.48: the tavern now shows the current beta route toward the final gate, with chapter chips for the cisterns, kobolds, bone road, glass ruins, red gate, and meteor crown.
-- Muster UI v0.47.1: the character editor is now reached from Customize Company, and the top bar was spaced out to avoid overlap between title, SFX controls, party summary, and action buttons.
+- Muster UI v0.50.1: the character editor is now reached from Customize Party, and the top bar is kept clear of the tavern landing menu.
 - Beta Lab: starts a caster-heavy beta combat test with full mana, extra elixirs, hazards, kobold shamans, kobold bone wizards, and other spellcasting enemies so combat/casting can be stress tested immediately.
 - Beta Lab toolbar: during Beta Lab combat, use Refill, Reset, Hazards, Spawn, and SFX buttons above the formula panel to stress test combat systems quickly.
 - Character customization: edit names, class, race, origin, sigil, accent color, attributes, and starting talents.
 - Muster upgrades: each class now has clearer identity, race/class loadout differences, a compact company summary, and optional Reroll Gear / Reroll Look buttons.
 - Exploration: arrow keys or WASD move the company. Click adjacent highlighted tiles to move, and hover map tiles to inspect region, zone danger, object, story, and movement hints.
 - World zones: the road out of Midgaard now branches into named districts such as the Old Quarry, Glass Warrens, Ash Fen, Red Gate, Gloam Courts, Salt Cisterns, Green Shrine Road, and Dusk Market Ruins. Zones bias encounters, caches, shrines, stairs, and story hooks.
-- Armory/Spells: press I to inspect company gear and pack loot; press C to open directly to the spell reference.
+- Armory/Spells: press I or F to inspect party gear and pack loot; press C or G outside combat to open directly to the spell reference.
 - Combat: each active unit has personal movement and 1 action. Choose Move, Attack, Cast, Guard, Elixir, or End Turn, then click the grid.
 - Combat command bar: action buttons now include small pixel glyphs as well as hotkey labels, making Move, Attack, Cast, Guard, Elixir, and End Turn easier to scan.
 - Combat command icons v0.49: combat actions are now icon-first. The sword, spellbook, shield, potion, move, and end-turn icons carry the button identity, while hotkeys and tiny state labels stay compact.
 - Combat command icons v0.50: Move, Attack, Cast, Guard, Elixir, and End Turn now prefer a clearer dedicated command icon atlas, with older icon sheets kept as fallback.
-- Combat action UI v0.50: action buttons are now large icon-only controls; hotkeys, range/cost, and availability live in hover tooltips and the status readout instead of crowding the button face.
+- Combat action UI v0.50.1: action buttons are now larger icon-first controls with readable hotkey badges, hover help, and a wider command bar.
 - Combat UI v0.47.2: the default window is larger, combat grid/readout spacing is cleaner, action buttons are wider with readable icons plus sublabels, and the tiny stacked button-art issue is fixed.
 - Combat movement: movement spends distance, so you can take a short step, keep remaining move, then still attack or cast.
 - Combat previews: the active unit, upcoming turn queue, move budget, action state, reachable tiles, attack targets, spell targets, cover warnings, expected damage, resistance/weakness, guard notes, and terrain warnings are visible during the turn.
@@ -66,6 +65,7 @@ Controls:
 - Spell reactions: fire can burn tree cover and ignite gas/webs, ice can quench fire into steam, and shock can ride ice/gas/web hazards.
 - Combat presentation: the battlefield now uses a darker speckled retro field, readable combatants, a stronger active-unit cursor, a turn queue, hover previews, and a bottom tactical readout.
 - Combat floor art: battle tiles now include subtle cracked stone, moss, scorch, bone, rune, and grate details by depth while keeping the old tactical grid readable.
+- Combat terrain art v0.50.1: a new generated 4x4 terrain atlas fills combat squares with grass, snow, dirt, stone, cave, sewer, ice, web, scorched ground, and red-basalt texture variants by depth.
 - Combat feedback: ranged attacks and spells now draw pixel streaks, impacts flash on the grid, deaths pop visibly, and resistance/weakness feedback appears in battle.
 - Beam graphics: arrows, healing, fire, ice, death/hex, and shock/arc effects now use distinct pixel beam shapes instead of one generic spell line.
 - Combat sounds: attacks now have distinct miss, bow, blade, crit, guard, counter, resist, and status cues in addition to the existing sparse spell and terrain effects.
@@ -82,7 +82,7 @@ Controls:
 - Kobold casters: shamans are more dangerous hex/web casters, and deeper halls can spawn Kobold Bone Wizards with red-black death-ball splash magic.
 - New enemy families v0.43: ratfolk scrappers, cutthroats, plague mages, cistern clerics, and brutes; drow scouts, blade dancers, crossbows, mages, and priests; and lesser demons now appear in zone-biased encounter tables and Beta Lab testing.
 - UI polish: top resources, side panels, enemy cards, party cards, spell cards, and the bottom combat command bar now resize more defensively to avoid overlap on smaller or shorter windows. Compact side-panel cards keep all four party members visible on shorter windows. The combat command bar now has an explicit End Turn button.
-- Side panels v0.47.2: Company is now Party, Opposition is now Enemy Combatants, side-card portraits are larger, and panel headers reserve enough room for longer labels.
+- Side panels v0.50.1: Company is now Party, Opposition is now Enemy Combatants, party cards show only level/race/class plus HP/MP, and equipment clutter is moved out of the combat sidebar.
 - Combat rules: attacks can now miss or critically strike, and trees block arrows, direct spells, and non-arcing terrain placement while arcing spells can pass over cover.
 - Armory: caches now generate many weapon and armor forms with quality, material, trait, bonus, and damage type. Useful finds are auto-equipped to fitting party members.
 - Item art v0.47: the Armory pack, company gear rows, and cache loot panel now prefer a newer equipment atlas with clearer swords, epees, daggers, axes, hammers, spears, bows, crossbows, staves, foci, shields, armor, robes, potions, elixirs, rings, and cache bundles.
@@ -108,16 +108,17 @@ Controls:
 - Cleric/priest spell: choose Heal to mend wounds, or choose Tree Cover to grow a blocking tree.
 - F1 writes context help into the Timeline.
 - F5 saves. F9 loads.
-- I opens the Armory. C opens the Spell Reference.
+- I or F opens the Armory. C or G opens the Spell Reference outside combat. H uses an elixir, R camps, and T descends when standing on stairs.
 - M toggles audio on/off. + and - adjust audio volume. The SFX Test button near the audio controls plays a short click/attack/spell check, and the SFX pulse under the controls shows which effect fired. The tavern has a tiny procedural band loop; exploration and combat remain intentionally quiet except for effects.
-- Combat hotkeys: 1 Move, 2 Attack, 3 Cast, 4 Guard, 5 Elixir, 6 or Space End Turn.
+- Combat hotkeys: 1/Z Move, 2/X/F Attack, 3/C/R Cast, 4/G Guard, 5/H Elixir, 6/T/Space End Turn.
 - Reduced Motion and SFX controls can be changed from the Muster screen and in play.
 
 Release notes:
+- v0.50.1 is a tester-facing UI cleanup pass: larger 1920x1080 default window, tavern wording changed to Customize Party, landing clutter/route footer removed, combat sidebars simplified, board/sprite/badge sizing increased, combat command hotkey badges restored, a new generated combat terrain atlas added, hover tooltips expanded, fragile small generated button/sprite overlays replaced with clearer procedural labels, and extra keyboard aliases added for WASD plus F/G/H/R/T/Z/X/C. Save data remains version 17.
 - v0.50.0 is a major runtime graphics and UI repair pass: added three generated v0.50 art sheets for consumables/loot, combat command icons, and creature sprites; wired them into resource counters, cache rewards, command buttons/tooltips, party portraits, enemy portraits, and combat board sprites; removed the tavern company preview from the landing screen; shrank top chrome across the game; and made combat actions icon-only with tooltip details. Save data remains version 17.
 - v0.49.1 is a repair verification build for the v0.49 graphics and icon-first UI pass: the game script compiles cleanly, the Windows package is rebuilt from the last known-good player, and the package has a launch-log smoke test. The Unity build helper now also targets v0.49.1 package names. Save data remains version 17.
 - v0.49.0 is a graphics and icon-first UI pass: added five generated v0.49 art assets, wired in a full tavern backdrop, upgraded the sparse tavern loop, added tavern menu icons, made combat command buttons primarily icon-driven, routed several enemies/world objects through the new enemy/world atlas, and stacked floating combat text so repeated hits no longer occupy the same spot. Save data remains version 17.
-- v0.48.0 is a completion-loop scaffold: the tavern now previews the Road to the Final Gate, the last two chapter objectives point toward the Red Gate and Meteor Crown, defeating the final encounter routes to a proper beta victory screen, and the ending ledger summarizes survivors, gold, depth, and party roles. Save data remains version 17.
+- v0.48.0 is a completion-loop scaffold: late chapter objectives point toward the Red Gate and Meteor Crown, defeating the final encounter routes to a proper beta victory screen, and the ending ledger summarizes survivors, gold, depth, and party roles. Save data remains version 17.
 - v0.46.0 is an art and spellbook UI pass: added two generated runtime/reference sheets for spellbook/combat UI and ember spell effects, wired new action/spellbook/formula/Armory tab icons into the game, added Fireball and Meteor Shower, and gave both spells distinct projectile and impact flair while retaining old-school grid readability. Save data remains version 17.
 - v0.45.0 is a combat UI functionality pass: upgraded board hover tooltips into larger tactical cards, added target/cover mini-panels, click instructions, phase/action/move chips, action-button hover help, richer active-command prompts, and Ready/Clear controls in the spell panel. Save data remains version 17.
 - v0.44.0 is a combat/magic/UI polish pass: added a generated combat UI atlas, renamed the event feed to Timeline, improved the turn-order strip, hover preview card, bottom combat readout, spell panel/card treatment, action badges, and sprite frame stability; added Hold Sign, Cold Lance, Mind Break, and Bind Fiend formulas for beta stress testing. Save data remains version 17.

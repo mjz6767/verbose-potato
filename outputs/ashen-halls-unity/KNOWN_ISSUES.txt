@@ -1,6 +1,8 @@
 Ashen Halls Known Issues
 
 Current practical notes:
+- v0.50.1 switches small combat command and sprite-corner overlays back to procedural glyphs/text because generated icon crops were too noisy at that scale. Generated art remains used for larger sprites, terrain, items, and panels.
+- v0.50.1 adds a generated combat terrain atlas. It is runtime-visible now, but the tiles are still broad source art and will need later hand-cleaning into tighter tileable pixel textures.
 - v0.50.0 repairs the most obvious tavern/combat UI clutter: the landing no longer shows company cards, top chrome is shorter, and combat actions are icon-only. Some deeper screens still use immediate-mode panels and will need continued spacing passes.
 - v0.50.0 adds large generated creature and icon sheets directly to runtime. They are intentionally better-looking beta art, but still need later hand cleanup for exact pixel-grid consistency, transparency, and animation frames.
 - v0.49.1 verifies the v0.49 graphics/UI pass as a packaged repair build. Remaining risk is visual tuning from live playtesting: command icon sizing, tavern readability, and combat panel polish may still need another pass.

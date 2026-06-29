@@ -2,6 +2,19 @@
 
 All changes are original to Ashen Halls. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v0.50.1 - Tavern and Combat UI Readability Repair
+
+- Changed the tavern landing customization button to Customize Party and removed the party-summary line plus route footer from the first playable screen.
+- Increased the default window target to 1920x1080 for larger board and sprite presentation.
+- Gave combat more horizontal room by narrowing the sidebar cap and increasing combat command button size.
+- Restored readable hotkey badges on combat command icons and added aliases for 1-6 plus Z/X/C, F/G/H/R/T, and Space.
+- Simplified combat Party cards so they show level, race, class, HP, and MP without equipment text crowding the sidebar.
+- Added a generated `combat-terrain-atlas-runtime-v0.50.1.png` sheet for grass, snow, dirt, stone, cave, sewer, ice, web, scorched ground, and red-basalt combat tile texture variants.
+- Replaced fragile small generated command/sprite overlay icons with clearer procedural glyphs and text badges.
+- Enlarged combat unit sprite frames, status badges, and status duration markers so tile overlays are easier to read.
+- Expanded combat hover cards with action state, target identity, HP/status, tile/cover notes, and click instructions.
+- Kept save data at version 17 because this pass changes presentation and controls only.
+
 ## v0.50.0 - Runtime Graphics Expansion: Creatures, Commands, and Loot
 
 - Added three generated v0.50 runtime sheets under `Docs/ArtReferences/`: consumables/loot, combat command icons, and creature sprites.
@@ -9,7 +22,7 @@ All changes are original to Ashen Halls. The game is a spiritual successor to ol
 - Rebuilt cache reward presentation into a clearer reward card with icon chips for gold, supplies, and elixirs.
 - Wired the combat command sheet into action buttons and hover help so Move, Attack, Cast, Guard, Elixir, and End Turn have clearer dedicated icons.
 - Wired the creature sheet into party portraits, enemy roster portraits, and combat board sprites for stronger silhouettes across party roles, kobolds, ratfolk, drow, demons, undead, brutes, and fungus beasts.
-- Removed the company preview from the tavern landing screen and left party editing behind Customize Company so the tavern backdrop is no longer buried under management panels.
+- Removed the company preview from the tavern landing screen and left party editing behind Customize Party so the tavern backdrop is no longer buried under management panels.
 - Shortened the tavern, muster, exploration, and combat top chrome so it takes much less vertical space.
 - Reworked combat action buttons into large icon-only controls with hotkey/cost/availability details moved into hover tooltips and the status readout.
 - Kept older art/procedural renderers as fallbacks and kept save data at version 17.
@@ -27,7 +40,7 @@ All changes are original to Ashen Halls. The game is a spiritual successor to ol
 - Added five generated v0.49 art assets under `Docs/ArtReferences/`: tavern backdrop, tavern UI atlas, combat HUD atlas, spell/floating-text atlas, and enemy/world-object atlas.
 - Made the tavern landing prefer the new generated tavern backdrop, with the procedural tavern kept as a fallback.
 - Upgraded the sparse tavern loop into a warmer procedural lute/hearth loop with bass, light percussion, and occasional flute tones.
-- Added generated icons to the tavern menu buttons for Start Game, Customize Company, Beta Lab, Settings, and Exit Game.
+- Added generated icons to the tavern menu buttons for Start Game, Customize Party, Beta Lab, Settings, and Exit Game.
 - Reworked combat command buttons to be icon-first, with larger action icons, tiny hotkey badges, and compact state labels instead of word-heavy buttons.
 - Routed several enemy and world-object visuals through the new enemy/world-object atlas, including kobolds, ratfolk, drow, demons, caves, caches, shrines, final gates, tree cover, and stone cover.
 - Improved floating combat text stacking so repeated events on the same tile separate into small lanes with readable backplates.
@@ -35,7 +48,7 @@ All changes are original to Ashen Halls. The game is a spiritual successor to ol
 
 ## v0.48.0 - Victory Route and Final Gate Completion Scaffold
 
-- Added a tavern route preview panel for the Road to the Final Gate, with chapter chips from the cisterns through the Meteor Crown.
+- Added an early tavern route preview panel for the beta finale path, later removed from the landing screen in v0.50.1.
 - Expanded late-route story objectives so depth 5 and depth 6 point more clearly toward the Red Gate and final ritual.
 - Changed final-boss victory flow so defeating the meteor-crowned encounter ends combat and opens a dedicated beta victory screen.
 - Added a victory ledger with survivor count, average level, gold, reached depth, party member rows, and a compact chapter recap.
@@ -56,8 +69,8 @@ All changes are original to Ashen Halls. The game is a spiritual successor to ol
 
 ## v0.47.1 - Tavern Landing and Spellbook Overlay Cleanup
 
-- Added a dedicated post-splash Midgaard tavern landing screen with Start Game, Customize Company, Beta Lab, Settings, and Exit Game.
-- Moved the character builder behind Customize Company so the first playable screen no longer looks like the debug/customization editor.
+- Added a dedicated post-splash Midgaard tavern landing screen with Start Game, Customize Party, Beta Lab, Settings, and Exit Game.
+- Moved the character builder behind Customize Party so the first playable screen no longer looks like the debug/customization editor.
 - Reworked the muster top bar spacing to avoid overlap between title, party summary, SFX controls, and right-side action buttons.
 - Changed Cast behavior so the Spellbook stays closed until Cast is pressed.
 - Added a large combat Spellbook overlay that can use most of the screen, with a close button and larger spell-card grid.

@@ -19,7 +19,7 @@ namespace AshenHalls
         private const int CombatMoveAllowance = 3;
         private const int SummonedTreeDuration = 8;
         private const int FinalBossDepth = 6;
-        private const string PackageVersion = "v0.50.0";
+        private const string PackageVersion = "v0.50.1";
         private const string GameTitle = "Ashen Halls";
         private const string GameSubtitle = "The Old Road";
         private const string BuildStage = "Beta RPG Scaffold";
@@ -70,6 +70,7 @@ namespace AshenHalls
         private Texture2D inventoryConsumableAtlas;
         private Texture2D combatCommandIconAtlas;
         private Texture2D creatureSpriteAtlas;
+        private Texture2D combatTerrainAtlas;
         private GUIStyle titleStyle;
         private GUIStyle h2Style;
         private GUIStyle labelStyle;
@@ -223,7 +224,7 @@ namespace AshenHalls
             Application.targetFrameRate = 60;
             Screen.fullScreen = false;
             Screen.fullScreenMode = FullScreenMode.Windowed;
-            if (Screen.width < 1760 || Screen.height < 1020) Screen.SetResolution(1800, 1040, false);
+            if (Screen.width < 1880 || Screen.height < 1040) Screen.SetResolution(1920, 1080, false);
 
             try
             {
@@ -533,7 +534,7 @@ namespace AshenHalls
             if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) AdjustSfxVolume(-25);
             bool gameplayMode = state != null && !showSpellbook && (state.Mode == GameMode.Explore || state.Mode == GameMode.Combat);
             if (gameplayMode && Input.GetKeyDown(KeyCode.I)) ToggleArmory(0);
-            if (gameplayMode && Input.GetKeyDown(KeyCode.C)) ToggleArmory(2);
+            if (state != null && state.Mode == GameMode.Explore && !showSpellbook && Input.GetKeyDown(KeyCode.C)) ToggleArmory(2);
             if (showArmory && Input.GetKeyDown(KeyCode.Escape))
             {
                 showArmory = false;
@@ -607,16 +608,16 @@ namespace AshenHalls
                         DrawMuster();
                         break;
                     case GameMode.Explore:
-                        DrawGameChrome("Explore");
                         DrawExplore();
                         DrawSidePanels();
                         DrawCommandBar();
+                        DrawGameChrome("Explore");
                         break;
                     case GameMode.Combat:
-                        DrawGameChrome("Combat");
                         DrawCombat();
                         DrawSidePanels();
                         DrawCommandBar();
+                        DrawGameChrome("Combat");
                         break;
                     case GameMode.Defeat:
                         DrawGameChrome("Defeat");
@@ -865,6 +866,7 @@ namespace AshenHalls
             inventoryConsumableAtlas = LoadExternalPng("inventory-consumable-atlas-runtime-v0.50.png");
             combatCommandIconAtlas = LoadExternalPng("combat-command-icon-atlas-runtime-v0.50.png");
             creatureSpriteAtlas = LoadExternalPng("creature-sprite-atlas-runtime-v0.50.png");
+            combatTerrainAtlas = LoadExternalPng("combat-terrain-atlas-runtime-v0.50.1.png");
             spriteCellMetrics.Clear();
         }
 
@@ -1023,7 +1025,7 @@ namespace AshenHalls
             DrawPreferenceControls(top.xMax - prefW - 16f, top.y + 17, prefW, false);
 
             float menuW = Mathf.Clamp(Screen.width * 0.24f, 300f, 390f);
-            Rect menu = new Rect(42, 100, menuW, Mathf.Min(438f, Screen.height - 138f));
+            Rect menu = new Rect(42, 100, menuW, Mathf.Min(372f, Screen.height - 138f));
             DrawRect(menu, Hex("11171b", 0.76f));
             DrawBorder(menu, gold, 2);
             DrawCombatUiCornerTrim(menu, gold);
@@ -1035,7 +1037,7 @@ namespace AshenHalls
             float buttonGap = 10f;
             if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Start Game", 1)) BeginGame();
             y += buttonH + buttonGap;
-            if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Customize Company", 2)) state.Mode = GameMode.Muster;
+            if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Customize Party", 2)) state.Mode = GameMode.Muster;
             y += buttonH + buttonGap;
             if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Beta Lab", 3)) StartBetaCombatLab();
             y += buttonH + buttonGap;
@@ -1048,14 +1050,6 @@ namespace AshenHalls
                 ShowBanner("Exit requested");
             }
 
-            Rect summary = new Rect(menu.x + 20, menu.yMax - 78, menu.width - 40, 56);
-            DrawRect(summary, Hex("080b0d", 0.58f));
-            DrawBorder(summary, line, 1);
-            GUI.Label(new Rect(summary.x + 10, summary.y + 6, summary.width - 20, 16), FitText(TavernSummaryLine(), summary.width - 20, CenterLeftStyle(10, gold)), CenterLeftStyle(10, gold));
-            GUI.Label(new Rect(summary.x + 10, summary.y + 24, summary.width - 20, 28), TavernWatchLine(), CenterLeftStyle(9, muted));
-
-            Rect route = new Rect(menu.xMax + 40, Screen.height - 118, Screen.width - menu.xMax - 92, 74);
-            DrawTavernQuestPreview(route);
             if (showTavernSettings) DrawTavernSettings(new Rect(Screen.width - 390, 86, 340, 230));
         }
 
@@ -1095,29 +1089,6 @@ namespace AshenHalls
                 {
                     GUI.Label(new Rect(card.x + 14f, textY + 68f, card.width - 28f, 28f), $"{TrimGearName(member.WeaponName)}\n{BestSkillLabel(member)} {BestSkillValue(member)}", CenterLeftStyle(10, muted));
                 }
-            }
-        }
-
-        private void DrawTavernQuestPreview(Rect rect)
-        {
-            if (rect.height < 58f) return;
-            DrawRect(rect, Hex("11171b", 0.58f));
-            DrawBorder(rect, violet.WithAlpha(0.78f), 1);
-            GUI.Label(new Rect(rect.x + 18, rect.y + 7, 240, 20), "Road to the Final Gate", CenterLeftStyle(13, gold));
-            if (rect.height > 96f)
-            {
-                GUI.Label(new Rect(rect.x + 20, rect.y + 34, rect.width - 40, 18), "Six beta chapters now lead from Midgaard to Vhal Rakh's meteor-crowned ritual.", CenterLeftStyle(10, muted));
-            }
-            float y = rect.height > 96f ? rect.y + 62f : rect.y + 36f;
-            string[] stops = { "Cisterns", "Kobolds", "Bone Road", "Glass", "Red Gate", "Meteor Crown" };
-            float gap = 8f;
-            float cellW = (rect.width - 40f - gap * (stops.Length - 1)) / stops.Length;
-            for (int i = 0; i < stops.Length; i++)
-            {
-                Rect step = new Rect(rect.x + 20f + i * (cellW + gap), y, cellW, Mathf.Min(26f, rect.yMax - y - 8f));
-                DrawRect(step, i == stops.Length - 1 ? Hex("351b1b", 0.78f) : Hex("151b20", 0.70f));
-                DrawBorder(step, i == stops.Length - 1 ? gold : line, 1);
-                GUI.Label(step, stops[i], CenterStyle(Mathf.RoundToInt(Mathf.Clamp(step.width / 10f, 8f, 10f)), i == stops.Length - 1 ? gold : ink));
             }
         }
 
@@ -1448,24 +1419,6 @@ namespace AshenHalls
             int arcanists = state.Party.Count(p => CasterKnowsSchool(p.Spell, "ember") || CasterKnowsSchool(p.Spell, "hex"));
             int level = state.Party.Count == 0 ? 1 : Mathf.Max(1, Mathf.RoundToInt((float)state.Party.Sum(p => Mathf.Max(1, p.Level)) / state.Party.Count));
             return $"{PartySize}-person company: front {front} / ranged {ranged} / priest {priests} / arcane {arcanists} / avg level {level}. {PartyWeaknessLine()}";
-        }
-
-        private string TavernSummaryLine()
-        {
-            if (state?.Party == null) return $"{PartySize}-person company waiting.";
-            int front = state.Party.Count(p => p.Role == "shield" || p.Role == "ward" || p.Role == "pike");
-            int ranged = state.Party.Count(p => p.Role == "bow" || p.Range >= 3);
-            int priests = state.Party.Count(p => CasterKnowsSchool(p.Spell, "mend") || p.Role == "mender");
-            int arcane = state.Party.Count(p => CasterKnowsSchool(p.Spell, "ember") || CasterKnowsSchool(p.Spell, "hex"));
-            return $"Party: front {front} / ranged {ranged} / priest {priests} / arcane {arcane}";
-        }
-
-        private string TavernWatchLine()
-        {
-            string gap = PartyWeaknessLine();
-            return string.IsNullOrEmpty(gap)
-                ? "Watch: balanced. Enter starts quickly; Customize opens the company table."
-                : $"Watch: {gap}. Enter starts quickly; Customize opens the company table.";
         }
 
         private string PartyWeaknessLine()
@@ -2212,13 +2165,17 @@ namespace AshenHalls
             foreach (MapObject obj in state.Map.Objects)
             {
                 if (Distance(obj.X, obj.Y, state.PlayerX, state.PlayerY) > ExploreRevealRadius) continue;
-                DrawExploreObject(new Rect(grid.x + obj.X * cell, grid.y + obj.Y * cell, cell, cell), obj.Type);
+                Rect objectCell = new Rect(grid.x + obj.X * cell, grid.y + obj.Y * cell, cell, cell);
+                DrawExploreObject(Pad(objectCell, -cell * 0.18f), obj.Type);
             }
 
             DrawExploreMovementHints(grid, cell);
-            Color leadColor = state.Party.Count > 0 ? MemberColor(state.Party[0]) : teal;
-            string leadSigil = state.Party.Count > 0 ? state.Party[0].Sigil : "bar";
-            DrawToken(new Rect(grid.x + state.PlayerX * cell + cell * 0.12f, grid.y + state.PlayerY * cell + cell * 0.12f, cell * 0.76f, cell * 0.76f), "party", leadColor, true, "Co", leadSigil);
+            PartyMember lead = state.Party.Count > 0 ? state.Party[0] : null;
+            Color leadColor = lead != null ? MemberColor(lead) : teal;
+            string leadSigil = lead != null ? lead.Sigil : "bar";
+            string leadRole = lead != null ? lead.Role : "shield";
+            Rect playerCell = new Rect(grid.x + state.PlayerX * cell, grid.y + state.PlayerY * cell, cell, cell);
+            DrawToken(Pad(playerCell, -cell * 0.26f), leadRole, leadColor, true, "", leadSigil);
             DrawExploreRegionStrip(grid);
             DrawExploreHover(grid, cell);
             HandleExploreMouse(grid, cell);
@@ -2251,16 +2208,16 @@ namespace AshenHalls
 
         private void DrawExploreRegionStrip(Rect grid)
         {
-            Rect strip = new Rect(grid.x, grid.y - 40, grid.width, 32);
-            DrawRect(strip, Hex("030405", 0.88f));
-            DrawBorder(strip, Hex("253029"), 1);
+            Rect strip = new Rect(grid.x + 8, Mathf.Max(grid.y + 8, 76f), grid.width - 16, 28);
+            DrawRect(strip, Hex("030405", 0.66f));
+            DrawBorder(strip, Hex("253029", 0.82f), 1);
             WorldZone zone = ZoneAt(state.PlayerX, state.PlayerY);
             string region = zone.Name;
             string underfoot = ExploreUnderfootLine(state.PlayerX, state.PlayerY);
-            GUI.Label(new Rect(strip.x + 10, strip.y + 5, strip.width * 0.25f, 20), region, CenterLeftStyle(14, gold));
-            GUI.Label(new Rect(strip.x + strip.width * 0.25f + 10, strip.y + 6, strip.width * 0.13f, 18), ZoneDangerText(zone), CenterLeftStyle(11, ZoneDangerColor(zone)));
-            GUI.Label(new Rect(strip.x + strip.width * 0.39f, strip.y + 6, strip.width * 0.34f, 18), underfoot, CenterLeftStyle(12, muted));
-            GUI.Label(new Rect(strip.xMax - 206, strip.y + 6, 196, 18), StoryChapterTitle(), CenterLeftStyle(11, muted));
+            GUI.Label(new Rect(strip.x + 10, strip.y + 4, strip.width * 0.25f, 18), region, CenterLeftStyle(13, gold));
+            GUI.Label(new Rect(strip.x + strip.width * 0.25f + 10, strip.y + 5, strip.width * 0.13f, 16), ZoneDangerText(zone), CenterLeftStyle(10, ZoneDangerColor(zone)));
+            GUI.Label(new Rect(strip.x + strip.width * 0.39f, strip.y + 5, strip.width * 0.34f, 16), underfoot, CenterLeftStyle(11, muted));
+            GUI.Label(new Rect(strip.xMax - 206, strip.y + 5, 196, 16), StoryChapterTitle(), CenterLeftStyle(10, muted));
         }
 
         private void DrawExploreHover(Rect grid, float cell)
@@ -2985,10 +2942,11 @@ namespace AshenHalls
             {
                 Rect c = new Rect(grid.x + x * cell, grid.y + y * cell, cell, cell);
                 DrawRect(c, (x + y) % 2 == 0 ? Hex("101612") : Hex("0b110f"));
+                Point obstacle = ObstacleAt(x, y);
+                DrawCombatTerrainTexture(c, x, y, obstacle);
                 DrawCombatSpeckles(c, x, y);
                 DrawBorder(c, Hex("253029", 0.28f), 1);
                 DrawCombatTileMotif(c, x, y);
-                Point obstacle = ObstacleAt(x, y);
                 if (obstacle != null)
                 {
                     DrawCombatObstacle(c, obstacle);
@@ -3010,7 +2968,7 @@ namespace AshenHalls
                 if (isActive) DrawActiveCursor(cellRect, cell);
                 DrawCombatStatusFrame(cellRect, unit, isActive, cell);
                 DrawUnitBase(cellRect, unit, cell);
-                DrawCombatUnitSprite(Pad(cellRect, cell * 0.035f), unit, isActive);
+                DrawCombatUnitSprite(Pad(cellRect, cell * 0.01f), unit, isActive);
                 Rect hp = new Rect(cellRect.x + cell * 0.15f, cellRect.yMax - cell * 0.14f, cell * 0.7f, cell * 0.07f);
                 DrawRect(hp, Hex("111619"));
                 DrawRect(new Rect(hp.x, hp.y, hp.width * Mathf.Clamp01((float)unit.Hp / unit.MaxHp), hp.height), unit.Side == UnitSide.Party ? ember : blood);
@@ -3037,6 +2995,58 @@ namespace AshenHalls
                 Color dot = i % 3 == 0 ? Hex("6f8d4d", 0.52f) : i % 3 == 1 ? Hex("37543a", 0.48f) : Hex("99a66a", 0.36f);
                 DrawRect(new Rect(rect.x + rect.width * px, rect.y + rect.height * py, size, size), dot);
             }
+        }
+
+        private void DrawCombatTerrainTexture(Rect rect, int x, int y, Point obstacle)
+        {
+            int index = CombatTerrainTextureIndex(x, y, obstacle);
+            if (index < 0) return;
+            float alpha = obstacle == null ? 0.58f : 0.66f;
+            if (TryDrawCombatTerrainAtlasIcon(Pad(rect, 1f), index, Color.white.WithAlpha(alpha)))
+            {
+                DrawRect(rect, Hex("030405", obstacle == null ? 0.18f : 0.10f));
+            }
+        }
+
+        private int CombatTerrainTextureIndex(int x, int y, Point obstacle)
+        {
+            string kind = obstacle?.Kind ?? "";
+            if (kind == "fire") return 14;
+            if (kind == "ice") return 12;
+            if (kind == "web") return 13;
+            if (kind == "gas") return 0;
+            if (kind == "stone") return 5;
+            if (kind == "tree") return 0;
+
+            int seed = Mathf.Abs(state.Seed + state.Depth * 193 + x * 37 + y * 71);
+            int variant = seed % 5;
+            if (state.Depth <= 1)
+            {
+                int[] road = { 0, 2, 3, 5, 15 };
+                return road[variant];
+            }
+            if (state.Depth == 2)
+            {
+                int[] cistern = { 10, 5, 3, 11, 9 };
+                return cistern[variant];
+            }
+            if (state.Depth == 3)
+            {
+                int[] cave = { 9, 11, 5, 3, 4 };
+                return cave[variant];
+            }
+            if (state.Depth == 4)
+            {
+                int[] glass = { 1, 12, 11, 5, 4 };
+                return glass[variant];
+            }
+            if (state.Depth == 5)
+            {
+                int[] red = { 6, 7, 14, 4, 15 };
+                return red[variant];
+            }
+            int[] final = { 7, 14, 4, 15, 6 };
+            return final[variant];
         }
 
         private void DrawActiveCursor(Rect cellRect, float cell)
@@ -3083,10 +3093,10 @@ namespace AshenHalls
             string marker = CombatFrameMarker(unit, active);
             if (!string.IsNullOrEmpty(marker))
             {
-                Rect tag = new Rect(outer.x + cell * 0.07f, outer.y + cell * 0.07f, cell * 0.30f, cell * 0.16f);
+                Rect tag = new Rect(outer.x + cell * 0.07f, outer.y + cell * 0.07f, cell * 0.42f, cell * 0.20f);
                 DrawRect(tag, Hex("030405", 0.84f));
                 DrawBorder(tag, status, 1);
-                GUI.Label(tag, marker, CenterStyle(Mathf.RoundToInt(Mathf.Clamp(cell * 0.12f, 8f, 12f)), status));
+                GUI.Label(tag, marker, CenterStyle(Mathf.RoundToInt(Mathf.Clamp(cell * 0.13f, 9f, 14f)), status));
             }
         }
 
@@ -3180,7 +3190,7 @@ namespace AshenHalls
         {
             if (state?.Combat?.Units == null) return;
             List<CombatUnit> queue = UpcomingUnits(7).ToList();
-            Rect strip = new Rect(grid.x, grid.y - 42, grid.width, 34);
+            Rect strip = new Rect(grid.x, Mathf.Max(grid.y - 42, 76f), grid.width, 34);
             DrawRect(strip, Hex("030405", 0.88f));
             DrawBorder(strip, Hex("253029"), 1);
             Rect queueIcon = new Rect(strip.x + 5, strip.y + 4, 24, 24);
@@ -3248,29 +3258,47 @@ namespace AshenHalls
             if (string.IsNullOrEmpty(text)) return;
             Point coverTarget = ObstacleAt(x, y);
             string title = HoverPreviewTitle(active, target, coverTarget);
-            int icon = selectedAction == ActionMode.Move ? 4 : selectedAction == ActionMode.Attack ? 8 : 7;
             Color accent = HoverPreviewAccent(text, target, coverTarget);
-            Rect box = PlaceCombatTooltip(Event.current.mousePosition, 416f, 128f);
+            Rect box = PlaceCombatTooltip(Event.current.mousePosition, 470f, 174f);
             DrawRect(box, Hex("080b0d", 0.96f));
             DrawBorder(box, accent, 1);
             DrawCombatUiCornerTrim(box, accent);
-            Rect previewIcon = new Rect(box.x + 7, box.y + 7, 28, 28);
-            if (!TryDrawCombatHudUiAtlasIcon(previewIcon, HoverPreviewHudIconIndex(), Color.white.WithAlpha(0.78f)))
-            {
-                TryDrawCombatUiAtlasIcon(previewIcon, icon, Color.white.WithAlpha(0.70f));
-            }
-            GUI.Label(new Rect(box.x + 42, box.y + 6, box.width - 158, 18), title, CenterLeftStyle(12, cursorWhite));
+            DrawActionButtonGlyph(new Rect(box.x + 10, box.y + 10, 46, 46), selectedAction, true, true);
+            GUI.Label(new Rect(box.x + 66, box.y + 7, box.width - 214, 20), title, CenterLeftStyle(13, cursorWhite));
             string[] previewLines = text.Split(new[] { '\n' }, 2);
-            GUI.Label(new Rect(box.x + 42, box.y + 26, box.width - 158, 16), FitText(previewLines[0], box.width - 158, CenterLeftStyle(11, ink)), CenterLeftStyle(11, ink));
+            string stateLine = $"{ActionName(selectedAction)} / {CombatPhaseLabel()} / Move {state.Combat.MovePoints} / {(state.Combat.ActionAvailable ? "Action ready" : "Action used")}";
+            GUI.Label(new Rect(box.x + 66, box.y + 29, box.width - 214, 16), FitText(stateLine, box.width - 214, CenterLeftStyle(10, state.Combat.ActionAvailable ? teal : ember)), CenterLeftStyle(10, state.Combat.ActionAvailable ? teal : ember));
+            GUI.Label(new Rect(box.x + 10, box.y + 62, box.width - 158, 17), FitText(previewLines[0], box.width - 158, CenterLeftStyle(12, ink)), CenterLeftStyle(12, ink));
             if (previewLines.Length > 1)
             {
-                GUI.Label(new Rect(box.x + 42, box.y + 44, box.width - 158, 14), FitText(previewLines[1], box.width - 158, CenterLeftStyle(9, muted)), CenterLeftStyle(9, muted));
+                GUI.Label(new Rect(box.x + 10, box.y + 83, box.width - 158, 16), FitText(previewLines[1], box.width - 158, CenterLeftStyle(10, muted)), CenterLeftStyle(10, muted));
             }
-            DrawHoverTargetMiniPanel(new Rect(box.xMax - 112, box.y + 8, 100, 70), target, coverTarget);
-            DrawPreviewChip(new Rect(box.x + 10, box.yMax - 50, 92, 18), CombatPhaseLabel(), violet);
-            DrawPreviewChip(new Rect(box.x + 108, box.yMax - 50, 96, 18), state.Combat.ActionAvailable ? "Action ready" : "Action used", state.Combat.ActionAvailable ? teal : ember);
-            DrawPreviewChip(new Rect(box.x + 210, box.yMax - 50, 80, 18), $"Move {state.Combat.MovePoints}", teal);
-            GUI.Label(new Rect(box.x + 10, box.yMax - 27, box.width - 20, 16), HoverClickInstruction(active, target, coverTarget, x, y) + " / " + ActionRuleLine(active), CenterLeftStyle(10, muted));
+            string tileLine = CombatHoverTileLine(x, y, coverTarget);
+            GUI.Label(new Rect(box.x + 10, box.y + 105, box.width - 158, 16), FitText(tileLine, box.width - 158, CenterLeftStyle(10, gold)), CenterLeftStyle(10, gold));
+            DrawHoverTargetMiniPanel(new Rect(box.xMax - 138, box.y + 10, 126, 104), target, coverTarget);
+            DrawPreviewChip(new Rect(box.x + 10, box.yMax - 50, 96, 18), ActionHotkeyLabel(selectedAction) + " key", teal);
+            DrawPreviewChip(new Rect(box.x + 112, box.yMax - 50, 104, 18), target != null ? ClassShortLabel(target) : IsBreakableCover(coverTarget) ? "Cover" : "Open tile", target != null ? CombatFrameColor(target, false) : gold);
+            DrawPreviewChip(new Rect(box.x + 222, box.yMax - 50, 92, 18), state.Combat.ActionAvailable ? "Ready" : "Used", state.Combat.ActionAvailable ? teal : ember);
+            GUI.Label(new Rect(box.x + 10, box.yMax - 27, box.width - 20, 16), FitText(HoverClickInstruction(active, target, coverTarget, x, y) + " / " + ActionRuleLine(active), box.width - 20, CenterLeftStyle(10, muted)), CenterLeftStyle(10, muted));
+        }
+
+        private string CombatHoverTileLine(int x, int y, Point cover)
+        {
+            if (IsBreakableCover(cover)) return $"{CoverName(cover)}: blocks movement and direct shots; arcing spells may pass.";
+            if (cover != null)
+            {
+                string kind = string.IsNullOrEmpty(cover.Kind) ? "terrain" : char.ToUpperInvariant(cover.Kind[0]) + cover.Kind.Substring(1);
+                return $"{kind}: {TerrainPreviewLine(cover).Trim()}";
+            }
+            int index = CombatTerrainTextureIndex(x, y, null);
+            if (index == 0) return "Terrain: grass or overgrowth, normal movement.";
+            if (index == 1) return "Terrain: snow, visual only for now.";
+            if (index == 2 || index == 3) return "Terrain: dirt road, normal movement.";
+            if (index == 9 || index == 11) return "Terrain: cave floor or rubble, normal movement.";
+            if (index == 10) return "Terrain: sewer grates, normal movement.";
+            if (index == 12) return "Terrain: ice texture. Spell-created ice adds move cost.";
+            if (index == 14) return "Terrain: scorched ground. Spell fire is dangerous.";
+            return "Terrain: old stone floor, normal movement.";
         }
 
         private Rect PlaceCombatTooltip(Vector2 mouse, float width, float height)
@@ -3326,9 +3354,11 @@ namespace AshenHalls
             if (target != null)
             {
                 GUI.Label(new Rect(rect.x + 6, rect.y + 4, rect.width - 12, 15), FitText(target.Name, rect.width - 12, CenterLeftStyle(10, cursorWhite)), CenterLeftStyle(10, cursorWhite));
-                DrawMiniCombatMeter(new Rect(rect.x + 6, rect.y + 27, rect.width - 12, 8), "HP", target.Hp, target.MaxHp, target.Side == UnitSide.Party ? ember : blood, 12);
+                GUI.Label(new Rect(rect.x + 6, rect.y + 21, rect.width - 12, 14), FitText(CombatIdentityLine(target), rect.width - 12, CenterLeftStyle(9, muted)), CenterLeftStyle(9, muted));
+                DrawMiniCombatMeter(new Rect(rect.x + 6, rect.y + 43, rect.width - 12, 8), "HP", target.Hp, target.MaxHp, target.Side == UnitSide.Party ? ember : blood, 12);
                 string status = StatusCompactLine(target);
-                GUI.Label(new Rect(rect.x + 6, rect.y + 47, rect.width - 12, 14), string.IsNullOrEmpty(status) ? EnemyThreatLine(target) : status, CenterLeftStyle(9, muted));
+                GUI.Label(new Rect(rect.x + 6, rect.y + 63, rect.width - 12, 14), string.IsNullOrEmpty(status) ? "steady" : status, CenterLeftStyle(9, string.IsNullOrEmpty(status) ? muted : gold));
+                GUI.Label(new Rect(rect.x + 6, rect.y + 81, rect.width - 12, 14), FitText(target.Side == UnitSide.Enemy ? EnemyThreatLine(target) : $"Range {target.Range} / {target.DamageType}", rect.width - 12, CenterLeftStyle(9, muted)), CenterLeftStyle(9, muted));
                 return;
             }
 
@@ -3337,10 +3367,12 @@ namespace AshenHalls
                 GUI.Label(new Rect(rect.x + 6, rect.y + 5, rect.width - 12, 15), CoverName(cover), CenterLeftStyle(10, cursorWhite));
                 GUI.Label(new Rect(rect.x + 6, rect.y + 28, rect.width - 12, 14), $"Integrity {CoverIntegrity(cover)}", CenterLeftStyle(9, gold));
                 GUI.Label(new Rect(rect.x + 6, rect.y + 46, rect.width - 12, 14), cover.Duration > 0 ? $"{cover.Duration} turns" : "permanent", CenterLeftStyle(9, muted));
+                GUI.Label(new Rect(rect.x + 6, rect.y + 66, rect.width - 12, 28), "Blocks movement and direct shots.", CenterLeftStyle(9, muted));
                 return;
             }
 
-            GUI.Label(new Rect(rect.x + 6, rect.y + 26, rect.width - 12, 16), "Open tile", CenterStyle(10, muted));
+            GUI.Label(new Rect(rect.x + 6, rect.y + 29, rect.width - 12, 16), "Open tile", CenterStyle(10, muted));
+            GUI.Label(new Rect(rect.x + 6, rect.y + 52, rect.width - 12, 30), "Movement and targeting preview use the selected action.", CenterStyle(9, muted));
         }
 
         private void DrawPreviewChip(Rect rect, string text, Color accent)
@@ -3972,12 +4004,14 @@ namespace AshenHalls
 
         private void DrawSidePanels()
         {
-            float sideW = Mathf.Clamp(Screen.width * 0.30f, 430f, 560f);
-            sideRect = new Rect(Screen.width - sideW - 12, 78, sideW, Screen.height - 90);
+            float sideW = Mathf.Clamp(Screen.width * 0.24f, 390f, 470f);
+            sideRect = new Rect(Screen.width - sideW - 12, 62, sideW, Screen.height - 74);
             float gap = 10f;
             float minLogH = Mathf.Min(190f, Mathf.Max(112f, sideRect.height * 0.20f));
-            float companyH = Mathf.Clamp(sideRect.height * (state.Mode == GameMode.Combat ? 0.50f : 0.45f), 260f, 430f);
-            float enemiesH = state.Mode == GameMode.Combat ? Mathf.Clamp(sideRect.height * 0.26f, 160f, 250f) : Mathf.Clamp(sideRect.height * 0.18f, 110f, 150f);
+            float companyH = state.Mode == GameMode.Combat
+                ? Mathf.Clamp(sideRect.height * 0.32f, 220f, 330f)
+                : Mathf.Clamp(sideRect.height * 0.42f, 250f, 390f);
+            float enemiesH = state.Mode == GameMode.Combat ? Mathf.Clamp(sideRect.height * 0.20f, 132f, 210f) : Mathf.Clamp(sideRect.height * 0.18f, 110f, 150f);
             if (companyH + enemiesH + minLogH + gap * 2f > sideRect.height)
             {
                 float usable = sideRect.height - minLogH - gap * 2f;
@@ -4063,33 +4097,26 @@ namespace AshenHalls
             DrawBorder(rect, active ? gold : line, active ? 2 : 1);
             DrawRect(new Rect(rect.x + 2, rect.y + 2, 3, rect.height - 4), accent);
 
-            float portraitSize = Mathf.Clamp(rect.height - 8f, compact ? 20f : 34f, 58f);
+            float portraitSize = Mathf.Clamp(rect.height - 6f, compact ? 22f : 40f, 68f);
             Rect portrait = new Rect(rect.x + 10, rect.y + (rect.height - portraitSize) * 0.5f, portraitSize, portraitSize);
             DrawMiniRolePortrait(portrait, member, accent);
             float classBadgeSize = Mathf.Clamp(portraitSize * 0.52f, 14f, 22f);
             DrawClassIcon(new Rect(portrait.xMax - classBadgeSize + 2f, portrait.y - 2f, classBadgeSize, classBadgeSize), member.ClassKey, member.Role, accent);
 
-            float meterW = Mathf.Clamp(rect.width * 0.30f, compact ? 96f : 124f, compact ? 128f : 166f);
+            float meterW = Mathf.Clamp(rect.width * 0.28f, compact ? 86f : 112f, compact ? 118f : 150f);
             float meterX = rect.xMax - meterW - 10f;
             float textX = portrait.xMax + 8f;
             float textW = Mathf.Max(90f, meterX - textX - 8f);
             GUIStyle nameStyle = CenterLeftStyle(compact ? 10 : rect.height < 54f ? 12 : 13, ink);
             GUIStyle metaStyle = CenterLeftStyle(compact ? 8 : rect.height < 54f ? 10 : 11, muted);
             GUI.Label(new Rect(textX, rect.y + (compact ? 2 : 4), textW, compact ? 12 : 16), FitText(member.Name, textW, nameStyle), nameStyle);
-            string roleLine = compact
-                ? $"{ClassShortLabel(member)} {DisplayClass(member.ClassKey)} / {BestSkillLabel(member)} {BestSkillValue(member)}"
-                : $"L{member.Level} {DisplayRace(member.Race)} {DisplayClass(member.ClassKey)} / {BestSkillLabel(member)} {BestSkillValue(member)}";
+            string roleLine = $"L{member.Level} {DisplayRace(member.Race)} {DisplayClass(member.ClassKey)}";
             GUI.Label(new Rect(textX, rect.y + (compact ? 14 : rect.height < 42f ? 19 : 22), textW, compact ? 10 : 13), FitText(roleLine, textW, metaStyle), metaStyle);
-            if (!compact && rect.height >= 54f)
-            {
-                GUI.Label(new Rect(textX, rect.y + 42, textW, 14), FitText(GearShortLine(member), textW, CenterLeftStyle(10, muted)), CenterLeftStyle(10, muted));
-            }
 
             float meterH = compact ? 4f : rect.height < 42f ? 5f : 6f;
             float meterY = compact ? rect.y + 5f : rect.y + Mathf.Max(6f, (rect.height - (meterH * 3f + 7f)) * 0.5f);
             DrawLabeledMeter(new Rect(meterX, meterY, meterW, meterH), "H", member.Hp, member.MaxHp, blood);
             DrawLabeledMeter(new Rect(meterX, meterY + meterH + (compact ? 3f : 4f), meterW, meterH), "M", member.Mana, member.MaxMana, teal);
-            if (!compact) DrawLabeledMeter(new Rect(meterX, meterY + (meterH + 4f) * 2f, meterW, meterH), "S", BestSkillValue(member), 50, gold);
         }
 
         private string GearShortLine(PartyMember member)
@@ -4225,8 +4252,8 @@ namespace AshenHalls
         {
             List<StatusMark> marks = StatusMarks(unit);
             if (marks.Count == 0) return;
-            float h = Mathf.Clamp(rect.height * 0.16f, 12f, 18f);
-            float w = Mathf.Clamp(rect.width * 0.36f, 24f, 42f);
+            float h = Mathf.Clamp(rect.height * 0.18f, 14f, 22f);
+            float w = Mathf.Clamp(rect.width * 0.44f, 32f, 54f);
             float gap = Mathf.Max(2f, rect.height * 0.018f);
             float x = rect.xMax - w - rect.width * 0.04f;
             float y = rect.y + rect.height * 0.25f;
@@ -4337,7 +4364,7 @@ namespace AshenHalls
 
         private void DrawCommandBar()
         {
-            Rect baseRect = new Rect(12, Screen.height - 78, sideRect.x - 24, 64);
+            Rect baseRect = new Rect(12, Screen.height - 88, sideRect.x - 24, 74);
             if (baseRect.width < 480) return;
             if (state.Mode == GameMode.Explore)
             {
@@ -4359,15 +4386,15 @@ namespace AshenHalls
                 bool playerTurn = active != null && active.Side == UnitSide.Party;
                 ActionMode[] modes = { ActionMode.Move, ActionMode.Attack, ActionMode.Cast, ActionMode.Guard, ActionMode.Elixir, ActionMode.Wait };
                 float gap = 10f;
-                float reservedStatus = baseRect.width >= 760f ? 230f : 0f;
-                float buttonW = Mathf.Clamp((baseRect.width - reservedStatus - gap * (modes.Length - 1)) / modes.Length, 56f, 76f);
+                float reservedStatus = baseRect.width >= 820f ? 250f : 0f;
+                float buttonW = Mathf.Clamp((baseRect.width - reservedStatus - gap * (modes.Length - 1)) / modes.Length, 62f, 88f);
                 bool hasHoveredButton = false;
                 ActionMode hoveredMode = ActionMode.Attack;
                 Rect hoveredRect = Rect.zero;
                 for (int i = 0; i < modes.Length; i++)
                 {
                     GUI.enabled = playerTurn && ActionEnabled(modes[i], active);
-                    Rect r = new Rect(baseRect.x + i * (buttonW + gap), baseRect.y + 4, buttonW, 56);
+                    Rect r = new Rect(baseRect.x + i * (buttonW + gap), baseRect.y + 5, buttonW, 64);
                     if (Event.current != null && r.Contains(Event.current.mousePosition))
                     {
                         hasHoveredButton = true;
@@ -4379,13 +4406,14 @@ namespace AshenHalls
                         SelectOrRunAction(modes[i], active);
                     }
                     DrawActionButtonGlyph(r, modes[i], playerTurn && ActionEnabled(modes[i], active), selectedAction == modes[i]);
+                    DrawActionHotkeyBadge(r, ActionHotkeyLabel(modes[i]), playerTurn && ActionEnabled(modes[i], active), selectedAction == modes[i]);
                     if (selectedAction == modes[i]) DrawBorder(r, gold, 2);
                 }
                 GUI.enabled = true;
                 float usedButtons = modes.Length * buttonW + (modes.Length - 1) * gap;
                 if (baseRect.width - usedButtons >= 132f)
                 {
-                    DrawCommandStatus(new Rect(baseRect.x + usedButtons + 14f, baseRect.y + 4, baseRect.width - usedButtons - 14f, 56), active, playerTurn);
+                    DrawCommandStatus(new Rect(baseRect.x + usedButtons + 14f, baseRect.y + 5, baseRect.width - usedButtons - 14f, 64), active, playerTurn);
                 }
                 if (betaLabMode)
                 {
@@ -4457,17 +4485,10 @@ namespace AshenHalls
             DrawRect(box, Hex("080b0d", 0.97f));
             DrawBorder(box, accent, 1);
             DrawCombatUiCornerTrim(box, accent);
-            Rect iconRect = new Rect(box.x + 8f, box.y + 8f, 28f, 28f);
-            if (!TryDrawCombatCommandIconAtlasIcon(iconRect, ActionCombatCommandIconIndex(mode), Color.white.WithAlpha(0.94f)) &&
-                !TryDrawCombatHudUiAtlasIcon(iconRect, ActionCombatHudIconIndex(mode), Color.white.WithAlpha(0.88f)) &&
-                !TryDrawCombatSpellbookUiAtlasIcon(iconRect, ActionCombatSpellbookUiIconIndex(mode), Color.white.WithAlpha(0.82f)) &&
-                !TryDrawSpellbookUiAtlasIcon(iconRect, ActionSpellbookIconIndex(mode), Color.white.WithAlpha(0.76f)))
-            {
-                TryDrawCombatUiAtlasIcon(iconRect, ActionCombatUiIconIndex(mode), Color.white.WithAlpha(0.68f));
-            }
-            GUI.Label(new Rect(box.x + 44f, box.y + 6f, box.width - 54f, 18f), ActionName(mode), CenterLeftStyle(12, cursorWhite));
+            DrawActionButtonGlyph(new Rect(box.x + 8f, box.y + 8f, 44f, 44f), mode, enabled, selectedAction == mode);
+            GUI.Label(new Rect(box.x + 60f, box.y + 6f, box.width - 70f, 18f), ActionName(mode), CenterLeftStyle(12, cursorWhite));
             string stateLine = enabled ? $"{ActionHotkeyLabel(mode)} / {ActionButtonSubLabel(mode, active)} / Ready" : DisabledActionReason(mode, active, playerTurn);
-            GUI.Label(new Rect(box.x + 44f, box.y + 26f, box.width - 54f, 15f), stateLine, CenterLeftStyle(10, enabled ? teal : ember));
+            GUI.Label(new Rect(box.x + 60f, box.y + 26f, box.width - 70f, 15f), stateLine, CenterLeftStyle(10, enabled ? teal : ember));
             GUI.Label(new Rect(box.x + 10f, box.y + 50f, box.width - 20f, 28f), ActionTooltipLine(mode, active), CenterLeftStyle(10, muted));
         }
 
@@ -4548,37 +4569,37 @@ namespace AshenHalls
         private void DrawActionButtonGlyph(Rect rect, ActionMode mode, bool enabled, bool selected)
         {
             Color color = enabled ? (selected ? gold : muted) : Hex("4f5558", 0.72f);
-            float iconSize = Mathf.Clamp(Mathf.Min(rect.width, rect.height) * 0.78f, 40f, 54f);
+            float iconSize = Mathf.Clamp(Mathf.Min(rect.width, rect.height) * 0.80f, 44f, 62f);
             Rect icon = new Rect(rect.center.x - iconSize * 0.5f, rect.center.y - iconSize * 0.5f, iconSize, iconSize);
             DrawRect(icon, Hex("050708", selected ? 0.76f : 0.54f));
             DrawBorder(icon, color.WithAlpha(selected ? 0.95f : 0.70f), 1);
             Rect inner = Pad(icon, 4f);
-            int commandIcon = ActionCombatCommandIconIndex(mode);
+            int commandIcon = -1;
             if (commandIcon >= 0 && TryDrawCombatCommandIconAtlasIcon(Pad(icon, 1f), commandIcon, Color.white.WithAlpha(enabled ? 0.96f : 0.34f)))
             {
                 return;
             }
-            int combatHudIcon = ActionCombatHudIconIndex(mode);
+            int combatHudIcon = -1;
             if (combatHudIcon >= 0 && TryDrawCombatHudUiAtlasIcon(Pad(icon, 1f), combatHudIcon, Color.white.WithAlpha(enabled ? 0.94f : 0.36f)))
             {
                 return;
             }
-            int combatSpellbookIcon = ActionCombatSpellbookUiIconIndex(mode);
+            int combatSpellbookIcon = -1;
             if (combatSpellbookIcon >= 0 && TryDrawCombatSpellbookUiAtlasIcon(Pad(icon, 1f), combatSpellbookIcon, Color.white.WithAlpha(enabled ? 0.90f : 0.36f)))
             {
                 return;
             }
-            int spellbookIcon = ActionSpellbookIconIndex(mode);
+            int spellbookIcon = -1;
             if (spellbookIcon >= 0 && TryDrawSpellbookUiAtlasIcon(Pad(icon, 1f), spellbookIcon, Color.white.WithAlpha(enabled ? 0.88f : 0.36f)))
             {
                 return;
             }
-            int combatUiIndex = ActionCombatUiIconIndex(mode);
+            int combatUiIndex = -1;
             if (combatUiIndex >= 0 && TryDrawCombatUiAtlasIcon(Pad(icon, 1f), combatUiIndex, Color.white.WithAlpha(enabled ? 0.84f : 0.36f)))
             {
                 return;
             }
-            int atlasIndex = ActionMagicIconIndex(mode);
+            int atlasIndex = -1;
             if (atlasIndex >= 0 && TryDrawMagicUiAtlasIcon(Pad(icon, 1f), atlasIndex, Color.white.WithAlpha(enabled ? 0.95f : 0.42f)))
             {
                 return;
@@ -4621,11 +4642,11 @@ namespace AshenHalls
 
         private void DrawActionHotkeyBadge(Rect rect, string hotkey, bool enabled, bool selected)
         {
-            Rect badge = new Rect(rect.x + 6f, rect.y + 5f, 18f, 18f);
+            Rect badge = new Rect(rect.x + 7f, rect.y + 6f, 22f, 22f);
             Color accent = selected ? gold : enabled ? teal : line;
             DrawRect(badge, Hex("030405", 0.86f));
             DrawBorder(badge, accent.WithAlpha(0.82f), 1);
-            GUI.Label(badge, hotkey, CenterStyle(10, enabled ? cursorWhite : muted));
+            GUI.Label(badge, hotkey, CenterStyle(11, enabled ? cursorWhite : muted));
         }
 
         private int ActionCombatSpellbookUiIconIndex(ActionMode mode)
@@ -5323,6 +5344,11 @@ namespace AshenHalls
             if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S)) TryMoveExplore(0, 1);
             if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A)) TryMoveExplore(-1, 0);
             if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D)) TryMoveExplore(1, 0);
+            if (Input.GetKeyDown(KeyCode.F)) ToggleArmory(0);
+            if (Input.GetKeyDown(KeyCode.G)) ToggleArmory(2);
+            if (Input.GetKeyDown(KeyCode.H)) UseElixir();
+            if (Input.GetKeyDown(KeyCode.R)) Camp();
+            if (Input.GetKeyDown(KeyCode.T) && CanDescend()) Descend();
         }
 
         private void TryMoveExplore(int dx, int dy)
@@ -6009,12 +6035,12 @@ namespace AshenHalls
             CombatUnit active = CurrentUnit();
             if (active == null || active.Side != UnitSide.Party) return;
 
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)) TryHotkeyAction(ActionMode.Move, active);
-            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)) TryHotkeyAction(ActionMode.Attack, active);
-            if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)) TryHotkeyAction(ActionMode.Cast, active);
-            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) TryHotkeyAction(ActionMode.Guard, active);
-            if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)) TryHotkeyAction(ActionMode.Elixir, active);
-            if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6) || Input.GetKeyDown(KeyCode.Space)) TryHotkeyAction(ActionMode.Wait, active);
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1) || Input.GetKeyDown(KeyCode.Z)) TryHotkeyAction(ActionMode.Move, active);
+            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2) || Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.F)) TryHotkeyAction(ActionMode.Attack, active);
+            if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3) || Input.GetKeyDown(KeyCode.C) || Input.GetKeyDown(KeyCode.R)) TryHotkeyAction(ActionMode.Cast, active);
+            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4) || Input.GetKeyDown(KeyCode.G)) TryHotkeyAction(ActionMode.Guard, active);
+            if (Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5) || Input.GetKeyDown(KeyCode.H)) TryHotkeyAction(ActionMode.Elixir, active);
+            if (Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.T)) TryHotkeyAction(ActionMode.Wait, active);
         }
 
         private void TryHotkeyAction(ActionMode mode, CombatUnit active)
@@ -8294,13 +8320,13 @@ namespace AshenHalls
 
         private Rect GetBoardRect()
         {
-            float sideW = Mathf.Clamp(Screen.width * 0.30f, 430f, 560f);
-            return new Rect(12, 78, Screen.width - sideW - 36, Screen.height - 166);
+            float sideW = Mathf.Clamp(Screen.width * 0.24f, 390f, 470f);
+            return new Rect(12, 12, Screen.width - sideW - 36, Screen.height - 124);
         }
 
         private Rect BoardInnerRect(Rect outer, int w, int h)
         {
-            Rect inner = new Rect(outer.x + 36, outer.y + 34, outer.width - 72, outer.height - 68);
+            Rect inner = new Rect(outer.x + 22, outer.y + 24, outer.width - 44, outer.height - 42);
             float aspect = (float)w / h;
             if (inner.width / inner.height > aspect)
             {
@@ -8319,7 +8345,7 @@ namespace AshenHalls
 
         private Rect CombatBoardInnerRect(Rect outer)
         {
-            Rect inner = new Rect(outer.x + 36, outer.y + 56, outer.width - 72, outer.height - 124);
+            Rect inner = new Rect(outer.x + 22, outer.y + 42, outer.width - 44, outer.height - 92);
             float aspect = (float)CombatW / CombatH;
             if (inner.width / inner.height > aspect)
             {
@@ -8677,6 +8703,22 @@ namespace AshenHalls
             return DrawTextureRegionTint(creatureSpriteAtlas, rect, CreatureSpriteAtlasCell(index), tint);
         }
 
+        private bool IsCombatTerrainAtlas()
+        {
+            return combatTerrainAtlas != null && Mathf.Abs(combatTerrainAtlas.width - combatTerrainAtlas.height) < 8 && combatTerrainAtlas.width >= 768;
+        }
+
+        private Rect CombatTerrainAtlasCell(int index)
+        {
+            return AtlasCell(combatTerrainAtlas, index, 4, 4);
+        }
+
+        private bool TryDrawCombatTerrainAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsCombatTerrainAtlas() || index < 0) return false;
+            return DrawTextureRegionTint(combatTerrainAtlas, rect, CombatTerrainAtlasCell(index), tint);
+        }
+
         private int CombatUiIconIndex(string icon)
         {
             switch ((icon ?? "").ToLowerInvariant())
@@ -8950,7 +8992,7 @@ namespace AshenHalls
             int index = EnvironmentTileAtlasIndex(tile, kind);
             if (index < 0) return false;
             float n = (ExploreNoise(x, y, 43) % 9) / 8f;
-            float alpha = tile == 0 ? Mathf.Lerp(0.42f, 0.62f, n) : Mathf.Lerp(0.34f, 0.56f, n);
+            float alpha = tile == 0 ? Mathf.Lerp(0.54f, 0.78f, n) : Mathf.Lerp(0.48f, 0.72f, n);
             DrawTextureRegionTint(worldObjectAtlas, rect, AtlasCell(worldObjectAtlas, index, 5, 4), Color.white.WithAlpha(alpha));
             return true;
         }
@@ -9161,7 +9203,7 @@ namespace AshenHalls
         private bool TryDrawAtlasCombatSprite(Rect rect, CombatUnit unit)
         {
             int creatureIndex = CreatureSpriteIndex(unit);
-            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, rect.width * 0.02f), creatureIndex, Color.white)) return true;
+            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, -rect.width * 0.015f), creatureIndex, Color.white)) return true;
             if (unit != null && unit.Side == UnitSide.Enemy)
             {
                 int enemyWorldIndex = EnemyWorldEnemyIndex(unit.Role);
@@ -9175,7 +9217,7 @@ namespace AshenHalls
         private bool TryDrawAtlasPartyPortrait(Rect rect, string role)
         {
             int creatureIndex = CreatureSpriteIndexForRole(role, UnitSide.Party);
-            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, rect.width * 0.03f), creatureIndex, Color.white)) return true;
+            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, -rect.width * 0.01f), creatureIndex, Color.white)) return true;
             int index = SpriteSheetIndexForRole(role, UnitSide.Party);
             if (index < 0) return false;
             DrawRect(Pad(rect, rect.width * 0.05f), Hex("050708", 0.65f));
@@ -9187,7 +9229,7 @@ namespace AshenHalls
         {
             if (unit == null || unit.Side != UnitSide.Enemy) return false;
             int creatureIndex = CreatureSpriteIndex(unit);
-            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, rect.width * 0.02f), creatureIndex, Color.white)) return true;
+            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, -rect.width * 0.01f), creatureIndex, Color.white)) return true;
             int enemyWorldIndex = EnemyWorldEnemyIndex(unit.Role);
             if (enemyWorldIndex >= 0 && TryDrawEnemyWorldObjectAtlasIcon(Pad(rect, rect.width * 0.03f), enemyWorldIndex, Color.white)) return true;
             int bossIndex = BossEnemyIndex(unit.Role);
@@ -9755,7 +9797,7 @@ namespace AshenHalls
         private void DrawCombatSpriteBadges(Rect rect, CombatUnit unit, Color accent)
         {
             if (unit == null) return;
-            float badge = Mathf.Clamp(rect.width * 0.24f, 18f, 30f);
+            float badge = Mathf.Clamp(rect.width * 0.28f, 20f, 42f);
             Rect topLeft = new Rect(rect.x + rect.width * 0.08f, rect.y + rect.height * 0.08f, badge, badge);
             Rect topRight = new Rect(rect.xMax - rect.width * 0.08f - badge, rect.y + rect.height * 0.08f, badge, badge);
             Rect bottomLeft = new Rect(rect.x + rect.width * 0.08f, rect.yMax - rect.height * 0.11f - badge, badge, badge);
@@ -9763,51 +9805,35 @@ namespace AshenHalls
             if (unit.Side == UnitSide.Party)
             {
                 Color roleColor = RoleColor(unit.Role);
-                DrawClassIcon(topLeft, unit.ClassKey, unit.Role, roleColor);
+                DrawCombatBadgeLabel(topLeft, ClassShortLabel(unit), roleColor);
             }
             else
             {
                 Color threat = DamageColor(string.IsNullOrEmpty(unit.DamageType) ? "physical" : unit.DamageType);
-                DrawRect(topLeft, Hex("050708", 0.72f));
-                DrawBorder(topLeft, threat, 1);
-                if (unit.Range > 1) DrawRect(new Rect(topLeft.x + badge * 0.18f, topLeft.y + badge * 0.46f, badge * 0.64f, badge * 0.10f), threat);
-                else DrawPixelCross(Pad(topLeft, badge * 0.26f), threat);
+                DrawCombatBadgeLabel(topLeft, ClassShortLabel(unit), threat);
             }
 
             if (unit.Range > 1 || !string.IsNullOrEmpty(unit.Spell) || IsCasterEnemy(unit))
             {
                 Color mark = !string.IsNullOrEmpty(unit.Spell) ? SpellSchoolColor(unit.Spell) : DamageColor(unit.DamageType);
-                DrawRect(topRight, Hex("050708", 0.72f));
-                DrawBorder(topRight, mark, 1);
-                if (unit.Range > 1)
-                {
-                    DrawRect(new Rect(topRight.x + badge * 0.18f, topRight.y + badge * 0.30f, badge * 0.48f, badge * 0.08f), mark);
-                    DrawRect(new Rect(topRight.x + badge * 0.58f, topRight.y + badge * 0.22f, badge * 0.16f, badge * 0.24f), mark);
-                    DrawRect(new Rect(topRight.x + badge * 0.28f, topRight.y + badge * 0.58f, badge * 0.54f, badge * 0.07f), Color.Lerp(mark, cursorWhite, 0.26f));
-                    GUI.Label(new Rect(topRight.x, topRight.y + badge * 0.62f, badge, badge * 0.35f), unit.Range.ToString(), CenterStyle(Mathf.RoundToInt(Mathf.Clamp(badge * 0.38f, 8f, 12f)), cursorWhite));
-                }
-                else
-                {
-                    DrawPixelCross(Pad(topRight, badge * 0.24f), mark);
-                }
+                string label = unit.Range > 1 ? "R" + unit.Range : "CST";
+                DrawCombatBadgeLabel(topRight, label, mark);
             }
 
             if (unit.Guarding || unit.Shielded > 0 || unit.Webbed > 0)
             {
                 Color stateColor = unit.Webbed > 0 ? Hex("d9d3c4") : unit.Shielded > 0 ? teal : gold;
-                DrawRect(bottomLeft, Hex("050708", 0.72f));
-                DrawBorder(bottomLeft, stateColor, 1);
-                if (unit.Webbed > 0)
-                {
-                    DrawRect(new Rect(bottomLeft.x + badge * 0.16f, bottomLeft.y + badge * 0.45f, badge * 0.68f, badge * 0.08f), stateColor);
-                    DrawRect(new Rect(bottomLeft.x + badge * 0.46f, bottomLeft.y + badge * 0.14f, badge * 0.08f, badge * 0.72f), stateColor);
-                }
-                else
-                {
-                    DrawBorder(Pad(bottomLeft, badge * 0.20f), stateColor, 1);
-                    DrawRect(new Rect(bottomLeft.x + badge * 0.40f, bottomLeft.y + badge * 0.30f, badge * 0.20f, badge * 0.42f), stateColor);
-                }
+                DrawCombatBadgeLabel(bottomLeft, unit.Webbed > 0 ? "WEB" : unit.Shielded > 0 ? "WRD" : "GRD", stateColor);
             }
+        }
+
+        private void DrawCombatBadgeLabel(Rect rect, string label, Color accent)
+        {
+            DrawRect(rect, Hex("030405", 0.82f));
+            DrawBorder(rect, accent.WithAlpha(0.92f), 1);
+            DrawRect(new Rect(rect.x + 2f, rect.y + 2f, rect.width - 4f, Mathf.Max(2f, rect.height * 0.13f)), accent.WithAlpha(0.34f));
+            GUIStyle style = CenterStyle(Mathf.RoundToInt(Mathf.Clamp(rect.height * 0.32f, 8f, 13f)), cursorWhite);
+            GUI.Label(Pad(rect, 2f), FitText(label, rect.width - 4f, style), style);
         }
 
         private void DrawCombatSpriteCasterMarks(Rect rect, CombatUnit unit)
