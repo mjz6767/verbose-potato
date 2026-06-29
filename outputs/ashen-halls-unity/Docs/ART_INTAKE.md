@@ -11,6 +11,7 @@ Use these prefixes when creating replacement or expansion atlases:
 - `tavern-backdrop-runtime-v0.xx.png`
 - `tavern-ui-atlas-runtime-v0.xx.png`
 - `creature-sprite-atlas-runtime-v0.xx.png`
+- `combat-sprite-atlas-runtime-v0.xx.png` (accepted alias for creature/combat board sprites)
 - `combat-sprite-sheet-alpha-v0.xx.png`
 - `enemy-roster-atlas-runtime-v0.xx.png`
 - `enemy-world-object-atlas-runtime-v0.xx.png`
@@ -20,6 +21,7 @@ Use these prefixes when creating replacement or expansion atlases:
 - `world-object-atlas-runtime-v0.xx.png`
 - `quest-world-object-atlas-runtime-v0.xx.png`
 - `item-equipment-atlas-runtime-v0.xx.png`
+- `item-inventory-atlas-runtime-v0.xx.png` (accepted alias for item/equipment icons)
 - `item-icon-atlas-runtime-v0.xx.png`
 - `inventory-consumable-atlas-runtime-v0.xx.png`
 - `class-icon-atlas-runtime-v0.xx.png`
@@ -32,6 +34,7 @@ Use these prefixes when creating replacement or expansion atlases:
 - `spell-card-icons-reference-v0.xx.png`
 - `ember-spell-effects-atlas-runtime-v0.xx.png`
 - `epic-spell-effects-atlas-runtime-v0.xx.png`
+- `combat-spell-effects-atlas-runtime-v0.xx.png` (accepted alias for large spell/effect art)
 - `combat-spell-float-atlas-runtime-v0.xx.png`
 
 Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-runtime-v0.51.png`.

@@ -11,7 +11,7 @@ namespace AshenHalls.Editor
 {
     public static class BuildWindows
     {
-        private const string PackageVersion = "v0.50.2";
+        private const string PackageVersion = "v0.50.3";
 
         public static void Build()
         {

@@ -1,4 +1,4 @@
-Ashen Halls v0.50.2 - Beta RPG Scaffold
+Ashen Halls v0.50.3 - Beta RPG Scaffold
 
 Unzip the folder, then run AshenHalls.exe.
 
@@ -28,6 +28,7 @@ Controls:
 - Combat action UI v0.50.1: action buttons are now larger icon-first controls with readable hotkey badges, hover help, and a wider command bar.
 - Combat UI v0.47.2: the default window is larger, combat grid/readout spacing is cleaner, action buttons are wider with readable icons plus sublabels, and the tiny stacked button-art issue is fixed.
 - Combat movement: movement spends distance, so you can take a short step, keep remaining move, then still attack or cast.
+- Combat movement v0.50.3: movement previews and clicks now use path-aware reachable tiles, so a unit cannot slide through creatures, trees, or stone cover just because the destination tile is open.
 - Combat previews: the active unit, upcoming turn queue, move budget, action state, reachable tiles, attack targets, spell targets, cover warnings, expected damage, resistance/weakness, guard notes, and terrain warnings are visible during the turn.
 - Target reticles: hover-aim now draws in-tile badges for move cost, hit chance, spell path, blocked casts, and cover durability.
 - Spell aim trace: while aiming a spell, the board now draws a pixel path from caster to target. Direct paths are straight, blocked paths mark tree cover, and arcing spells visibly hop over cover.
@@ -115,6 +116,7 @@ Controls:
 - Reduced Motion and SFX controls can be changed from the Muster screen and in play.
 
 Release notes:
+- v0.50.3 is a focused audit-fix build: combat movement now uses path-aware reachable tiles for highlights, hover previews, and actual movement; combat board clicks are guarded while Armory or Spellbook overlays are open. Save data remains version 17.
 - v0.50.2 is an art-intake and parallel-workflow pass: runtime atlas loading now prefers the newest matching versioned PNG by filename prefix, `Docs/ART_INTAKE.md` documents the naming/grid contract for art threads, and the Windows build helper targets v0.50.2. Save data remains version 17.
 - v0.50.1 is a tester-facing UI cleanup pass: larger 1920x1080 default window, tavern wording changed to Customize Party, landing clutter/route footer removed, combat sidebars simplified, board/sprite/badge sizing increased, combat command hotkey badges restored, a new generated combat terrain atlas added, hover tooltips expanded, fragile small generated button/sprite overlays replaced with clearer procedural labels, and extra keyboard aliases added for WASD plus F/G/H/R/T/Z/X/C. Save data remains version 17.
 - v0.50.0 is a major runtime graphics and UI repair pass: added three generated v0.50 art sheets for consumables/loot, combat command icons, and creature sprites; wired them into resource counters, cache rewards, command buttons/tooltips, party portraits, enemy portraits, and combat board sprites; removed the tavern company preview from the landing screen; shrank top chrome across the game; and made combat actions icon-only with tooltip details. Save data remains version 17.

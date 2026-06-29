@@ -17,9 +17,10 @@ namespace AshenHalls
         private const int PartySize = 4;
         private const int StatPointBudget = 50;
         private const int CombatMoveAllowance = 3;
+        private const int UnreachableMoveCost = 999;
         private const int SummonedTreeDuration = 8;
         private const int FinalBossDepth = 6;
-        private const string PackageVersion = "v0.50.2";
+        private const string PackageVersion = "v0.50.3";
         private const string GameTitle = "Ashen Halls";
         private const string GameSubtitle = "The Old Road";
         private const string BuildStage = "Beta RPG Scaffold";
@@ -848,12 +849,12 @@ namespace AshenHalls
             combatSpriteSheet = LoadLatestExternalPng("combat-sprite-sheet-alpha-", "combat-sprite-sheet-alpha-v0.43.png") ?? LoadExternalPng("combat-sprite-sheet-alpha-v0.29.png");
             classIconAtlas = LoadLatestExternalPng("class-icon-atlas-runtime-", "class-icon-atlas-runtime-v0.40.png");
             worldObjectAtlas = LoadLatestExternalPng("world-environment-atlas-runtime-", "world-environment-atlas-runtime-v0.43.png") ?? LoadLatestExternalPng("world-object-atlas-runtime-", "world-object-atlas-runtime-v0.41.png");
-            itemIconAtlas = LoadLatestExternalPng("item-equipment-atlas-runtime-", "item-equipment-atlas-runtime-v0.47.png") ?? LoadLatestExternalPng("item-icon-atlas-runtime-", "item-icon-atlas-runtime-v0.43.png");
+            itemIconAtlas = LoadLatestExternalPng("item-equipment-atlas-runtime-", "item-equipment-atlas-runtime-v0.47.png") ?? LoadLatestExternalPng("item-inventory-atlas-runtime-", "") ?? LoadLatestExternalPng("item-icon-atlas-runtime-", "item-icon-atlas-runtime-v0.43.png");
             enemyRosterAtlas = LoadLatestExternalPng("enemy-roster-atlas-runtime-", "enemy-roster-atlas-runtime-v0.43.png");
             combatUiAtlas = LoadLatestExternalPng("combat-ui-atlas-runtime-", "combat-ui-atlas-runtime-v0.44.png");
             spellbookUiAtlas = LoadLatestExternalPng("spellbook-combat-ui-atlas-runtime-", "spellbook-combat-ui-atlas-runtime-v0.46.png");
             emberSpellAtlas = LoadLatestExternalPng("ember-spell-effects-atlas-runtime-", "ember-spell-effects-atlas-runtime-v0.46.png");
-            epicSpellEffectsAtlas = LoadLatestExternalPng("epic-spell-effects-atlas-runtime-", "epic-spell-effects-atlas-runtime-v0.47.png");
+            epicSpellEffectsAtlas = LoadLatestExternalPng("combat-spell-effects-atlas-runtime-", "") ?? LoadLatestExternalPng("epic-spell-effects-atlas-runtime-", "epic-spell-effects-atlas-runtime-v0.47.png");
             combatSpellbookUiAtlas = LoadLatestExternalPng("combat-spellbook-ui-atlas-runtime-", "combat-spellbook-ui-atlas-runtime-v0.47.png");
             bossEnemyAtlas = LoadLatestExternalPng("boss-enemy-atlas-runtime-", "boss-enemy-atlas-runtime-v0.47.png");
             questWorldAtlas = LoadLatestExternalPng("quest-world-object-atlas-runtime-", "quest-world-object-atlas-runtime-v0.47.png");
@@ -865,7 +866,7 @@ namespace AshenHalls
             tavernUiAtlas = LoadLatestExternalPng("tavern-ui-atlas-runtime-", "tavern-ui-atlas-runtime-v0.49.png");
             inventoryConsumableAtlas = LoadLatestExternalPng("inventory-consumable-atlas-runtime-", "inventory-consumable-atlas-runtime-v0.50.png");
             combatCommandIconAtlas = LoadLatestExternalPng("combat-command-icon-atlas-runtime-", "combat-command-icon-atlas-runtime-v0.50.png");
-            creatureSpriteAtlas = LoadLatestExternalPng("creature-sprite-atlas-runtime-", "creature-sprite-atlas-runtime-v0.50.png");
+            creatureSpriteAtlas = LoadLatestExternalPng("combat-sprite-atlas-runtime-", "") ?? LoadLatestExternalPng("creature-sprite-atlas-runtime-", "creature-sprite-atlas-runtime-v0.50.png");
             combatTerrainAtlas = LoadLatestExternalPng("combat-terrain-atlas-runtime-", "combat-terrain-atlas-runtime-v0.50.1.png");
             spriteCellMetrics.Clear();
         }
@@ -895,7 +896,7 @@ namespace AshenHalls
             {
                 Debug.LogWarning("Could not load latest external art for " + filePrefix + ": " + ex.Message);
             }
-            return LoadExternalPng(fallbackFileName);
+            return string.IsNullOrEmpty(fallbackFileName) ? null : LoadExternalPng(fallbackFileName);
         }
 
         private Texture2D LoadExternalPng(string fileName)
@@ -3262,6 +3263,7 @@ namespace AshenHalls
                 string terrain = TerrainPreviewLine(ObstacleAt(x, y));
                 if (distance <= 0) text = "current tile";
                 else if (!CanStandAt(x, y)) text = "blocked";
+                else if (moveCost >= UnreachableMoveCost) text = $"path blocked{terrain}";
                 else if (moveCost <= state.Combat.MovePoints) text = $"move {moveCost}, {state.Combat.MovePoints - moveCost} left{terrain}";
                 else text = $"too far by {moveCost - state.Combat.MovePoints}{terrain}";
             }
@@ -3412,7 +3414,8 @@ namespace AshenHalls
         {
             if (selectedAction == ActionMode.Move)
             {
-                return CanStandAt(x, y) && MoveCostTo(active, x, y) <= state.Combat.MovePoints ? "Click to move" : "Cannot move there";
+                int moveCost = MoveCostTo(active, x, y);
+                return CanStandAt(x, y) && moveCost < UnreachableMoveCost && moveCost <= state.Combat.MovePoints ? "Click to move" : "Cannot move there";
             }
             if (selectedAction == ActionMode.Attack)
             {
@@ -3444,8 +3447,10 @@ namespace AshenHalls
             if (selectedAction == ActionMode.Move)
             {
                 int moveCost = MoveCostTo(active, x, y);
-                color = CanStandAt(x, y) && moveCost <= state.Combat.MovePoints ? teal : Hex("8a5c35");
-                DrawTargetBadge(tile, CanStandAt(x, y) ? moveCost.ToString() : "X", color, CanStandAt(x, y) && moveCost <= state.Combat.MovePoints);
+                bool reachable = CanStandAt(x, y) && moveCost < UnreachableMoveCost;
+                bool valid = reachable && moveCost <= state.Combat.MovePoints;
+                color = valid ? teal : Hex("8a5c35");
+                DrawTargetBadge(tile, reachable ? moveCost.ToString() : "X", color, valid);
             }
             else if (selectedAction == ActionMode.Attack && target != null)
             {
@@ -3899,12 +3904,13 @@ namespace AshenHalls
         {
             if (selectedAction == ActionMode.Move && state.Combat.MovePoints > 0)
             {
+                int[,] reachable = ReachableMoveCosts(active);
                 for (int y = 0; y < CombatH; y++)
                 for (int x = 0; x < CombatW; x++)
                 {
                     int distance = Distance(x, y, active.X, active.Y);
-                    int moveCost = MoveCostTo(active, x, y);
-                    if (distance > 0 && moveCost <= state.Combat.MovePoints && CanStandAt(x, y))
+                    int moveCost = reachable[x, y];
+                    if (distance > 0 && moveCost < UnreachableMoveCost && moveCost <= state.Combat.MovePoints && CanStandAt(x, y))
                     {
                         float alpha = Mathf.Lerp(0.30f, 0.14f, moveCost / (float)(CombatMoveAllowance + 2));
                         Point terrain = ObstacleAt(x, y);
@@ -6859,6 +6865,12 @@ namespace AshenHalls
             if (distance <= 0) return;
             if (!CanStandAt(x, y))
             {
+                PlaySfx("blocked");
+                return;
+            }
+            if (moveCost >= UnreachableMoveCost)
+            {
+                PushLog("No clear path to that tile.", Tone.Warn);
                 PlaySfx("blocked");
                 return;
             }
@@ -11450,8 +11462,56 @@ namespace AshenHalls
 
         private int MoveCostTo(CombatUnit active, int x, int y)
         {
-            if (active == null) return 99;
-            return Distance(x, y, active.X, active.Y) + TerrainMoveExtraCost(ObstacleAt(x, y), active);
+            if (active == null) return UnreachableMoveCost;
+            if (x == active.X && y == active.Y) return 0;
+            if (x < 0 || x >= CombatW || y < 0 || y >= CombatH) return UnreachableMoveCost;
+            return ReachableMoveCosts(active)[x, y];
+        }
+
+        private int[,] ReachableMoveCosts(CombatUnit active)
+        {
+            int[,] costs = new int[CombatW, CombatH];
+            for (int yy = 0; yy < CombatH; yy++)
+            for (int xx = 0; xx < CombatW; xx++)
+            {
+                costs[xx, yy] = UnreachableMoveCost;
+            }
+
+            if (active == null || active.X < 0 || active.X >= CombatW || active.Y < 0 || active.Y >= CombatH) return costs;
+
+            int maxCost = UnitMoveAllowance(active);
+            Queue<Vector2Int> open = new Queue<Vector2Int>();
+            costs[active.X, active.Y] = 0;
+            open.Enqueue(new Vector2Int(active.X, active.Y));
+
+            int[] dx = { 1, -1, 0, 0 };
+            int[] dy = { 0, 0, 1, -1 };
+            while (open.Count > 0)
+            {
+                Vector2Int current = open.Dequeue();
+                int currentCost = costs[current.x, current.y];
+                for (int i = 0; i < 4; i++)
+                {
+                    int nx = current.x + dx[i];
+                    int ny = current.y + dy[i];
+                    if (!CanEnterMoveTile(active, nx, ny)) continue;
+                    int stepCost = 1 + TerrainMoveExtraCost(ObstacleAt(nx, ny), active);
+                    int nextCost = currentCost + stepCost;
+                    if (nextCost > maxCost || nextCost >= costs[nx, ny]) continue;
+                    costs[nx, ny] = nextCost;
+                    open.Enqueue(new Vector2Int(nx, ny));
+                }
+            }
+
+            return costs;
+        }
+
+        private bool CanEnterMoveTile(CombatUnit active, int x, int y)
+        {
+            if (x < 0 || x >= CombatW || y < 0 || y >= CombatH) return false;
+            if (IsBlockingTerrain(ObstacleAt(x, y))) return false;
+            CombatUnit blocker = UnitAt(x, y);
+            return blocker == null || active != null && !string.IsNullOrEmpty(active.Id) && blocker.Id == active.Id;
         }
 
         private int TerrainMoveExtraCost(Point terrain, CombatUnit active = null)

@@ -1,6 +1,7 @@
 Ashen Halls Known Issues
 
 Current practical notes:
+- v0.50.3 fixes the highest-impact movement audit issue: player movement now uses reachable paths instead of destination-only Manhattan distance. Enemy movement already used step selection and can be deepened later.
 - v0.50.2 auto-loads the newest matching runtime art atlas by filename prefix. This makes art iteration faster, but malformed replacement atlases can still look wrong if their grid layout does not match `Docs/ART_INTAKE.md`.
 - v0.50.1 switches small combat command and sprite-corner overlays back to procedural glyphs/text because generated icon crops were too noisy at that scale. Generated art remains used for larger sprites, terrain, items, and panels.
 - v0.50.1 adds a generated combat terrain atlas. It is runtime-visible now, but the tiles are still broad source art and will need later hand-cleaning into tighter tileable pixel textures.

@@ -2,6 +2,15 @@
 
 All changes are original to Ashen Halls. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v0.50.3 - Path-Aware Combat Movement
+
+- Added a small BFS reachable-tile helper for combat movement.
+- Movement highlights, hover previews, target badges, and actual movement now agree on the same path-aware movement cost.
+- Units can no longer move through intervening combatants, trees, or stone cover when the landing tile is open.
+- Added runtime intake aliases for the art thread's v0.51 drops: `combat-sprite-atlas-*`, `item-inventory-atlas-*`, and `combat-spell-effects-atlas-*`.
+- Confirmed combat board clicks return early while Armory or Spellbook overlays are open.
+- Kept save data at version 17 because this pass changes combat behavior only.
+
 ## v0.50.2 - Art Intake and Parallel Workflow
 
 - Added latest-version art loading for runtime atlases in `Docs/ArtReferences/`; the game now prefers the newest PNG matching each known filename prefix and falls back to the prior pinned file.
