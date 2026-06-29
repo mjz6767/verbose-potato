@@ -1,0 +1,161 @@
+Ashen Halls v0.49.0 - Beta RPG Scaffold
+
+Unzip the folder, then run AshenHalls.exe.
+
+Launch note: the game opens windowed and shows an Ashen Halls: The Old Road title splash clearly marked Beta RPG Scaffold while the first screen settles in. Clicks now pass through the splash; Enter quick-starts from muster and B begins the current custom company.
+Display note: the default window now targets 1800x1040 when the display allows it, so the board, party panel, and exploration map have more room.
+
+Controls:
+- Muster screen: after the splash, the game opens on a tavern scene. Quick Start begins immediately, or tune the 4-person tavern company first.
+- Tavern menu v0.47.1: after the splash, the first playable screen is now a Midgaard tavern landing with Start Game, Customize Company, Beta Lab, Settings, and Exit Game.
+- Tavern art/music v0.49: the landing screen now prefers a generated tavern backdrop with hearth, tables, lanterns, and musicians, plus a warmer sparse lute/hearth loop.
+- Tavern UI v0.49: Start Game, Customize Company, Beta Lab, Settings, and Exit Game now have generated tavern UI icons.
+- Tavern route preview v0.48: the tavern now shows the current beta route toward the final gate, with chapter chips for the cisterns, kobolds, bone road, glass ruins, red gate, and meteor crown.
+- Muster UI v0.47.1: the character editor is now reached from Customize Company, and the top bar was spaced out to avoid overlap between title, SFX controls, party summary, and action buttons.
+- Beta Lab: starts a caster-heavy beta combat test with full mana, extra elixirs, hazards, kobold shamans, kobold bone wizards, and other spellcasting enemies so combat/casting can be stress tested immediately.
+- Beta Lab toolbar: during Beta Lab combat, use Refill, Reset, Hazards, Spawn, and SFX buttons above the formula panel to stress test combat systems quickly.
+- Character customization: edit names, class, race, origin, sigil, accent color, attributes, and starting talents.
+- Muster upgrades: each class now has clearer identity, race/class loadout differences, a compact company summary, and optional Reroll Gear / Reroll Look buttons.
+- Exploration: arrow keys or WASD move the company. Click adjacent highlighted tiles to move, and hover map tiles to inspect region, zone danger, object, story, and movement hints.
+- World zones: the road out of Midgaard now branches into named districts such as the Old Quarry, Glass Warrens, Ash Fen, Red Gate, Gloam Courts, Salt Cisterns, Green Shrine Road, and Dusk Market Ruins. Zones bias encounters, caches, shrines, stairs, and story hooks.
+- Armory/Spells: press I to inspect company gear and pack loot; press C to open directly to the spell reference.
+- Combat: each active unit has personal movement and 1 action. Choose Move, Attack, Cast, Guard, Elixir, or End Turn, then click the grid.
+- Combat command bar: action buttons now include small pixel glyphs as well as hotkey labels, making Move, Attack, Cast, Guard, Elixir, and End Turn easier to scan.
+- Combat command icons v0.49: combat actions are now icon-first. The sword, spellbook, shield, potion, move, and end-turn icons carry the button identity, while hotkeys and tiny state labels stay compact.
+- Combat UI v0.47.2: the default window is larger, combat grid/readout spacing is cleaner, action buttons are wider with readable icons plus sublabels, and the tiny stacked button-art issue is fixed.
+- Combat movement: movement spends distance, so you can take a short step, keep remaining move, then still attack or cast.
+- Combat previews: the active unit, upcoming turn queue, move budget, action state, reachable tiles, attack targets, spell targets, cover warnings, expected damage, resistance/weakness, guard notes, and terrain warnings are visible during the turn.
+- Target reticles: hover-aim now draws in-tile badges for move cost, hit chance, spell path, blocked casts, and cover durability.
+- Spell aim trace: while aiming a spell, the board now draws a pixel path from caster to target. Direct paths are straight, blocked paths mark tree cover, and arcing spells visibly hop over cover.
+- Combat turns: a banner announces each active unit, and the readout now has a clear Action Ready / Action Used badge.
+- Combat UI v0.44: the event feed is now called Timeline, the turn-order strip reads more plainly, hover previews use larger tactical cards, and the bottom readout shows phase, move, action, HP, and MP more clearly.
+- Combat UI v0.45: board tooltips now act like tactical cards with target/cover mini-panels, click instructions, phase chips, move/action state, HP/status, and clearer invalid-target reasons.
+- Action help v0.45: hovering Move, Attack, Cast, Guard, Elixir, or End Turn explains availability, cost, range, and next step.
+- Spell UI v0.44: the spell panel and cards use a new generated combat UI atlas for spellbook frames, action badges, targeting icons, and panel trim.
+- Spell UI v0.45: the Cast panel has quick Ready/Clear controls so you can arm a default spell or back out of a selected spell without leaving the combat flow.
+- Spellbook art v0.46: Cast now presents more like a Spellbook, using new generated open-book, spell-card, action-button, tooltip, character-page, inventory, item-slot, tree, stone, and cave/water UI cells.
+- Art expansion v0.47: six new generated runtime sheets add boss/enemy portraits, quest/world objects, character/inventory UI pieces, epic Fireball/Meteor spell frames, combat/spellbook buttons, and item/equipment icons.
+- Combat UI art v0.47: action buttons and action hover cards now prefer the new Attack, Cast, Guard, Elixir, Move, and End Turn icon cells, with older art as fallback.
+- Combat UI art v0.49: a new generated combat HUD atlas, spell/floating-text atlas, enemy/world-object atlas, tavern backdrop, and tavern UI atlas are included and wired into runtime fallbacks.
+- Fireball and Meteor v0.47: these spells now use new impact art, extra particle bursts, floating callouts, and layered spell/fire/impact sound cues so they feel more like beta showcase spells.
+- Combat frames: combat boxes now use strong status colors: gold active, red injured, green poisoned/webbed, violet hexed/sleeping/stunned, teal warded, and gray guarded. v0.47.2 enlarges sprite badges/status chips so they read at the new window size.
+- Combat class identity: the active readout, turn queue, party cards, and unit frames now show compact class/race/class markers such as WAR, RNG, ROG, WIZ, MAG, WLK, PRS, and PAL.
+- Class icon atlas: the tavern roster, portrait preview, company cards, turn queue, combat unit frames, and Armory company tab now draw generated class icons for Warrior, Ranger, Rogue, Wizard, Mage, Warlock, Priest, and Paladin.
+- Combat badges: unit frames now carry small role/class, range, caster/threat, guard, ward, and web badges so the board reads faster during dense fights.
+- Caster marks: party spellcasters and enemy casters now show small glowing frame runes, so clerics, wizards, shamans, and death-ball threats are easier to spot.
+- Combat spells: select Cast first, choose a readable spell card, then click the highlighted target. Outside Cast mode, I opens Armory and C opens Spell Reference normally.
+- Spellbook overlay v0.47.1: the spellbook now stays closed until Cast is pressed. Cast opens a large full-screen-style spellbook; choosing a spell closes the book and arms targeting.
+- Combat spell cards: active spellcasters get a paged spell menu above the action bar with name, hint, mana, range, and arc/sight behavior.
+- Spell menu UI: the large spell panel opens for active spellcasters or Beta Lab testing. It shows selected spell cost, range, target type, line-of-sight rule, focus state, and effect notes.
+- Spell cards: cards show small `arc`, `sight`, `rite`, or `open` tags so tree-cover behavior is visible before targeting.
+- Spell tiers: spell cards and the Spell Reference now mark starter, apprentice, adept, and elder formulas. This is a beta progression scaffold; the current build still exposes spells broadly for stress testing.
+- Spell previews: hover targets now show healing ranges, damage ranges, resistance/weakness, splash count, hostile status chance after magic resistance, mana cost, and terrain reactions.
+- Spell area preview: splash/area spells show affected tiles before you cast.
+- Tree-cover tactics: Tree Cover creates timed breakable cover. Direct bolts and arrows need sight, arcing spells can pass over trees, dangerous caster enemies can sometimes arc magic over cover, and stalled monsters batter through adjacent tree or stone cover.
+- Cover readability: tree and stone blocks now show small durability pips so it is clearer when cover is fresh, damaged, or about to break.
+- Spell list: priests can heal, cleanse, ward, regenerate, shape tree/stone cover, and cast light damage. Mages use fire, ice, shock, and burn-cover spells. Warlocks use hex/death magic and can bind a fragile demon ally for a few turns.
+- New v0.44 formulas for beta testing: Hold Sign, Cold Lance, Mind Break, and Bind Fiend expand stun, long-range cold, mind/hex, and pact-summon coverage.
+- New v0.46 ember spells: Fireball is a classic arcing splash spell with a heavier old-school projectile, while Meteor Shower adds falling impact streaks and a larger area-flourish for beta testing modernized spell spectacle.
+- Final-gate scaffold v0.47: reaching depth 6 now opens a first-pass final encounter with a meteor-crowned boss, ritual heart, and escorts. This is a testable ending scaffold, not the finished finale yet.
+- Victory route v0.48: winning the final-gate encounter now opens a proper beta victory screen with survivor ledger, chapter recap, and buttons for a new company, tavern, or Beta Lab.
+- Focused casting: if a spellcaster casts before moving, spells get -1 MP cost, +1 range, and stronger damage.
+- Spell reactions: fire can burn tree cover and ignite gas/webs, ice can quench fire into steam, and shock can ride ice/gas/web hazards.
+- Combat presentation: the battlefield now uses a darker speckled retro field, readable combatants, a stronger active-unit cursor, a turn queue, hover previews, and a bottom tactical readout.
+- Combat floor art: battle tiles now include subtle cracked stone, moss, scorch, bone, rune, and grate details by depth while keeping the old tactical grid readable.
+- Combat feedback: ranged attacks and spells now draw pixel streaks, impacts flash on the grid, deaths pop visibly, and resistance/weakness feedback appears in battle.
+- Beam graphics: arrows, healing, fire, ice, death/hex, and shock/arc effects now use distinct pixel beam shapes instead of one generic spell line.
+- Combat sounds: attacks now have distinct miss, bow, blade, crit, guard, counter, resist, and status cues in addition to the existing sparse spell and terrain effects.
+- Spellcasting graphics: clerics/priests now cast with warding circle-and-cross glyphs, while ember/hex casters use angular wizard runes and colored spell streaks.
+- Character sprites: party members now have brighter, higher-contrast role-specific pixel figures with visible shields, spears, bows, knives, priest marks, wizard staves, robes, armor, heads, legs, equipment overlays, deterministic personal variants, ground shadows, active-unit accents, wounded marks, and sharper role accessories.
+- Runtime combat sprite atlas v0.43: the main combat board now prefers a new transparent 4x4 generated sprite sheet with clearer party figures, kobolds, rats, ratfolk, drow, demons, and imp-like summons.
+- Imagegen atlas sprites: v0.28 begins moving generated art into the game itself. Combat figures, enemy mini-portraits, and party portrait areas can now draw from the beta combat art atlas, with the older rectangle sprites kept as a fallback.
+- Spell art: the spell panel uses generated icon-sheet art for spell-school and effect cards, with simple procedural fallback icons if the sheet is unavailable. v0.43 adds a new magic/UI atlas for tree cover, stone, heal, ward, fire, ice, shock, death, web, poison, hex, summon, move, attack, guard, and end-turn icons.
+- Centered sprite sheet: v0.30 scans each sprite cell for visible pixels, trims transparent padding, and anchors lower-body pixels to the tile center. v0.44 adds a steadier layered frame so active-unit motion no longer drags status badges and outlines around the tile.
+- Equipment visuals: generated materials and traits now show more clearly, including blackglass, moonstone, stormglass, mithril, adamantine, silk, bone, warding, vampiric, flame, frost, storm, venom, haste, silence, focus, bleeding, stunning, and similar item marks.
+- Enemy sprites: foes now have more readable combat details, ranged/spell tells, status overlays, resistance markings, clearer damage-state feedback, depth-based corrupted markings, rank ornaments, family-specific marks, and distinct silhouettes for new enemy families.
+- Kobold enemies: raiders, slingers, shamans, and shieldbearers now use lower reptilian silhouettes with snouts, tails, horns, knives, slings, bone staves, and shields.
+- Kobold casters: shamans are more dangerous hex/web casters, and deeper halls can spawn Kobold Bone Wizards with red-black death-ball splash magic.
+- New enemy families v0.43: ratfolk scrappers, cutthroats, plague mages, cistern clerics, and brutes; drow scouts, blade dancers, crossbows, mages, and priests; and lesser demons now appear in zone-biased encounter tables and Beta Lab testing.
+- UI polish: top resources, side panels, enemy cards, party cards, spell cards, and the bottom combat command bar now resize more defensively to avoid overlap on smaller or shorter windows. Compact side-panel cards keep all four party members visible on shorter windows. The combat command bar now has an explicit End Turn button.
+- Side panels v0.47.2: Company is now Party, Opposition is now Enemy Combatants, side-card portraits are larger, and panel headers reserve enough room for longer labels.
+- Combat rules: attacks can now miss or critically strike, and trees block arrows, direct spells, and non-arcing terrain placement while arcing spells can pass over cover.
+- Armory: caches now generate many weapon and armor forms with quality, material, trait, bonus, and damage type. Useful finds are auto-equipped to fitting party members.
+- Item art v0.47: the Armory pack, company gear rows, and cache loot panel now prefer a newer equipment atlas with clearer swords, epees, daggers, axes, hammers, spears, bows, crossbows, staves, foci, shields, armor, robes, potions, elixirs, rings, and cache bundles.
+- Loot identity: reach weapons, bows, foci, light armor, heavy armor, robes, shields, and traits such as bleed, stun, warding, thorns, fire, cold, shock, poison, and death now have small readable combat effects.
+- Cache comparison: after a cache opens, a short panel shows what was found, who equipped it, and why.
+- World map: exploration now uses a much larger connected map with multiple districts, roads, rooms, region names, hover look text, extra camps, more caches, more encounters, and a wider reveal radius.
+- World object art: caches, shrines, encounters, stairs, camps, and town markers have clearer pixel-style silhouettes and glow cues.
+- Runtime world-object atlas v0.47: caches, shrines, enemy signs, stairs/final gates, camps, Midgaard, obelisks, ruins, bridges, and cave mouths now prefer a newer quest/world-object sheet, with procedural icons kept as fallback.
+- Runtime environment atlas v0.43: the world map now overlays generated water, dirt road, cobblestone, cave floor, stone wall, palisade, sewer grate, moss path, crystal rubble, and red basalt tile art on the zone scaffold.
+- World graphics: exploration tiles now vary by region with old roads, broken paving, mossy paths, quarry stone, fen banks, shallow mire, glass rubble, ash floors, tree walls, cliff stone, red basalt, and dark water edges.
+- World graphics v0.27: map colors and object glows are stronger so terrain regions, landmarks, shrines, caches, and danger markers read less drab at a glance.
+- Map exploration: the visible scouting radius is wider, fog edges are clearer, and new maps include more loop roads and plazas so routes feel less like a single corridor.
+- World landmarks: new maps can include runed obelisks, fallen ruins, old bridges, and cave mouths as visual navigation markers.
+- Tree Cover: priest spell; click an open combat tile to grow breakable cover for 8 turns. It buys time, but it is not permanent safety.
+- Death Burst: ember/hex spell; click an enemy to launch death splash damage.
+- Bind Imp: warlock pact spell; click an open nearby tile to summon a fragile temporary ally that can block, move, and attack.
+- Cover integrity: conjured trees and stone blocks can be battered down. Damaged cover shows crack marks, and stronger enemies break it faster when cover blocks their path or sight.
+- More spells are available through the clickable Cast menu; no spell-code typing is needed in this build.
+- Terrain now matters: trees and stones block movement, while fire, ice, webs, and gas create temporary tactical hazards. Hover previews now warn before stepping into hazards, and webs/ice/gas can cost extra movement.
+- Enemies now have traits such as resistance, weakness, magic resistance, fearless behavior, typed attacks, on-hit status effects, and occasional veteran/elite ranks.
+- Enemy tactics: enemies already in range attack; enemies that need to reposition spend their visible beat advancing. Ranged foes value sight lines, brutes push toward vulnerable backliners, caster-like foes prefer pressure targets while avoiding obvious hazards, and special foes can heal, ward, shock, chill, gas, or burn the field.
+- Cleric/priest spell: choose Heal to mend wounds, or choose Tree Cover to grow a blocking tree.
+- F1 writes context help into the Timeline.
+- F5 saves. F9 loads.
+- I opens the Armory. C opens the Spell Reference.
+- M toggles audio on/off. + and - adjust audio volume. The SFX Test button near the audio controls plays a short click/attack/spell check, and the SFX pulse under the controls shows which effect fired. The tavern has a tiny procedural band loop; exploration and combat remain intentionally quiet except for effects.
+- Combat hotkeys: 1 Move, 2 Attack, 3 Cast, 4 Guard, 5 Elixir, 6 or Space End Turn.
+- Reduced Motion and SFX controls can be changed from the Muster screen and in play.
+
+Release notes:
+- v0.49.0 is a graphics and icon-first UI pass: added five generated v0.49 art assets, wired in a full tavern backdrop, upgraded the sparse tavern loop, added tavern menu icons, made combat command buttons primarily icon-driven, routed several enemies/world objects through the new enemy/world atlas, and stacked floating combat text so repeated hits no longer occupy the same spot. Save data remains version 17.
+- v0.48.0 is a completion-loop scaffold: the tavern now previews the Road to the Final Gate, the last two chapter objectives point toward the Red Gate and Meteor Crown, defeating the final encounter routes to a proper beta victory screen, and the ending ledger summarizes survivors, gold, depth, and party roles. Save data remains version 17.
+- v0.46.0 is an art and spellbook UI pass: added two generated runtime/reference sheets for spellbook/combat UI and ember spell effects, wired new action/spellbook/formula/Armory tab icons into the game, added Fireball and Meteor Shower, and gave both spells distinct projectile and impact flair while retaining old-school grid readability. Save data remains version 17.
+- v0.45.0 is a combat UI functionality pass: upgraded board hover tooltips into larger tactical cards, added target/cover mini-panels, click instructions, phase/action/move chips, action-button hover help, richer active-command prompts, and Ready/Clear controls in the spell panel. Save data remains version 17.
+- v0.44.0 is a combat/magic/UI polish pass: added a generated combat UI atlas, renamed the event feed to Timeline, improved the turn-order strip, hover preview card, bottom combat readout, spell panel/card treatment, action badges, and sprite frame stability; added Hold Sign, Cold Lance, Mind Break, and Bind Fiend formulas for beta stress testing. Save data remains version 17.
+- v0.43.0 is a large runtime art update: added generated combat sprites, enemy roster art, item icons, magic/combat UI icons, and a world/environment atlas; wired the sheets into combat board sprites, enemy side cards, spell cards, terrain obstacles, command glyphs, Armory item rows, cache loot panels, and exploration tile overlays; added ratfolk, drow, and lesser-demon enemy roles to zone encounters and Beta Lab. Save data remains version 17.
+- v0.42.0 is a world-map and story scaffolding pass: the home town is now Midgaard, exploration has named zones with danger ratings and one-time story discoveries, encounters/loot/shrines/stairs are biased by zone, enemy pools vary by district, chapter objectives update as the company descends, and map hover/region UI now surfaces zone danger and story context. Save data is now version 17 because story and discovered-zone fields were added.
+- v0.41.0 is a usable world-map art pass: a new generated `world-object-atlas-runtime-v0.41.png` is loaded at runtime for cache, shrine, encounter, stairs, camp, town, obelisk, ruin, bridge, and cave icons on the exploration map. Save data remains version 16.
+- v0.40.0 is a class-icon and spell-progression readability pass: a new generated `class-icon-atlas-runtime-v0.40.png` is loaded at runtime for the tavern roster, portrait preview, company cards, turn queue, combat unit frames, and Armory; spell cards and the Spell Reference now show starter/apprentice/adept/elder tiers as a scaffold for later level-gated spell learning. Save data remains version 16.
+- v0.39.0 is a broad RPG scaffold update: new games now use a 4-person tavern company; the first post-splash screen has a tavern backdrop and low-volume procedural tavern band loop; party members have race/class identity, level/XP, earned stat and skill points, personal movement, attack speed, weapon damage ranges, and gear stat bonuses; early depth encounters now start with sewer rats before harder kobold cave pressure; warlocks gain pact magic and Bind Imp summoning; combat UI shows class identity in the active readout, queue, side cards, and unit badges; generated class-icon/tavern reference art is included under Docs/ArtReferences; old saves are intentionally obsolete for this beta scaffold and save data is now version 16.
+- v0.38.0 is a magic simplification and combat usability pass: the legacy key-entry spell path is removed from play, Cast is now a single clickable spell-card menu with plain spell names, visible old formula labels are removed from the live UI, arcing spells can pass over breakable cover while direct shots cannot, enemies prioritize smashing cover that blocks pressure, party members can attack breakable cover, and a new generated v0.38 spell-card icon sheet is included and loaded by the spell menu. Save format remains version 15.
+- v0.37.0 is a combat and magic usability pass: Cast opens a readable paged spell-card menu, Tree Cover creates timed breakable cover instead of permanent safety, temporary cover shows duration, status effects show turn-count badges, and hover previews include compact status timers. Save format remains version 15.
+- v0.36.0 is a targeting and cover-readability pass: hover tiles now show compact target badges for move cost, attack hit chance, formula arc/direct path, and blocked states; blocked shot lines mark the interrupting cover; and tree/stone cover now displays durability pips. Save format remains version 15.
+- v0.35.0 is a combat UI art and spell-beam pass: action buttons gain pixel glyphs, caster units gain small glowing frame runes, arrows/healing/fire/ice/death/hex/shock beams draw with distinct shapes, and enemy caster beams now use matching visual types. Save format remains version 15.
+- v0.34.0 is a combat/magic feel pass: formula targeting now draws direct, blocked, and arcing path traces; actual arcing formulas use matching arc beams; shorter windows use compact company/enemy side cards; and sparse old-school SFX now include miss, bow, blade, crit, guard, counter, resist, and status cues. Save format remains version 15.
+- v0.33.0 is a combat/magic readability pass: formula codes now draw as three keyed rune slots, chips show arc/sight/rite/open tags, selected arcing formulas can cross tree cover while ordinary terrain placement now respects sight, combat sprites get small role/threat/status badges, the battlefield has more deterministic floor detail, right-side cards use more defensive layout, and player-facing priest language is clearer. Save format remains version 15.
+- v0.32.0 is a tree-cover counterplay pass: splash enemy formulas explicitly arc over trees, formula UI/codex rows call out arc behavior, tree and stone cover now have saved integrity, damaged cover shows crack marks, and enemies can spend turns breaking adjacent cover when it blocks pressure. Save data is now version 15.
+- v0.31.0 is a tactical formula pass: splash formulas now paint their affected tiles while aiming, focused casting range is reflected in grid highlights, status spell resolution logs are clearer, formula codex rows show sight/splash rules, and four new formulas expand priest, ember, and hex combat choices. Save format remains version 14.
+- v0.30.0 is a combat readability and magic UI pass: combat sprite sheet cells now auto-trim transparent padding and anchor by lower-body pixels, the big formula panel no longer appears for non-caster turns, selected formulas show cost/range/target/line-of-sight/effect details, hover previews show more complete magic math, and kobold shamans/bone wizards are treated as caster-like enemies by tactical scoring. Save format remains version 14.
+- v0.29.0 is the Beta Formula Lab update: splash beta wording now matches the testing focus, a new generated formula-lab atlas is included and loaded for formula icons, active spellcasters get paged formula chips, combat gets an in-battle Beta Lab toolbar for Refill/Reset/Hazards/Spawn/SFX testing, and SFX now shows a visible fired-effect pulse to help diagnose audio. Save format remains version 14.
+- v0.29.0 also adds a transparent centered combat sprite sheet and changes the formula UI so non-caster turns show a compact hint strip while actual spellcaster turns get the expanded formula lab panel.
+- v0.28.0 is the Beta Combat Test update: splash now labels the build as beta, the Muster screen has a Beta Lab shortcut for immediate caster-heavy combat testing, active spellcasters get clickable formula chips, combat readouts show phase language, generated imagegen art is now loaded as a runtime combat/portrait atlas, SFX are louder and easier to test, and the Windows build scene explicitly includes an audio listener. Save format remains version 14.
+- v0.27.0 is the bolder graphics/combat readability pass: the title treatment becomes Ashen Halls: The Old Road, generated splash art is loaded when available, map colors and object glows are stronger, older loaded maps get landmark repair, party sprites render larger and brighter, combat unit boxes use old-school status colors, and the command bar now has an explicit End Turn button. Save format remains version 14.
+- v0.26.0 fixes recent UI overlap by giving the side panels and command bar defensive layout math, improves panel/resource/card styling, adds new map landmark markers, adds a new UI/world/caster imagegen reference sheet, and makes kobold shamans/wizards more threatening in combat. Save data is now version 14 because newly generated maps can store landmark object types.
+- v0.25.0 is a large map-graphics update: the default window is now 1600x960, exploration has a wider scouting radius, region-specific tile art, stronger fog edges, improved object silhouettes, and extra loop roads/plazas in newly generated maps. A new imagegen exploration reference sheet is included under Docs/ArtReferences. Save format is unchanged.
+- v0.24.0 is a major graphics-direction pass: original imagegen reference sheets are included under Docs/ArtReferences, LibreSprite 1.2 is staged in the project tool cache for future hand-drawn sprite sheets, the game now opens at 1440x900 by default, kobold enemy families have distinct combat silhouettes, and map objects were redrawn for better at-a-glance readability. Save format is unchanged.
+- v0.23.0 fixes formula typing so it only listens after Cast is selected, preserving I/C inventory and codex hotkeys outside formula mode. It also adds formula recall, prefix suggestions, broader NVC cleansing, visible hex status, and hex-amplified formula damage. Save format is unchanged.
+- v0.22.0 upgrades combat and magic with focused casting, formula/terrain reactions, splash healing and warding, shock arcs, hex weakness, sleep wakeups, status-aware attack previews, and guard counter damage. Save format is unchanged.
+- v0.21.0 upgrades tactical sprites with combat shadows, active accents, wounded marks, more personal party overlays, heavier gear silhouettes, clearer enchanted item trait marks, and extra enemy family/rank markings. Save format is unchanged.
+- v0.20.1 adds a small tool-download manifest and checksum workflow for Git, 7-Zip, and Audacity. Save format is unchanged.
+- v0.20.0 adds a modal Armory/Codex overlay with company gear summaries, pack loot inspection, Try Equip checks, and formula reference rows. Save format is unchanged.
+- v0.19.0 improves exploration readability with region-name strips, hover look text, adjacent movement cues, object glow hints, and region-entry Timeline lines/banners. Save format is unchanged from v0.18.0.
+- v0.18.0 expands opposition variety with Mire Archers, Bone Priests, Cinderlings, Gloam Knights, veteran/elite enemy ranks, new enemy silhouettes, clearer enemy tactic lines, and lightweight enemy special actions.
+- v0.17.0 adds saved SFX preferences, keyboard combat action hotkeys, clearer hover aim/target feedback in combat, and updated notes for the next testing pass.
+- v0.16.3 adds lightweight project tooling notes: changelog, known issues, design bible, release checklist, and tooling guidance for sprite/audio iteration.
+- v0.16.2 is a stabilization pass: safer save-load failure handling, no hidden keyboard actions behind the title splash, and lower UI allocation churn from cached label styles.
+- v0.16.1 improved launch/input stability.
+- v0.16 added stronger itemization, visible loot comparisons, and a party customization pass.
+
+The game remains intentionally sparse: the tavern has a small procedural band loop, while exploration and combat use short sound effects without music.
+
+Included notes for testers and contributors:
+- CHANGELOG.md: short release history.
+- KNOWN_ISSUES.txt: current rough edges and workarounds.
+- Docs/DESIGN_BIBLE.md: living notes for classes, spells, items, enemies, and regions.
+- Docs/RELEASE_CHECKLIST.md: small-release test and packaging rhythm.
+- Docs/TOOLING.md: recommended skills, plugins, and external software.
+- Docs/TOOL_DOWNLOADS.md: downloaded helper tools, source links, install notes, and checksums when present.
+- Docs/ArtReferences/: original generated reference sheets for the current graphics direction.
+
+Ashen Halls is an original modern-pixel spiritual successor to old party-based tactical CRPGs. It does not include Nahlakh code or assets.

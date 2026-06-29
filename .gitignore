@@ -1,0 +1,44 @@
+# Codex / scratch workspace
+.agents/
+.codex/
+work/
+
+# Packaged releases and build staging
+outputs/ashen-halls-build/
+outputs/AshenHalls-Windows/
+outputs/AshenHalls-Windows-v*/
+outputs/AshenHalls-Windows-*.zip
+outputs/tools/
+outputs/*.log
+
+# Unity generated/cache folders
+outputs/ashen-halls-unity/[Ll]ibrary/
+outputs/ashen-halls-unity/[Tt]emp/
+outputs/ashen-halls-unity/[Oo]bj/
+outputs/ashen-halls-unity/[Bb]uild/
+outputs/ashen-halls-unity/[Bb]uilds/
+outputs/ashen-halls-unity/[Ll]ogs/
+outputs/ashen-halls-unity/[Uu]ser[Ss]ettings/
+outputs/ashen-halls-unity/MemoryCaptures/
+outputs/ashen-halls-unity/Recordings/
+
+# Unity generated IDE files
+outputs/ashen-halls-unity/*.csproj
+outputs/ashen-halls-unity/*.sln
+outputs/ashen-halls-unity/*.user
+outputs/ashen-halls-unity/*.pidb
+outputs/ashen-halls-unity/*.suo
+outputs/ashen-halls-unity/*.tmp
+outputs/ashen-halls-unity/*.booproj
+outputs/ashen-halls-unity/*.svd
+
+# Local build logs in the Unity project root
+outputs/ashen-halls-unity/build-v*.log
+
+# OS/editor noise
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+*.swp
+*.tmp

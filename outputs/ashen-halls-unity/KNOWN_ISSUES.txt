@@ -1,0 +1,81 @@
+Ashen Halls Known Issues
+
+Current practical notes:
+- v0.49.0 moves combat commands toward icon-first buttons, but hover help and tiny state labels remain intentionally visible for beta testing. Later passes can add full tooltip-only labels once the icon language is stable.
+- v0.49.0 adds generated tavern/combat/enemy art sheets that are runtime-visible. They are still source-quality generated sheets and should eventually be hand-cleaned into tighter sprites and animation frames.
+- Git syncing is not active yet. There is an empty `.git` directory in the workspace, but Git does not recognize this as a repository; initialize a real repo and add a remote before relying on version-control history.
+- v0.48.0 completes the current beta route with a victory screen after the final-gate encounter, but the finale is still a scaffold. Full boss phases, hand-authored ending scenes, NPC follow-up, and campaign credits are future work.
+- v0.48.0 keeps save data at version 17. Fresh starts are still best for route testing, especially if you want to see the tavern chapter preview and the revised depth 5/6 objectives.
+- v0.47.2 replaces the in-game header mark, but the Windows title-bar icon may still show the default Unity icon in DLL-swap packages. Replacing that icon properly requires a full Unity player build with PlayerSettings icon resources.
+- v0.47.2 makes combat larger and cleaner, but the combat HUD is still immediate-mode. Further passes should continue moving toward a true resizable tactical HUD.
+- v0.47.1 adds a real tavern landing and a large combat Spellbook overlay, but the UI is still immediate-mode. The layout is cleaner, though later passes should still move this into a true scalable UI layer.
+- v0.47.1 keeps save data at version 17. Existing fresh v0.47 saves should remain structurally compatible, but starting fresh is best for checking the new tavern-first flow.
+- v0.47.0 adds six generated runtime art sheets and makes several of them visible immediately. They are still source-quality generated sheets, so later LibreSprite/Aseprite cleanup should simplify silhouettes, fix tiny details, and split true animation frames.
+- v0.47.0 upgrades Fireball and Meteor Shower with bigger art, particles, and layered procedural sounds. They are meant to be beta showcase spells; exact balance and animation timing will need stress testing.
+- v0.47.0 adds a first-pass final-gate encounter at depth 6. It gives the current route a testable ending, but it is not the finished story finale, dungeon, or boss-phase system.
+- Git for Windows is installed, but already-open terminals may not see `git` on PATH until refreshed. The installed executable is available at `C:\Program Files\Git\cmd\git.exe`.
+- v0.46.0 adds generated Spellbook/combat UI and ember spell-effect sheets. They are runtime-visible, but they are still generated source art and should be hand-cleaned later for exact pixel edges and animation frames.
+- v0.46.0 keeps save data at version 17. Fresh Beta Lab starts are best for testing Fireball, Meteor Shower, and the revised Spellbook UI.
+- v0.45.0 improves combat tooltips and action-button help, but the UI is still immediate-mode. Later passes can replace these tactical cards with a true resizable combat HUD.
+- v0.44.0 adds a generated combat UI atlas and steadier sprite frames. It improves scanability, but the atlas is still source art and should be hand-cleaned into final UI sprites later.
+- v0.44.0 keeps save data at version 17. Start fresh if you want to test the new formulas and UI flow from the cleanest Beta Lab state.
+- v0.43.0 is a big generated-art integration pass. The new sheets are runtime-visible, but they are still generated source art; later LibreSprite/Aseprite cleanup should simplify silhouettes, remove tiny details, and add true animation frames.
+- v0.43.0 keeps save data at version 17. Existing v0.42 fresh saves should still be structurally compatible, but starting fresh is still best for seeing the revised zone encounter tables.
+- v0.42.0 is a world/story scaffold, not a finished quest system. Zones bias content and log story beats, while full NPCs, shops, quest rewards, and hand-authored dungeons are still future passes.
+- v0.42.0 bumps save data to version 17 for story chapter/objective and discovered-zone fields. Start a fresh company for this build.
+- Unity batch builds may still be blocked by local Unity licensing or Hub state. When that happens, the current workaround is to compile the game assembly and insert it into the existing Windows build folder before zipping.
+- Unity window testing from automation can capture the wrong desktop area. Trust launch logs and direct user playtesting more than screenshots for now.
+- Mouse focus can still be sensitive on some systems after launching windowed. Clicking the title area or using Enter/B keyboard fallbacks usually gets play moving. In combat, number hotkeys now select actions even if button clicks feel fussy.
+- The UI is still immediate-mode. It is fast for iteration, but dense panels can feel cramped at lower resolutions.
+- v0.25.0 opens at 1600x960 by default. If that is too large for a display, Windows can still resize the window.
+- v0.26.0 improves the known side-panel overlap issue, but the current immediate-mode UI can still feel dense if the window is manually resized far below the default.
+- The Armory/Codex is an inspection overlay, not a full inventory-management screen. `Try Equip` only re-runs the existing conservative fit check.
+- Exploration hover text is intentionally compact and may still feel busy when the mouse is near the bottom/right edge.
+- Combat has move/action clarity now, but deeper systems such as facing, flanking, shops, and full inventory management are intentionally deferred.
+- Enemy special actions are intentionally simple and readable; they do not yet have per-enemy cooldown icons.
+- Procedural sound effects are intentionally sparse. The tavern now has a tiny procedural band loop, while exploration and combat still have no music. Audio can be muted with M or adjusted with + and -.
+- Save compatibility is supported within the current save-version guard, but old mid-combat saves can still need state repair. v0.17.0 stored SFX preferences, and v0.18.0 stores enemy rank data.
+- LibreSprite 1.2 has been downloaded into the workspace tool cache, but it has not been extracted or installed yet.
+- The v0.24.0 imagegen sheets are visual direction references, not final imported sprite-sheet assets.
+- The v0.25.0 exploration-map imagegen sheet is also reference material; the playable map still uses deterministic Unity-drawn pixel shapes.
+- v0.26.0 bumps save data to version 14 for new world-map landmark object types. Older supported saves still load and are normalized forward.
+- The v0.27.0 splash tries to load a generated PNG from the packaged docs folder. If Unity's runtime image decoder is unavailable, the game falls back to its procedural splash instead of failing.
+- v0.27.0 makes the map palette and combat frames more vivid on purpose; this is a readability pass, not final hand-painted sprite-sheet art yet.
+- v0.28.0 begins drawing from a generated imagegen combat atlas in runtime. It is a visible bridge from concept art to in-game sprites, not the final cleaned transparent sprite-sheet/animation pipeline.
+- v0.28.0 SFX should be more audible and testable. If you still hear nothing, try the SFX Test button, check Windows app volume for AshenHalls.exe, and confirm the game is not muted with M.
+- v0.29.0 is intentionally a Beta Formula Lab build. The in-combat Refill/Reset/Hazards/Spawn controls are test harness tools, not final in-world abilities.
+- v0.29.0 adds visible SFX pulse feedback. If the pulse appears but you hear nothing, the game logic fired the sound and the remaining problem is likely Windows/app/device volume or output routing.
+- v0.29.0 uses a generated formula-lab atlas for icons and UI flavor. It is still a bridge toward cleaned transparent sprite/effect sheets.
+- v0.30.0 combat board sprites now auto-trim transparent padding and lower-body anchor each sheet cell. Some style differences may remain until the sheet is hand-cleaned in LibreSprite/Aseprite, but generated sprites should be much less wonky or off-center.
+- v0.30.0 improves formula previews, but the game still uses immediate-mode UI. A later UI-layer rewrite will make the casting workspace more flexible and easier to skin.
+- v0.31.0 adds splash area previews for formulas, but full danger overlays for enemy future-casts are not implemented yet. Enemy caster intent is still inferred from turn order, hover cards, and Timeline entries.
+- v0.32.0 adds enemy cover breaking, but it is still a readable local behavior rather than full pathfinding. Enemies break adjacent tree/stone cover when it blocks pressure; future AI passes can reason about longer barricade lines.
+- v0.33.0 makes arcing formula rules clearer and more balanced, but monster cover breaking is still immediate and local. Clever tree walls should buy time, not solve the fight permanently.
+- v0.34.0 improves compact side-panel rendering, but this is still an immediate-mode UI. A later UI-layer pass can add proper resizable panes and richer hand-drawn combat widgets.
+- v0.35.0 adds procedural action glyphs and spell-beam variants. These improve scanability, but final polished UI art should still be hand-cleaned in a sprite editor later.
+- v0.36.0 adds in-tile target badges and cover pips. The badges intentionally stay compact; a future tactical overlay pass can make them configurable or hideable.
+- v0.37.0 expands the casting panel into spell cards, but it is still immediate-mode UI. It should be much easier to test than pure formula typing, while a later UI pass can make the spellbook more elegant.
+- v0.38.0 removes visible key-code casting and uses only clickable spell cards during combat.
+- v0.38.0 adds a generated spell-card icon sheet. It is now loaded by the spell menu, but it is still a generated reference-style sheet and should be hand-cleaned into final UI sprites later.
+- v0.38.0 makes Tree Cover a temporary stall tactic: arcing spells can pass over it, direct arrows/bolts cannot, caster enemies can still arc some magic over it, and monsters will try to smash adjacent cover that blocks their path or sight.
+- v0.39.0 intentionally makes older saves obsolete while the RPG scaffold is changing quickly. Start a fresh company for this build.
+- v0.39.0 class identity used text badges and side-card labels. v0.40.0 supersedes that with runtime class icons, but final cleaned class-icon sprites are still future work.
+- v0.39.0 warlock summoning is a first scaffold. Bound Imps are temporary combat units with simple player control; later passes can add stronger demons, pact costs, cooldowns, and specialization rules.
+- v0.39.0 tavern presentation is still procedural: backdrop patrons, grog, and band shapes are drawn in code, and the tavern loop is generated at runtime rather than mixed as a final asset.
+- v0.39.0 level-up stat/skill point spending is intentionally basic. Stat points can be spent in the tavern scaffold, while skill-point allocation and class-specific spell unlocks need deeper follow-up passes.
+- v0.40.0 loads a generated class-icon atlas at runtime. The icons are much more readable than text alone, but they are still generated source art; a later LibreSprite/Aseprite pass should clean the silhouettes, palette, and exact pixel edges.
+- v0.40.0 adds visible spell tiers, but tier labels are informational only for now. Level-gated spell learning is intentionally deferred until the beta spell list and class balance settle.
+- v0.41.0 loads a generated world-object atlas at runtime. It makes map objects more evocative, but dense generated icon details can compress at small tile sizes; later hand cleanup should simplify silhouettes for tiny-map readability.
+- v0.42.0 adds named zones and Midgaard story scaffolding. Most zone art is still procedural placeholder tile work until the next graphics expansion.
+- v0.43.0 begins filling the zone scaffold with generated water, road, cave, wall, town, item, magic, combat, kobold, ratfolk, drow, demon, and imp art. Some icons may be visually dense at tiny sizes until hand-cleaned.
+- v0.37.0 makes Tree Cover temporary. Older mid-combat saves may still contain permanent tree obstacles from prior builds because old saves do not identify which trees were summoned.
+
+Tester workarounds:
+- If clicks seem ignored, try pressing Enter on muster or B to begin the current company.
+- In combat, use 1-6 for actions and Space to wait.
+- In exploration, hover map tiles to see what they are before stepping onto them.
+- Press I for the Armory; press C to jump straight to spell reference.
+- Use Beta Lab from the Muster screen to stress test combat, spell cards, enemy casters, hazards, and sound without walking the map first.
+- In Beta Lab combat, use the toolbar above the formula panel to refill, reset, refresh hazards, spawn enemy casters, and run SFX checks.
+- If the game opens to a blank or stale screen, close it fully and relaunch from the latest extracted zip folder.
+- If a zip build behaves oddly, delete the extracted folder and extract the zip again into a clean folder.
