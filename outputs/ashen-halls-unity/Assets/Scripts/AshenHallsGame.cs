@@ -19,7 +19,7 @@ namespace AshenHalls
         private const int CombatMoveAllowance = 3;
         private const int SummonedTreeDuration = 8;
         private const int FinalBossDepth = 6;
-        private const string PackageVersion = "v0.49.0";
+        private const string PackageVersion = "v0.49.1";
         private const string GameTitle = "Ashen Halls";
         private const string GameSubtitle = "The Old Road";
         private const string BuildStage = "Beta RPG Scaffold";

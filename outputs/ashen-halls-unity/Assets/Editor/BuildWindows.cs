@@ -11,7 +11,7 @@ namespace AshenHalls.Editor
 {
     public static class BuildWindows
     {
-        private const string PackageVersion = "v0.46.0";
+        private const string PackageVersion = "v0.49.1";
 
         public static void Build()
         {
@@ -21,7 +21,7 @@ namespace AshenHalls.Editor
         public static void PerformBuild()
         {
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
-            string outputRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", "ashen-halls-build", "AshenHalls-Windows"));
+            string outputRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", "ashen-halls-build", "AshenHalls-Windows-" + PackageVersion));
             string zipPath = Path.GetFullPath(Path.Combine(projectRoot, "..", "AshenHalls-Windows-" + PackageVersion + ".zip"));
             string exePath = Path.Combine(outputRoot, "AshenHalls.exe");
             Directory.CreateDirectory(outputRoot);

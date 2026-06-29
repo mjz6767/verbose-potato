@@ -1,9 +1,10 @@
 Ashen Halls Known Issues
 
 Current practical notes:
+- v0.49.1 verifies the v0.49 graphics/UI pass as a packaged repair build. Remaining risk is visual tuning from live playtesting: command icon sizing, tavern readability, and combat panel polish may still need another pass.
 - v0.49.0 moves combat commands toward icon-first buttons, but hover help and tiny state labels remain intentionally visible for beta testing. Later passes can add full tooltip-only labels once the icon language is stable.
 - v0.49.0 adds generated tavern/combat/enemy art sheets that are runtime-visible. They are still source-quality generated sheets and should eventually be hand-cleaned into tighter sprites and animation frames.
-- Git syncing is not active yet. There is an empty `.git` directory in the workspace, but Git does not recognize this as a repository; initialize a real repo and add a remote before relying on version-control history.
+- Git syncing is active on the local `main` branch with the GitHub remote configured. Packaged zip builds are still local deliverables and are intentionally not committed to the repository.
 - v0.48.0 completes the current beta route with a victory screen after the final-gate encounter, but the finale is still a scaffold. Full boss phases, hand-authored ending scenes, NPC follow-up, and campaign credits are future work.
 - v0.48.0 keeps save data at version 17. Fresh starts are still best for route testing, especially if you want to see the tavern chapter preview and the revised depth 5/6 objectives.
 - v0.47.2 replaces the in-game header mark, but the Windows title-bar icon may still show the default Unity icon in DLL-swap packages. Replacing that icon properly requires a full Unity player build with PlayerSettings icon resources.

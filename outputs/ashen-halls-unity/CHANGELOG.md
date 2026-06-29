@@ -2,6 +2,14 @@
 
 All changes are original to Ashen Halls. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v0.49.1 - Graphics UI Repair Verification
+
+- Verified the v0.49 graphics and icon-first combat UI code with a clean script compile.
+- Updated the Unity Windows build helper to use v0.49.1 package naming instead of an older v0.46.0 label.
+- Rebuilt the Windows package from the last known-good player with the v0.49.1 runtime DLL, docs, and art references.
+- Added this repair note so GitHub and packaged builds clearly reflect the checked build.
+- Save data remains version 17 because this pass changes packaging/version metadata and verification only.
+
 ## v0.49.0 - Tavern Graphics, Icon-First Combat UI, and Floater Cleanup
 
 - Added five generated v0.49 art assets under `Docs/ArtReferences/`: tavern backdrop, tavern UI atlas, combat HUD atlas, spell/floating-text atlas, and enemy/world-object atlas.

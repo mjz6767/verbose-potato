@@ -1,4 +1,4 @@
-Ashen Halls v0.49.0 - Beta RPG Scaffold
+Ashen Halls v0.49.1 - Beta RPG Scaffold
 
 Unzip the folder, then run AshenHalls.exe.
 
@@ -108,6 +108,7 @@ Controls:
 - Reduced Motion and SFX controls can be changed from the Muster screen and in play.
 
 Release notes:
+- v0.49.1 is a repair verification build for the v0.49 graphics and icon-first UI pass: the game script compiles cleanly, the Windows package is rebuilt from the last known-good player, and the package has a launch-log smoke test. The Unity build helper now also targets v0.49.1 package names. Save data remains version 17.
 - v0.49.0 is a graphics and icon-first UI pass: added five generated v0.49 art assets, wired in a full tavern backdrop, upgraded the sparse tavern loop, added tavern menu icons, made combat command buttons primarily icon-driven, routed several enemies/world objects through the new enemy/world atlas, and stacked floating combat text so repeated hits no longer occupy the same spot. Save data remains version 17.
 - v0.48.0 is a completion-loop scaffold: the tavern now previews the Road to the Final Gate, the last two chapter objectives point toward the Red Gate and Meteor Crown, defeating the final encounter routes to a proper beta victory screen, and the ending ledger summarizes survivors, gold, depth, and party roles. Save data remains version 17.
 - v0.46.0 is an art and spellbook UI pass: added two generated runtime/reference sheets for spellbook/combat UI and ember spell effects, wired new action/spellbook/formula/Armory tab icons into the game, added Fireball and Meteor Shower, and gave both spells distinct projectile and impact flair while retaining old-school grid readability. Save data remains version 17.
