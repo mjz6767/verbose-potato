@@ -1,4 +1,4 @@
-Ashen Halls v0.50.1 - Beta RPG Scaffold
+Ashen Halls v0.50.2 - Beta RPG Scaffold
 
 Unzip the folder, then run AshenHalls.exe.
 
@@ -12,6 +12,7 @@ Controls:
 - Tavern UI v0.49/v0.50.1: Start Game, Customize Party, Beta Lab, Settings, and Exit Game use generated tavern UI icons.
 - Tavern UI v0.50.1: the landing screen is now a cleaner tavern menu with Customize Party wording, no party-summary clutter, no route footer, and the character editor kept behind Customize Party.
 - Runtime art v0.50: new generated sheets add brighter creature sprites, combat command icons, and consumable/loot icons for food, elixirs, supplies, coins, scrolls, herbs, and cache rewards.
+- Runtime art intake v0.50.2: newer versioned atlas files in `Docs/ArtReferences/` now load automatically by prefix, so art-thread outputs like `creature-sprite-atlas-runtime-v0.51.png` can be tested without a C# filename edit.
 - Muster UI v0.50.1: the character editor is now reached from Customize Party, and the top bar is kept clear of the tavern landing menu.
 - Beta Lab: starts a caster-heavy beta combat test with full mana, extra elixirs, hazards, kobold shamans, kobold bone wizards, and other spellcasting enemies so combat/casting can be stress tested immediately.
 - Beta Lab toolbar: during Beta Lab combat, use Refill, Reset, Hazards, Spawn, and SFX buttons above the formula panel to stress test combat systems quickly.
@@ -114,6 +115,7 @@ Controls:
 - Reduced Motion and SFX controls can be changed from the Muster screen and in play.
 
 Release notes:
+- v0.50.2 is an art-intake and parallel-workflow pass: runtime atlas loading now prefers the newest matching versioned PNG by filename prefix, `Docs/ART_INTAKE.md` documents the naming/grid contract for art threads, and the Windows build helper targets v0.50.2. Save data remains version 17.
 - v0.50.1 is a tester-facing UI cleanup pass: larger 1920x1080 default window, tavern wording changed to Customize Party, landing clutter/route footer removed, combat sidebars simplified, board/sprite/badge sizing increased, combat command hotkey badges restored, a new generated combat terrain atlas added, hover tooltips expanded, fragile small generated button/sprite overlays replaced with clearer procedural labels, and extra keyboard aliases added for WASD plus F/G/H/R/T/Z/X/C. Save data remains version 17.
 - v0.50.0 is a major runtime graphics and UI repair pass: added three generated v0.50 art sheets for consumables/loot, combat command icons, and creature sprites; wired them into resource counters, cache rewards, command buttons/tooltips, party portraits, enemy portraits, and combat board sprites; removed the tavern company preview from the landing screen; shrank top chrome across the game; and made combat actions icon-only with tooltip details. Save data remains version 17.
 - v0.49.1 is a repair verification build for the v0.49 graphics and icon-first UI pass: the game script compiles cleanly, the Windows package is rebuilt from the last known-good player, and the package has a launch-log smoke test. The Unity build helper now also targets v0.49.1 package names. Save data remains version 17.

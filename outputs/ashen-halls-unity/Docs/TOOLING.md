@@ -32,7 +32,7 @@
 - These files are a project convenience only; installers are not run automatically.
 - The Windows release package copies the manifest into `Docs/TOOL_DOWNLOADS.md` when the manifest is present.
 - LibreSprite 1.2 is staged as a zip archive for future hand-drawn sprite and tile work.
-- Generated art-reference sheets live under `Docs/ArtReferences/` and should guide the final pixel language rather than be copied blindly into runtime art. The v0.25 sheet is focused on exploration-map tiles, fog, landmarks, and region identity; the v0.26 sheet is focused on compact UI, map landmarks, and dangerous caster silhouettes; the v0.27 sheets focus on title/splash mood, brighter combat frames, and party/enemy sprite readability; the v0.28 sheet is the first runtime atlas bridge for visible combat/portrait crops.
+- Generated art-reference sheets live under `Docs/ArtReferences/` and should guide the final pixel language rather than be copied blindly into runtime art. `Docs/ART_INTAKE.md` defines the filename prefixes, grid expectations, and handoff notes for parallel art threads. The runtime now prefers the newest matching atlas filename by prefix, so versioned art drops can be tested without a C# filename edit.
 
 ## Unity Packages to Consider Later
 

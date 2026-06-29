@@ -2,6 +2,12 @@
 
 All changes are original to Ashen Halls. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v0.50.2 - Art Intake and Parallel Workflow
+
+- Added latest-version art loading for runtime atlases in `Docs/ArtReferences/`; the game now prefers the newest PNG matching each known filename prefix and falls back to the prior pinned file.
+- Added `Docs/ART_INTAKE.md` with naming prefixes, grid expectations, art quality targets, and handoff notes for parallel art-generation threads.
+- Updated package metadata to v0.50.2 while keeping save data at version 17.
+
 ## v0.50.1 - Tavern and Combat UI Readability Repair
 
 - Changed the tavern landing customization button to Customize Party and removed the party-summary line plus route footer from the first playable screen.

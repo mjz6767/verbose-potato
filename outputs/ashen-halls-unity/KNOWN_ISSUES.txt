@@ -1,6 +1,7 @@
 Ashen Halls Known Issues
 
 Current practical notes:
+- v0.50.2 auto-loads the newest matching runtime art atlas by filename prefix. This makes art iteration faster, but malformed replacement atlases can still look wrong if their grid layout does not match `Docs/ART_INTAKE.md`.
 - v0.50.1 switches small combat command and sprite-corner overlays back to procedural glyphs/text because generated icon crops were too noisy at that scale. Generated art remains used for larger sprites, terrain, items, and panels.
 - v0.50.1 adds a generated combat terrain atlas. It is runtime-visible now, but the tiles are still broad source art and will need later hand-cleaning into tighter tileable pixel textures.
 - v0.50.0 repairs the most obvious tavern/combat UI clutter: the landing no longer shows company cards, top chrome is shorter, and combat actions are icon-only. Some deeper screens still use immediate-mode panels and will need continued spacing passes.

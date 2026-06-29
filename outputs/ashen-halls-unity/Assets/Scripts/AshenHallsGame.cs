@@ -19,7 +19,7 @@ namespace AshenHalls
         private const int CombatMoveAllowance = 3;
         private const int SummonedTreeDuration = 8;
         private const int FinalBossDepth = 6;
-        private const string PackageVersion = "v0.50.1";
+        private const string PackageVersion = "v0.50.2";
         private const string GameTitle = "Ashen Halls";
         private const string GameSubtitle = "The Old Road";
         private const string BuildStage = "Beta RPG Scaffold";
@@ -842,57 +842,71 @@ namespace AshenHalls
 
         private void LoadExternalArt()
         {
-            splashArt = LoadExternalPng("splash-title-reference-v0.27.png");
-            betaCombatArt = LoadExternalPng("beta-combat-casting-ui-reference-v0.28.png");
-            formulaLabArt = LoadExternalPng("magic-ui-atlas-runtime-v0.43.png") ?? LoadExternalPng("spell-card-icons-reference-v0.38.png") ?? LoadExternalPng("formula-lab-effects-reference-v0.29.png");
-            combatSpriteSheet = LoadExternalPng("combat-sprite-sheet-alpha-v0.43.png") ?? LoadExternalPng("combat-sprite-sheet-alpha-v0.29.png");
-            classIconAtlas = LoadExternalPng("class-icon-atlas-runtime-v0.40.png");
-            worldObjectAtlas = LoadExternalPng("world-environment-atlas-runtime-v0.43.png") ?? LoadExternalPng("world-object-atlas-runtime-v0.41.png");
-            itemIconAtlas = LoadExternalPng("item-equipment-atlas-runtime-v0.47.png") ?? LoadExternalPng("item-icon-atlas-runtime-v0.43.png");
-            enemyRosterAtlas = LoadExternalPng("enemy-roster-atlas-runtime-v0.43.png");
-            combatUiAtlas = LoadExternalPng("combat-ui-atlas-runtime-v0.44.png");
-            spellbookUiAtlas = LoadExternalPng("spellbook-combat-ui-atlas-runtime-v0.46.png");
-            emberSpellAtlas = LoadExternalPng("ember-spell-effects-atlas-runtime-v0.46.png");
-            epicSpellEffectsAtlas = LoadExternalPng("epic-spell-effects-atlas-runtime-v0.47.png");
-            combatSpellbookUiAtlas = LoadExternalPng("combat-spellbook-ui-atlas-runtime-v0.47.png");
-            bossEnemyAtlas = LoadExternalPng("boss-enemy-atlas-runtime-v0.47.png");
-            questWorldAtlas = LoadExternalPng("quest-world-object-atlas-runtime-v0.47.png");
-            characterInventoryUiAtlas = LoadExternalPng("character-inventory-ui-atlas-runtime-v0.47.png");
-            combatHudUiAtlas = LoadExternalPng("combat-hud-ui-atlas-runtime-v0.49.png");
-            combatSpellFloatAtlas = LoadExternalPng("combat-spell-float-atlas-runtime-v0.49.png");
-            enemyWorldObjectAtlas = LoadExternalPng("enemy-world-object-atlas-runtime-v0.49.png");
-            tavernBackdropArt = LoadExternalPng("tavern-backdrop-runtime-v0.49.png");
-            tavernUiAtlas = LoadExternalPng("tavern-ui-atlas-runtime-v0.49.png");
-            inventoryConsumableAtlas = LoadExternalPng("inventory-consumable-atlas-runtime-v0.50.png");
-            combatCommandIconAtlas = LoadExternalPng("combat-command-icon-atlas-runtime-v0.50.png");
-            creatureSpriteAtlas = LoadExternalPng("creature-sprite-atlas-runtime-v0.50.png");
-            combatTerrainAtlas = LoadExternalPng("combat-terrain-atlas-runtime-v0.50.1.png");
+            splashArt = LoadLatestExternalPng("splash-title-reference-", "splash-title-reference-v0.27.png");
+            betaCombatArt = LoadLatestExternalPng("beta-combat-casting-ui-reference-", "beta-combat-casting-ui-reference-v0.28.png");
+            formulaLabArt = LoadLatestExternalPng("magic-ui-atlas-runtime-", "magic-ui-atlas-runtime-v0.43.png") ?? LoadLatestExternalPng("spell-card-icons-reference-", "spell-card-icons-reference-v0.38.png") ?? LoadLatestExternalPng("formula-lab-effects-reference-", "formula-lab-effects-reference-v0.29.png");
+            combatSpriteSheet = LoadLatestExternalPng("combat-sprite-sheet-alpha-", "combat-sprite-sheet-alpha-v0.43.png") ?? LoadExternalPng("combat-sprite-sheet-alpha-v0.29.png");
+            classIconAtlas = LoadLatestExternalPng("class-icon-atlas-runtime-", "class-icon-atlas-runtime-v0.40.png");
+            worldObjectAtlas = LoadLatestExternalPng("world-environment-atlas-runtime-", "world-environment-atlas-runtime-v0.43.png") ?? LoadLatestExternalPng("world-object-atlas-runtime-", "world-object-atlas-runtime-v0.41.png");
+            itemIconAtlas = LoadLatestExternalPng("item-equipment-atlas-runtime-", "item-equipment-atlas-runtime-v0.47.png") ?? LoadLatestExternalPng("item-icon-atlas-runtime-", "item-icon-atlas-runtime-v0.43.png");
+            enemyRosterAtlas = LoadLatestExternalPng("enemy-roster-atlas-runtime-", "enemy-roster-atlas-runtime-v0.43.png");
+            combatUiAtlas = LoadLatestExternalPng("combat-ui-atlas-runtime-", "combat-ui-atlas-runtime-v0.44.png");
+            spellbookUiAtlas = LoadLatestExternalPng("spellbook-combat-ui-atlas-runtime-", "spellbook-combat-ui-atlas-runtime-v0.46.png");
+            emberSpellAtlas = LoadLatestExternalPng("ember-spell-effects-atlas-runtime-", "ember-spell-effects-atlas-runtime-v0.46.png");
+            epicSpellEffectsAtlas = LoadLatestExternalPng("epic-spell-effects-atlas-runtime-", "epic-spell-effects-atlas-runtime-v0.47.png");
+            combatSpellbookUiAtlas = LoadLatestExternalPng("combat-spellbook-ui-atlas-runtime-", "combat-spellbook-ui-atlas-runtime-v0.47.png");
+            bossEnemyAtlas = LoadLatestExternalPng("boss-enemy-atlas-runtime-", "boss-enemy-atlas-runtime-v0.47.png");
+            questWorldAtlas = LoadLatestExternalPng("quest-world-object-atlas-runtime-", "quest-world-object-atlas-runtime-v0.47.png");
+            characterInventoryUiAtlas = LoadLatestExternalPng("character-inventory-ui-atlas-runtime-", "character-inventory-ui-atlas-runtime-v0.47.png");
+            combatHudUiAtlas = LoadLatestExternalPng("combat-hud-ui-atlas-runtime-", "combat-hud-ui-atlas-runtime-v0.49.png");
+            combatSpellFloatAtlas = LoadLatestExternalPng("combat-spell-float-atlas-runtime-", "combat-spell-float-atlas-runtime-v0.49.png");
+            enemyWorldObjectAtlas = LoadLatestExternalPng("enemy-world-object-atlas-runtime-", "enemy-world-object-atlas-runtime-v0.49.png");
+            tavernBackdropArt = LoadLatestExternalPng("tavern-backdrop-runtime-", "tavern-backdrop-runtime-v0.49.png");
+            tavernUiAtlas = LoadLatestExternalPng("tavern-ui-atlas-runtime-", "tavern-ui-atlas-runtime-v0.49.png");
+            inventoryConsumableAtlas = LoadLatestExternalPng("inventory-consumable-atlas-runtime-", "inventory-consumable-atlas-runtime-v0.50.png");
+            combatCommandIconAtlas = LoadLatestExternalPng("combat-command-icon-atlas-runtime-", "combat-command-icon-atlas-runtime-v0.50.png");
+            creatureSpriteAtlas = LoadLatestExternalPng("creature-sprite-atlas-runtime-", "creature-sprite-atlas-runtime-v0.50.png");
+            combatTerrainAtlas = LoadLatestExternalPng("combat-terrain-atlas-runtime-", "combat-terrain-atlas-runtime-v0.50.1.png");
             spriteCellMetrics.Clear();
+        }
+
+        private IEnumerable<string> ExternalArtDirectories()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
+            if (!string.IsNullOrEmpty(projectRoot)) yield return Path.Combine(projectRoot, "Docs", "ArtReferences");
+            yield return Path.Combine(Application.dataPath, "Docs", "ArtReferences");
+        }
+
+        private Texture2D LoadLatestExternalPng(string filePrefix, string fallbackFileName)
+        {
+            try
+            {
+                foreach (string directory in ExternalArtDirectories())
+                {
+                    if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory)) continue;
+                    foreach (string path in Directory.GetFiles(directory, filePrefix + "*.png").OrderByDescending(File.GetLastWriteTimeUtc).ThenByDescending(p => Path.GetFileName(p)))
+                    {
+                        Texture2D texture = TryLoadExternalPngPath(path);
+                        if (texture != null) return texture;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning("Could not load latest external art for " + filePrefix + ": " + ex.Message);
+            }
+            return LoadExternalPng(fallbackFileName);
         }
 
         private Texture2D LoadExternalPng(string fileName)
         {
             try
             {
-                string projectRoot = Directory.GetParent(Application.dataPath)?.FullName;
-                string[] candidates =
+                foreach (string directory in ExternalArtDirectories())
                 {
-                    string.IsNullOrEmpty(projectRoot) ? "" : Path.Combine(projectRoot, "Docs", "ArtReferences", fileName),
-                    Path.Combine(Application.dataPath, "Docs", "ArtReferences", fileName)
-                };
-
-                foreach (string path in candidates)
-                {
-                    if (string.IsNullOrEmpty(path) || !File.Exists(path)) continue;
-                    Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-                    Type imageConversion = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule");
-                    System.Reflection.MethodInfo loadImage = imageConversion?.GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]) });
-                    if (loadImage != null && (bool)loadImage.Invoke(null, new object[] { texture, File.ReadAllBytes(path) }))
-                    {
-                        texture.filterMode = FilterMode.Point;
-                        texture.wrapMode = TextureWrapMode.Clamp;
-                        return texture;
-                    }
+                    if (string.IsNullOrEmpty(directory)) continue;
+                    Texture2D texture = TryLoadExternalPngPath(Path.Combine(directory, fileName));
+                    if (texture != null) return texture;
                 }
             }
             catch (Exception ex)
@@ -900,6 +914,18 @@ namespace AshenHalls
                 Debug.LogWarning("Could not load external art: " + ex.Message);
             }
             return null;
+        }
+
+        private Texture2D TryLoadExternalPngPath(string path)
+        {
+            if (string.IsNullOrEmpty(path) || !File.Exists(path)) return null;
+            Texture2D texture = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            Type imageConversion = Type.GetType("UnityEngine.ImageConversion, UnityEngine.ImageConversionModule");
+            System.Reflection.MethodInfo loadImage = imageConversion?.GetMethod("LoadImage", new[] { typeof(Texture2D), typeof(byte[]) });
+            if (loadImage == null || !(bool)loadImage.Invoke(null, new object[] { texture, File.ReadAllBytes(path) })) return null;
+            texture.filterMode = FilterMode.Point;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            return texture;
         }
 
         private void NewMuster()
@@ -3935,6 +3961,7 @@ namespace AshenHalls
 
         private void HandleCombatMouse(Rect grid, float cell)
         {
+            if (showArmory || showSpellbook) return;
             Event e = Event.current;
             if (e.type != EventType.MouseDown || !grid.Contains(e.mousePosition)) return;
             CombatUnit active = CurrentUnit();
