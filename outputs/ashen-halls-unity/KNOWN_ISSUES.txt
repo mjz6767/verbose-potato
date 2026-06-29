@@ -1,6 +1,8 @@
 Ashen Halls Known Issues
 
 Current practical notes:
+- v0.50.0 repairs the most obvious tavern/combat UI clutter: the landing no longer shows company cards, top chrome is shorter, and combat actions are icon-only. Some deeper screens still use immediate-mode panels and will need continued spacing passes.
+- v0.50.0 adds large generated creature and icon sheets directly to runtime. They are intentionally better-looking beta art, but still need later hand cleanup for exact pixel-grid consistency, transparency, and animation frames.
 - v0.49.1 verifies the v0.49 graphics/UI pass as a packaged repair build. Remaining risk is visual tuning from live playtesting: command icon sizing, tavern readability, and combat panel polish may still need another pass.
 - v0.49.0 moves combat commands toward icon-first buttons, but hover help and tiny state labels remain intentionally visible for beta testing. Later passes can add full tooltip-only labels once the icon language is stable.
 - v0.49.0 adds generated tavern/combat/enemy art sheets that are runtime-visible. They are still source-quality generated sheets and should eventually be hand-cleaned into tighter sprites and animation frames.

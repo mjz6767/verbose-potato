@@ -19,7 +19,7 @@ namespace AshenHalls
         private const int CombatMoveAllowance = 3;
         private const int SummonedTreeDuration = 8;
         private const int FinalBossDepth = 6;
-        private const string PackageVersion = "v0.49.1";
+        private const string PackageVersion = "v0.50.0";
         private const string GameTitle = "Ashen Halls";
         private const string GameSubtitle = "The Old Road";
         private const string BuildStage = "Beta RPG Scaffold";
@@ -67,6 +67,9 @@ namespace AshenHalls
         private Texture2D enemyWorldObjectAtlas;
         private Texture2D tavernBackdropArt;
         private Texture2D tavernUiAtlas;
+        private Texture2D inventoryConsumableAtlas;
+        private Texture2D combatCommandIconAtlas;
+        private Texture2D creatureSpriteAtlas;
         private GUIStyle titleStyle;
         private GUIStyle h2Style;
         private GUIStyle labelStyle;
@@ -104,6 +107,9 @@ namespace AshenHalls
         private string lootPanelTitle = "";
         private string lootPanelBody = "";
         private InventoryItem lootPanelItem;
+        private int lootPanelGold;
+        private int lootPanelSupplies;
+        private int lootPanelElixirs;
         private float lootPanelUntil;
         private string lastExploreRegion = "";
         private bool showArmory;
@@ -856,6 +862,9 @@ namespace AshenHalls
             enemyWorldObjectAtlas = LoadExternalPng("enemy-world-object-atlas-runtime-v0.49.png");
             tavernBackdropArt = LoadExternalPng("tavern-backdrop-runtime-v0.49.png");
             tavernUiAtlas = LoadExternalPng("tavern-ui-atlas-runtime-v0.49.png");
+            inventoryConsumableAtlas = LoadExternalPng("inventory-consumable-atlas-runtime-v0.50.png");
+            combatCommandIconAtlas = LoadExternalPng("combat-command-icon-atlas-runtime-v0.50.png");
+            creatureSpriteAtlas = LoadExternalPng("creature-sprite-atlas-runtime-v0.50.png");
             spriteCellMetrics.Clear();
         }
 
@@ -1005,47 +1014,49 @@ namespace AshenHalls
         private void DrawTavernMenu()
         {
             DrawTavernBackdrop();
-            Rect top = new Rect(22, 18, Screen.width - 44, 82);
-            DrawPanel(top);
-            GUI.Label(new Rect(top.x + 20, top.y + 10, 420, 34), GameTitle, titleStyle);
-            GUI.Label(new Rect(top.x + 24, top.y + 49, 520, 20), $"{GameSubtitle} / {BuildStage}", CenterLeftStyle(12, gold));
+            Rect top = new Rect(22, 16, Screen.width - 44, 54);
+            DrawRect(top, Hex("0a0f12", 0.58f));
+            DrawBorder(top, line.WithAlpha(0.52f), 1);
+            GUI.Label(new Rect(top.x + 16, top.y + 4, 320, 28), GameTitle, CenterLeftStyle(26, ink));
+            GUI.Label(new Rect(top.x + 18, top.y + 31, 440, 18), $"{GameSubtitle} / {BuildStage}", CenterLeftStyle(11, gold));
             float prefW = Mathf.Clamp(Screen.width * 0.22f, 300f, 380f);
-            DrawPreferenceControls(top.xMax - prefW - 18f, top.y + 28, prefW);
+            DrawPreferenceControls(top.xMax - prefW - 16f, top.y + 17, prefW, false);
 
-            float menuW = Mathf.Clamp(Screen.width * 0.28f, 320f, 430f);
-            Rect menu = new Rect(42, 132, menuW, Mathf.Min(560f, Screen.height - 170f));
-            DrawRect(menu, Hex("11171b", 0.96f));
+            float menuW = Mathf.Clamp(Screen.width * 0.24f, 300f, 390f);
+            Rect menu = new Rect(42, 100, menuW, Mathf.Min(438f, Screen.height - 138f));
+            DrawRect(menu, Hex("11171b", 0.76f));
             DrawBorder(menu, gold, 2);
             DrawCombatUiCornerTrim(menu, gold);
             GUI.Label(new Rect(menu.x + 22, menu.y + 18, menu.width - 44, 30), "Midgaard Tavern", h2Style);
-            GUI.Label(new Rect(menu.x + 22, menu.y + 50, menu.width - 44, 46), "Gather the company, tune the rules, or jump into a beta combat test.", mutedStyle);
+            GUI.Label(new Rect(menu.x + 22, menu.y + 49, menu.width - 44, 32), "Gather the company, tune the rules, or jump into a beta combat test.", CenterLeftStyle(11, muted));
 
-            float y = menu.y + 112;
-            if (DrawTavernMenuButton(new Rect(menu.x + 26, y, menu.width - 52, 48), "Start Game", 1)) BeginGame();
-            y += 60;
-            if (DrawTavernMenuButton(new Rect(menu.x + 26, y, menu.width - 52, 48), "Customize Company", 2)) state.Mode = GameMode.Muster;
-            y += 60;
-            if (DrawTavernMenuButton(new Rect(menu.x + 26, y, menu.width - 52, 48), "Beta Lab", 3)) StartBetaCombatLab();
-            y += 60;
-            if (DrawTavernMenuButton(new Rect(menu.x + 26, y, menu.width - 52, 48), "Settings", 4)) showTavernSettings = !showTavernSettings;
-            y += 60;
-            if (DrawTavernMenuButton(new Rect(menu.x + 26, y, menu.width - 52, 48), "Exit Game", 5))
+            float y = menu.y + 90;
+            float buttonH = 42f;
+            float buttonGap = 10f;
+            if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Start Game", 1)) BeginGame();
+            y += buttonH + buttonGap;
+            if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Customize Company", 2)) state.Mode = GameMode.Muster;
+            y += buttonH + buttonGap;
+            if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Beta Lab", 3)) StartBetaCombatLab();
+            y += buttonH + buttonGap;
+            if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Settings", 4)) showTavernSettings = !showTavernSettings;
+            y += buttonH + buttonGap;
+            if (DrawTavernMenuButton(new Rect(menu.x + 24, y, menu.width - 48, buttonH), "Exit Game", 5))
             {
                 PlaySfx("ui", 0.6f);
                 Application.Quit();
                 ShowBanner("Exit requested");
             }
 
-            Rect summary = new Rect(menu.x + 24, menu.yMax - 104, menu.width - 48, 78);
-            DrawRect(summary, Hex("080b0d", 0.72f));
+            Rect summary = new Rect(menu.x + 20, menu.yMax - 78, menu.width - 40, 56);
+            DrawRect(summary, Hex("080b0d", 0.58f));
             DrawBorder(summary, line, 1);
-            GUI.Label(new Rect(summary.x + 10, summary.y + 8, summary.width - 20, 18), FitText(TavernSummaryLine(), summary.width - 20, CenterLeftStyle(11, gold)), CenterLeftStyle(11, gold));
-            GUI.Label(new Rect(summary.x + 10, summary.y + 30, summary.width - 20, 36), TavernWatchLine(), CenterLeftStyle(10, muted));
+            GUI.Label(new Rect(summary.x + 10, summary.y + 6, summary.width - 20, 16), FitText(TavernSummaryLine(), summary.width - 20, CenterLeftStyle(10, gold)), CenterLeftStyle(10, gold));
+            GUI.Label(new Rect(summary.x + 10, summary.y + 24, summary.width - 20, 28), TavernWatchLine(), CenterLeftStyle(9, muted));
 
-            Rect table = new Rect(menu.xMax + 34, 132, Screen.width - menu.xMax - 76, Mathf.Min(560f, Screen.height - 170f));
-            DrawTavernCompanyPreview(table);
-            DrawTavernQuestPreview(new Rect(table.x, table.yMax + 14, table.width, Mathf.Max(92f, Screen.height - table.yMax - 36f)));
-            if (showTavernSettings) DrawTavernSettings(new Rect(Screen.width - 390, 126, 340, 230));
+            Rect route = new Rect(menu.xMax + 40, Screen.height - 118, Screen.width - menu.xMax - 92, 74);
+            DrawTavernQuestPreview(route);
+            if (showTavernSettings) DrawTavernSettings(new Rect(Screen.width - 390, 86, 340, 230));
         }
 
         private bool DrawTavernMenuButton(Rect rect, string label, int iconIndex)
@@ -1089,21 +1100,24 @@ namespace AshenHalls
 
         private void DrawTavernQuestPreview(Rect rect)
         {
-            if (rect.height < 76f) return;
-            DrawRect(rect, Hex("11171b", 0.90f));
+            if (rect.height < 58f) return;
+            DrawRect(rect, Hex("11171b", 0.58f));
             DrawBorder(rect, violet.WithAlpha(0.78f), 1);
-            GUI.Label(new Rect(rect.x + 18, rect.y + 12, 240, 22), "Road to the Final Gate", CenterLeftStyle(15, gold));
-            GUI.Label(new Rect(rect.x + 20, rect.y + 38, rect.width - 40, 20), "Six beta chapters now lead from Midgaard to Vhal Rakh's meteor-crowned ritual.", CenterLeftStyle(11, muted));
-            float y = rect.y + 68f;
+            GUI.Label(new Rect(rect.x + 18, rect.y + 7, 240, 20), "Road to the Final Gate", CenterLeftStyle(13, gold));
+            if (rect.height > 96f)
+            {
+                GUI.Label(new Rect(rect.x + 20, rect.y + 34, rect.width - 40, 18), "Six beta chapters now lead from Midgaard to Vhal Rakh's meteor-crowned ritual.", CenterLeftStyle(10, muted));
+            }
+            float y = rect.height > 96f ? rect.y + 62f : rect.y + 36f;
             string[] stops = { "Cisterns", "Kobolds", "Bone Road", "Glass", "Red Gate", "Meteor Crown" };
             float gap = 8f;
             float cellW = (rect.width - 40f - gap * (stops.Length - 1)) / stops.Length;
             for (int i = 0; i < stops.Length; i++)
             {
-                Rect step = new Rect(rect.x + 20f + i * (cellW + gap), y, cellW, Mathf.Min(36f, rect.yMax - y - 10f));
-                DrawRect(step, i == stops.Length - 1 ? Hex("351b1b", 0.88f) : Hex("151b20", 0.88f));
+                Rect step = new Rect(rect.x + 20f + i * (cellW + gap), y, cellW, Mathf.Min(26f, rect.yMax - y - 8f));
+                DrawRect(step, i == stops.Length - 1 ? Hex("351b1b", 0.78f) : Hex("151b20", 0.70f));
                 DrawBorder(step, i == stops.Length - 1 ? gold : line, 1);
-                GUI.Label(step, stops[i], CenterStyle(Mathf.RoundToInt(Mathf.Clamp(step.width / 9f, 8f, 11f)), i == stops.Length - 1 ? gold : ink));
+                GUI.Label(step, stops[i], CenterStyle(Mathf.RoundToInt(Mathf.Clamp(step.width / 10f, 8f, 10f)), i == stops.Length - 1 ? gold : ink));
             }
         }
 
@@ -1155,20 +1169,20 @@ namespace AshenHalls
         {
             DrawTavernBackdrop();
 
-            Rect top = new Rect(18, 18, Screen.width - 36, 104);
-            DrawPanel(top);
-            GUI.Label(new Rect(top.x + 18, top.y + 10, 420, 34), GameTitle, titleStyle);
-            GUI.Label(new Rect(top.x + 22, top.y + 48, 250, 18), "Tavern Muster", CenterLeftStyle(11, gold));
-            GUI.Label(new Rect(top.x + 22, top.y + 74, Mathf.Max(260, top.width - 610), 20), PartySummaryLine(), mutedStyle);
-            DrawPreferenceControls(top.x + 430, top.y + 24, Mathf.Max(190f, top.width - 958f));
-            float actionsY = top.y + 24;
-            if (GUI.Button(new Rect(top.xMax - 506, actionsY, 110, 44), "Tavern", buttonStyle)) state.Mode = GameMode.Tavern;
-            if (GUI.Button(new Rect(top.xMax - 386, actionsY, 120, 44), "Beta Lab", buttonStyle)) StartBetaCombatLab();
-            if (GUI.Button(new Rect(top.xMax - 256, actionsY, 112, 44), "Quick Start", buttonStyle)) QuickStart();
-            if (GUI.Button(new Rect(top.xMax - 134, actionsY, 110, 44), "Begin", buttonStyle)) BeginGame();
+            Rect top = new Rect(18, 16, Screen.width - 36, 68);
+            DrawRect(top, Hex("10161b", 0.86f));
+            DrawBorder(top, line.WithAlpha(0.70f), 1);
+            GUI.Label(new Rect(top.x + 16, top.y + 5, 300, 27), GameTitle, CenterLeftStyle(24, ink));
+            GUI.Label(new Rect(top.x + 18, top.y + 34, Mathf.Max(260, top.width - 760), 18), $"Tavern Muster / {PartySummaryLine()}", CenterLeftStyle(10, gold));
+            DrawPreferenceControls(top.x + 330, top.y + 18, Mathf.Max(180f, top.width - 850f), false);
+            float actionsY = top.y + 16;
+            if (GUI.Button(new Rect(top.xMax - 438, actionsY, 82, 34), "Tavern", smallButtonStyle)) state.Mode = GameMode.Tavern;
+            if (GUI.Button(new Rect(top.xMax - 348, actionsY, 86, 34), "Beta Lab", smallButtonStyle)) StartBetaCombatLab();
+            if (GUI.Button(new Rect(top.xMax - 254, actionsY, 106, 34), "Quick Start", smallButtonStyle)) QuickStart();
+            if (GUI.Button(new Rect(top.xMax - 140, actionsY, 104, 34), "Begin", smallButtonStyle)) BeginGame();
 
             float leftW = Mathf.Min(390, Screen.width * 0.34f);
-            Rect roster = new Rect(18, 138, leftW, Screen.height - 156);
+            Rect roster = new Rect(18, 100, leftW, Screen.height - 118);
             DrawPanel(roster);
             GUI.Label(new Rect(roster.x + 14, roster.y + 12, roster.width - 28, 25), "Company", h2Style);
 
@@ -1186,7 +1200,7 @@ namespace AshenHalls
                 y += 61;
             }
 
-            Rect editor = new Rect(roster.xMax + 14, 138, Screen.width - roster.xMax - 32, Screen.height - 156);
+            Rect editor = new Rect(roster.xMax + 14, 100, Screen.width - roster.xMax - 32, Screen.height - 118);
             DrawPanel(editor);
             PartyMember selected = state.Party[Mathf.Clamp(selectedBuilderIndex, 0, state.Party.Count - 1)];
             GUI.Label(new Rect(editor.x + 18, editor.y + 14, 320, 28), "Tavern Muster", h2Style);
@@ -2053,39 +2067,40 @@ namespace AshenHalls
 
         private void DrawGameChrome(string mode)
         {
-            Rect top = new Rect(12, 12, Screen.width - 24, 86);
-            DrawPanel(top);
-            DrawGameLogo(new Rect(top.x + 15, top.y + 18, 50, 50));
-            float buttonW = Screen.width < 1180 ? 54f : 62f;
-            float buttonGap = 8f;
+            Rect top = new Rect(12, 10, Screen.width - 24, 58);
+            DrawRect(top, Hex("10161b", 0.88f));
+            DrawBorder(top, line.WithAlpha(0.72f), 1);
+            DrawGameLogo(new Rect(top.x + 12, top.y + 9, 40, 40));
+            float buttonW = Screen.width < 1180 ? 48f : 54f;
+            float buttonGap = 6f;
             float actionsW = buttonW * 3f + buttonGap * 2f;
-            float actionsX = top.xMax - actionsW - 14f;
-            float resourceW = Screen.width < 1240 ? 70f : 84f;
-            float resourceGap = Screen.width < 1240 ? 6f : 10f;
+            float actionsX = top.xMax - actionsW - 10f;
+            float resourceW = Screen.width < 1240 ? 62f : 76f;
+            float resourceGap = Screen.width < 1240 ? 5f : 8f;
             float resourcesW = resourceW * 3f + resourceGap * 2f;
-            float resourcesX = actionsX - resourcesW - 14f;
-            float titleX = top.x + 78f;
-            float titleW = Mathf.Max(210f, Mathf.Min(330f, resourcesX - titleX - 18f));
-            GUI.Label(new Rect(titleX, top.y + 14, titleW, 34), GameTitle, titleStyle);
+            float resourcesX = actionsX - resourcesW - 10f;
+            float titleX = top.x + 62f;
+            float titleW = Mathf.Max(180f, Mathf.Min(310f, resourcesX - titleX - 14f));
+            GUI.Label(new Rect(titleX, top.y + 5, titleW, 28), GameTitle, CenterLeftStyle(24, ink));
             string modeLine = state.Mode == GameMode.Explore ? $"{StoryChapterTitle()} / Depth {state.Depth}" : $"{GameSubtitle} / Depth {state.Depth} / {mode}";
-            GUI.Label(new Rect(titleX + 2, top.y + 52, titleW, 20), modeLine, CenterLeftStyle(11, muted));
+            GUI.Label(new Rect(titleX + 2, top.y + 34, titleW, 18), modeLine, CenterLeftStyle(10, muted));
 
-            float preferenceX = titleX + titleW + 18f;
+            float preferenceX = titleX + titleW + 12f;
             float preferenceW = resourcesX - preferenceX - 12f;
             if (preferenceW >= 170f)
             {
-                DrawPreferenceControls(preferenceX, top.y + 31, preferenceW);
+                DrawPreferenceControls(preferenceX, top.y + 18, preferenceW, false);
             }
 
-            DrawResource(new Rect(resourcesX, top.y + 16, resourceW, 54), "Gold", state.Gold.ToString());
-            DrawResource(new Rect(resourcesX + resourceW + resourceGap, top.y + 16, resourceW, 54), "Supplies", state.Supplies.ToString());
-            DrawResource(new Rect(resourcesX + (resourceW + resourceGap) * 2f, top.y + 16, resourceW, 54), "Elixirs", state.Elixirs.ToString());
-            if (GUI.Button(new Rect(actionsX, top.y + 22, buttonW, 42), "Save", buttonStyle)) SaveGame();
-            if (GUI.Button(new Rect(actionsX + buttonW + buttonGap, top.y + 22, buttonW, 42), "Load", buttonStyle)) LoadGame();
-            if (GUI.Button(new Rect(actionsX + (buttonW + buttonGap) * 2f, top.y + 22, buttonW, 42), "New", buttonStyle)) NewMuster();
+            DrawResource(new Rect(resourcesX, top.y + 8, resourceW, 42), "Gold", state.Gold.ToString());
+            DrawResource(new Rect(resourcesX + resourceW + resourceGap, top.y + 8, resourceW, 42), "Supplies", state.Supplies.ToString());
+            DrawResource(new Rect(resourcesX + (resourceW + resourceGap) * 2f, top.y + 8, resourceW, 42), "Elixirs", state.Elixirs.ToString());
+            if (GUI.Button(new Rect(actionsX, top.y + 12, buttonW, 34), "Save", smallButtonStyle)) SaveGame();
+            if (GUI.Button(new Rect(actionsX + buttonW + buttonGap, top.y + 12, buttonW, 34), "Load", smallButtonStyle)) LoadGame();
+            if (GUI.Button(new Rect(actionsX + (buttonW + buttonGap) * 2f, top.y + 12, buttonW, 34), "New", smallButtonStyle)) NewMuster();
         }
 
-        private void DrawPreferenceControls(float x, float y, float maxWidth = 300f)
+        private void DrawPreferenceControls(float x, float y, float maxWidth = 300f, bool showPulse = true)
         {
             if (state == null) return;
             bool soundOn = !state.SfxMuted;
@@ -2113,7 +2128,7 @@ namespace AshenHalls
             float motionW = Mathf.Max(compact ? 76f : 118f, maxWidth - (motionX - x));
             string motionLabel = motionW < 116f ? " Motion" : " Reduced Motion";
             state.ReducedMotion = GUI.Toggle(new Rect(motionX, y, motionW, 24), state.ReducedMotion, motionLabel);
-            DrawSfxPulse(new Rect(x, y + 29f, Mathf.Min(maxWidth, 220f), 18f));
+            if (showPulse) DrawSfxPulse(new Rect(x, y + 29f, Mathf.Min(maxWidth, 220f), 18f));
         }
 
         private void DrawSfxPulse(Rect rect)
@@ -2137,9 +2152,13 @@ namespace AshenHalls
             DrawRect(rect, Hex("171c20"));
             DrawBorder(rect, line, 1);
             Color icon = label == "Gold" ? gold : label == "Supplies" ? moss : teal;
-            DrawRect(new Rect(rect.x + 8, rect.y + 11, 9, 9), icon);
-            GUI.Label(new Rect(rect.x + 22, rect.y + 7, rect.width - 28, 18), label == "Supplies" && rect.width < 78 ? "Sup" : label, mutedStyle);
-            GUI.Label(new Rect(rect.x + 8, rect.y + 29, rect.width - 16, 20), value, CenterLeftStyle(14, ink));
+            Rect iconRect = new Rect(rect.x + 5, rect.y + 6, 15, 15);
+            if (!TryDrawInventoryConsumableAtlasIcon(iconRect, ResourceConsumableIconIndex(label), Color.white.WithAlpha(0.94f)))
+            {
+                DrawRect(new Rect(rect.x + 8, rect.y + 10, 8, 8), icon);
+            }
+            GUI.Label(new Rect(rect.x + 23, rect.y + 4, rect.width - 27, 15), label == "Supplies" && rect.width < 78 ? "Sup" : label, CenterLeftStyle(9, muted));
+            GUI.Label(new Rect(rect.x + 6, rect.y + 21, rect.width - 12, 18), value, CenterLeftStyle(13, ink));
         }
 
         private void DrawGameLogo(Rect rect)
@@ -3954,7 +3973,7 @@ namespace AshenHalls
         private void DrawSidePanels()
         {
             float sideW = Mathf.Clamp(Screen.width * 0.30f, 430f, 560f);
-            sideRect = new Rect(Screen.width - sideW - 12, 112, sideW, Screen.height - 124);
+            sideRect = new Rect(Screen.width - sideW - 12, 78, sideW, Screen.height - 90);
             float gap = 10f;
             float minLogH = Mathf.Min(190f, Mathf.Max(112f, sideRect.height * 0.20f));
             float companyH = Mathf.Clamp(sideRect.height * (state.Mode == GameMode.Combat ? 0.50f : 0.45f), 260f, 430f);
@@ -4318,7 +4337,7 @@ namespace AshenHalls
 
         private void DrawCommandBar()
         {
-            Rect baseRect = new Rect(12, Screen.height - 86, sideRect.x - 24, 72);
+            Rect baseRect = new Rect(12, Screen.height - 78, sideRect.x - 24, 64);
             if (baseRect.width < 480) return;
             if (state.Mode == GameMode.Explore)
             {
@@ -4338,18 +4357,17 @@ namespace AshenHalls
             {
                 CombatUnit active = CurrentUnit();
                 bool playerTurn = active != null && active.Side == UnitSide.Party;
-                string[] hotkeys = { "1", "2", "3", "4", "5", "6" };
                 ActionMode[] modes = { ActionMode.Move, ActionMode.Attack, ActionMode.Cast, ActionMode.Guard, ActionMode.Elixir, ActionMode.Wait };
-                float gap = 8f;
-                float reservedStatus = baseRect.width >= 900f ? 220f : 0f;
-                float buttonW = Mathf.Clamp((baseRect.width - reservedStatus - gap * (modes.Length - 1)) / modes.Length, 72f, 112f);
+                float gap = 10f;
+                float reservedStatus = baseRect.width >= 760f ? 230f : 0f;
+                float buttonW = Mathf.Clamp((baseRect.width - reservedStatus - gap * (modes.Length - 1)) / modes.Length, 56f, 76f);
                 bool hasHoveredButton = false;
                 ActionMode hoveredMode = ActionMode.Attack;
                 Rect hoveredRect = Rect.zero;
                 for (int i = 0; i < modes.Length; i++)
                 {
                     GUI.enabled = playerTurn && ActionEnabled(modes[i], active);
-                    Rect r = new Rect(baseRect.x + i * (buttonW + gap), baseRect.y + 6, buttonW, 60);
+                    Rect r = new Rect(baseRect.x + i * (buttonW + gap), baseRect.y + 4, buttonW, 56);
                     if (Event.current != null && r.Contains(Event.current.mousePosition))
                     {
                         hasHoveredButton = true;
@@ -4361,15 +4379,13 @@ namespace AshenHalls
                         SelectOrRunAction(modes[i], active);
                     }
                     DrawActionButtonGlyph(r, modes[i], playerTurn && ActionEnabled(modes[i], active), selectedAction == modes[i]);
-                    DrawActionHotkeyBadge(r, hotkeys[i], playerTurn && ActionEnabled(modes[i], active), selectedAction == modes[i]);
-                    GUI.Label(new Rect(r.x + 8f, r.yMax - 17f, r.width - 16f, 13f), ActionButtonSubLabel(modes[i], active), CenterStyle(9, selectedAction == modes[i] ? gold : muted));
                     if (selectedAction == modes[i]) DrawBorder(r, gold, 2);
                 }
                 GUI.enabled = true;
                 float usedButtons = modes.Length * buttonW + (modes.Length - 1) * gap;
                 if (baseRect.width - usedButtons >= 132f)
                 {
-                    DrawCommandStatus(new Rect(baseRect.x + usedButtons + 12f, baseRect.y + 8, baseRect.width - usedButtons - 12f, 56), active, playerTurn);
+                    DrawCommandStatus(new Rect(baseRect.x + usedButtons + 14f, baseRect.y + 4, baseRect.width - usedButtons - 14f, 56), active, playerTurn);
                 }
                 if (betaLabMode)
                 {
@@ -4442,14 +4458,16 @@ namespace AshenHalls
             DrawBorder(box, accent, 1);
             DrawCombatUiCornerTrim(box, accent);
             Rect iconRect = new Rect(box.x + 8f, box.y + 8f, 28f, 28f);
-            if (!TryDrawCombatHudUiAtlasIcon(iconRect, ActionCombatHudIconIndex(mode), Color.white.WithAlpha(0.88f)) &&
+            if (!TryDrawCombatCommandIconAtlasIcon(iconRect, ActionCombatCommandIconIndex(mode), Color.white.WithAlpha(0.94f)) &&
+                !TryDrawCombatHudUiAtlasIcon(iconRect, ActionCombatHudIconIndex(mode), Color.white.WithAlpha(0.88f)) &&
                 !TryDrawCombatSpellbookUiAtlasIcon(iconRect, ActionCombatSpellbookUiIconIndex(mode), Color.white.WithAlpha(0.82f)) &&
                 !TryDrawSpellbookUiAtlasIcon(iconRect, ActionSpellbookIconIndex(mode), Color.white.WithAlpha(0.76f)))
             {
                 TryDrawCombatUiAtlasIcon(iconRect, ActionCombatUiIconIndex(mode), Color.white.WithAlpha(0.68f));
             }
             GUI.Label(new Rect(box.x + 44f, box.y + 6f, box.width - 54f, 18f), ActionName(mode), CenterLeftStyle(12, cursorWhite));
-            GUI.Label(new Rect(box.x + 44f, box.y + 26f, box.width - 54f, 15f), enabled ? "Ready" : DisabledActionReason(mode, active, playerTurn), CenterLeftStyle(10, enabled ? teal : ember));
+            string stateLine = enabled ? $"{ActionHotkeyLabel(mode)} / {ActionButtonSubLabel(mode, active)} / Ready" : DisabledActionReason(mode, active, playerTurn);
+            GUI.Label(new Rect(box.x + 44f, box.y + 26f, box.width - 54f, 15f), stateLine, CenterLeftStyle(10, enabled ? teal : ember));
             GUI.Label(new Rect(box.x + 10f, box.y + 50f, box.width - 20f, 28f), ActionTooltipLine(mode, active), CenterLeftStyle(10, muted));
         }
 
@@ -4513,14 +4531,33 @@ namespace AshenHalls
             }
         }
 
+        private string ActionHotkeyLabel(ActionMode mode)
+        {
+            switch (mode)
+            {
+                case ActionMode.Move: return "1";
+                case ActionMode.Attack: return "2";
+                case ActionMode.Cast: return "3";
+                case ActionMode.Guard: return "4";
+                case ActionMode.Elixir: return "5";
+                case ActionMode.Wait: return "6";
+                default: return "";
+            }
+        }
+
         private void DrawActionButtonGlyph(Rect rect, ActionMode mode, bool enabled, bool selected)
         {
             Color color = enabled ? (selected ? gold : muted) : Hex("4f5558", 0.72f);
-            float iconSize = Mathf.Clamp(Mathf.Min(rect.width, rect.height) * 0.56f, 30f, 40f);
-            Rect icon = new Rect(rect.center.x - iconSize * 0.5f, rect.y + 9f, iconSize, iconSize);
+            float iconSize = Mathf.Clamp(Mathf.Min(rect.width, rect.height) * 0.78f, 40f, 54f);
+            Rect icon = new Rect(rect.center.x - iconSize * 0.5f, rect.center.y - iconSize * 0.5f, iconSize, iconSize);
             DrawRect(icon, Hex("050708", selected ? 0.76f : 0.54f));
             DrawBorder(icon, color.WithAlpha(selected ? 0.95f : 0.70f), 1);
             Rect inner = Pad(icon, 4f);
+            int commandIcon = ActionCombatCommandIconIndex(mode);
+            if (commandIcon >= 0 && TryDrawCombatCommandIconAtlasIcon(Pad(icon, 1f), commandIcon, Color.white.WithAlpha(enabled ? 0.96f : 0.34f)))
+            {
+                return;
+            }
             int combatHudIcon = ActionCombatHudIconIndex(mode);
             if (combatHudIcon >= 0 && TryDrawCombatHudUiAtlasIcon(Pad(icon, 1f), combatHudIcon, Color.white.WithAlpha(enabled ? 0.94f : 0.36f)))
             {
@@ -4601,6 +4638,20 @@ namespace AshenHalls
                 case ActionMode.Wait: return 3;
                 case ActionMode.Elixir: return 4;
                 case ActionMode.Move: return 7;
+                default: return -1;
+            }
+        }
+
+        private int ActionCombatCommandIconIndex(ActionMode mode)
+        {
+            switch (mode)
+            {
+                case ActionMode.Move: return 0;
+                case ActionMode.Attack: return 1;
+                case ActionMode.Cast: return 2;
+                case ActionMode.Guard: return 3;
+                case ActionMode.Elixir: return 4;
+                case ActionMode.Wait: return 5;
                 default: return -1;
             }
         }
@@ -5332,14 +5383,16 @@ namespace AshenHalls
             {
                 int foundGold = rng.Next(12, 29) + state.Depth * 4;
                 InventoryItem item = MakeItem();
+                int foundElixirs = rng.NextDouble() < 0.5 ? 1 : 0;
+                int foundSupplies = rng.NextDouble() < 0.55 ? 1 : 0;
                 state.Gold += foundGold;
+                state.Elixirs += foundElixirs;
+                state.Supplies += foundSupplies;
                 state.Inventory.Add(item);
                 string equipNote = AutoEquipItem(item);
-                ShowLootPanel(item, foundGold, equipNote);
-                if (rng.NextDouble() < 0.5) state.Elixirs++;
-                if (rng.NextDouble() < 0.55) state.Supplies++;
+                ShowLootPanel(item, foundGold, foundSupplies, foundElixirs, equipNote);
                 RemoveObject(obj);
-                PushLog($"A sealed cache yields {foundGold} gold and {item.DisplayName}. {equipNote}", Tone.Good);
+                PushLog($"A sealed cache yields {foundGold} gold{CacheSupplyLine(foundSupplies, foundElixirs)} and {item.DisplayName}. {equipNote}", Tone.Good);
                 ShowBanner("Cache opened");
                 PlaySfx("cache");
                 AddBurst(state.PlayerX, state.PlayerY, gold);
@@ -8242,7 +8295,7 @@ namespace AshenHalls
         private Rect GetBoardRect()
         {
             float sideW = Mathf.Clamp(Screen.width * 0.30f, 430f, 560f);
-            return new Rect(12, 112, Screen.width - sideW - 36, Screen.height - 202);
+            return new Rect(12, 78, Screen.width - sideW - 36, Screen.height - 166);
         }
 
         private Rect BoardInnerRect(Rect outer, int w, int h)
@@ -8576,6 +8629,54 @@ namespace AshenHalls
             return DrawTextureRegionTint(tavernUiAtlas, rect, TavernUiAtlasCell(index), tint);
         }
 
+        private bool IsInventoryConsumableAtlas()
+        {
+            return inventoryConsumableAtlas != null && inventoryConsumableAtlas.width >= 768 && inventoryConsumableAtlas.height >= 600;
+        }
+
+        private Rect InventoryConsumableAtlasCell(int index)
+        {
+            return AtlasCell(inventoryConsumableAtlas, index, 5, 4);
+        }
+
+        private bool TryDrawInventoryConsumableAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsInventoryConsumableAtlas() || index < 0) return false;
+            return DrawTextureRegionTint(inventoryConsumableAtlas, rect, InventoryConsumableAtlasCell(index), tint);
+        }
+
+        private bool IsCombatCommandIconAtlas()
+        {
+            return combatCommandIconAtlas != null && combatCommandIconAtlas.width >= 768 && combatCommandIconAtlas.height >= 600;
+        }
+
+        private Rect CombatCommandIconAtlasCell(int index)
+        {
+            return AtlasCell(combatCommandIconAtlas, index, 5, 4);
+        }
+
+        private bool TryDrawCombatCommandIconAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsCombatCommandIconAtlas() || index < 0) return false;
+            return DrawTextureRegionTint(combatCommandIconAtlas, rect, CombatCommandIconAtlasCell(index), tint);
+        }
+
+        private bool IsCreatureSpriteAtlas()
+        {
+            return creatureSpriteAtlas != null && Mathf.Abs(creatureSpriteAtlas.width - creatureSpriteAtlas.height) < 8 && creatureSpriteAtlas.width >= 768;
+        }
+
+        private Rect CreatureSpriteAtlasCell(int index)
+        {
+            return AtlasCell(creatureSpriteAtlas, index, 4, 4);
+        }
+
+        private bool TryDrawCreatureSpriteAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsCreatureSpriteAtlas() || index < 0) return false;
+            return DrawTextureRegionTint(creatureSpriteAtlas, rect, CreatureSpriteAtlasCell(index), tint);
+        }
+
         private int CombatUiIconIndex(string icon)
         {
             switch ((icon ?? "").ToLowerInvariant())
@@ -8888,6 +8989,11 @@ namespace AshenHalls
             Color accent = slot == "armor" ? teal : DamageColor(string.IsNullOrEmpty(damageType) ? "physical" : damageType);
             DrawRect(rect, Hex("050708", 0.86f));
             DrawBorder(rect, accent.WithAlpha(0.85f), 1);
+            int consumableIndex = InventoryConsumableIconIndex(name, slot);
+            if (consumableIndex >= 0 && TryDrawInventoryConsumableAtlasIcon(Pad(rect, rect.width * 0.06f), consumableIndex, Color.white))
+            {
+                return;
+            }
             int index = ItemIconIndex(name, slot);
             if (index >= 0 && TryDrawItemAtlasCell(Pad(rect, rect.width * 0.06f), index, Color.white))
             {
@@ -8938,6 +9044,43 @@ namespace AshenHalls
             if (slot == "armor") return 11;
             if (slot == "weapon") return 0;
             return -1;
+        }
+
+        private int InventoryConsumableIconIndex(string name, string slot)
+        {
+            string text = ((name ?? "") + " " + (slot ?? "")).ToLowerInvariant();
+            if (text.Contains("ration") || text.Contains("supply")) return 0;
+            if (text.Contains("bread")) return 1;
+            if (text.Contains("cheese")) return 2;
+            if (text.Contains("meat") || text.Contains("roast")) return 3;
+            if (text.Contains("berry") || text.Contains("berries")) return 4;
+            if (text.Contains("water")) return 5;
+            if (text.Contains("healing") || text.Contains("red potion")) return 6;
+            if (text.Contains("mana") || text.Contains("blue potion")) return 7;
+            if (text.Contains("elixir")) return 8;
+            if (text.Contains("antidote") || text.Contains("amber")) return 9;
+            if (text.Contains("gold") || text.Contains("coin")) return 10;
+            if (text.Contains("gem") || text.Contains("jewel")) return 11;
+            if (text.Contains("scroll")) return 12;
+            if (text.Contains("key")) return 13;
+            if (text.Contains("torch")) return 14;
+            if (text.Contains("pack") || text.Contains("satchel")) return 15;
+            if (text.Contains("cache") || text.Contains("chest")) return 16;
+            if (text.Contains("herb")) return 17;
+            if (text.Contains("mushroom") || text.Contains("fungus")) return 18;
+            if (text.Contains("crate")) return 19;
+            return -1;
+        }
+
+        private int ResourceConsumableIconIndex(string label)
+        {
+            switch ((label ?? "").ToLowerInvariant())
+            {
+                case "gold": return 10;
+                case "supplies": return 0;
+                case "elixirs": return 8;
+                default: return -1;
+            }
         }
 
         private Rect AtlasCombatRegion(CombatUnit unit)
@@ -9017,6 +9160,8 @@ namespace AshenHalls
 
         private bool TryDrawAtlasCombatSprite(Rect rect, CombatUnit unit)
         {
+            int creatureIndex = CreatureSpriteIndex(unit);
+            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, rect.width * 0.02f), creatureIndex, Color.white)) return true;
             if (unit != null && unit.Side == UnitSide.Enemy)
             {
                 int enemyWorldIndex = EnemyWorldEnemyIndex(unit.Role);
@@ -9029,6 +9174,8 @@ namespace AshenHalls
 
         private bool TryDrawAtlasPartyPortrait(Rect rect, string role)
         {
+            int creatureIndex = CreatureSpriteIndexForRole(role, UnitSide.Party);
+            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, rect.width * 0.03f), creatureIndex, Color.white)) return true;
             int index = SpriteSheetIndexForRole(role, UnitSide.Party);
             if (index < 0) return false;
             DrawRect(Pad(rect, rect.width * 0.05f), Hex("050708", 0.65f));
@@ -9039,6 +9186,8 @@ namespace AshenHalls
         private bool TryDrawEnemyRosterPortrait(Rect rect, CombatUnit unit)
         {
             if (unit == null || unit.Side != UnitSide.Enemy) return false;
+            int creatureIndex = CreatureSpriteIndex(unit);
+            if (creatureIndex >= 0 && TryDrawCreatureSpriteAtlasIcon(Pad(rect, rect.width * 0.02f), creatureIndex, Color.white)) return true;
             int enemyWorldIndex = EnemyWorldEnemyIndex(unit.Role);
             if (enemyWorldIndex >= 0 && TryDrawEnemyWorldObjectAtlasIcon(Pad(rect, rect.width * 0.03f), enemyWorldIndex, Color.white)) return true;
             int bossIndex = BossEnemyIndex(unit.Role);
@@ -9144,6 +9293,71 @@ namespace AshenHalls
                 case "lesserdemon": return 17;
                 case "shade": return 18;
                 case "bonepriest": return 19;
+                default: return -1;
+            }
+        }
+
+        private int CreatureSpriteIndex(CombatUnit unit)
+        {
+            if (unit == null) return -1;
+            if (unit.Summoned && (unit.Role ?? "").ToLowerInvariant().Contains("imp")) return 10;
+            return CreatureSpriteIndexForRole(unit.Role, unit.Side);
+        }
+
+        private int CreatureSpriteIndexForRole(string role, UnitSide side)
+        {
+            string key = (role ?? "").ToLowerInvariant();
+            if (side == UnitSide.Party)
+            {
+                switch (key)
+                {
+                    case "boundimp": return 10;
+                    case "knife":
+                    case "bow": return 1;
+                    case "mender":
+                    case "ward": return 2;
+                    case "ember":
+                    case "hex": return 3;
+                    case "shield":
+                    case "pike":
+                    default: return 0;
+                }
+            }
+
+            switch (key)
+            {
+                case "koboldraider":
+                case "koboldslinger":
+                case "koboldshield": return 4;
+                case "koboldshaman":
+                case "koboldwizard": return 5;
+                case "ratfolk":
+                case "ratcutthroat":
+                case "ratbrute":
+                case "sewerrat":
+                case "giantrat": return 6;
+                case "ratmage":
+                case "ratcleric": return 7;
+                case "drowblade":
+                case "drowscout":
+                case "drowcrossbow":
+                case "mirearcher": return 8;
+                case "drowmage":
+                case "drowpriest":
+                case "glassmage":
+                case "adept": return 9;
+                case "boundimp": return 10;
+                case "lesserdemon":
+                case "cinderling":
+                case "gloamknight": return 11;
+                case "reaver":
+                case "husk":
+                case "shade": return 12;
+                case "bonepriest":
+                case "meteorlich":
+                case "ritualheart": return 13;
+                case "sentry": return 14;
+                case "spore": return 15;
                 default: return -1;
             }
         }
@@ -9397,6 +9611,10 @@ namespace AshenHalls
             DrawCombatSpriteBadges(rect, unit, color);
             DrawCombatSpriteCasterMarks(spriteRect, unit);
             DrawWoundedSpriteMarks(spriteRect, unit);
+            if (atlasDrawn && unit.Side == UnitSide.Party)
+            {
+                DrawEquipmentOverlay(spriteRect, unit.Role, unit.WeaponName, unit.ArmorName, unit.DamageType);
+            }
             DrawStatusOverlay(rect, unit);
             DrawStatusDurationBadges(rect, unit);
             DrawSigil(new Rect(rect.x + rect.width * 0.37f, rect.y + rect.height * 0.80f, rect.width * 0.26f, rect.height * 0.14f), unit.Sigil, unit.Side == UnitSide.Party ? ink : Color.Lerp(color, ink, 0.35f));
@@ -9412,6 +9630,10 @@ namespace AshenHalls
             {
                 DrawPartyFigure(rect, member.Role, color);
                 DrawPartyVariantOverlay(rect, member.Role, member.Id + member.Name + member.Sigil, member.ArmorName, member.WeaponName, color);
+                DrawEquipmentOverlay(rect, member.Role, member.WeaponName, member.ArmorName, member.WeaponDamageType);
+            }
+            else
+            {
                 DrawEquipmentOverlay(rect, member.Role, member.WeaponName, member.ArmorName, member.WeaponDamageType);
             }
             DrawSigil(new Rect(rect.x + rect.width * 0.37f, rect.y + rect.height * 0.80f, rect.width * 0.26f, rect.height * 0.14f), member.Sigil, ink);
@@ -10570,24 +10792,49 @@ namespace AshenHalls
             GUI.Label(rect, bannerText, CenterStyle(18, ink));
         }
 
-        private void ShowLootPanel(InventoryItem item, int goldFound, string equipNote)
+        private void ShowLootPanel(InventoryItem item, int goldFound, int suppliesFound, int elixirsFound, string equipNote)
         {
             if (item == null) return;
-            lootPanelTitle = $"Cache: +{goldFound} gold";
+            lootPanelTitle = "Cache opened";
             lootPanelBody = $"{item.DisplayName}\n{ItemTraitLine(item)}\n{equipNote}";
             lootPanelItem = item;
-            lootPanelUntil = Time.time + 5.8f;
+            lootPanelGold = goldFound;
+            lootPanelSupplies = suppliesFound;
+            lootPanelElixirs = elixirsFound;
+            lootPanelUntil = Time.time + 6.4f;
         }
 
         private void DrawLootPanel()
         {
             if (Time.time > lootPanelUntil || string.IsNullOrEmpty(lootPanelBody)) return;
-            Rect rect = new Rect(Screen.width / 2f - 260, Screen.height - 182, 520, 124);
+            Rect rect = new Rect(Screen.width / 2f - 286, Screen.height - 204, 572, 146);
             DrawRect(rect, Hex("11171b", 0.97f));
             DrawBorder(rect, gold, 1);
-            DrawItemIcon(new Rect(rect.x + 14, rect.y + 38, 58, 58), lootPanelItem);
-            GUI.Label(new Rect(rect.x + 84, rect.y + 9, rect.width - 98, 22), lootPanelTitle, CenterLeftStyle(15, gold));
-            GUI.Label(new Rect(rect.x + 84, rect.y + 34, rect.width - 98, rect.height - 44), lootPanelBody, CenterLeftStyle(12, ink));
+            DrawCombatUiCornerTrim(rect, gold);
+            DrawItemIcon(new Rect(rect.x + 16, rect.y + 48, 66, 66), lootPanelItem);
+            GUI.Label(new Rect(rect.x + 96, rect.y + 8, rect.width - 112, 22), lootPanelTitle, CenterLeftStyle(15, gold));
+            float chipX = rect.x + 96;
+            DrawLootResourceChip(new Rect(chipX, rect.y + 34, 104, 28), 10, $"+{lootPanelGold}", gold, "gold");
+            if (lootPanelSupplies > 0) DrawLootResourceChip(new Rect(chipX + 112, rect.y + 34, 118, 28), 0, $"+{lootPanelSupplies}", moss, "supplies");
+            if (lootPanelElixirs > 0) DrawLootResourceChip(new Rect(chipX + 238, rect.y + 34, 112, 28), 8, $"+{lootPanelElixirs}", teal, "elixir");
+            GUI.Label(new Rect(rect.x + 96, rect.y + 68, rect.width - 112, rect.height - 78), lootPanelBody, CenterLeftStyle(12, ink));
+        }
+
+        private void DrawLootResourceChip(Rect rect, int iconIndex, string amount, Color accent, string label)
+        {
+            DrawRect(rect, Hex("080b0d", 0.82f));
+            DrawBorder(rect, accent.WithAlpha(0.78f), 1);
+            TryDrawInventoryConsumableAtlasIcon(new Rect(rect.x + 5, rect.y + 4, 20, 20), iconIndex, Color.white);
+            GUI.Label(new Rect(rect.x + 30, rect.y + 3, rect.width - 34, 11), amount, CenterLeftStyle(10, cursorWhite));
+            GUI.Label(new Rect(rect.x + 30, rect.y + 14, rect.width - 34, 11), label, CenterLeftStyle(9, muted));
+        }
+
+        private string CacheSupplyLine(int suppliesFound, int elixirsFound)
+        {
+            List<string> parts = new List<string>();
+            if (suppliesFound > 0) parts.Add(suppliesFound == 1 ? "1 supply" : $"{suppliesFound} supplies");
+            if (elixirsFound > 0) parts.Add(elixirsFound == 1 ? "1 elixir" : $"{elixirsFound} elixirs");
+            return parts.Count == 0 ? "" : ", " + string.Join(", ", parts.ToArray());
         }
 
         private void DrawArmoryOverlay()

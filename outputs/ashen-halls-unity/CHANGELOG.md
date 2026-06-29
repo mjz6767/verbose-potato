@@ -2,6 +2,18 @@
 
 All changes are original to Ashen Halls. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v0.50.0 - Runtime Graphics Expansion: Creatures, Commands, and Loot
+
+- Added three generated v0.50 runtime sheets under `Docs/ArtReferences/`: consumables/loot, combat command icons, and creature sprites.
+- Wired the consumable sheet into the top resource strip, item icon fallback, and cache reward panel so gold, supplies, elixirs, scrolls, herbs, chests, and food have real icon art.
+- Rebuilt cache reward presentation into a clearer reward card with icon chips for gold, supplies, and elixirs.
+- Wired the combat command sheet into action buttons and hover help so Move, Attack, Cast, Guard, Elixir, and End Turn have clearer dedicated icons.
+- Wired the creature sheet into party portraits, enemy roster portraits, and combat board sprites for stronger silhouettes across party roles, kobolds, ratfolk, drow, demons, undead, brutes, and fungus beasts.
+- Removed the company preview from the tavern landing screen and left party editing behind Customize Company so the tavern backdrop is no longer buried under management panels.
+- Shortened the tavern, muster, exploration, and combat top chrome so it takes much less vertical space.
+- Reworked combat action buttons into large icon-only controls with hotkey/cost/availability details moved into hover tooltips and the status readout.
+- Kept older art/procedural renderers as fallbacks and kept save data at version 17.
+
 ## v0.49.1 - Graphics UI Repair Verification
 
 - Verified the v0.49 graphics and icon-first combat UI code with a clean script compile.

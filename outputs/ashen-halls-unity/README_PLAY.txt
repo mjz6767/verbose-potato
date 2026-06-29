@@ -1,4 +1,4 @@
-Ashen Halls v0.49.1 - Beta RPG Scaffold
+Ashen Halls v0.50.0 - Beta RPG Scaffold
 
 Unzip the folder, then run AshenHalls.exe.
 
@@ -10,6 +10,8 @@ Controls:
 - Tavern menu v0.47.1: after the splash, the first playable screen is now a Midgaard tavern landing with Start Game, Customize Company, Beta Lab, Settings, and Exit Game.
 - Tavern art/music v0.49: the landing screen now prefers a generated tavern backdrop with hearth, tables, lanterns, and musicians, plus a warmer sparse lute/hearth loop.
 - Tavern UI v0.49: Start Game, Customize Company, Beta Lab, Settings, and Exit Game now have generated tavern UI icons.
+- Tavern UI v0.50: the landing screen is now a real tavern menu again, with the company preview hidden behind Customize Company, a compact translucent top bar, and a small route footer so the tavern art is visible.
+- Runtime art v0.50: new generated sheets add brighter creature sprites, combat command icons, and consumable/loot icons for food, elixirs, supplies, coins, scrolls, herbs, and cache rewards.
 - Tavern route preview v0.48: the tavern now shows the current beta route toward the final gate, with chapter chips for the cisterns, kobolds, bone road, glass ruins, red gate, and meteor crown.
 - Muster UI v0.47.1: the character editor is now reached from Customize Company, and the top bar was spaced out to avoid overlap between title, SFX controls, party summary, and action buttons.
 - Beta Lab: starts a caster-heavy beta combat test with full mana, extra elixirs, hazards, kobold shamans, kobold bone wizards, and other spellcasting enemies so combat/casting can be stress tested immediately.
@@ -22,6 +24,8 @@ Controls:
 - Combat: each active unit has personal movement and 1 action. Choose Move, Attack, Cast, Guard, Elixir, or End Turn, then click the grid.
 - Combat command bar: action buttons now include small pixel glyphs as well as hotkey labels, making Move, Attack, Cast, Guard, Elixir, and End Turn easier to scan.
 - Combat command icons v0.49: combat actions are now icon-first. The sword, spellbook, shield, potion, move, and end-turn icons carry the button identity, while hotkeys and tiny state labels stay compact.
+- Combat command icons v0.50: Move, Attack, Cast, Guard, Elixir, and End Turn now prefer a clearer dedicated command icon atlas, with older icon sheets kept as fallback.
+- Combat action UI v0.50: action buttons are now large icon-only controls; hotkeys, range/cost, and availability live in hover tooltips and the status readout instead of crowding the button face.
 - Combat UI v0.47.2: the default window is larger, combat grid/readout spacing is cleaner, action buttons are wider with readable icons plus sublabels, and the tiny stacked button-art issue is fixed.
 - Combat movement: movement spends distance, so you can take a short step, keep remaining move, then still attack or cast.
 - Combat previews: the active unit, upcoming turn queue, move budget, action state, reachable tiles, attack targets, spell targets, cover warnings, expected damage, resistance/weakness, guard notes, and terrain warnings are visible during the turn.
@@ -67,6 +71,7 @@ Controls:
 - Combat sounds: attacks now have distinct miss, bow, blade, crit, guard, counter, resist, and status cues in addition to the existing sparse spell and terrain effects.
 - Spellcasting graphics: clerics/priests now cast with warding circle-and-cross glyphs, while ember/hex casters use angular wizard runes and colored spell streaks.
 - Character sprites: party members now have brighter, higher-contrast role-specific pixel figures with visible shields, spears, bows, knives, priest marks, wizard staves, robes, armor, heads, legs, equipment overlays, deterministic personal variants, ground shadows, active-unit accents, wounded marks, and sharper role accessories.
+- Creature sprite art v0.50: party roles and major enemy families now prefer a cleaner generated creature sheet with better silhouettes for warriors, rogues, priests, ember casters, kobolds, ratfolk, drow, demons, reavers, bone priests, brutes, and fungus beasts.
 - Runtime combat sprite atlas v0.43: the main combat board now prefers a new transparent 4x4 generated sprite sheet with clearer party figures, kobolds, rats, ratfolk, drow, demons, and imp-like summons.
 - Imagegen atlas sprites: v0.28 begins moving generated art into the game itself. Combat figures, enemy mini-portraits, and party portrait areas can now draw from the beta combat art atlas, with the older rectangle sprites kept as a fallback.
 - Spell art: the spell panel uses generated icon-sheet art for spell-school and effect cards, with simple procedural fallback icons if the sheet is unavailable. v0.43 adds a new magic/UI atlas for tree cover, stone, heal, ward, fire, ice, shock, death, web, poison, hex, summon, move, attack, guard, and end-turn icons.
@@ -83,6 +88,7 @@ Controls:
 - Item art v0.47: the Armory pack, company gear rows, and cache loot panel now prefer a newer equipment atlas with clearer swords, epees, daggers, axes, hammers, spears, bows, crossbows, staves, foci, shields, armor, robes, potions, elixirs, rings, and cache bundles.
 - Loot identity: reach weapons, bows, foci, light armor, heavy armor, robes, shields, and traits such as bleed, stun, warding, thorns, fire, cold, shock, poison, and death now have small readable combat effects.
 - Cache comparison: after a cache opens, a short panel shows what was found, who equipped it, and why.
+- Cache reward art v0.50: the cache panel now shows coin, supplies, and elixir chips with generated icons, and the top resource strip uses real item art instead of tiny color squares.
 - World map: exploration now uses a much larger connected map with multiple districts, roads, rooms, region names, hover look text, extra camps, more caches, more encounters, and a wider reveal radius.
 - World object art: caches, shrines, encounters, stairs, camps, and town markers have clearer pixel-style silhouettes and glow cues.
 - Runtime world-object atlas v0.47: caches, shrines, enemy signs, stairs/final gates, camps, Midgaard, obelisks, ruins, bridges, and cave mouths now prefer a newer quest/world-object sheet, with procedural icons kept as fallback.
@@ -108,6 +114,7 @@ Controls:
 - Reduced Motion and SFX controls can be changed from the Muster screen and in play.
 
 Release notes:
+- v0.50.0 is a major runtime graphics and UI repair pass: added three generated v0.50 art sheets for consumables/loot, combat command icons, and creature sprites; wired them into resource counters, cache rewards, command buttons/tooltips, party portraits, enemy portraits, and combat board sprites; removed the tavern company preview from the landing screen; shrank top chrome across the game; and made combat actions icon-only with tooltip details. Save data remains version 17.
 - v0.49.1 is a repair verification build for the v0.49 graphics and icon-first UI pass: the game script compiles cleanly, the Windows package is rebuilt from the last known-good player, and the package has a launch-log smoke test. The Unity build helper now also targets v0.49.1 package names. Save data remains version 17.
 - v0.49.0 is a graphics and icon-first UI pass: added five generated v0.49 art assets, wired in a full tavern backdrop, upgraded the sparse tavern loop, added tavern menu icons, made combat command buttons primarily icon-driven, routed several enemies/world objects through the new enemy/world atlas, and stacked floating combat text so repeated hits no longer occupy the same spot. Save data remains version 17.
 - v0.48.0 is a completion-loop scaffold: the tavern now previews the Road to the Final Gate, the last two chapter objectives point toward the Red Gate and Meteor Crown, defeating the final encounter routes to a proper beta victory screen, and the ending ledger summarizes survivors, gold, depth, and party roles. Save data remains version 17.
