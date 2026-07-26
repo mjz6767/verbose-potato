@@ -44,6 +44,24 @@ namespace AshenHalls
         }
     }
 
+    public static class VisualSmokeLaunchRules
+    {
+        public static bool BlockPersistence(IEnumerable<string> commandLineArgs)
+        {
+            return commandLineArgs != null
+                && commandLineArgs.Any(arg =>
+                    string.Equals(arg, "-ashen-capture", StringComparison.OrdinalIgnoreCase)
+                    || !string.IsNullOrWhiteSpace(arg)
+                    && arg.StartsWith("-ashen-", StringComparison.OrdinalIgnoreCase)
+                    && arg.EndsWith("-smoke", StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static bool BlockLegacyImport(bool visualSmokeSaveBlocked, bool batchMode)
+        {
+            return visualSmokeSaveBlocked || batchMode;
+        }
+    }
+
     public readonly struct ExplorationUseTarget
     {
         public readonly MapObject Target;

@@ -126,6 +126,9 @@ namespace AshenHalls.Editor
 
             PlayerSettings.productName = VersionInfo.ProductName;
             PlayerSettings.companyName = "High Desert Cosmos";
+            PlayerSettings.bundleVersion = packageVersion.StartsWith("v", StringComparison.OrdinalIgnoreCase)
+                ? packageVersion.Substring(1)
+                : packageVersion;
             PlayerSettings.defaultScreenWidth = 2048;
             PlayerSettings.defaultScreenHeight = 1152;
             PlayerSettings.SetScriptingBackend(NamedBuildTarget.Standalone, ScriptingImplementation.Mono2x);
@@ -169,6 +172,7 @@ namespace AshenHalls.Editor
             CopyPackageNote(projectRoot, outputRoot, "README_PLAY.txt");
             CopyPackageNote(projectRoot, outputRoot, "CHANGELOG.md");
             CopyPackageNote(projectRoot, outputRoot, "KNOWN_ISSUES.txt");
+            CopyPackageNote(projectRoot, outputRoot, Path.Combine("Tools", "NewVisualQaPacket.ps1"));
             CopyDocsFolder(projectRoot, outputRoot);
             CopySiblingToolManifest(projectRoot, outputRoot);
             WritePackageHint(outputRoot, zipPath);
@@ -245,7 +249,7 @@ namespace AshenHalls.Editor
             string note =
                 VersionInfo.ProductName + " Windows build staging folder.\n" +
                 "Zip this folder after Unity exits to create the distributable package.\n" +
-                "Expected zip: " + zipPath + "\n";
+                "Expected zip: " + Path.GetFileName(zipPath) + "\n";
             File.WriteAllText(notePath, note);
         }
 
@@ -254,7 +258,7 @@ namespace AshenHalls.Editor
             string source = Path.Combine(projectRoot, relativePath);
             if (!File.Exists(source))
             {
-                return;
+                throw new BuildFailedException("Required package file is missing: " + relativePath);
             }
 
             string destination = Path.Combine(outputRoot, relativePath);

@@ -282,6 +282,8 @@ namespace AshenHalls
 
         private bool labSaveBlocked;
 
+        private bool visualSmokeSaveBlocked;
+
         private string activeContentSet = ContentSetCatalog.SewerSlice;
 
         private int uiRevision = 1;
@@ -392,7 +394,8 @@ namespace AshenHalls
         private void Awake()
         {
             string[] commandLineArgs = Environment.GetCommandLineArgs();
-            bool visualCaptureRequested = commandLineArgs.Any(arg => string.Equals(arg, "-ashen-capture", StringComparison.OrdinalIgnoreCase));
+            bool visualCaptureRequested = VisualSmokeLaunchRules.BlockPersistence(commandLineArgs);
+            visualSmokeSaveBlocked = visualCaptureRequested;
             if (visualCaptureRequested)
             {
                 Application.runInBackground = true;
@@ -2243,7 +2246,11 @@ namespace AshenHalls
             try
             {
                 PrepareStateForPersistence();
-                if (!SaveService.TrySaveCampaignState(SavePath(), state, labSaveBlocked, out string blockedReason))
+                if (!SaveService.TrySaveCampaignState(
+                    SavePath(),
+                    state,
+                    labSaveBlocked || visualSmokeSaveBlocked,
+                    out string blockedReason))
                 {
                     PushLog(blockedReason, Tone.Warn);
                     ShowBanner("Lab not saved");
@@ -2278,7 +2285,13 @@ namespace AshenHalls
 
         private void AutosaveCheckpoint(string reason)
         {
-            if (!CampaignCheckpointRules.ShouldWrite(state, labSaveBlocked, Application.isBatchMode)) return;
+            if (!CampaignCheckpointRules.ShouldWrite(
+                state,
+                labSaveBlocked || visualSmokeSaveBlocked,
+                Application.isBatchMode))
+            {
+                return;
+            }
             try
             {
                 PrepareStateForPersistence();
@@ -2468,6 +2481,10 @@ namespace AshenHalls
         private string SavePath()
         {
             string currentPath = SaveService.SavePath(Application.persistentDataPath);
+            if (VisualSmokeLaunchRules.BlockLegacyImport(visualSmokeSaveBlocked, Application.isBatchMode))
+            {
+                return currentPath;
+            }
             try
             {
                 DirectoryInfo currentProductDirectory = Directory.GetParent(Application.persistentDataPath);

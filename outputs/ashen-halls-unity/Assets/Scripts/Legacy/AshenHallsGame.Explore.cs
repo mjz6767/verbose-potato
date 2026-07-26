@@ -5120,6 +5120,10 @@ namespace AshenHalls
         private string ObjectName(MapObject obj)
         {
             if (obj == null) return "";
+            if (string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal))
+            {
+                return "Sluice Steps";
+            }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite))
             {
                 return regionalSite.Name;

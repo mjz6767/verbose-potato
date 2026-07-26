@@ -87,13 +87,11 @@ if (-not $SkipUnityBuild) {
     if (Test-Path -LiteralPath $BuildLog) {
         Remove-Item -LiteralPath $BuildLog -Force
     }
-    $UnityArguments = @(
-        "-batchmode",
-        "-quit",
-        "-projectPath", $ProjectRoot,
-        "-executeMethod", "AshenHalls.Editor.BuildWindows.Build",
-        "-logFile", $BuildLog
-    )
+    # Start-Process joins argument arrays without preserving quotes around paths.
+    # Quote canonical workspace paths explicitly because "Ashen Halls" contains a space.
+    $UnityArguments =
+        '-batchmode -quit -projectPath "' + $ProjectRoot +
+        '" -executeMethod AshenHalls.Editor.BuildWindows.Build -logFile "' + $BuildLog + '"'
     $BuildProcess = Start-Process -FilePath $UnityExe -ArgumentList $UnityArguments -PassThru -Wait
     if ($BuildProcess.ExitCode -ne 0) {
         throw "Unity build process exited with code $($BuildProcess.ExitCode). See $BuildLog"

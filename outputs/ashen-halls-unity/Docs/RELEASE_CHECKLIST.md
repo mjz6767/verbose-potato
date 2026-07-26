@@ -17,6 +17,9 @@ Use this for each small release zip.
 - Confirm the Midgaard tavern first screen appears without a timed startup delay.
 - Confirm build/version text identifies the beta scaffold without covering the tavern art.
 - Quick Start a party.
+- Without reading the README, follow NEXT to King's Hall. Confirm it gives `WASD / arrows`, a path-aware first direction, and distance; beside the doors it changes to `E / Space`.
+- Enter King's Hall and confirm NEXT retargets King Halvard rather than pointing back to the exterior building. Accept the writ and confirm it immediately advances to the sewer.
+- With all three proof bundles ready, enter the merchant hall and confirm NEXT retargets Borin. After the reward, confirm it names Sluice Steps.
 - Use Beta Lab when testing combat/casting-heavy releases.
 - Press I and confirm the Armory opens, tabs switch, and Esc closes it.
 - Outside combat, press C and confirm the Formula Codex opens directly.
@@ -24,6 +27,7 @@ Use this for each small release zip.
 - Move into a new exploration region and confirm a region banner or chronicle line appears.
 - On a new campaign, confirm the map is 58x46 and all eight regional sites and named junctions are reachable without entering a reserved Midgaard interior footprint.
 - Chart two outer-road junctions, open Journal, mark each in turn, and confirm Mark/Clear state, the path-aware location readout, and the bounded gold map trail all follow the selected destination.
+- Confirm a marked Journal waypoint visibly overrides the automatic story route, then clear it and confirm the Golden Thread immediately resumes the story target.
 - Save and load with a waypoint selected, then descend to a new depth and confirm the old-depth waypoint does not leak onto the new map.
 - Load a supported existing save and confirm its serialized map dimensions and biome layout are preserved.
 - After the sewer reward, confirm Journal tracks Sluice Steps, Dusk Market, Smoke Cave, and Varkh's Hall; follow that route and confirm unrelated prototype routes and scaffolds remain unavailable.
@@ -50,10 +54,12 @@ Use this for each small release zip.
 
 - Check 1280x720.
 - Check 1920x1080.
+- Capture `explore-compact` and `explore-wide` at both endpoint resolutions. Build the sanitized local packet with `Tools/NewVisualQaPacket.ps1`; deterministic packet failures block review, while any AI opinion remains optional and advisory.
 - Reject any capture whose decoded PNG dimensions differ from the requested size or whose sampled frame is uniformly black.
 - Confirm panels do not overlap.
 - Confirm Gold, Supplies, and Elixirs are spelled out and every exploration party row shows readable numeric HP and MP.
 - Confirm long current objectives remain readable in both compact and detailed exploration rails without covering the party rows or Details button.
+- Confirm the Golden Thread remains one readable line with its exact input, target, first direction, and distance.
 - Confirm hover previews stay on-screen.
 - Confirm sprites, highlights, and turn queue are readable.
 - Capture Spellbook and Skillbook at both endpoint resolutions, including a long-list bottom selection, future filter, unavailable card, and armed Return to Target state.
@@ -63,6 +69,7 @@ Use this for each small release zip.
 
 - Confirm `AshAndBrimstone.exe` launches from a clean extracted folder.
 - Confirm `README_PLAY.txt`, `CHANGELOG.md`, `KNOWN_ISSUES.txt`, and `Docs/` are included.
+- Confirm `Tools/NewVisualQaPacket.ps1` is included beside the packaged AI visual-QA guide and schema.
 - If tool downloads are staged, confirm `Docs/TOOL_DOWNLOADS.md` is included.
 - Confirm the zip filename matches the package version.
 - Keep the last known-good zip until the new one has been tested.

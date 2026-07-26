@@ -38,12 +38,14 @@ namespace AshenHalls.Editor
             CombatRoundPresentationCopyAndTimingStayBounded();
             TavernMenuRulesKeepNormalOpeningPlayerFacing();
             CampaignCheckpointRulesProtectPlayerProgress();
+            VisualSmokeLaunchRulesProtectPlayerProgress();
             CombatRetreatRequiresCampaignAndSupply();
             TavernScreenLayoutFitsSupportedResolutions();
             TavernStormRegionsStayOutsideTheRoom();
             TavernTitleAnimationIsReadableAndMotionSafe();
             PartySetupScreenLayoutFitsSupportedResolutions();
             ExplorationHudScreenLayoutFitsSupportedResolutions();
+            ExplorationGuidanceRulesKeepTheGoldenThreadActionable();
             WorldMapGenerationRulesDefineModestExpansion();
             WorldMapGenerationRulesDefineNamedJunctionCircuit();
             WorldMapGenerationRulesDefineRegionalSites();
@@ -699,6 +701,30 @@ namespace AshenHalls.Editor
             AssertEqual(false, CampaignCheckpointRules.ShouldWrite(explore, false, false), "dangling combat state cannot checkpoint");
         }
 
+        private static void VisualSmokeLaunchRulesProtectPlayerProgress()
+        {
+            AssertEqual(
+                true,
+                VisualSmokeLaunchRules.BlockPersistence(new[] { "AshAndBrimstone.exe", "-ashen-capture", "frame.png" }),
+                "visual capture blocks persistence");
+            AssertEqual(
+                true,
+                VisualSmokeLaunchRules.BlockPersistence(new[] { "AshAndBrimstone.exe", "-ASHEN-CAPTURE", "frame.png" }),
+                "visual capture persistence block is case insensitive");
+            AssertEqual(
+                true,
+                VisualSmokeLaunchRules.BlockPersistence(new[] { "AshAndBrimstone.exe", "-ashen-explore-smoke" }),
+                "visual smoke staging blocks persistence even without capture output");
+            AssertEqual(
+                false,
+                VisualSmokeLaunchRules.BlockPersistence(new[] { "AshAndBrimstone.exe", "-ashen-seed", "12345" }),
+                "non-smoke developer arguments do not block normal persistence");
+            AssertEqual(false, VisualSmokeLaunchRules.BlockPersistence(null), "missing command line does not block persistence");
+            AssertEqual(true, VisualSmokeLaunchRules.BlockLegacyImport(true, false), "visual smoke cannot import a legacy save");
+            AssertEqual(true, VisualSmokeLaunchRules.BlockLegacyImport(false, true), "batch boot cannot import a legacy save");
+            AssertEqual(false, VisualSmokeLaunchRules.BlockLegacyImport(false, false), "normal player launch can perform the one-time legacy import");
+        }
+
         private static void CombatRetreatRequiresCampaignAndSupply()
         {
             GameState combat = new GameState
@@ -878,6 +904,129 @@ namespace AshenHalls.Editor
                     }
                 }
             }
+        }
+
+        private static void ExplorationGuidanceRulesKeepTheGoldenThreadActionable()
+        {
+            AssertEqual(
+                "E / Space | Enter King's Hall",
+                ExplorationGuidanceRules.UseNow("King's Hall", "Enter"),
+                "contextual guidance names the exact interaction input, verb, and target");
+            AssertEqual(
+                "E / Space | Speak with King Halvard",
+                ExplorationGuidanceRules.UseNow("  King   Halvard  ", "  Speak   with  "),
+                "contextual guidance normalizes authored whitespace");
+            AssertEqual(
+                "E / Space | Use Borin",
+                ExplorationGuidanceRules.UseNow("Borin", ""),
+                "missing contextual verbs receive a safe Use fallback");
+            AssertEqual(
+                "E / Space | Leave via Doors to Midgaard",
+                ExplorationGuidanceRules.UseNow("Doors to Midgaard", "Enter", true),
+                "interior exits override an unrelated contextual verb with explicit Leave copy");
+            AssertEqual(
+                "E / Space | Leave this interior",
+                ExplorationGuidanceRules.UseNow(null, null, true),
+                "missing interior-exit targets remain actionable and safe");
+            AssertEqual(
+                "E / Space | Use nearby objective",
+                ExplorationGuidanceRules.UseNow("   ", null),
+                "missing contextual targets remain actionable and safe");
+
+            AssertEqual(
+                "WASD / arrows | King's Hall | Move N | 1 step",
+                ExplorationGuidanceRules.Route("King's Hall", "n", 1),
+                "one-step route guidance uses a singular distance");
+            AssertEqual(
+                "WASD / arrows | Midgaard Sewer | Move S | 2 steps",
+                ExplorationGuidanceRules.Route("Midgaard Sewer", "S", 2),
+                "multi-step route guidance uses a plural distance");
+            AssertEqual(
+                "WASD / arrows | Borin | Move E | 14 steps",
+                ExplorationGuidanceRules.Route("Borin", " e ", 14),
+                "route guidance normalizes a path-aware cardinal direction");
+            AssertEqual(
+                "WASD / arrows | Marked: Green Shrine Turn | Move W | 12 steps",
+                ExplorationGuidanceRules.Route("Green Shrine Turn", "W", 12, true),
+                "marked routes identify their explicit waypoint");
+            AssertEqual(
+                "J | Marked: Green Shrine Turn | Here - open Journal to Clear",
+                ExplorationGuidanceRules.Route("Green Shrine Turn", "", 0, true),
+                "a reached marked waypoint gives the exact action that resumes story guidance");
+            AssertEqual(
+                "WASD / arrows | King's Hall | Route blocked",
+                ExplorationGuidanceRules.Route("King's Hall", "N", 9, false, true),
+                "explicitly blocked routes do not promise a usable direction");
+            AssertEqual(
+                "WASD / arrows | King's Hall | Route blocked",
+                ExplorationGuidanceRules.Route("King's Hall", "NE", 9),
+                "non-cardinal first steps fail safely as a blocked route");
+            AssertEqual(
+                "WASD / arrows | King's Hall | Route blocked",
+                ExplorationGuidanceRules.Route("King's Hall", "N", -1),
+                "negative route lengths fail safely as a blocked route");
+            AssertEqual(
+                "WASD / arrows | No guided route is available",
+                ExplorationGuidanceRules.Route(null, null, 0),
+                "missing route targets produce a safe bounded fallback");
+
+            ExplorationGuidanceRoute objectiveRoute = new ExplorationGuidanceRoute("King's Hall", "N", 7);
+            ExplorationGuidanceRoute markedRoute = new ExplorationGuidanceRoute("Green Shrine Turn", "W", 12);
+            string markedPreferred = ExplorationGuidanceRules.PreferredRoute(objectiveRoute, markedRoute);
+            AssertEqual(
+                "WASD / arrows | Marked: Green Shrine Turn | Move W | 12 steps",
+                markedPreferred,
+                "an explicit marked waypoint takes precedence over automatic story guidance");
+            AssertEqual(
+                false,
+                markedPreferred.Contains("King's Hall"),
+                "marked precedence never mixes in the displaced automatic target");
+
+            ExplorationGuidanceRoute blockedMarkedRoute = new ExplorationGuidanceRoute("Old Quarry Turn", "E", 8, true);
+            AssertEqual(
+                "WASD / arrows | Marked: Old Quarry Turn | Route blocked",
+                ExplorationGuidanceRules.PreferredRoute(objectiveRoute, blockedMarkedRoute),
+                "a blocked marked waypoint still retains explicit player-selected precedence");
+            AssertEqual(
+                "WASD / arrows | King's Hall | Move N | 7 steps",
+                ExplorationGuidanceRules.PreferredRoute(
+                    objectiveRoute,
+                    new ExplorationGuidanceRoute("  ", "W", 4)),
+                "a missing marked target safely falls back to the automatic objective");
+            AssertEqual(
+                "WASD / arrows | No guided route is available",
+                ExplorationGuidanceRules.PreferredRoute(default, default),
+                "default route values remain null-safe");
+
+            foreach (string direction in new[] { "N", "S", "E", "W" })
+            {
+                string cardinal = ExplorationGuidanceRules.Route("Road Marker", direction, 3);
+                AssertEqual(true, cardinal.Contains("Move " + direction + " | 3 steps"), direction + " remains an exact path-aware first step");
+            }
+
+            string longTarget = "The Extremely Long and Ceremonially Named Objective Beyond the Last Old Road Marker "
+                + "with additional text that must never push inputs or distance outside the HUD";
+            string boundedRoute = ExplorationGuidanceRules.Route(longTarget, "W", int.MaxValue, true);
+            string boundedMarkedHere = ExplorationGuidanceRules.Route(longTarget, "", 0, true);
+            string boundedUse = ExplorationGuidanceRules.UseNow(longTarget, "Deliberately overlong contextual interaction verb");
+            AssertEqual(true, boundedRoute.Length <= ExplorationGuidanceRules.MaxHudLineLength, "long marked route copy stays inside the HUD bound");
+            AssertEqual(true, boundedRoute.StartsWith("WASD / arrows | Marked: ", StringComparison.Ordinal), "bounded route preserves the exact movement input");
+            AssertEqual(true, boundedRoute.EndsWith("| Move W | 2147483647 steps", StringComparison.Ordinal), "bounded route preserves direction and distance after target truncation");
+            AssertEqual(true, boundedMarkedHere.Length <= ExplorationGuidanceRules.MaxHudLineLength, "reached marked waypoint copy stays inside the HUD bound");
+            AssertEqual(true, boundedMarkedHere.StartsWith("J | Marked: ", StringComparison.Ordinal), "reached marked waypoint preserves the exact Journal input");
+            AssertEqual(true, boundedMarkedHere.EndsWith("| Here - open Journal to Clear", StringComparison.Ordinal), "reached marked waypoint preserves the resumable action after target truncation");
+            AssertEqual(true, boundedUse.Length <= ExplorationGuidanceRules.MaxHudLineLength, "long contextual copy stays inside the HUD bound");
+            AssertEqual(true, boundedUse.StartsWith("E / Space | ", StringComparison.Ordinal), "bounded contextual copy preserves the exact use input");
+            AssertEqual(false, boundedRoute.Contains("\n") || boundedUse.Contains("\n"), "guidance always remains one HUD line");
+
+            AssertEqual("King's Hall", objectiveRoute.TargetName, "formatting does not mutate the automatic route target");
+            AssertEqual("N", objectiveRoute.FirstDirection, "formatting does not mutate the automatic route direction");
+            AssertEqual(7, objectiveRoute.StepCount, "formatting does not mutate the automatic route distance");
+            AssertEqual(false, objectiveRoute.RouteBlocked, "formatting does not mutate automatic route availability");
+            AssertEqual(
+                markedPreferred,
+                ExplorationGuidanceRules.PreferredRoute(objectiveRoute, markedRoute),
+                "guidance formatting is deterministic across repeated calls");
         }
 
         private static void WorldMapGenerationRulesDefineModestExpansion()
@@ -1157,7 +1306,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v1.88.0", VersionInfo.PackageVersion, "package version matches the v1.88 release");
+            AssertEqual("v1.89.0", VersionInfo.PackageVersion, "package version matches the v1.89 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v1.31.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v1.31 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v1.31.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v1.31 signature spell atlas pin");

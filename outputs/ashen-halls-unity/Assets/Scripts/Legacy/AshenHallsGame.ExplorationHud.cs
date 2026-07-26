@@ -106,13 +106,16 @@ namespace AshenHalls
             float sectionGap = 7f * scale;
             if (view.DetailsOpen)
             {
-                float hereH = 72f * scale;
+                float nextH = 54f * scale;
+                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, nextH), "NEXT", view.WaypointLine, gold, true);
+                cursor += nextH + sectionGap;
+                float hereH = 62f * scale;
                 DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, hereH), "HERE", (view.ZoneDetail + "\n" + view.LookLine).Trim(), gold, false);
                 cursor += hereH + sectionGap;
-                float objectiveH = 82f * scale;
+                float objectiveH = 76f * scale;
                 DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, objectiveH), "OBJECTIVE", view.ObjectiveLine, teal, true);
                 cursor += objectiveH + sectionGap;
-                float growthH = 38f * scale;
+                float growthH = 34f * scale;
                 DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, growthH), "PROGRESS", view.GrowthLine, moss, false);
                 cursor += growthH + 9f * scale;
                 GUI.Label(new Rect(sideInnerX, cursor, sideInnerW, 18f * scale), "PARTY", CenterLeftStyle(ExploreHudFont(11), Hex("e3ba63")));
@@ -496,20 +499,46 @@ namespace AshenHalls
             if (TryActiveRouteWaypoint(out WorldMapJunction activeWaypoint))
             {
                 IReadOnlyList<Point> path = ActiveRouteWaypointPath();
-                if (path.Count == 1) return $"Marked: {activeWaypoint.Name} / here. Open Journal to clear it.";
-                if (path.Count > 1)
-                {
-                    return $"Marked: {activeWaypoint.Name} / {ActiveRouteWaypointFirstDirection(path)} {RouteChartRules.DistanceLabel(path.Count - 1)}.";
-                }
-
-                string direct = RouteChartRules.DirectionLabel(
-                    state.PlayerX,
-                    state.PlayerY,
-                    activeWaypoint.X,
-                    activeWaypoint.Y);
-                return $"Marked: {activeWaypoint.Name} / {direct} / route blocked.";
+                ExplorationGuidanceRoute markedRoute = path.Count > 0
+                    ? new ExplorationGuidanceRoute(
+                        activeWaypoint.Name,
+                        ActiveRouteWaypointFirstDirection(path),
+                        Mathf.Max(0, path.Count - 1))
+                    : new ExplorationGuidanceRoute(activeWaypoint.Name, "", -1, true);
+                return ExplorationGuidanceRules.PreferredRoute(default, markedRoute);
             }
-            if (ShouldUseMidgaardWayfinding()) return MidgaardWayfindingCompactLine();
+
+            ExplorationInteraction interaction = CurrentExploreInteraction();
+            if (interaction.HasTarget && IsCurrentMidgaardObjective(interaction.Target))
+            {
+                return ExploreImmediateGuidanceLine(interaction);
+            }
+
+            List<MapObject> objectiveTargets = state.Map.Objects
+                .Where(obj => obj != null && IsCurrentMidgaardObjective(obj))
+                .ToList();
+            if (TryNearestReachableExploreTarget(objectiveTargets, out MapObject objective, out IReadOnlyList<Point> objectivePath))
+            {
+                return ExploreTravelGuidanceLine(objective, objectivePath);
+            }
+
+            if (ObjectiveIsOutsideCurrentInterior(objectiveTargets)
+                && TryCurrentInteriorExit(out MapObject exit, out IReadOnlyList<Point> exitPath))
+            {
+                return ExploreTravelGuidanceLine(exit, exitPath);
+            }
+
+            if (TryCurrentMidgaardObjectiveType(out _))
+            {
+                return objectiveTargets.Count == 0
+                    ? ExplorationGuidanceRules.Route("", "", -1)
+                    : ExplorationGuidanceRules.Route(
+                        ObjectName(objectiveTargets[0]),
+                        "",
+                        -1,
+                        false,
+                        true);
+            }
 
             bool preferRegionalTargets = state.Depth == 1 && !ShouldUseMidgaardWayfinding();
             IEnumerable<MapObject> eligibleTargets = state.Map.Objects
@@ -529,8 +558,110 @@ namespace AshenHalls
                 .Select(candidate => candidate.Target)
                 .FirstOrDefault();
             return target == null
-                ? "No marked objective in the visible region. Open Journal for the chapter route."
-                : $"Next: {ObjectName(target)} {ExploreDirectionTo(target)}.";
+                ? ExplorationGuidanceRules.Route("", "", -1)
+                : ExploreTravelGuidanceLine(
+                    target,
+                    ExplorationTraversalRules.FindPathToObject(state.Map, state.PlayerX, state.PlayerY, target));
+        }
+
+        private string ExploreImmediateGuidanceLine(ExplorationInteraction interaction)
+        {
+            if (!interaction.HasTarget) return ExplorationGuidanceRules.Route("", "", -1);
+            string verb = string.IsNullOrWhiteSpace(interaction.Verb) ? "Use" : interaction.Verb;
+            string target = string.IsNullOrWhiteSpace(interaction.TargetName) ? ObjectName(interaction.Target) : interaction.TargetName;
+            return ExplorationGuidanceRules.UseNow(
+                target,
+                verb,
+                interaction.Target.Type == ObjectType.InteriorDoor);
+        }
+
+        private string ExploreTravelGuidanceLine(MapObject target, IReadOnlyList<Point> path)
+        {
+            if (target == null) return ExplorationGuidanceRules.Route("", "", -1);
+            string targetName = ObjectName(target);
+            if (path == null || path.Count == 0)
+            {
+                return ExplorationGuidanceRules.Route(targetName, "", -1, false, true);
+            }
+            if (path.Count == 1)
+            {
+                string verb = ExploreContextVerb(target, 0, 0);
+                return ExplorationGuidanceRules.UseNow(
+                    targetName,
+                    verb,
+                    target.Type == ObjectType.InteriorDoor);
+            }
+
+            return ExplorationGuidanceRules.Route(
+                targetName,
+                ActiveRouteWaypointFirstDirection(path),
+                path.Count - 1);
+        }
+
+        private bool TryNearestReachableExploreTarget(
+            IEnumerable<MapObject> candidates,
+            out MapObject target,
+            out IReadOnlyList<Point> path)
+        {
+            target = null;
+            path = Array.Empty<Point>();
+            if (state?.Map == null || candidates == null) return false;
+
+            var nearest = candidates
+                .Where(candidate => candidate != null)
+                .Select(candidate => new
+                {
+                    Target = candidate,
+                    Path = (IReadOnlyList<Point>)ExplorationTraversalRules.FindPathToObject(
+                        state.Map,
+                        state.PlayerX,
+                        state.PlayerY,
+                        candidate)
+                })
+                .Where(candidate => candidate.Path.Count > 0)
+                .OrderBy(candidate => candidate.Path.Count)
+                .ThenBy(candidate => candidate.Target.Y)
+                .ThenBy(candidate => candidate.Target.X)
+                .ThenBy(candidate => candidate.Target.Id ?? "", StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (nearest == null) return false;
+
+            target = nearest.Target;
+            path = nearest.Path;
+            return true;
+        }
+
+        private bool ObjectiveIsOutsideCurrentInterior(IEnumerable<MapObject> objectiveTargets)
+        {
+            if (state?.Map == null || objectiveTargets == null) return false;
+            string currentInterior = MidgaardInteriorIdAt(state.PlayerX, state.PlayerY, state.Map, state.Depth);
+            if (string.IsNullOrWhiteSpace(currentInterior)) return false;
+            return objectiveTargets.Any(target =>
+                target != null
+                && !string.Equals(
+                    currentInterior,
+                    MidgaardInteriorIdAt(target.X, target.Y, state.Map, state.Depth),
+                    StringComparison.Ordinal));
+        }
+
+        private bool TryCurrentInteriorExit(out MapObject exit, out IReadOnlyList<Point> path)
+        {
+            exit = null;
+            path = Array.Empty<Point>();
+            if (state?.Map?.Objects == null) return false;
+            string currentInterior = MidgaardInteriorIdAt(state.PlayerX, state.PlayerY, state.Map, state.Depth);
+            if (string.IsNullOrWhiteSpace(currentInterior)) return false;
+
+            return TryNearestReachableExploreTarget(
+                state.Map.Objects.Where(candidate =>
+                    candidate != null
+                    && candidate.Type == ObjectType.InteriorDoor
+                    && string.Equals(
+                        currentInterior,
+                        MidgaardInteriorIdAt(candidate.X, candidate.Y, state.Map, state.Depth),
+                        StringComparison.Ordinal)),
+                out exit,
+                out path);
         }
 
         private bool TryActiveRouteWaypoint(out WorldMapJunction waypoint)

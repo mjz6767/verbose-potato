@@ -224,6 +224,14 @@ namespace AshenHalls
             && !string.IsNullOrWhiteSpace(objectiveText.text)
             && sideDetailText != null
             && !string.IsNullOrWhiteSpace(sideDetailText.text);
+        public bool HasVisibleGoldenThreadForTest => IsVisible
+            && waypointTitleText != null
+            && waypointTitleText.gameObject.activeInHierarchy
+            && string.Equals(waypointTitleText.text, "NEXT", StringComparison.Ordinal)
+            && sideDetailText != null
+            && sideDetailText.gameObject.activeInHierarchy
+            && !string.IsNullOrWhiteSpace(sideDetailText.text);
+        public string GoldenThreadTextForTest => sideDetailText == null ? "" : sideDetailText.text;
         public int VisiblePartyRows => partyRows.Count(row => row.Root != null && row.Root.gameObject.activeInHierarchy);
         public bool HasExpandedResourceLabelsForTest => goldText != null
             && suppliesText != null
@@ -292,8 +300,12 @@ namespace AshenHalls
             elixirsText.text = "Elixirs\n" + (view.Elixirs ?? "0");
             sideTitleText.text = string.IsNullOrEmpty(view.ZoneName) ? "Location" : view.ZoneName;
             sideDangerText.text = view.DangerLabel ?? "";
-            sideDetailText.text = view.DetailsOpen ? view.ZoneDetail ?? "" : view.WaypointLine ?? "";
-            lookText.text = view.DetailsOpen ? view.LookLine ?? "" : view.NearbyLine ?? "";
+            waypointTitleText.text = "NEXT";
+            nearbyTitleText.text = view.DetailsOpen ? "HERE" : "NEARBY";
+            sideDetailText.text = view.WaypointLine ?? "";
+            lookText.text = view.DetailsOpen
+                ? ((view.ZoneDetail ?? "") + "\n" + (view.LookLine ?? "")).Trim()
+                : view.NearbyLine ?? "";
             objectiveText.text = view.DetailsOpen ? view.ObjectiveLine ?? "" : view.ObjectiveSummary ?? "";
             growthText.text = view.GrowthLine ?? "";
             actionLabelText.text = view.HasAction ? view.ActionLabel ?? "Use" : "No Action";
@@ -410,9 +422,12 @@ namespace AshenHalls
             SetLocalRect(sideDangerText.rectTransform, new Rect(sidePad, 35f * scale, innerW, 18f * scale));
             if (detailsOpen)
             {
-                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 58f * scale, innerW, 30f * scale));
-                SetLocalRect(lookText.rectTransform, new Rect(sidePad, 92f * scale, innerW, 44f * scale));
-                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 144f * scale, innerW, 82f * scale));
+                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 58f * scale, innerW, 14f * scale));
+                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 72f * scale, innerW, 30f * scale));
+                SetLocalRect(nearbyTitleText.rectTransform, new Rect(sidePad, 106f * scale, innerW, 14f * scale));
+                SetLocalRect(lookText.rectTransform, new Rect(sidePad, 120f * scale, innerW, 28f * scale));
+                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 152f * scale, innerW, 14f * scale));
+                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 166f * scale, innerW, 60f * scale));
                 SetLocalRect(growthText.rectTransform, new Rect(sidePad, 232f * scale, innerW, 32f * scale));
                 SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 270f * scale, innerW, 20f * scale));
                 float partyStartY = 294f * scale;
@@ -510,9 +525,9 @@ namespace AshenHalls
 
         private void SetModeObjectsVisible(bool detailsOpen)
         {
-            waypointTitleText.gameObject.SetActive(!detailsOpen);
-            objectiveTitleText.gameObject.SetActive(!detailsOpen);
-            nearbyTitleText.gameObject.SetActive(!detailsOpen);
+            waypointTitleText.gameObject.SetActive(true);
+            objectiveTitleText.gameObject.SetActive(true);
+            nearbyTitleText.gameObject.SetActive(true);
             lookText.gameObject.SetActive(true);
             objectiveText.gameObject.SetActive(true);
             growthText.gameObject.SetActive(detailsOpen);

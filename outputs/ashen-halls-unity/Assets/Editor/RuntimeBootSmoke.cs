@@ -76,6 +76,23 @@ namespace AshenHalls.Editor
                 ExplorationHudView firstPlayView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
                 Assert(firstPlayView.ObjectiveSummary.IndexOf("King Halvard", StringComparison.OrdinalIgnoreCase) >= 0, "fresh-game objective names King Halvard");
                 Assert(firstPlayView.WaypointLine.IndexOf("King", StringComparison.OrdinalIgnoreCase) >= 0, "fresh-game waypoint points to King's Hall");
+                Assert(firstPlayView.WaypointLine.IndexOf("WASD / arrows", StringComparison.OrdinalIgnoreCase) >= 0
+                    && firstPlayView.WaypointLine.IndexOf("Move", StringComparison.OrdinalIgnoreCase) >= 0
+                    && firstPlayView.WaypointLine.IndexOf("step", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "fresh-game Golden Thread gives an exact movement input, path-aware first step, and distance");
+                Assert(firstPlayView.WaypointLine.Length <= ExplorationGuidanceRules.MaxHudLineLength,
+                    "fresh-game Golden Thread stays inside its compact HUD copy bound");
+                SetPrivateField(game, "exploreHudCollapsed", false);
+                InvokePrivate(game, "MarkUiDirty");
+                InvokePrivate(game, "LateUpdate");
+                ExplorationHudView firstPlayDetailsView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                Assert(firstPlayDetailsView.DetailsOpen
+                    && explorationHud.HasVisibleGoldenThreadForTest
+                    && explorationHud.GoldenThreadTextForTest == firstPlayView.WaypointLine,
+                    "Details keeps the same persistent Golden Thread visible");
+                SetPrivateField(game, "exploreHudCollapsed", true);
+                InvokePrivate(game, "MarkUiDirty");
+                InvokePrivate(game, "LateUpdate");
                 AssertExplorationWorldMapRuntime(game);
                 AssertCombatPresentationRuntime(game);
             }
@@ -692,6 +709,9 @@ namespace AshenHalls.Editor
             Assert(ContentSetCatalog.CountSewerSliceProof(state.Inventory) == 1, "production story flow grants first sewer proof");
             ExplorationHudView secondRoomView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
             Assert(secondRoomView.ObjectiveSummary.IndexOf("Foul Runoff", StringComparison.OrdinalIgnoreCase) >= 0, "compact objective advances to Foul Runoff");
+            Assert(secondRoomView.WaypointLine.IndexOf("Sewer", StringComparison.OrdinalIgnoreCase) >= 0
+                && secondRoomView.WaypointLine.IndexOf("WASD / arrows", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Golden Thread keeps the next sewer room physically actionable after Broken Sluice");
 
             InvokePrivate(game, "ApplyMidgaardStoryVictory", "sewer_foul_runoff");
             InvokePrivate(game, "LateUpdate");
@@ -708,18 +728,51 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Loot, "safe-room choice opens equipment comparison");
             ExplorationHudView finalRoomView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
             Assert(finalRoomView.ObjectiveSummary.IndexOf("Cistern Den", StringComparison.OrdinalIgnoreCase) >= 0, "compact objective advances to Cistern Den");
+            Assert(finalRoomView.WaypointLine.IndexOf("Sewer", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Golden Thread returns to the sewer entrance after the safe-room choice");
             InvokePrivate(game, "DismissLootPopup");
             InvokePrivate(game, "LateUpdate");
 
             InvokePrivate(game, "ApplyMidgaardStoryVictory", "sewer_cistern_den");
             Assert(ContentSetCatalog.SewerSliceClearedCount(state.StoryFlags) == 3, "production story flow records Cistern Den");
             Assert(ContentSetCatalog.SewerSliceRewardReady(state.StoryFlags, state.Inventory), "three production victories make Borin's reward ready");
+            ExplorationHudView rewardReadyView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(rewardReadyView.WaypointLine.IndexOf("Borin", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Golden Thread names Borin when all three proof bundles are ready");
+
+            int rewardReadyX = state.PlayerX;
+            int rewardReadyY = state.PlayerY;
+            MapObject armorerDoor = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.ArmorerDoorId);
+            MapObject armorerNpc = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.ArmorerNpc);
+            MapObject armorerExit = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.ArmorerExitId);
+            Assert(InvokePrivate<bool>(game, "TryUseMidgaardPortal", armorerDoor), "reward-ready guidance probe enters the merchant hall");
+            ExplorationHudView merchantGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(merchantGuidance.WaypointLine.IndexOf("Armorer Borin", StringComparison.OrdinalIgnoreCase) >= 0
+                && merchantGuidance.WaypointLine.IndexOf("Borin's Armory", StringComparison.OrdinalIgnoreCase) < 0,
+                "merchant-hall Golden Thread retargets Borin instead of the exterior armory");
+            Assert(TryFindAdjacentProbeTile(game, state, armorerNpc, out int borinStandX, out int borinStandY),
+                "Borin has a reachable adjacent Golden Thread interaction tile");
+            state.PlayerX = borinStandX;
+            state.PlayerY = borinStandY;
+            ExplorationHudView borinUseGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(borinUseGuidance.WaypointLine.IndexOf("E / Space", StringComparison.OrdinalIgnoreCase) >= 0
+                && borinUseGuidance.WaypointLine.IndexOf("Borin", StringComparison.OrdinalIgnoreCase) >= 0,
+                "adjacent reward-ready Borin becomes an exact contextual-use instruction");
 
             Assert(InvokePrivate<bool>(game, "TryCompleteRatPeltArmor"), "production armorer path claims the first reward");
             InvokePrivate(game, "LateUpdate");
             Assert(ContentSetCatalog.SewerSliceComplete(state.StoryFlags), "production armorer path completes the sewer slice");
             Assert(ContentSetCatalog.AllowKoboldChapter(ContentSetCatalog.SewerSlice, state.StoryFlags), "Borin's reward opens the bounded Chapter II route");
             Assert(state.Inventory.Count(item => item != null && item.Material == "rat pelt" && item.Slot == "armor") == 1, "production reward exists once");
+            ExplorationHudView merchantExitGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(merchantExitGuidance.WaypointLine.IndexOf("Merchant Hall exit", StringComparison.OrdinalIgnoreCase) >= 0
+                && merchantExitGuidance.WaypointLine.IndexOf("Borin", StringComparison.OrdinalIgnoreCase) < 0,
+                "completed merchant-hall work redirects the Golden Thread through the reachable interior exit");
+            Assert(InvokePrivate<bool>(game, "TryUseMidgaardPortal", armorerExit), "completed merchant-hall guidance probe leaves through its exit");
+            Assert(!InvokePrivate<bool>(game, "IsMidgaardInteriorCell", state.PlayerX, state.PlayerY, state.Map, state.Depth),
+                "merchant-hall exit guidance returns to Midgaard streets");
+            state.PlayerX = rewardReadyX;
+            state.PlayerY = rewardReadyY;
             IReadOnlyList<ArmoryRowView> chapterTwoJournal = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows");
             Assert(chapterTwoJournal.Any(row => row.Title == "Old Road Chapter II" && row.Subtitle == "Sluice Steps open"), "production Journal names the live Chapter II route after Borin's reward");
             Assert(chapterTwoJournal.Any(row => row.Title == "Kobold Smoke - Dusk Market Ambush" && row.Subtitle == "current"), "production Journal exposes the bounded Dusk Market step without prototype scaffolds");
@@ -740,11 +793,32 @@ namespace AshenHalls.Editor
             SetPrivateField(game, "armoryTab", 3);
             InvokePrivate(game, "RunArmoryRowAction", waypointRow.Key);
             Assert(RouteChartRules.IsWaypoint(state.ActiveRouteWaypointKey, state.Depth, journalWaypoint.Id), "Journal Mark action persists the selected route waypoint");
+            ExplorationHudView markedGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(markedGuidance.WaypointLine.IndexOf("WASD / arrows", StringComparison.OrdinalIgnoreCase) >= 0
+                && markedGuidance.WaypointLine.IndexOf("Marked:", StringComparison.OrdinalIgnoreCase) >= 0
+                && markedGuidance.WaypointLine.IndexOf(journalWaypoint.Name, StringComparison.OrdinalIgnoreCase) >= 0,
+                "explicit Journal waypoint takes visible Golden Thread precedence");
+            int markedProbeX = state.PlayerX;
+            int markedProbeY = state.PlayerY;
+            state.PlayerX = journalWaypoint.X;
+            state.PlayerY = journalWaypoint.Y;
+            InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+            ExplorationHudView reachedMarkedGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(reachedMarkedGuidance.WaypointLine.StartsWith("J | Marked: " + journalWaypoint.Name, StringComparison.Ordinal)
+                && reachedMarkedGuidance.WaypointLine.IndexOf("open Journal to Clear", StringComparison.OrdinalIgnoreCase) >= 0,
+                "reaching a marked waypoint gives the exact action that resumes story guidance");
+            state.PlayerX = markedProbeX;
+            state.PlayerY = markedProbeY;
+            InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
             ArmoryRowView selectedWaypointRow = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows")
                 .Single(row => row.Title == journalWaypoint.Name);
             Assert(selectedWaypointRow.Selected && selectedWaypointRow.ActionLabel == "Clear", "selected Journal waypoint becomes a highlighted Clear action");
             InvokePrivate(game, "RunArmoryRowAction", selectedWaypointRow.Key);
             Assert(string.IsNullOrEmpty(state.ActiveRouteWaypointKey), "Journal Clear action removes the route waypoint");
+            ExplorationHudView restoredStoryGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(restoredStoryGuidance.WaypointLine.IndexOf("Sluice Steps", StringComparison.OrdinalIgnoreCase) >= 0
+                && restoredStoryGuidance.WaypointLine.IndexOf("Marked:", StringComparison.OrdinalIgnoreCase) < 0,
+                "clearing a Journal waypoint immediately restores the Chapter II story thread");
             SetPrivateField(game, "armoryTab", previousArmoryTab);
             MapObject oldRoadDescent = state.Map.FindObjectById("old-road-descent-sluice-steps");
             Assert(oldRoadDescent != null && oldRoadDescent.Type == ObjectType.Stairs, "chapter reward creates one stable Sluice Steps descent");
@@ -2755,7 +2829,9 @@ namespace AshenHalls.Editor
             state.PlayerY = regionalProbe.Y;
             Assert(!InvokePrivate<bool>(game, "ShouldUseMidgaardWayfinding"), "regional travel releases the city-only tracker");
             string waypoint = InvokePrivate<string>(game, "ExploreWaypointLine");
-            Assert(waypoint.StartsWith("Next: ", StringComparison.Ordinal), "regional travel selects a reachable world landmark");
+            Assert(waypoint.StartsWith("WASD / arrows | ", StringComparison.Ordinal)
+                && waypoint.Contains(" | Move ")
+                && !waypoint.Contains("Route blocked"), "regional travel selects a reachable world landmark");
 
             WorldMapJunction chartProbe = WorldMapGenerationRules.RegionalJunctions(state.Map.Width, state.Map.Height, state.Map.StartX, state.Map.StartY)[0];
             string chartKey = RouteChartRules.DiscoveryKey(state.Depth, chartProbe.Id);
@@ -2771,8 +2847,8 @@ namespace AshenHalls.Editor
             IReadOnlyList<Point> waypointPath = InvokePrivate<IReadOnlyList<Point>>(game, "ActiveRouteWaypointPath");
             Assert(waypointPath.Count == 2, "selected junction builds a one-step walkable route from the adjacent probe");
             string selectedWaypointLine = InvokePrivate<string>(game, "ExploreWaypointLine");
-            Assert(selectedWaypointLine.StartsWith("Marked: " + chartProbe.Name, StringComparison.Ordinal)
-                && selectedWaypointLine.Contains("W 1 step"), "selected junction overrides automatic guidance with path-aware waypoint copy");
+            Assert(selectedWaypointLine.StartsWith("WASD / arrows | Marked: " + chartProbe.Name, StringComparison.Ordinal)
+                && selectedWaypointLine.Contains(" | Move W | 1 step"), "selected junction overrides automatic guidance with path-aware waypoint copy");
             string selectedChartLine = InvokePrivate<string>(game, "RegionalRouteChartCompactLine");
             Assert(selectedChartLine.StartsWith("Waypoint: " + chartProbe.Name, StringComparison.Ordinal)
                 && selectedChartLine.Contains("W 1 step"), "location readout promotes the selected waypoint above the nearest-marker fallback");
@@ -2811,6 +2887,7 @@ namespace AshenHalls.Editor
 
             MapObject throne = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.RoyalThrone);
             MapObject throneExit = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.ThroneRoomExitId);
+            MapObject king = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.KingHalvard);
             MapObject armorer = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.ArmorerNpc);
             MapObject enchanter = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.EnchanterNpc);
             MapObject armorerExit = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.ArmorerExitId);
@@ -2846,10 +2923,18 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<bool>(game, "TryUseMidgaardPortal", kingDoor), "King's Hall doorway resolves");
             WorldZone throneZone = InvokePrivate<WorldZone>(game, "ZoneFor", state.PlayerX, state.PlayerY, state.Map, state.Depth);
             Assert(throneZone != null && throneZone.Id == "midgaard-throne-room", "King's Hall doorway enters the throne room");
-            Assert(InvokePrivate<bool>(game, "TryUseMidgaardPortal", throneExit), "throne room exit resolves");
-            Assert(!InvokePrivate<bool>(game, "IsMidgaardInteriorCell", state.PlayerX, state.PlayerY, state.Map, state.Depth), "throne room exit returns to Midgaard streets");
-            state.PlayerX = oldX;
-            state.PlayerY = oldY;
+            ExplorationHudView throneGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(throneGuidance.WaypointLine.IndexOf("King Halvard", StringComparison.OrdinalIgnoreCase) >= 0
+                && throneGuidance.WaypointLine.IndexOf("King's Hall", StringComparison.OrdinalIgnoreCase) < 0,
+                "throne-room Golden Thread retargets Halvard instead of pointing back to the exterior hall");
+            Assert(TryFindAdjacentProbeTile(game, state, king, out int kingStandX, out int kingStandY),
+                "King Halvard has a reachable adjacent Golden Thread interaction tile");
+            state.PlayerX = kingStandX;
+            state.PlayerY = kingStandY;
+            ExplorationHudView kingUseGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(kingUseGuidance.WaypointLine.IndexOf("E / Space", StringComparison.OrdinalIgnoreCase) >= 0
+                && kingUseGuidance.WaypointLine.IndexOf("King Halvard", StringComparison.OrdinalIgnoreCase) >= 0,
+                "adjacent Halvard becomes an exact contextual-use instruction");
 
             if (!state.StoryFlags.Contains(StoryFlags.MidgaardRatQuestGiven))
             {
@@ -2861,10 +2946,29 @@ namespace AshenHalls.Editor
                 Assert(GetPrivateField<string>(game, "bannerText") == "Royal Audience", "a pre-contract audience is not announced as completed work");
                 InvokePrivate(game, "ResolveHalvardDialogueChoice", "accept");
                 Assert(state.StoryFlags.Contains(StoryFlags.MidgaardRatQuestGiven), "accepting the royal writ starts the sewer contract");
+                ExplorationHudView acceptedInteriorGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                Assert(acceptedInteriorGuidance.WaypointLine.IndexOf("Doors to Midgaard", StringComparison.OrdinalIgnoreCase) >= 0
+                    && acceptedInteriorGuidance.WaypointLine.IndexOf("King Halvard", StringComparison.OrdinalIgnoreCase) < 0,
+                    "accepted royal work redirects the Golden Thread through the reachable throne-room exit");
+                InvokePrivate(game, "CloseDialogue");
+                Assert(InvokePrivate<bool>(game, "TryUseMidgaardPortal", throneExit), "guided throne-room exit resolves");
+                Assert(!InvokePrivate<bool>(game, "IsMidgaardInteriorCell", state.PlayerX, state.PlayerY, state.Map, state.Depth),
+                    "throne-room exit guidance returns to Midgaard streets");
+                ExplorationHudView acceptedStreetGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                Assert(acceptedStreetGuidance.WaypointLine.IndexOf("Sewer", StringComparison.OrdinalIgnoreCase) >= 0
+                    && acceptedStreetGuidance.WaypointLine.IndexOf("WASD / arrows", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "leaving after Halvard's writ advances the Golden Thread to the sewer");
                 state.StoryFlags = flags;
                 state.ActiveStory = activeStory;
-                InvokePrivate(game, "CloseDialogue");
             }
+            else
+            {
+                Assert(InvokePrivate<bool>(game, "TryUseMidgaardPortal", throneExit), "throne room exit resolves");
+                Assert(!InvokePrivate<bool>(game, "IsMidgaardInteriorCell", state.PlayerX, state.PlayerY, state.Map, state.Depth),
+                    "throne room exit returns to Midgaard streets");
+            }
+            state.PlayerX = oldX;
+            state.PlayerY = oldY;
         }
 
         private static void AssertMidgaardGateTraversal(AshenHallsGame game, GameState state)

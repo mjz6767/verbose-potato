@@ -2,12 +2,13 @@
 
 ## Current Candidate
 
-`v1.88.0` is a family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It is not a content-complete game.
+`v1.89.0` is a family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It is not a content-complete game.
 
 ## Proven Automatically
 
 - Normal startup reaches the Tavern, New Game reaches Party Setup, and Quick Start reaches exploration.
-- The default compact exploration rail keeps the next waypoint, objective, nearby sites, and all four party rows visible. Fresh guidance names King's Hall and advances with sewer progress.
+- The default compact exploration rail keeps the next waypoint, objective, nearby sites, and all four party rows visible.
+- The persistent Golden Thread names the exact `WASD / arrows` movement or `E / Space` interaction, physical target, path-aware first direction, and distance. It retargets Halvard and Borin inside isolated interiors, uses reachable exits for outside work, advances with sewer progress, and yields to an explicit Journal waypoint until that mark is cleared.
 - Midgaard's critical NPCs, gates, sewer, armorer, and regional exits are present and reachable.
 - Dialogue, Journal, loot comparison, pause, help, spellbook, ability modal, and combat command overlays own input without clicking through to the board.
 - Broken Sluice, Foul Runoff, and Cistern Den use authored encounters.
@@ -26,7 +27,7 @@
 
 ## Still Needs Humans
 
-- A new player should understand the objective without reading the README.
+- A real new player still needs to confirm that the Golden Thread is sufficient without reading the README.
 - All three fights need balance feedback from players who do not know the systems.
 - Spell, skill, terrain, and enemy-turn pacing need subjective feel checks.
 - The safe-room choice, defeat retry, and final reward need visual confirmation in the packaged Windows player.
@@ -35,8 +36,8 @@
 ## 15-Minute Family Script
 
 1. Unzip the package and launch `AshAndBrimstone.exe`.
-2. Select New Game, inspect Party Setup, then use Quick Start.
-3. Find the sewer contract and enter Broken Sluice.
+2. Select New Game, inspect Party Setup, then use Quick Start. Do not read the README; follow the persistent NEXT instruction.
+3. Enter King's Hall, accept Halvard's writ, and follow NEXT to Broken Sluice.
 4. Use Move, Attack or Shoot, one Skill, one Spell, Guard, and End Turn.
 5. Clear Foul Runoff and choose one recovery-room item.
 6. Enter Cistern Den and decide whether the final room feels fair.
@@ -46,6 +47,7 @@
 ## Feedback Questions
 
 - At any point, were you unsure what to do next?
+- Did NEXT always name the physical place or person you expected, with an input you understood?
 - Which combat command or spell was confusing?
 - Did enemy turns feel too slow, too fast, unfair, or trivial?
 - Did the safe-room choice feel meaningful?

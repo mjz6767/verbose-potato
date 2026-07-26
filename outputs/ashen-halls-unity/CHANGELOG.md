@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v1.89.0 - Golden Thread
+
+- Replaced passive exploration bearings with one persistent, action-oriented `NEXT` line that remains visible in both compact and Details views. It now names the exact `WASD / arrows` movement input or `E / Space` interaction, the physical target, a path-aware first direction, and walking distance.
+- Made objective resolution interior-aware. King's Hall now retargets King Halvard after entry, reward-ready Armory guidance retargets Borin, and completed interior work guides the party back through the reachable exit instead of pointing at an isolated exterior marker.
+- Kept explicit Journal waypoints authoritative while making their travel instructions use the same bounded guidance contract. Reaching a mark now gives the exact `J` and Clear action needed to resume the story route. Missing and blocked targets fail safely, and the Chapter II descent is named consistently as Sluice Steps.
+- Added deterministic formatting and full runtime story-transition coverage, plus an opt-in local AI visual-QA packet builder. The AI layer performs no network call, exposes only sanitized capture metadata, remains advisory, and cannot override deterministic or human review. Save schema remains v25.
+- Isolated every staged visual-smoke and batch boot from campaign writes or legacy-save import, quoted the migrated workspace path correctly during automated builds, synchronized Unity bundle metadata with the release, packaged the QA companion beside its docs, and removed absolute workstation paths from the distributable package note.
+
 ## v1.88.0 - Sure Footing
 
 - Repaired movement restoration when a web expires or burns away at turn start. The repaired full allowance now replaces the stale zero-point Undo Move snapshot, so undoing the first post-web step returns the unit to its start tile with its full movement still available.
