@@ -156,6 +156,7 @@ namespace AshenHalls
             combat.ActionAvailable = !combat.Acted && active.Stunned <= 0 && active.Sleeping <= 0;
 
             int allowance = MoveAllowance(active);
+            bool restoredMovement = false;
             if (active.Webbed > 0)
             {
                 combat.MovePoints = 0;
@@ -163,10 +164,13 @@ namespace AshenHalls
             else if (!combat.Moved && combat.MovePoints <= 0)
             {
                 combat.MovePoints = allowance;
+                restoredMovement = allowance > 0;
             }
             combat.MovePoints = Mathf.Clamp(combat.MovePoints, 0, allowance);
             combat.Phase = enemyThinking ? CombatPhase.EnemyThinking : CombatPhase.ChooseAction;
-            if (!hasMoveOrigin || !string.Equals(moveOriginUnitId, active.Id, StringComparison.Ordinal))
+            if (restoredMovement
+                || !hasMoveOrigin
+                || !string.Equals(moveOriginUnitId, active.Id, StringComparison.Ordinal))
             {
                 CaptureMoveOrigin(active);
             }
@@ -175,9 +179,7 @@ namespace AshenHalls
         public bool ActionEnabled(ActionMode mode, CombatUnit active, bool hasSpell, bool hasMartialAbility, int elixirs)
         {
             CombatState combat = state?.Combat;
-            if (combat == null || active == null) return false;
-            if (!IsActiveUnit(active)) return false;
-            if (combat.Phase == CombatPhase.Resolving) return false;
+            if (PlayerCommandFailureFor(active) != CombatCommandFailure.None) return false;
             if (active.Stunned > 0 || active.Sleeping > 0) return mode == ActionMode.Wait;
             if (mode == ActionMode.Move) return combat.MovePoints > 0 && active.Webbed <= 0;
             if (mode == ActionMode.Attack) return combat.ActionAvailable;
@@ -191,10 +193,8 @@ namespace AshenHalls
         public CombatCommandResult TryMove(CombatUnit active, int x, int y)
         {
             CombatState combat = state?.Combat;
-            if (combat == null) return CombatCommandResult.Failed(CombatCommandFailure.MissingCombat, active, x, y);
-            if (active == null) return CombatCommandResult.Failed(CombatCommandFailure.MissingUnit, active, x, y);
-            if (!IsActiveUnit(active)) return CombatCommandResult.Failed(CombatCommandFailure.NotActiveUnit, active, x, y);
-            if (combat.Phase == CombatPhase.Resolving) return CombatCommandResult.Failed(CombatCommandFailure.ActionUnavailable, active, x, y);
+            CombatCommandFailure commandFailure = PlayerCommandFailureFor(active);
+            if (commandFailure != CombatCommandFailure.None) return CombatCommandResult.Failed(commandFailure, active, x, y);
             if (combat.MovePoints <= 0) return CombatCommandResult.Failed(CombatCommandFailure.NoMovement, active, x, y);
             if (active.Webbed > 0) return CombatCommandResult.Failed(CombatCommandFailure.Webbed, active, x, y);
 
@@ -219,11 +219,9 @@ namespace AshenHalls
         public bool CanUndoMove(CombatUnit active)
         {
             CombatState combat = state?.Combat;
-            if (combat == null || active == null || !hasMoveOrigin) return false;
-            if (!IsActiveUnit(active) || active.Side != UnitSide.Party) return false;
+            if (PlayerCommandFailureFor(active) != CombatCommandFailure.None || !hasMoveOrigin) return false;
             if (!string.Equals(moveOriginUnitId, active.Id, StringComparison.Ordinal)) return false;
             if (!combat.ActionAvailable || combat.Acted) return false;
-            if (combat.Phase == CombatPhase.Resolving || combat.Phase == CombatPhase.EnemyThinking) return false;
             if (combat.MovePoints >= moveOriginPoints
                 && active.X == moveOriginX
                 && active.Y == moveOriginY)
@@ -237,6 +235,12 @@ namespace AshenHalls
 
         public CombatCommandResult TryUndoMove(CombatUnit active)
         {
+            CombatCommandFailure commandFailure = PlayerCommandFailureFor(active);
+            if (commandFailure != CombatCommandFailure.None)
+            {
+                return CombatCommandResult.Failed(commandFailure, active);
+            }
+
             if (!CanUndoMove(active))
             {
                 return CombatCommandResult.Failed(CombatCommandFailure.NoMoveToUndo, active);
@@ -264,9 +268,8 @@ namespace AshenHalls
 
         public CombatCommandResult EndTurn(CombatUnit active)
         {
-            if (state?.Combat == null) return CombatCommandResult.Failed(CombatCommandFailure.MissingCombat, active);
-            if (active == null) return CombatCommandResult.Failed(CombatCommandFailure.MissingUnit, active);
-            if (!IsActiveUnit(active)) return CombatCommandResult.Failed(CombatCommandFailure.NotActiveUnit, active);
+            CombatCommandFailure commandFailure = PlayerCommandFailureFor(active);
+            if (commandFailure != CombatCommandFailure.None) return CombatCommandResult.Failed(commandFailure, active);
             CompleteAction(active, true);
             return CombatCommandResult.Completed(active);
         }
@@ -286,6 +289,7 @@ namespace AshenHalls
 
         public CombatCommandResult TryAttack(CombatUnit active, CombatUnit target, Func<CombatUnit, CombatUnit, bool> resolveAttack)
         {
+            if (!CanSpendAction(active)) return CombatCommandResult.Failed(ActionFailureFor(active), active);
             if (target == null || resolveAttack == null) return CombatCommandResult.Failed(CombatCommandFailure.ResolverRejected, active);
             return TryResolveAction(active, () => resolveAttack(active, target));
         }
@@ -350,16 +354,32 @@ namespace AshenHalls
         private bool CanSpendAction(CombatUnit active)
         {
             CombatState combat = state?.Combat;
-            return combat != null && active != null && IsActiveUnit(active) && combat.ActionAvailable && active.Stunned <= 0 && active.Sleeping <= 0;
+            return PlayerCommandFailureFor(active) == CombatCommandFailure.None
+                && combat.ActionAvailable
+                && active.Stunned <= 0
+                && active.Sleeping <= 0;
         }
 
         private CombatCommandFailure ActionFailureFor(CombatUnit active)
+        {
+            CombatCommandFailure commandFailure = PlayerCommandFailureFor(active);
+            if (commandFailure != CombatCommandFailure.None) return commandFailure;
+            return CombatCommandFailure.ActionUnavailable;
+        }
+
+        private CombatCommandFailure PlayerCommandFailureFor(CombatUnit active)
         {
             CombatState combat = state?.Combat;
             if (combat == null) return CombatCommandFailure.MissingCombat;
             if (active == null) return CombatCommandFailure.MissingUnit;
             if (!IsActiveUnit(active)) return CombatCommandFailure.NotActiveUnit;
-            return CombatCommandFailure.ActionUnavailable;
+            if (active.Side != UnitSide.Party) return CombatCommandFailure.NotPartyUnit;
+            if (active.Hp <= 0) return CombatCommandFailure.ActionUnavailable;
+            if (combat.Phase != CombatPhase.ChooseAction && combat.Phase != CombatPhase.ChooseTarget)
+            {
+                return CombatCommandFailure.ActionUnavailable;
+            }
+            return CombatCommandFailure.None;
         }
 
         private int MoveAllowance(CombatUnit active)

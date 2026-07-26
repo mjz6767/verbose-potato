@@ -1008,6 +1008,37 @@ namespace AshenHalls.Editor
                 && active.Webbed == 0
                 && combatState.Combat.MovePoints == InvokePrivate<int>(game, "UnitMoveAllowance", active),
                 "start-turn fire clears web and restores unspent movement in the same turn");
+            int webRecoveryOriginX = active.X;
+            int webRecoveryOriginY = active.Y;
+            int webRecoveryMovePoints = combatState.Combat.MovePoints;
+            Vector2Int[] webRecoveryCandidates =
+            {
+                new Vector2Int(webRecoveryOriginX + 1, webRecoveryOriginY),
+                new Vector2Int(webRecoveryOriginX, webRecoveryOriginY + 1),
+                new Vector2Int(webRecoveryOriginX - 1, webRecoveryOriginY),
+                new Vector2Int(webRecoveryOriginX, webRecoveryOriginY - 1)
+            };
+            Vector2Int? webRecoveryDestination = webRecoveryCandidates
+                .Where(candidate => InvokePrivate<bool>(game, "CanStandAt", candidate.x, candidate.y))
+                .Select(candidate => (Vector2Int?)candidate)
+                .FirstOrDefault();
+            Assert(webRecoveryDestination.HasValue, "fire-cleared web smoke has an adjacent movement destination");
+            InvokePrivate(game, "MoveActiveTo", active, webRecoveryDestination.Value.x, webRecoveryDestination.Value.y);
+            Assert(active.X == webRecoveryDestination.Value.x
+                && active.Y == webRecoveryDestination.Value.y
+                && combatState.Combat.MovePoints < webRecoveryMovePoints,
+                "fire-freed unit spends its repaired movement normally");
+            Assert(InvokePrivate<bool>(game, "UndoActiveMovement"), "fire-freed movement can be undone");
+            Assert(active.X == webRecoveryOriginX
+                && active.Y == webRecoveryOriginY
+                && combatState.Combat.MovePoints == webRecoveryMovePoints
+                && combatState.Combat.ActionAvailable,
+                "fire-freed Undo Move restores the turn-start tile and refreshed full budget");
+            InvokePrivate(game, "MoveActiveTo", active, webRecoveryDestination.Value.x, webRecoveryDestination.Value.y);
+            Assert(active.X == webRecoveryDestination.Value.x && active.Y == webRecoveryDestination.Value.y,
+                "fire-freed unit can move again after Undo Move");
+            Assert(InvokePrivate<bool>(game, "UndoActiveMovement"), "repeated fire-freed movement remains reversible");
+            SetPrivateField(game, "suppressBoardPointerThroughFrame", Time.frameCount - 1);
 
             active.Hp = sanctuaryHp;
             active.Poisoned = 0;
@@ -1880,6 +1911,63 @@ namespace AshenHalls.Editor
                     && GetPrivateField<bool>(game, "combatAdvancePending")
                     && !GetPrivateField<bool>(game, "showSpellbook"),
                     "combat command dispatch cannot break the round gate or open a review book");
+                CombatController roundController = InvokePrivate<CombatController>(game, "CombatLifecycle");
+                float reservedAdvanceAt = GetPrivateField<float>(game, "combatAdvanceAt");
+                string reservedActiveId = roundState.Combat.ActiveId;
+                int reservedHeroX = roundHero.X;
+                int reservedHeroY = roundHero.Y;
+                int reservedHeroHp = roundHero.Hp;
+                int reservedHeroMana = roundHero.Mana;
+                int reservedEnemyHp = roundEnemy.Hp;
+                roundState.Elixirs = 1;
+                roundState.Combat.ActionAvailable = true;
+                roundState.Combat.MovePoints = 3;
+                int reservedResolverCalls = 0;
+                CombatCommandResult reservedMove = roundController.TryMove(roundHero, roundHero.X + 1, roundHero.Y);
+                CombatCommandResult reservedUndo = roundController.TryUndoMove(roundHero);
+                CombatCommandResult reservedAttack = roundController.TryAttack(roundHero, roundEnemy, (actor, target) =>
+                {
+                    reservedResolverCalls++;
+                    return true;
+                });
+                CombatCommandResult reservedAbility = roundController.TryUseAbility(roundHero, () =>
+                {
+                    reservedResolverCalls++;
+                    return true;
+                });
+                CombatCommandResult reservedAction = roundController.TryResolveAction(roundHero, () =>
+                {
+                    reservedResolverCalls++;
+                    return true;
+                });
+                CombatCommandResult reservedGuard = roundController.Guard(roundHero, 4);
+                CombatCommandResult reservedItem = roundController.TryUseItem(roundHero, 18, 6);
+                CombatCommandResult reservedEndTurn = roundController.EndTurn(roundHero);
+                Assert(!reservedMove.Success
+                    && !reservedUndo.Success
+                    && !reservedAttack.Success
+                    && !reservedAbility.Success
+                    && !reservedAction.Success
+                    && !reservedGuard.Success
+                    && !reservedItem.Success
+                    && !reservedEndTurn.Success,
+                    "controller rejects every public player command during the reserved round hold");
+                Assert(reservedResolverCalls == 0
+                    && roundHero.X == reservedHeroX
+                    && roundHero.Y == reservedHeroY
+                    && roundHero.Hp == reservedHeroHp
+                    && roundHero.Mana == reservedHeroMana
+                    && roundEnemy.Hp == reservedEnemyHp
+                    && roundState.Elixirs == 1
+                    && !roundHero.Guarding,
+                    "reserved round command rejection cannot invoke callbacks or mutate units and resources");
+                Assert(roundState.Combat.Phase == CombatPhase.Resolving
+                    && roundState.Combat.ActiveId == reservedActiveId
+                    && GetPrivateField<bool>(game, "combatAdvancePending")
+                    && Mathf.Approximately(GetPrivateField<float>(game, "combatAdvanceAt"), reservedAdvanceAt),
+                    "controller command rejection preserves the reserved unit and owning timer");
+                roundState.Combat.ActionAvailable = false;
+                roundState.Combat.MovePoints = 0;
                 Assert(roundBanner.StartsWith("ROUND 2", StringComparison.Ordinal)
                     && roundBanner.Contains("1 field fades")
                     && roundBanner.Contains("1 ritual opens"),

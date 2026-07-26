@@ -2,6 +2,13 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v1.88.0 - Sure Footing
+
+- Repaired movement restoration when a web expires or burns away at turn start. The repaired full allowance now replaces the stale zero-point Undo Move snapshot, so undoing the first post-web step returns the unit to its start tile with its full movement still available.
+- Added one authoritative `CombatController` gate for player commands. Resolving round and impact holds, dead or inactive actors, and non-party actors are rejected before callbacks run or resources and combat state can change.
+- Preserved End Turn as a deliberate exception for any living active party unit in `ChooseAction` or `ChooseTarget`, including stunned, sleeping, and action-spent units.
+- Added deterministic coverage for web expiry and fire removal through move, undo, and move-again flow, plus rejected commands during round and impact holds. Save schema remains v25.
+
 ## v1.87.0 - Roundfall
 
 - Added a brief round-resolution gate before initiative resumes. Expiring fields and opened rituals now share one bounded `ROUND N` callout instead of being overwritten by the next unit banner.

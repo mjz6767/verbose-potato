@@ -1157,7 +1157,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v1.87.0", VersionInfo.PackageVersion, "package version matches the v1.87 release");
+            AssertEqual("v1.88.0", VersionInfo.PackageVersion, "package version matches the v1.88 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v1.31.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v1.31 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v1.31.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v1.31 signature spell atlas pin");
@@ -3868,10 +3868,64 @@ namespace AshenHalls.Editor
 
             state.Combat.Phase = CombatPhase.Resolving;
             AssertEqual(false, controller.ActionEnabled(ActionMode.Move, hero, false, false, 0), "resolving phase blocks commands");
+            state.Elixirs = 2;
+            int resolvingResolverCalls = 0;
+            int resolvingHeroHp = hero.Hp;
+            int resolvingEnemyHp = enemy.Hp;
+            int resolvingMovePoints = state.Combat.MovePoints;
             CombatCommandResult resolvingMove = controller.TryMove(hero, 2, 1);
             AssertEqual(false, resolvingMove.Success, "resolving phase blocks movement");
             AssertEqual(CombatCommandFailure.ActionUnavailable, resolvingMove.Failure, "resolving movement failure");
+            CombatCommandResult resolvingUndo = controller.TryUndoMove(hero);
+            AssertEqual(false, resolvingUndo.Success, "resolving phase blocks movement undo");
+            AssertEqual(CombatCommandFailure.ActionUnavailable, resolvingUndo.Failure, "resolving undo failure");
+            CombatCommandResult resolvingAttack = controller.TryAttack(hero, enemy, (actor, target) =>
+            {
+                resolvingResolverCalls++;
+                return true;
+            });
+            CombatCommandResult resolvingAbility = controller.TryUseAbility(hero, () =>
+            {
+                resolvingResolverCalls++;
+                return true;
+            });
+            CombatCommandResult resolvingAction = controller.TryResolveAction(hero, () =>
+            {
+                resolvingResolverCalls++;
+                return true;
+            });
+            CombatCommandResult resolvingGuard = controller.Guard(hero, 4);
+            CombatCommandResult resolvingItem = controller.TryUseItem(hero, 18, 6);
+            CombatCommandResult resolvingEndTurn = controller.EndTurn(hero);
+            AssertEqual(false, resolvingAttack.Success, "resolving phase blocks attacks");
+            AssertEqual(false, resolvingAbility.Success, "resolving phase blocks abilities");
+            AssertEqual(false, resolvingAction.Success, "resolving phase blocks generic actions");
+            AssertEqual(false, resolvingGuard.Success, "resolving phase blocks Guard");
+            AssertEqual(false, resolvingItem.Success, "resolving phase blocks elixirs");
+            AssertEqual(false, resolvingEndTurn.Success, "resolving phase blocks End Turn");
+            AssertEqual(0, resolvingResolverCalls, "resolving command gate never invokes action resolvers");
+            AssertEqual(resolvingHeroHp, hero.Hp, "resolving command gate preserves actor health");
+            AssertEqual(resolvingEnemyHp, enemy.Hp, "resolving command gate preserves target health");
+            AssertEqual(2, state.Elixirs, "resolving command gate preserves resources");
+            AssertEqual(resolvingMovePoints, state.Combat.MovePoints, "resolving command gate preserves movement");
+            AssertEqual(false, state.Combat.Acted, "resolving command gate preserves acted state");
+            AssertEqual(true, state.Combat.ActionAvailable, "resolving command gate preserves action state");
+            AssertEqual(CombatPhase.Resolving, state.Combat.Phase, "resolving command gate preserves the owning phase");
             state.Combat.Phase = CombatPhase.ChooseAction;
+
+            hero.Hp = 0;
+            int defeatedResolverCalls = 0;
+            CombatCommandResult defeatedAttack = controller.TryAttack(hero, enemy, (actor, target) =>
+            {
+                defeatedResolverCalls++;
+                return true;
+            });
+            AssertEqual(false, controller.ActionEnabled(ActionMode.Attack, hero, false, false, state.Elixirs), "defeated active unit has no enabled commands");
+            AssertEqual(false, defeatedAttack.Success, "defeated active unit cannot attack");
+            AssertEqual(0, defeatedResolverCalls, "defeated active unit cannot invoke a resolver");
+            AssertEqual(false, controller.TryMove(hero, 2, 1).Success, "defeated active unit cannot move");
+            AssertEqual(false, controller.EndTurn(hero).Success, "defeated active unit cannot end the turn");
+            hero.Hp = hero.MaxHp;
 
             CombatCommandResult move = controller.TryMove(hero, 2, 1);
             AssertEqual(true, move.Success, "move succeeds");
@@ -3904,7 +3958,7 @@ namespace AshenHalls.Editor
             AssertEqual(true, state.Combat.Acted, "attack marks acted");
             AssertEqual(CombatPhase.Resolving, state.Combat.Phase, "attack resolving phase");
             AssertEqual(false, controller.CanUndoMove(hero), "spent action locks movement undo");
-            AssertEqual(CombatCommandFailure.NoMoveToUndo, controller.TryUndoMove(hero).Failure, "spent action reports no reversible movement");
+            AssertEqual(CombatCommandFailure.ActionUnavailable, controller.TryUndoMove(hero).Failure, "spent action reports the authoritative resolving-phase rejection");
 
             CombatCommandResult rejected = controller.TryAttack(hero, enemy, (actor, target) => true);
             AssertEqual(false, rejected.Success, "second attack rejected");
@@ -3962,6 +4016,18 @@ namespace AshenHalls.Editor
             AssertEqual(true, controller.EndTurn(hero).Success, "stunned unit can end turn");
             hero.Stunned = 0;
 
+            hero.Sleeping = 1;
+            controller.BeginTurn(hero, false);
+            state.Combat.Phase = CombatPhase.ChooseTarget;
+            AssertEqual(true, controller.EndTurn(hero).Success, "sleeping unit can end turn from a player command phase");
+            hero.Sleeping = 0;
+
+            controller.BeginTurn(hero, false);
+            state.Combat.Acted = true;
+            state.Combat.ActionAvailable = false;
+            state.Combat.Phase = CombatPhase.ChooseTarget;
+            AssertEqual(true, controller.EndTurn(hero).Success, "action-spent living unit can end turn from a player command phase");
+
             state.Combat.Acted = false;
             state.Combat.Moved = false;
             state.Combat.MovePoints = 0;
@@ -3986,14 +4052,24 @@ namespace AshenHalls.Editor
             controller.RepairActiveTurnState(hero, false);
             AssertEqual(0, state.Combat.MovePoints, "turn repair does not refill moved unit");
 
-            state.Combat.Moved = false;
-            state.Combat.MovePoints = 3;
             hero.Webbed = 2;
-            controller.RepairActiveTurnState(hero, false);
-            AssertEqual(0, state.Combat.MovePoints, "turn repair removes movement when a start-turn effect applies web");
+            controller.BeginTurn(hero, false);
+            AssertEqual(0, state.Combat.MovePoints, "webbed turn snapshots zero movement before automatic effects");
             hero.Webbed = 0;
             controller.RepairActiveTurnState(hero, false);
             AssertEqual(3, state.Combat.MovePoints, "turn repair restores unspent movement when start-turn effects clear web");
+            int repairedOriginX = hero.X;
+            int repairedOriginY = hero.Y;
+            int repairedDestinationX = hero.X + 1;
+            CombatCommandResult repairedMove = controller.TryMove(hero, repairedDestinationX, hero.Y);
+            AssertEqual(true, repairedMove.Success, "unit can move after start-turn web recovery");
+            CombatCommandResult repairedUndo = controller.TryUndoMove(hero);
+            AssertEqual(true, repairedUndo.Success, "web-recovered movement can be undone");
+            AssertEqual(repairedOriginX, hero.X, "web-recovered undo restores origin x");
+            AssertEqual(repairedOriginY, hero.Y, "web-recovered undo restores origin y");
+            AssertEqual(3, state.Combat.MovePoints, "web-recovered undo restores the refreshed full budget");
+            AssertEqual(true, controller.TryMove(hero, repairedDestinationX, hero.Y).Success, "unit can move again after web-recovered undo");
+            AssertEqual(true, controller.TryUndoMove(hero).Success, "second web-recovered move remains reversible");
 
             controller.BeginTurn(enemy, true);
             controller.RepairActiveTurnState(enemy, true);

@@ -32,6 +32,8 @@ Use this for each small release zip.
 - Complete one party/enemy round using move, attack, cast, guard, elixir, and wait where possible.
 - Let a duration-one field and enemy ritual reach a new round together. Confirm one `ROUND N` summary names both events, board input and enemy AI wait, and the reserved next unit begins exactly once.
 - At turn start, verify poison wakes a sleeping unit, ice can stun immediately, web removes movement, fire restores movement after burning web, and lethal automatic damage completes its fall before initiative advances.
+- Begin a turn webbed, then remove the web through both fire and ordinary expiry. Move once, Undo Move, confirm the unit returns to its turn-start tile with its full allowance, then move again.
+- During both the `ROUND N` gate and a staged impact hold, attempt movement and every player command. Confirm no callback fires, no resource or combat state changes, and no turn advances. Then confirm End Turn still works for the living active party unit in Choose Action or Choose Target when stunned, sleeping, or action-spent.
 - Open both Spellbook and Skillbook; confirm All, Ready, Learned, and Future counts agree with their visible cards.
 - Navigate each book with mouse, W/S or arrows, Home/End, Page Up/Page Down, 1-4, Tab, Enter/Space, and a controller where available.
 - Arm a targeted spell and skill from the detail action. Reopen each book, browse a different card, move, cancel, and reopen; confirm armed and selected states remain distinct and no resource is spent before target confirmation.

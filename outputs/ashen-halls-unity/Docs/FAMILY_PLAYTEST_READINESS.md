@@ -1,8 +1,8 @@
-# Ashen Halls Family Playtest Readiness
+# Ash & Brimstone Family Playtest Readiness
 
 ## Current Candidate
 
-`v1.59.0` is a family-playtest candidate for the Midgaard sewer slice. It is not a content-complete game.
+`v1.88.0` is a family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It is not a content-complete game.
 
 ## Proven Automatically
 
@@ -18,7 +18,9 @@
 - Saves use atomic primary/backup writes. Normal play checkpoints at safe milestones; labs and batch tests cannot overwrite a campaign.
 - Normal campaign combat can retreat for one supply through a confirmed Menu action. It abandons loot/progress, restores the party at Temple Square, and checkpoints the recovery.
 - Uncommitted movement can be undone from the command deck or with U/Backspace. The unit returns to its turn-start tile with its full movement allowance; committing any action locks the move.
+- When a start-turn web expires or burns away, movement repair also replaces the stale zero-point Undo Move snapshot. The unit can move, undo to its original tile with its full allowance, and move again.
 - Armed spell and skill targets can be canceled from the command deck, Esc, or right-click without spending the action or disturbing movement/undo state.
+- One central player-command gate rejects resolving round and impact holds plus dead, inactive, and non-party actors before callbacks or resource/state mutation. End Turn remains valid for the living active party unit in Choose Action or Choose Target even when stunned, sleeping, or action-spent.
 - Fresh and loaded maps certify that all eight named outer-road junctions remain reachable from Midgaard.
 - Rule and runtime smoke suites pass in Unity 6000.3.18f1.
 
@@ -32,7 +34,7 @@
 
 ## 15-Minute Family Script
 
-1. Unzip the package and launch `AshenHalls.exe`.
+1. Unzip the package and launch `AshAndBrimstone.exe`.
 2. Select New Game, inspect Party Setup, then use Quick Start.
 3. Find the sewer contract and enter Broken Sluice.
 4. Use Move, Attack or Shoot, one Skill, one Spell, Guard, and End Turn.
