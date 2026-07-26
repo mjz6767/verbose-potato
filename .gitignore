@@ -8,12 +8,17 @@ outputs/ashen-halls-build/
 outputs/AshenHalls-Windows/
 outputs/AshenHalls-Windows-v*/
 outputs/AshenHalls-Windows-*.zip
+outputs/ash-and-brimstone-build/
+outputs/AshAndBrimstone-Windows/
+outputs/AshAndBrimstone-Windows-v*/
+outputs/AshAndBrimstone-Windows-*.zip
 outputs/tools/
 outputs/*.log
 
 # Unity generated/cache folders
 outputs/ashen-halls-unity/[Ll]ibrary/
 outputs/ashen-halls-unity/[Tt]emp/
+outputs/ashen-halls-unity/[Tt]mp/
 outputs/ashen-halls-unity/[Oo]bj/
 outputs/ashen-halls-unity/[Bb]uild/
 outputs/ashen-halls-unity/[Bb]uilds/
@@ -34,6 +39,28 @@ outputs/ashen-halls-unity/*.svd
 
 # Local build logs in the Unity project root
 outputs/ashen-halls-unity/build-v*.log
+outputs/ashen-halls-unity/rule-tests*.log
+outputs/ashen-halls-unity/runtime-*.log
+outputs/ashen-halls-unity/smoke-*.log
+outputs/ashen-halls-unity/player-*.log
+outputs/ashen-halls-unity/launch-*.log
+outputs/ashen-halls-unity/aseprite-test-*.txt
+outputs/ashen-halls-unity/*.log
+outputs/ashen-halls-unity/*.pid
+outputs/ashen-halls-unity/*.stderr
+outputs/ashen-halls-unity/*.stdout
+
+# Local acceptance captures and historical QA media
+/QA/
+outputs/ashen-halls-unity/QA/
+
+# Source/package analysis scratch drops
+AshenHalls-source-*.zip
+ashen-halls-source-*-stage-*/
+ashen-halls-v*-stabilization-plan/
+stabilization-plan-v*/
+source-packages/
+beta-test/
 
 # OS/editor noise
 Thumbs.db

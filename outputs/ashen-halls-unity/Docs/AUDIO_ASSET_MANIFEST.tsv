@@ -1,0 +1,56 @@
+cue	output	source_pack	source_file(s)	license	source_url	transformation
+aimedshot	Assets/Resources/Audio/Sfx/aimedshot.wav	Battle Sound Effects	Bow.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	48k mono; pitch; trim; fade; soft-limit
+ambush	Assets/Resources/Audio/Sfx/ambush.wav	Kenney RPG Audio	knifeSlice2.ogg	CC0-1.0	https://kenney.nl/assets/rpg-audio	48k mono; pitch; trim; fade; soft-limit
+ambushimpact	Assets/Resources/Audio/Sfx/ambushimpact.wav	Kenney Impact Sounds	impactSoft_medium_003.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; pitch; trim; fade; soft-limit
+arrowcontact	Assets/Resources/Audio/Sfx/arrowcontact.wav	Kenney Impact Sounds	impactWood_light_001.ogg + impactSoft_medium_001.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	layered; 48k mono; trim; fade; soft-limit
+arrowrain	Assets/Resources/Audio/Sfx/arrowrain.wav	Battle Sound Effects	Bow.wav x4	CC0-1.0	https://opengameart.org/content/battle-sound-effects	layered offsets/pitches; 48k mono; trim; fade; soft-limit
+attack	Assets/Resources/Audio/Sfx/attack.wav	Battle Sound Effects	swish_2.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	48k mono; trim; fade; soft-limit
+blade	Assets/Resources/Audio/Sfx/blade.wav	Battle Sound Effects	swish_3.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	48k mono; pitch; trim; fade; soft-limit
+bladecontact	Assets/Resources/Audio/Sfx/bladecontact.wav	StarNinjas Sword Clashes + Kenney Impact Sounds	sword_clash.2.ogg + impactSoft_medium_001.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	layered; 48k mono; trim; fade; soft-limit
+blocked	Assets/Resources/Audio/Sfx/blocked.wav	Kenney Interface Sounds	error_003.ogg	CC0-1.0	https://kenney.nl/assets/interface-sounds	48k mono; trim; fade; soft-limit
+bow	Assets/Resources/Audio/Sfx/bow.wav	Battle Sound Effects	Bow.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	48k mono; pitch; trim; fade; soft-limit
+cache	Assets/Resources/Audio/Sfx/cache.wav	Kenney Interface Sounds	confirmation_004.ogg	CC0-1.0	https://kenney.nl/assets/interface-sounds	48k mono; trim; fade; soft-limit
+charge	Assets/Resources/Audio/Sfx/charge.wav	Battle Sound Effects + Kenney Impact Sounds	swish_4.wav + footstep_concrete_003.ogg	CC0-1.0	https://opengameart.org/content/battle-sound-effects	layered; 48k mono; pitch; trim; fade; soft-limit
+chargeimpact	Assets/Resources/Audio/Sfx/chargeimpact.wav	Kenney Impact Sounds	impactMetal_heavy_004.ogg + impactPunch_heavy_002.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	layered; 48k mono; trim; fade; soft-limit
+counter	Assets/Resources/Audio/Sfx/counter.wav	StarNinjas Sword Attacks/Clashes	sword.1.ogg + sword_clash.3.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	layered; 48k mono; pitch; trim; fade; soft-limit
+dialoguepage	Assets/Resources/Audio/Sfx/dialoguepage.wav	Kenney RPG Audio	bookFlip2.ogg	CC0-1.0	https://kenney.nl/assets/rpg-audio	48k mono; trim; fade; soft-limit
+door	Assets/Resources/Audio/Sfx/door.wav	Kenney RPG Audio	doorOpen_1.ogg	CC0-1.0	https://kenney.nl/assets/rpg-audio	48k mono; trim; fade; soft-limit
+doorwood	Assets/Resources/Audio/Sfx/doorwood.wav	Kenney RPG Audio	doorOpen_2.ogg	CC0-1.0	https://kenney.nl/assets/rpg-audio	48k mono; pitch; trim; fade; soft-limit
+eviscerate	Assets/Resources/Audio/Sfx/eviscerate.wav	StarNinjas Sword Attacks	sword.2.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	48k mono; pitch; trim; fade; soft-limit
+eviscerateimpact	Assets/Resources/Audio/Sfx/eviscerateimpact.wav	StarNinjas Sword Clashes + Kenney Impact Sounds	sword_clash.5.ogg + impactSoft_medium_000.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	layered; 48k mono; pitch; trim; fade; soft-limit
+execute	Assets/Resources/Audio/Sfx/execute.wav	StarNinjas Sword Attacks	sword.9.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	48k mono; pitch; trim; fade; soft-limit
+executeimpact	Assets/Resources/Audio/Sfx/executeimpact.wav	StarNinjas Sword Clashes + Kenney Impact Sounds	sword_clash.10.ogg + impactSoft_heavy_004.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	layered; 48k mono; pitch; trim; fade; soft-limit
+fieldfire	Assets/Resources/Audio/Sfx/fieldfire.wav	Basic Spell Impacts	Fire Spell Impact 1.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; pitch; trim; fade; soft-limit
+fieldice	Assets/Resources/Audio/Sfx/fieldice.wav	Basic Spell Impacts	Ice Spell Impact 4.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; pitch; trim; fade; soft-limit
+fireball	Assets/Resources/Audio/Sfx/fireball.wav	Basic Spell Impacts	Fire Spell Impact 2.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; trim; fade; soft-limit
+footearth	Assets/Resources/Audio/Sfx/footearth.wav	Kenney Impact Sounds	footstep_grass_002.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; trim; fade; soft-limit
+footstone	Assets/Resources/Audio/Sfx/footstone.wav	Kenney Impact Sounds	footstep_concrete_002.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; trim; fade; soft-limit
+footwood	Assets/Resources/Audio/Sfx/footwood.wav	Kenney Impact Sounds	footstep_wood_002.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; trim; fade; soft-limit
+formula	Assets/Resources/Audio/Sfx/formula.wav	Kenney Interface Sounds	glass_002.ogg	CC0-1.0	https://kenney.nl/assets/interface-sounds	48k mono; trim; fade; soft-limit
+gatebarred	Assets/Resources/Audio/Sfx/gatebarred.wav	Kenney Impact Sounds	impactWood_heavy_003.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; pitch; trim; fade; soft-limit
+gateopen	Assets/Resources/Audio/Sfx/gateopen.wav	Kenney RPG Audio	creak3.ogg + doorOpen_2.ogg	CC0-1.0	https://kenney.nl/assets/rpg-audio	layered; 48k mono; pitch; trim; fade; soft-limit
+guard	Assets/Resources/Audio/Sfx/guard.wav	StarNinjas Sword Clashes	sword_clash.1.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	48k mono; trim; fade; soft-limit
+heavycontact	Assets/Resources/Audio/Sfx/heavycontact.wav	Kenney Impact Sounds	impactMetal_heavy_003.ogg + impactSoft_heavy_002.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	layered; 48k mono; trim; fade; soft-limit
+hit	Assets/Resources/Audio/Sfx/hit.wav	Kenney Impact Sounds	impactSoft_medium_002.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; trim; fade; soft-limit
+ice	Assets/Resources/Audio/Sfx/ice.wav	Basic Spell Impacts	Ice Spell Impact 2.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; trim; fade; soft-limit
+impactflesh	Assets/Resources/Audio/Sfx/impactflesh.wav	Kenney Impact Sounds	impactSoft_medium_004.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; trim; fade; soft-limit
+impactleather	Assets/Resources/Audio/Sfx/impactleather.wav	Kenney Impact Sounds	impactSoft_heavy_001.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; pitch; trim; fade; soft-limit
+impactmail	Assets/Resources/Audio/Sfx/impactmail.wav	Kenney Impact Sounds	impactMetal_medium_001.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; trim; fade; soft-limit
+impactplate	Assets/Resources/Audio/Sfx/impactplate.wav	Kenney Impact Sounds	impactPlate_heavy_001.ogg	CC0-1.0	https://kenney.nl/assets/impact-sounds	48k mono; trim; fade; soft-limit
+impactshield	Assets/Resources/Audio/Sfx/impactshield.wav	StarNinjas Sword Clashes + Kenney Impact Sounds	sword_clash.8.ogg + impactPlate_medium_003.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	layered; 48k mono; trim; fade; soft-limit
+meteor	Assets/Resources/Audio/Sfx/meteor.wav	Basic Spell Impacts	Fire Spell Impact 5.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; trim; fade; soft-limit
+miss	Assets/Resources/Audio/Sfx/miss.wav	Battle Sound Effects	swish_2.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	48k mono; pitch; trim; fade; soft-limit
+pinning	Assets/Resources/Audio/Sfx/pinning.wav	Battle Sound Effects	Bow.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	48k mono; pitch; trim; fade; soft-limit
+save	Assets/Resources/Audio/Sfx/save.wav	Kenney Interface Sounds	confirmation_002.ogg	CC0-1.0	https://kenney.nl/assets/interface-sounds	48k mono; trim; fade; soft-limit
+servicecoin	Assets/Resources/Audio/Sfx/servicecoin.wav	Kenney RPG Audio	handleCoins2.ogg	CC0-1.0	https://kenney.nl/assets/rpg-audio	48k mono; trim; fade; soft-limit
+shock	Assets/Resources/Audio/Sfx/shock.wav	Basic Spell Impacts	Lightning Spell Impact 1.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; trim; fade; soft-limit
+swing	Assets/Resources/Audio/Sfx/swing.wav	Battle Sound Effects	swish_4.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	48k mono; trim; fade; soft-limit
+swingheavy	Assets/Resources/Audio/Sfx/swingheavy.wav	StarNinjas Sword Attacks	sword.5.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	48k mono; pitch; trim; fade; soft-limit
+tempest	Assets/Resources/Audio/Sfx/tempest.wav	Basic Spell Impacts	Lightning Spell Impact 5.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; pitch; trim; fade; soft-limit
+thrustcontact	Assets/Resources/Audio/Sfx/thrustcontact.wav	StarNinjas Sword Clashes	sword_clash.4.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	48k mono; pitch; trim; fade; soft-limit
+tree	Assets/Resources/Audio/Sfx/tree.wav	Basic Spell Impacts	Water Spell Impact 2.wav	CC0-1.0	https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx	48k mono; pitch; high-pass; trim; fade; soft-limit
+turn	Assets/Resources/Audio/Sfx/turn.wav	Kenney Interface Sounds	pluck_002.ogg	CC0-1.0	https://kenney.nl/assets/interface-sounds	48k mono; trim; fade; soft-limit
+ui	Assets/Resources/Audio/Sfx/ui.wav	Kenney Interface Sounds	select_004.ogg	CC0-1.0	https://kenney.nl/assets/interface-sounds	48k mono; trim; fade; soft-limit
+volley	Assets/Resources/Audio/Sfx/volley.wav	Battle Sound Effects	Bow.wav x3	CC0-1.0	https://opengameart.org/content/battle-sound-effects	layered offsets/pitches; 48k mono; trim; fade; soft-limit
+whirlwind	Assets/Resources/Audio/Sfx/whirlwind.wav	Battle Sound Effects	swish_2.wav + swish_3.wav + swish_4.wav	CC0-1.0	https://opengameart.org/content/battle-sound-effects	layered offsets/pitches; 48k mono; trim; fade; soft-limit
+whirlwindimpact	Assets/Resources/Audio/Sfx/whirlwindimpact.wav	StarNinjas Sword Clashes	sword_clash.7.ogg	CC0-1.0	https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes	48k mono; pitch; trim; fade; soft-limit

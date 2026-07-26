@@ -1,0 +1,53 @@
+Ash & Brimstone - Third-Party Notices
+======================================
+
+All authored sound-effect source material introduced in v1.70.0 is available
+under Creative Commons CC0 1.0 Universal. Attribution is not required, but the
+creators and source pages are recorded here to make provenance durable.
+
+Creative Commons CC0 1.0 Universal
+https://creativecommons.org/publicdomain/zero/1.0/
+
+Basic Spell Impacts [Free/CC0]
+Creator: lentikula
+Source: https://lentikula.itch.io/freecc0-basic-spell-impacts-sfx
+Pack statement: 20 original 48 kHz/24-bit WAV spell impacts released under CC0.
+
+Interface Sounds
+Creator/distributor: Kenney
+Source: https://kenney.nl/assets/interface-sounds
+Pack license: Creative Commons CC0 1.0.
+
+Impact Sounds
+Creator/distributor: Kenney
+Source: https://kenney.nl/assets/impact-sounds
+Pack license: Creative Commons CC0 1.0.
+
+RPG Audio
+Creator: Kenney Vleugels / Kenney
+Source: https://kenney.nl/assets/rpg-audio
+Pack license: Creative Commons CC0 1.0.
+
+Battle Sound Effects
+Creator: artisticdude; submitted to OpenGameArt by Ogrebane
+Source: https://opengameart.org/content/battle-sound-effects
+The OpenGameArt entry offers the pack under CC0 (alongside other licenses).
+
+20 Sword Sound Effects (Attacks and Clashes)
+Creator: StarNinjas
+Source: https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes
+Pack license: Creative Commons CC0 1.0.
+
+The distributed files are transformed game-ready masters, not a redistribution
+of the complete source libraries. Exact source-file mappings and transformations
+are listed in AUDIO_ASSET_MANIFEST.tsv.
+
+Libre Baskerville
+-----------------
+
+Copyright 2012 The Libre Baskerville Project Authors
+(https://github.com/impallari/Libre-Baskerville)
+
+The bundled Libre Baskerville Regular and SemiBold font files are licensed under
+the SIL Open Font License, Version 1.1. The complete copyright and license text
+is included in OFL-LibreBaskerville.txt.

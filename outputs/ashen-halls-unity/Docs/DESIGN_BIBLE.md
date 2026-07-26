@@ -8,13 +8,13 @@ This is a living note for keeping the game coherent as it grows. It should captu
 - Tactical board decisions every turn.
 - Class-specific magic with strange, memorable formula ancestry, but readable spell-card play during beta.
 - Generated gear that feels abundant but still understandable through damage ranges, speed, traits, rarity, and stat bonuses.
-- Four-character company building with race, class, level, stats, skills, equipment, and visible tactical identity.
+- Four-character party building with race, class, level, stats, skills, equipment, and visible tactical identity.
 - Modern pixel presentation: smoother motion, clearer UI, better silhouettes, sparse sound.
 - Current title identity: Ashen Halls remains the project name; The Old Road works as the subtitle for this first playable arc.
 
 ## Party Framework
 
-- New games use a four-person tavern company. Four is easier to read, easier to customize, and makes individual class identity matter more.
+- New games use a four-person tavern party. Four is easier to read, easier to customize, and makes individual class identity matter more.
 - Core stats are Strength, Intelligence, Agility, and Health. Keep the list tight unless a future system clearly earns another stat.
 - Derived combat fields include HP, mana for spellcasting classes, movement, defense, damage range, attack speed, range, resistance, weakness, and status hooks.
 - Attack speed is useful in turn-based combat as initiative, hit/crit pressure, and gear feel. It should not become real-time action speed.
@@ -98,7 +98,7 @@ This is a living note for keeping the game coherent as it grows. It should captu
 - v0.43 adds a new transparent 4x4 runtime combat sheet and a larger enemy roster atlas. This makes the game feel dramatically less placeholder-heavy, but the next art pass should still hand-center, simplify, and animate the best silhouettes.
 - Combat frames are part of sprite readability: gold active, red injured, green poison/web, violet mind/hex/sleep/stun, teal ward/recovery, and gray guard.
 - Class identity needs dedicated icons. v0.40 loads `class-icon-atlas-runtime-v0.40.png` into tavern, combat, turn queue, and Armory UI while keeping short text labels as tiny-size backups.
-- The tavern customization screen should eventually feel like choosing a company at a table: portraits, race/class icon tiles, gear preview, stat allocation, and compact party weakness summary.
+- The tavern customization screen should eventually feel like choosing a party at a table: portraits, race/class icon tiles, gear preview, stat allocation, and compact party weakness summary.
 - The first screen after splash should be a tavern, not a blank menu: visible bar, grog, patrons, band silhouettes, warm firelight, and customization panels layered over the scene.
 - Earlier UI reference sheets remain useful: dark panels, readable gold/teal/ember/violet accents, compact tactical controls, and icon-first combat scanning are the visual objective.
 
@@ -119,7 +119,7 @@ This is a living note for keeping the game coherent as it grows. It should captu
 
 ## World Story Scaffold
 
-- Chapter I: The Midgaard Cisterns. The company leaves the gate lamps, tests itself against rats and scouts, gathers supplies, and finds the stair below the Old Road.
+- Chapter I: The Midgaard Cisterns. The party leaves the gate lamps, tests itself against rats and scouts, gathers supplies, and finds the stair below the Old Road.
 - Chapter II: The Green Shrine Road. Broken pilgrim stones and warded ruins point toward the deeper halls.
 - Chapter III: The Glass Warrens. Caster enemies, crystal sight lines, and stronger magic pressure should start shaping party tactics.
 - Chapter IV: The Red Gate. Corrupted armor, war-road pressure, and dangerous enemy leaders should mark the late vertical slice.
@@ -128,7 +128,7 @@ This is a living note for keeping the game coherent as it grows. It should captu
 
 ## Audio
 
-- Music is still mostly absent by design. The tavern is the one current exception: a small low-volume procedural band loop should make the company screen feel alive, while exploration and combat stay sparse.
+- Music is still mostly absent by design. The tavern is the one current exception: a small low-volume procedural band loop should make the party screen feel alive, while exploration and combat stay sparse.
 - Sounds should be short one-shots with simple envelopes.
 - Audio controls should remain simple: mute and coarse volume steps are enough.
 - During beta, SFX needs an obvious test button so testers can distinguish muted/quiet/broken audio from sparse intentional silence.
