@@ -164,6 +164,39 @@ namespace AshenHalls
         }
     }
 
+    internal sealed class ArmoryRowInteractionRelay :
+        MonoBehaviour,
+        IPointerEnterHandler,
+        IPointerExitHandler,
+        ISelectHandler,
+        IDeselectHandler
+    {
+        public Action Enter;
+        public Action Exit;
+        public Action Select;
+        public Action Deselect;
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            Enter?.Invoke();
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            Exit?.Invoke();
+        }
+
+        public void OnSelect(BaseEventData eventData)
+        {
+            Select?.Invoke();
+        }
+
+        public void OnDeselect(BaseEventData eventData)
+        {
+            Deselect?.Invoke();
+        }
+    }
+
     public sealed class ArmoryOverlayScreen : MonoBehaviour
     {
         private const float StandardRowHeight = 94f;
@@ -218,6 +251,8 @@ namespace AshenHalls
         private int visibleRowCount;
         private int visibleFilterCount;
         private int visibleDetailActionCount;
+        private int hoveredRowIndex = -1;
+        private int focusedRowIndex = -1;
 
         private float CurrentRowHeight => lastCompactRows ? CompactRowHeight : StandardRowHeight;
         private float CurrentRowGap => lastCompactRows ? CompactRowGap : StandardRowGap;
@@ -246,6 +281,11 @@ namespace AshenHalls
         public float ScrollOffsetForTest => contentRoot == null ? 0f : contentRoot.anchoredPosition.y;
         public float ContentHeightForTest => contentRoot == null ? 0f : contentRoot.sizeDelta.y;
         public float ViewportHeightForTest => contentViewport == null ? 0f : contentViewport.rect.height;
+        public int CommittedRowIndexForTest => CommittedVisibleRowIndex();
+        public int FocusedRowIndexForTest => IsVisibleRowIndex(focusedRowIndex) ? focusedRowIndex : -1;
+        public int HoveredRowIndexForTest => IsVisibleRowIndex(hoveredRowIndex) ? hoveredRowIndex : -1;
+        public bool FocusedRowIsCommittedForTest =>
+            IsVisibleRowIndex(focusedRowIndex) && rowControls[focusedRowIndex].Selected;
 
         public void Bind(ArmoryOverlayBindings overlayBindings)
         {
@@ -257,8 +297,16 @@ namespace AshenHalls
 
         public void SetVisible(bool visible)
         {
-            if (visible) UiRuntime.EnsureEventSystemReady();
-            UiRuntime.SetCanvasVisible(canvas, visible);
+            EventSystem eventSystem = visible ? UiRuntime.EnsureEventSystemReady() : EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            bool ownedSelection = IsCanvasSelection(selected);
+            bool changed = UiRuntime.SetCanvasVisible(canvas, visible);
+            if (!changed) return;
+
+            ClearTransientRowContext();
+            if (ownedSelection && eventSystem != null) eventSystem.SetSelectedGameObject(null);
+            if (visible) FocusSelectedRow(eventSystem);
         }
 
         public void Refresh()
@@ -315,7 +363,7 @@ namespace AshenHalls
                 RowControls row = rowControls[i];
                 row.Root.gameObject.SetActive(visible);
                 if (!visible) continue;
-                RefreshRow(row, view.Rows[i]);
+                RefreshRow(row, view.Rows[i], i);
             }
 
             LayoutRows();
@@ -330,13 +378,40 @@ namespace AshenHalls
             lastCompactRows = view.CompactRows;
             lastSelectedRowKey = selectedRowKey;
             lastRefreshSucceeded = true;
-            if ((navigationChanged || selectionChanged) && view.ActiveTab == 1) FocusSelectedRow();
+            if (navigationChanged || selectionChanged)
+            {
+                EventSystem eventSystem = EventSystem.current;
+                ClearTransientRowContext();
+                if (eventSystem != null && IsCanvasSelection(eventSystem.currentSelectedGameObject))
+                {
+                    eventSystem.SetSelectedGameObject(null);
+                }
+                if (IsVisible) FocusSelectedRow(eventSystem);
+            }
         }
 
         public void InvokeRowActionForTest(int visibleIndex)
         {
             if (visibleIndex < 0 || visibleIndex >= visibleRowCount || visibleIndex >= rowControls.Count) return;
             bindings?.RunRowAction?.Invoke(rowControls[visibleIndex].Key);
+        }
+
+        public void HoverRowForTest(int visibleIndex)
+        {
+            SetHoveredRow(visibleIndex);
+        }
+
+        public void FocusRowForTest(int visibleIndex)
+        {
+            FocusRow(visibleIndex, EventSystem.current);
+        }
+
+        public void InvokeFocusedRowForTest()
+        {
+            if (!IsVisibleRowIndex(focusedRowIndex)) return;
+            Button submit = RowSubmitControl(rowControls[focusedRowIndex]);
+            if (submit == null || !submit.gameObject.activeInHierarchy || !submit.interactable) return;
+            submit.onClick.Invoke();
         }
 
         public void InvokeDetailActionForTest(int visibleIndex)
@@ -405,25 +480,20 @@ namespace AshenHalls
             }
         }
 
-        private void RefreshRow(RowControls row, ArmoryRowView view)
+        private void RefreshRow(RowControls row, ArmoryRowView view, int index)
         {
             Color accent = ParseColor(view.AccentHex, Hex("58b7a5", 1f));
             Color badgeAccent = ParseColor(view.BadgeAccentHex, accent);
             row.Key = view.Key;
             row.Selected = view.Selected;
-            row.Accent.GetComponent<Image>().color = view.Selected ? Hex("d7a84e", 1f) : accent.WithAlpha(0.68f);
-            row.Root.GetComponent<Image>().color = view.Selected ? Hex("20272b", 0.99f) : Hex("151b20", 0.94f);
-            row.Outline.effectColor = view.Selected ? Hex("d7a84e", 0.96f) : Hex("3c4544", 0.46f);
-            row.Outline.effectDistance = view.Selected ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
+            row.BaseAccent = accent;
             row.Title.text = view.Title ?? "";
             row.Subtitle.text = view.Subtitle ?? "";
-            row.Subtitle.color = view.Selected ? Hex("d7c28e", 1f) : Hex("aeb5ad", 1f);
             row.Detail.text = view.Detail ?? "";
             row.BadgeRoot.gameObject.SetActive(!string.IsNullOrWhiteSpace(view.Badge));
             row.BadgeText.text = view.Badge ?? "";
             row.BadgeText.color = badgeAccent;
             row.BadgeRoot.GetComponent<Outline>().effectColor = badgeAccent.WithAlpha(0.72f);
-            row.IconFrame.GetComponent<Outline>().effectColor = view.Selected ? Hex("d7a84e", 0.82f) : Hex("3c4544", 0.62f);
             SetIcon(row.Icon, row.IconFallback, view.IconTexture, view.IconUv, view.IconLabel);
 
             bool hasAction = !string.IsNullOrWhiteSpace(view.ActionLabel);
@@ -431,6 +501,7 @@ namespace AshenHalls
             row.Action.interactable = view.ActionEnabled;
             row.ActionLabel.text = view.ActionLabel ?? "";
             row.SelectButton.interactable = !hasAction && view.ActionEnabled;
+            RefreshRowInteraction(row, index);
         }
 
         private void RefreshDetail(ArmoryDetailView view)
@@ -477,16 +548,185 @@ namespace AshenHalls
             LayoutDetailActions(view.Actions.Count);
         }
 
-        private void FocusSelectedRow()
+        private void FocusSelectedRow(EventSystem eventSystem = null)
         {
-            if (EventSystem.current == null) return;
+            int index = CommittedVisibleRowIndex();
+            if (index < 0) index = FirstNavigableVisibleRowIndex();
+            if (index >= 0)
+            {
+                FocusRow(index, eventSystem);
+                ScrollRowIntoView(index);
+                return;
+            }
+
+            if (eventSystem == null) eventSystem = EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            if (eventSystem != null && lastTab >= 0 && lastTab < tabButtons.Count)
+            {
+                eventSystem.SetSelectedGameObject(tabButtons[lastTab].gameObject);
+            }
+        }
+
+        private void FocusRow(int index, EventSystem eventSystem)
+        {
+            if (!IsVisibleRowIndex(index)) return;
+            Button submit = RowSubmitControl(rowControls[index]);
+            if (submit == null) return;
+
+            SetFocusedRow(index);
+            if (eventSystem == null) eventSystem = EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            if (eventSystem != null) eventSystem.SetSelectedGameObject(submit.gameObject);
+        }
+
+        private void SetHoveredRow(int index)
+        {
+            if (!IsVisibleRowIndex(index)) return;
+            int previous = hoveredRowIndex;
+            hoveredRowIndex = index;
+            RefreshRowInteraction(previous);
+            RefreshRowInteraction(index);
+        }
+
+        private void ClearHoveredRow(int index)
+        {
+            if (hoveredRowIndex != index) return;
+            hoveredRowIndex = -1;
+            RefreshRowInteraction(index);
+        }
+
+        private void SetFocusedRow(int index)
+        {
+            if (!IsVisibleRowIndex(index)) return;
+            int previousFocus = focusedRowIndex;
+            int previousHover = hoveredRowIndex;
+            focusedRowIndex = index;
+            hoveredRowIndex = -1;
+            RefreshRowInteraction(previousHover);
+            if (previousFocus != previousHover) RefreshRowInteraction(previousFocus);
+            RefreshRowInteraction(index);
+        }
+
+        private void ClearFocusedRow(int index)
+        {
+            if (focusedRowIndex != index) return;
+            focusedRowIndex = -1;
+            RefreshRowInteraction(index);
+        }
+
+        private void ClearTransientRowContext()
+        {
+            int previousHover = hoveredRowIndex;
+            int previousFocus = focusedRowIndex;
+            hoveredRowIndex = -1;
+            focusedRowIndex = -1;
+            RefreshRowInteraction(previousHover);
+            if (previousFocus != previousHover) RefreshRowInteraction(previousFocus);
+        }
+
+        private void RefreshRowInteraction(int index)
+        {
+            if (!IsPresentRowIndex(index)) return;
+            RefreshRowInteraction(rowControls[index], index);
+        }
+
+        private void RefreshRowInteraction(RowControls row, int index)
+        {
+            bool selected = row.Selected;
+            bool focused = focusedRowIndex == index;
+            bool hovered = hoveredRowIndex == index;
+            Color accent = row.BaseAccent;
+
+            row.Accent.GetComponent<Image>().color = selected
+                ? Hex("d7a84e", 1f)
+                : accent.WithAlpha(focused ? 1f : hovered ? 0.84f : 0.68f);
+            row.Root.GetComponent<Image>().color = selected
+                ? Hex("20272b", 0.99f)
+                : focused
+                    ? Hex("19262a", 0.98f)
+                    : hovered ? Hex("182126", 0.96f) : Hex("151b20", 0.94f);
+            row.Outline.effectColor = selected
+                ? Hex("d7a84e", 0.96f)
+                : focused
+                    ? Hex("58b7a5", 0.96f)
+                    : hovered ? Hex("58b7a5", 0.68f) : Hex("3c4544", 0.46f);
+            row.Outline.effectDistance = selected || focused
+                ? new Vector2(2f, -2f)
+                : new Vector2(1f, -1f);
+            row.Subtitle.color = selected
+                ? Hex("d7c28e", 1f)
+                : focused ? Hex("d8d0bf", 1f) : Hex("aeb5ad", 1f);
+            row.IconFrame.GetComponent<Outline>().effectColor = selected
+                ? Hex("d7a84e", 0.82f)
+                : focused
+                    ? Hex("58b7a5", 0.82f)
+                    : hovered ? accent.WithAlpha(0.72f) : Hex("3c4544", 0.62f);
+        }
+
+        private int CommittedVisibleRowIndex()
+        {
+            for (int i = 0; i < visibleRowCount && i < rowControls.Count; i++)
+            {
+                if (rowControls[i].Selected && rowControls[i].Root.gameObject.activeInHierarchy) return i;
+            }
+            return -1;
+        }
+
+        private int FirstNavigableVisibleRowIndex()
+        {
+            int firstVisible = -1;
             for (int i = 0; i < visibleRowCount && i < rowControls.Count; i++)
             {
                 RowControls row = rowControls[i];
-                if (!row.Selected || !row.SelectButton.interactable) continue;
-                EventSystem.current.SetSelectedGameObject(row.SelectButton.gameObject);
-                return;
+                if (!row.Root.gameObject.activeInHierarchy) continue;
+                if (firstVisible < 0) firstVisible = i;
+                Button submit = RowSubmitControl(row);
+                if (submit != null && submit.gameObject.activeInHierarchy && submit.interactable) return i;
             }
+            return firstVisible;
+        }
+
+        private bool IsVisibleRowIndex(int index)
+        {
+            return IsVisible
+                && IsPresentRowIndex(index)
+                && rowControls[index].Root.gameObject.activeInHierarchy;
+        }
+
+        private bool IsPresentRowIndex(int index)
+        {
+            return index >= 0
+                && index < visibleRowCount
+                && index < rowControls.Count
+                && rowControls[index].Root != null
+                && rowControls[index].Root.gameObject.activeSelf;
+        }
+
+        private static Button RowSubmitControl(RowControls row)
+        {
+            if (row == null) return null;
+            return row.Action != null && row.Action.gameObject.activeSelf
+                ? row.Action
+                : row.SelectButton;
+        }
+
+        private void ScrollRowIntoView(int index)
+        {
+            if (!IsVisibleRowIndex(index) || contentViewport == null || contentRoot == null) return;
+            float top = 8f + index * (CurrentRowHeight + CurrentRowGap);
+            float bottom = top + CurrentRowHeight;
+            float offset = contentRoot.anchoredPosition.y;
+            float viewportBottom = offset + contentViewport.rect.height;
+            if (top < offset) SetContentScrollOffset(top);
+            else if (bottom > viewportBottom) SetContentScrollOffset(bottom - contentViewport.rect.height);
+        }
+
+        private bool IsCanvasSelection(GameObject selected)
+        {
+            if (selected == null || canvas == null) return false;
+            Transform selectedTransform = selected.transform;
+            Transform canvasTransform = canvas.transform;
+            return selectedTransform == canvasTransform || selectedTransform.IsChildOf(canvasTransform);
         }
 
         private void Build()
@@ -627,10 +867,12 @@ namespace AshenHalls
             selectButton.targetGraphic = root.GetComponent<Image>();
             ColorBlock selectColors = selectButton.colors;
             selectColors.normalColor = Color.white;
-            selectColors.highlightedColor = Hex("d9e1dc", 1f);
-            selectColors.pressedColor = Hex("aebdb7", 1f);
-            selectColors.selectedColor = selectColors.highlightedColor;
+            selectColors.highlightedColor = Color.white;
+            selectColors.pressedColor = Hex("c2cac5", 1f);
+            selectColors.selectedColor = Color.white;
             selectColors.disabledColor = Color.white;
+            selectColors.colorMultiplier = 1f;
+            selectColors.fadeDuration = 0f;
             selectButton.colors = selectColors;
             selectButton.onClick.AddListener(() => bindings?.RunRowAction?.Invoke(rowControls[index].Key));
             RectTransform accent = AddImage("Accent", root, Hex("58b7a5", 1f)).rectTransform;
@@ -646,6 +888,8 @@ namespace AshenHalls
             Stretch(badgeText.rectTransform, 4f, 2f);
             Button action = AddButton("Action", root, "Inspect", () => bindings?.RunRowAction?.Invoke(rowControls[index].Key));
             Text actionLabel = action.GetComponentInChildren<Text>();
+            AttachRowInteractionRelay(selectButton.gameObject, index);
+            AttachRowInteractionRelay(action.gameObject, index);
             return new RowControls
             {
                 Root = root,
@@ -663,6 +907,15 @@ namespace AshenHalls
                 Action = action,
                 ActionLabel = actionLabel
             };
+        }
+
+        private void AttachRowInteractionRelay(GameObject target, int index)
+        {
+            ArmoryRowInteractionRelay relay = target.AddComponent<ArmoryRowInteractionRelay>();
+            relay.Enter = () => SetHoveredRow(index);
+            relay.Exit = () => ClearHoveredRow(index);
+            relay.Select = () => SetFocusedRow(index);
+            relay.Deselect = () => ClearFocusedRow(index);
         }
 
         private void LayoutRows()
@@ -902,6 +1155,7 @@ namespace AshenHalls
             public RectTransform Root;
             public Button SelectButton;
             public bool Selected;
+            public Color BaseAccent;
             public RectTransform Accent;
             public Outline Outline;
             public RectTransform IconFrame;

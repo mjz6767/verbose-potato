@@ -10,8 +10,8 @@ param(
     [ValidateNotNullOrEmpty()]
     [string]$OutputDirectory,
 
-    [ValidatePattern('^v[0-9]+\.[0-9]+\.[0-9]+$')]
-    [string]$ReleaseVersion = 'v1.89.0',
+    [AllowEmptyString()]
+    [string]$ReleaseVersion = '',
 
     [ValidateNotNullOrEmpty()]
     [string[]]$ExpectedCapture = @(
@@ -24,6 +24,33 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+$releaseVersionSource = 'parameter'
+if ([string]::IsNullOrWhiteSpace($ReleaseVersion)) {
+    $projectRoot = Split-Path -Parent $PSScriptRoot
+    $versionInfoPath = Join-Path $projectRoot 'Assets\Scripts\VersionInfo.cs'
+    if (-not (Test-Path -LiteralPath $versionInfoPath)) {
+        throw "ReleaseVersion was not supplied and VersionInfo.cs was not found at '$versionInfoPath'. Pass -ReleaseVersion vX.Y.Z when running the packaged tool."
+    }
+
+    $versionInfoText = Get-Content -LiteralPath $versionInfoPath -Raw
+    $versionMatch = [regex]::Match(
+        $versionInfoText,
+        'PackageVersion\s*=\s*"(?<version>v[0-9]+\.[0-9]+\.[0-9]+)"')
+    if (-not $versionMatch.Success) {
+        throw "Could not derive PackageVersion from '$versionInfoPath'. Pass -ReleaseVersion vX.Y.Z explicitly."
+    }
+
+    $ReleaseVersion = $versionMatch.Groups['version'].Value
+    $releaseVersionSource = 'Assets/Scripts/VersionInfo.cs'
+}
+else {
+    $ReleaseVersion = $ReleaseVersion.Trim()
+}
+
+if ($ReleaseVersion -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+    throw "ReleaseVersion '$ReleaseVersion' must use vMAJOR.MINOR.PATCH."
+}
 
 $validationFailures = [System.Collections.ArrayList]::new()
 $validationWarnings = [System.Collections.ArrayList]::new()
@@ -537,6 +564,7 @@ $deterministicExitCode = if ($deterministicPassed) { 0 } else { 2 }
 $manifest = [pscustomobject][ordered]@{
     schemaVersion = '1.0'
     releaseVersion = $ReleaseVersion
+    releaseVersionSource = $releaseVersionSource
     generatedBy = 'NewVisualQaPacket.ps1'
     captureSetSha256 = $captureSetSha256
     deterministic = [pscustomobject][ordered]@{

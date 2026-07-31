@@ -7,8 +7,26 @@ namespace AshenHalls
 {
     public sealed partial class AshenHallsGame
     {
+        private sealed class ExploreGuidancePlan
+        {
+            public string TargetName = "";
+            public MapObject TargetObject;
+            public int TargetX;
+            public int TargetY;
+            public IReadOnlyList<Point> Path = Array.Empty<Point>();
+            public string Verb = "";
+            public bool MarkedWaypoint;
+            public bool Immediate;
+            public bool InteriorExit;
+            public bool RouteBlocked;
+
+            public bool HasTarget => !string.IsNullOrWhiteSpace(TargetName);
+        }
+
         private readonly List<Point> activeRouteWaypointPathCache = new List<Point>();
         private string activeRouteWaypointPathCacheKey = "";
+        private ExploreGuidancePlan exploreGuidancePlanCache;
+        private string exploreGuidancePlanCacheKey = "";
 
         private void EnsureExplorationHudScreen()
         {
@@ -496,22 +514,105 @@ namespace AshenHalls
         private string ExploreWaypointLine()
         {
             if (state?.Map?.Objects == null) return "The route is not ready.";
+            ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
+            if (!plan.HasTarget)
+            {
+                return ExplorationGuidanceRules.Route("", "", -1);
+            }
+
+            if (plan.Immediate)
+            {
+                return ExplorationGuidanceRules.UseNow(
+                    plan.TargetName,
+                    plan.Verb,
+                    plan.InteriorExit);
+            }
+
+            string direction = ActiveRouteWaypointFirstDirection(plan.Path);
+            int stepCount = plan.Path == null || plan.Path.Count == 0
+                ? -1
+                : Mathf.Max(0, plan.Path.Count - 1);
+            return ExplorationGuidanceRules.Route(
+                plan.TargetName,
+                direction,
+                stepCount,
+                plan.MarkedWaypoint,
+                plan.RouteBlocked);
+        }
+
+        private ExploreGuidancePlan CurrentExploreGuidancePlan()
+        {
+            string cacheKey = ExploreGuidancePlanStateKey();
+            if (exploreGuidancePlanCache != null
+                && string.Equals(exploreGuidancePlanCacheKey, cacheKey, StringComparison.Ordinal))
+            {
+                return exploreGuidancePlanCache;
+            }
+
+            ExploreGuidancePlan plan = BuildExploreGuidancePlan();
+            exploreGuidancePlanCache = plan;
+            exploreGuidancePlanCacheKey = cacheKey;
+            return plan;
+        }
+
+        private IReadOnlyList<Point> CurrentExploreGuidancePath()
+        {
+            return CurrentExploreGuidancePlan().Path;
+        }
+
+        private string CurrentExploreGuidanceTargetName()
+        {
+            return CurrentExploreGuidancePlan().TargetName;
+        }
+
+        private bool CurrentExploreGuidanceIsMarked()
+        {
+            return CurrentExploreGuidancePlan().MarkedWaypoint;
+        }
+
+        private bool CurrentExploreGuidanceIsBlocked()
+        {
+            return CurrentExploreGuidancePlan().RouteBlocked;
+        }
+
+        private bool CurrentExploreGuidanceIsImmediate()
+        {
+            return CurrentExploreGuidancePlan().Immediate;
+        }
+
+        private bool CurrentExploreGuidanceIsInteriorExit()
+        {
+            return CurrentExploreGuidancePlan().InteriorExit;
+        }
+
+        private Point CurrentExploreGuidanceTargetPoint()
+        {
+            ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
+            return plan.HasTarget ? new Point(plan.TargetX, plan.TargetY) : null;
+        }
+
+        private ExploreGuidancePlan BuildExploreGuidancePlan()
+        {
+            if (state?.Map?.Objects == null) return new ExploreGuidancePlan();
+
             if (TryActiveRouteWaypoint(out WorldMapJunction activeWaypoint))
             {
-                IReadOnlyList<Point> path = ActiveRouteWaypointPath();
-                ExplorationGuidanceRoute markedRoute = path.Count > 0
-                    ? new ExplorationGuidanceRoute(
-                        activeWaypoint.Name,
-                        ActiveRouteWaypointFirstDirection(path),
-                        Mathf.Max(0, path.Count - 1))
-                    : new ExplorationGuidanceRoute(activeWaypoint.Name, "", -1, true);
-                return ExplorationGuidanceRules.PreferredRoute(default, markedRoute);
+                IReadOnlyList<Point> waypointPath = ActiveRouteWaypointPath();
+                return new ExploreGuidancePlan
+                {
+                    TargetName = activeWaypoint.Name,
+                    TargetX = activeWaypoint.X,
+                    TargetY = activeWaypoint.Y,
+                    Path = waypointPath == null ? Array.Empty<Point>() : waypointPath.ToArray(),
+                    MarkedWaypoint = true,
+                    RouteBlocked = waypointPath == null || waypointPath.Count == 0
+                };
             }
 
             ExplorationInteraction interaction = CurrentExploreInteraction();
             if (interaction.HasTarget && IsCurrentMidgaardObjective(interaction.Target))
             {
-                return ExploreImmediateGuidanceLine(interaction);
+                return ImmediateExploreGuidancePlan(interaction);
             }
 
             List<MapObject> objectiveTargets = state.Map.Objects
@@ -519,25 +620,27 @@ namespace AshenHalls
                 .ToList();
             if (TryNearestReachableExploreTarget(objectiveTargets, out MapObject objective, out IReadOnlyList<Point> objectivePath))
             {
-                return ExploreTravelGuidanceLine(objective, objectivePath);
+                return TravelExploreGuidancePlan(objective, objectivePath);
             }
 
             if (ObjectiveIsOutsideCurrentInterior(objectiveTargets)
                 && TryCurrentInteriorExit(out MapObject exit, out IReadOnlyList<Point> exitPath))
             {
-                return ExploreTravelGuidanceLine(exit, exitPath);
+                return TravelExploreGuidancePlan(exit, exitPath);
             }
 
             if (TryCurrentMidgaardObjectiveType(out _))
             {
-                return objectiveTargets.Count == 0
-                    ? ExplorationGuidanceRules.Route("", "", -1)
-                    : ExplorationGuidanceRules.Route(
-                        ObjectName(objectiveTargets[0]),
-                        "",
-                        -1,
-                        false,
-                        true);
+                if (objectiveTargets.Count == 0) return new ExploreGuidancePlan();
+                MapObject blockedObjective = objectiveTargets[0];
+                return new ExploreGuidancePlan
+                {
+                    TargetName = ObjectName(blockedObjective),
+                    TargetObject = blockedObjective,
+                    TargetX = blockedObjective.X,
+                    TargetY = blockedObjective.Y,
+                    RouteBlocked = true
+                };
             }
 
             bool preferRegionalTargets = state.Depth == 1 && !ShouldUseMidgaardWayfinding();
@@ -548,54 +651,144 @@ namespace AshenHalls
                 eligibleTargets = eligibleTargets.Where(o => !IsMidgaardCityCell(o.X, o.Y, state.Map, state.Depth));
             }
 
-            MapObject target = eligibleTargets
-                .Select(o => new { Target = o, Length = ExploreRouteLength(o) })
-                .Where(candidate => candidate.Length >= 0)
+            var route = eligibleTargets
+                .Select(o => new
+                {
+                    Target = o,
+                    Path = (IReadOnlyList<Point>)ExplorationTraversalRules.FindPathToObject(
+                        state.Map,
+                        state.PlayerX,
+                        state.PlayerY,
+                        o)
+                })
+                .Where(candidate => candidate.Path.Count > 0)
                 .OrderBy(candidate => ExploreWaypointPriority(candidate.Target))
-                .ThenBy(candidate => candidate.Length)
+                .ThenBy(candidate => candidate.Path.Count)
                 .ThenBy(candidate => candidate.Target.Y)
                 .ThenBy(candidate => candidate.Target.X)
-                .Select(candidate => candidate.Target)
                 .FirstOrDefault();
-            return target == null
-                ? ExplorationGuidanceRules.Route("", "", -1)
-                : ExploreTravelGuidanceLine(
-                    target,
-                    ExplorationTraversalRules.FindPathToObject(state.Map, state.PlayerX, state.PlayerY, target));
+            return route == null
+                ? new ExploreGuidancePlan()
+                : TravelExploreGuidancePlan(route.Target, route.Path);
         }
 
-        private string ExploreImmediateGuidanceLine(ExplorationInteraction interaction)
+        private ExploreGuidancePlan ImmediateExploreGuidancePlan(ExplorationInteraction interaction)
         {
-            if (!interaction.HasTarget) return ExplorationGuidanceRules.Route("", "", -1);
-            string verb = string.IsNullOrWhiteSpace(interaction.Verb) ? "Use" : interaction.Verb;
-            string target = string.IsNullOrWhiteSpace(interaction.TargetName) ? ObjectName(interaction.Target) : interaction.TargetName;
-            return ExplorationGuidanceRules.UseNow(
-                target,
-                verb,
-                interaction.Target.Type == ObjectType.InteriorDoor);
+            if (!interaction.HasTarget) return new ExploreGuidancePlan();
+            MapObject target = interaction.Target;
+            return new ExploreGuidancePlan
+            {
+                TargetName = string.IsNullOrWhiteSpace(interaction.TargetName)
+                    ? ObjectName(target)
+                    : interaction.TargetName,
+                TargetObject = target,
+                TargetX = target.X,
+                TargetY = target.Y,
+                Verb = string.IsNullOrWhiteSpace(interaction.Verb) ? "Use" : interaction.Verb,
+                Immediate = true,
+                InteriorExit = target.Type == ObjectType.InteriorDoor,
+                Path = new[] { new Point(state.PlayerX, state.PlayerY) }
+            };
         }
 
-        private string ExploreTravelGuidanceLine(MapObject target, IReadOnlyList<Point> path)
+        private ExploreGuidancePlan TravelExploreGuidancePlan(
+            MapObject target,
+            IReadOnlyList<Point> path)
         {
-            if (target == null) return ExplorationGuidanceRules.Route("", "", -1);
-            string targetName = ObjectName(target);
-            if (path == null || path.Count == 0)
+            if (target == null) return new ExploreGuidancePlan();
+            IReadOnlyList<Point> safePath = path == null ? Array.Empty<Point>() : path.ToArray();
+            bool immediate = safePath.Count == 1;
+            return new ExploreGuidancePlan
             {
-                return ExplorationGuidanceRules.Route(targetName, "", -1, false, true);
-            }
-            if (path.Count == 1)
-            {
-                string verb = ExploreContextVerb(target, 0, 0);
-                return ExplorationGuidanceRules.UseNow(
-                    targetName,
-                    verb,
-                    target.Type == ObjectType.InteriorDoor);
-            }
+                TargetName = ObjectName(target),
+                TargetObject = target,
+                TargetX = target.X,
+                TargetY = target.Y,
+                Path = safePath,
+                Verb = immediate ? ExploreContextVerb(target, 0, 0) : "",
+                Immediate = immediate,
+                InteriorExit = target.Type == ObjectType.InteriorDoor,
+                RouteBlocked = safePath.Count == 0
+            };
+        }
 
-            return ExplorationGuidanceRules.Route(
-                targetName,
-                ActiveRouteWaypointFirstDirection(path),
-                path.Count - 1);
+        private string ExploreGuidancePlanStateKey()
+        {
+            if (state == null) return "empty";
+            int hash = 17;
+            hash = unchecked(hash * 31 + state.PlayerX);
+            hash = unchecked(hash * 31 + state.PlayerY);
+            hash = unchecked(hash * 31 + state.Depth);
+            hash = unchecked(hash * 31 + state.Seed);
+            hash = unchecked(hash * 31 + (state.Map == null ? 0 : state.Map.GetHashCode()));
+            hash = unchecked(hash * 31 + ExploreNavigationTopologyFingerprint());
+            hash = unchecked(hash * 31 + (state.Inventory?.Count ?? 0));
+            if (state.Inventory != null)
+            {
+                foreach (InventoryItem item in state.Inventory)
+                {
+                    if (item == null)
+                    {
+                        hash = unchecked(hash * 31);
+                        continue;
+                    }
+                    hash = unchecked(hash * 31 + (item.Slot ?? "").GetHashCode());
+                    hash = unchecked(hash * 31 + (item.Trait ?? "").GetHashCode());
+                    hash = unchecked(hash * 31 + (item.Material ?? "").GetHashCode());
+                }
+            }
+            hash = unchecked(hash * 31 + (state.ActiveStory ?? "").GetHashCode());
+            hash = unchecked(hash * 31 + (state.ActiveRouteWaypointKey ?? "").GetHashCode());
+            hash = unchecked(hash * 31 + (activeContentSet ?? "").GetHashCode());
+            if (state.StoryFlags != null)
+            {
+                foreach (string flag in state.StoryFlags)
+                {
+                    hash = unchecked(hash * 31 + (flag ?? "").GetHashCode());
+                }
+            }
+            if (state.DiscoveredZones != null)
+            {
+                foreach (string zone in state.DiscoveredZones)
+                {
+                    hash = unchecked(hash * 31 + (zone ?? "").GetHashCode());
+                }
+            }
+            return "guidance=" + hash;
+        }
+
+        private int ExploreNavigationTopologyFingerprint()
+        {
+            MapData map = state?.Map;
+            if (map == null) return 0;
+            int hash = 17;
+            hash = unchecked(hash * 31 + map.Width);
+            hash = unchecked(hash * 31 + map.Height);
+            if (map.Tiles != null)
+            {
+                hash = unchecked(hash * 31 + map.Tiles.Count);
+                for (int i = 0; i < map.Tiles.Count; i++)
+                {
+                    hash = unchecked(hash * 31 + map.Tiles[i]);
+                }
+            }
+            if (map.Objects != null)
+            {
+                hash = unchecked(hash * 31 + map.Objects.Count);
+                foreach (MapObject obj in map.Objects)
+                {
+                    if (obj == null)
+                    {
+                        hash = unchecked(hash * 31);
+                        continue;
+                    }
+                    hash = unchecked(hash * 31 + obj.X);
+                    hash = unchecked(hash * 31 + obj.Y);
+                    hash = unchecked(hash * 31 + (int)obj.Type);
+                    hash = unchecked(hash * 31 + (obj.Id ?? "").GetHashCode());
+                }
+            }
+            return hash;
         }
 
         private bool TryNearestReachableExploreTarget(
@@ -693,7 +886,7 @@ namespace AshenHalls
             }
 
             string cacheKey = $"{state.Map.GetHashCode()}:{state.Seed}:{state.Depth}:{state.Map.Width}:{state.Map.Height}:{state.Map.StartX}:{state.Map.StartY}:"
-                + $"{state.PlayerX}:{state.PlayerY}:{state.Map.Objects?.Count ?? 0}:{state.ActiveRouteWaypointKey}";
+                + $"{state.PlayerX}:{state.PlayerY}:{ExploreNavigationTopologyFingerprint()}:{state.ActiveRouteWaypointKey}";
             if (string.Equals(activeRouteWaypointPathCacheKey, cacheKey, StringComparison.Ordinal))
             {
                 return activeRouteWaypointPathCache;
@@ -715,6 +908,8 @@ namespace AshenHalls
         {
             activeRouteWaypointPathCacheKey = "";
             activeRouteWaypointPathCache.Clear();
+            exploreGuidancePlanCacheKey = "";
+            exploreGuidancePlanCache = null;
         }
 
         private static string ActiveRouteWaypointFirstDirection(IReadOnlyList<Point> path)
@@ -754,27 +949,23 @@ namespace AshenHalls
             return 4;
         }
 
-        private int ExploreRouteLength(MapObject target)
-        {
-            if (target == null || state?.Map == null) return -1;
-            IReadOnlyList<Point> path = ExplorationTraversalRules.FindPathToObject(state.Map, state.PlayerX, state.PlayerY, target);
-            return path.Count == 0 ? -1 : Mathf.Max(0, path.Count - 1);
-        }
-
         private string ExploreNearbySummaryLine()
         {
             if (state?.Map?.Objects == null) return "No marked sites nearby.";
             ExplorationInteraction interaction = CurrentExploreInteraction();
+            ExploreGuidancePlan guidance = CurrentExploreGuidancePlan();
             string[] nearby = state.Map.Objects
                 .Where(o => o != null
                     && ExplorationInteractionRules.IsUseObject(o)
+                    && (!interaction.HasTarget || !ReferenceEquals(interaction.Target, o))
+                    && (guidance.TargetObject == null || !ReferenceEquals(guidance.TargetObject, o))
                     && Distance(o.X, o.Y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius)
-                .OrderBy(o => interaction.HasTarget && ReferenceEquals(interaction.Target, o) ? 0 : IsCurrentMidgaardObjective(o) ? 1 : 2)
+                .OrderBy(o => IsCurrentMidgaardObjective(o) ? 0 : 1)
                 .ThenBy(o => Distance(o.X, o.Y, state.PlayerX, state.PlayerY))
                 .Take(4)
                 .Select(o => $"{ObjectName(o)} {ExploreDirectionTo(o)}")
                 .ToArray();
-            return nearby.Length == 0 ? "No marked sites within sight." : string.Join("\n", nearby);
+            return nearby.Length == 0 ? "No other marked sites within sight." : string.Join("\n", nearby);
         }
 
         private bool IsExploreGuidanceTarget(MapObject obj)

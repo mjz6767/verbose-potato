@@ -66,7 +66,11 @@ namespace AshenHalls
         WeaponDisplay,
         EnchantmentTable,
         ProvisionShelf,
-        MerchantCounter
+        MerchantCounter = 62,
+        DinerCook = 63,
+        Provisioner = 64,
+        DockWorker = 65,
+        Scholar = 66
     }
 
     public enum UnitSide { Party, Enemy }

@@ -148,6 +148,16 @@ namespace AshenHalls
             }
         }
 
+        public static string MovementDestinationLabel(int directThreats, int pressureThreats)
+        {
+            int direct = Mathf.Max(0, directThreats);
+            int pressure = Mathf.Max(0, pressureThreats);
+            if (direct > 0 && pressure > 0) return $"threat: {direct} can hit + {pressure} can reach";
+            if (direct > 0) return direct == 1 ? "threat: 1 can hit" : $"threat: {direct} can hit";
+            if (pressure > 0) return pressure == 1 ? "threat: 1 can reach" : $"threat: {pressure} can reach";
+            return "safe";
+        }
+
         public static string BlockLabel(AttackForecastBlockReason reason)
         {
             switch (reason)

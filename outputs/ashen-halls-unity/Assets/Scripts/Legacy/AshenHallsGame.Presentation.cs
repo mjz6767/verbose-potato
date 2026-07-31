@@ -567,13 +567,17 @@ namespace AshenHalls
         private bool IsSignatureSpellIconAtlas()
         {
             return signatureSpellIconAtlas != null
-                && Mathf.Abs(signatureSpellIconAtlas.width - signatureSpellIconAtlas.height) < 8
-                && signatureSpellIconAtlas.width >= 1024;
+                && signatureSpellIconAtlas.width == CombatIconCatalog.SignatureSpellAtlasColumns * 256
+                && signatureSpellIconAtlas.height == CombatIconCatalog.SignatureSpellAtlasRows * 256;
         }
 
         private Rect SignatureSpellIconAtlasCell(int index)
         {
-            return AtlasCell(signatureSpellIconAtlas, index, 5, 5);
+            return AtlasCell(
+                signatureSpellIconAtlas,
+                index,
+                CombatIconCatalog.SignatureSpellAtlasColumns,
+                CombatIconCatalog.SignatureSpellAtlasRows);
         }
 
         private bool TryDrawSignatureSpellIconAtlasIcon(Rect rect, int index, Color tint)
@@ -889,6 +893,33 @@ namespace AshenHalls
             int mapX,
             int mapY)
         {
+            if (!TryResolveWorldMapMaterialAtlasSample(
+                material,
+                mapX,
+                mapY,
+                HasStaticExploreObjectFootprint(mapX, mapY),
+                out Rect source,
+                out bool flipX,
+                out bool flipY))
+            {
+                return false;
+            }
+
+            return DrawTextureRegionTintVariant(worldMapMaterialAtlas, rect, source, tint, flipX, flipY);
+        }
+
+        private bool TryResolveWorldMapMaterialAtlasSample(
+            ExplorationMaterial material,
+            int mapX,
+            int mapY,
+            bool quietCell,
+            out Rect source,
+            out bool flipX,
+            out bool flipY)
+        {
+            source = Rect.zero;
+            flipX = false;
+            flipY = false;
             if (!IsWorldMapMaterialAtlas()) return false;
             int semanticIndex = ExplorationArtRules.MaterialAtlasIndex(material);
             if (semanticIndex < 0) return false;
@@ -897,14 +928,92 @@ namespace AshenHalls
             int index = columns >= 8
                 ? ExplorationArtRules.MaterialAtlasVariantIndex(
                     material,
-                    ExplorationArtRules.MaterialAtlasVariant(material, variation))
+                    ExplorationArtRules.MaterialAtlasVariant(material, quietCell ? 0 : variation))
                 : semanticIndex;
-            Rect source = InsetAtlasSource(
+            source = InsetAtlasSource(
                 AtlasCell(worldMapMaterialAtlas, index, columns, columns),
                 0.75f);
-            bool flipX = (variation & 1) != 0;
-            bool flipY = (variation & 2) != 0;
-            return DrawTextureRegionTintVariant(worldMapMaterialAtlas, rect, source, tint, flipX, flipY);
+            flipX = (variation & 1) != 0;
+            flipY = (variation & 2) != 0;
+            return true;
+        }
+
+        private bool TryResolveWorldMapMaterialAtlasEdgeSample(
+            ExplorationMaterial material,
+            int mapX,
+            int mapY,
+            out Rect source,
+            out bool flipX,
+            out bool flipY)
+        {
+            return TryResolveWorldMapMaterialAtlasSample(
+                material,
+                mapX,
+                mapY,
+                HasStaticExploreObjectFootprint(mapX, mapY),
+                out source,
+                out flipX,
+                out flipY);
+        }
+
+        private bool TryDrawWorldMapMaterialAtlasEdgeBand(
+            Rect destination,
+            Rect resolvedSource,
+            bool sourceFlipX,
+            bool sourceFlipY,
+            int neighborDx,
+            int neighborDy,
+            int band,
+            float bandFraction,
+            float alpha)
+        {
+            Rect source = resolvedSource;
+            bandFraction = Mathf.Clamp(bandFraction, 0.01f, 0.20f);
+            band = Mathf.Max(0, band);
+            if (neighborDx != 0)
+            {
+                float logicalStart = ExplorationArtRules.MaterialBlendSourceStart(
+                    neighborDx < 0,
+                    band,
+                    bandFraction,
+                    sourceFlipX);
+                source = new Rect(
+                    source.x + source.width * logicalStart,
+                    source.y,
+                    source.width * bandFraction,
+                    source.height);
+            }
+            else if (neighborDy != 0)
+            {
+                float logicalStart = ExplorationArtRules.MaterialBlendSourceStart(
+                    neighborDy < 0,
+                    band,
+                    bandFraction,
+                    sourceFlipY);
+                source = new Rect(
+                    source.x,
+                    source.y + source.height * logicalStart,
+                    source.width,
+                    source.height * bandFraction);
+            }
+            else
+            {
+                return false;
+            }
+
+            bool drawFlipX = neighborDx != 0
+                ? ExplorationArtRules.MaterialBlendDrawFlip(sourceFlipX)
+                : sourceFlipX;
+            bool drawFlipY = neighborDy != 0
+                ? ExplorationArtRules.MaterialBlendDrawFlip(sourceFlipY)
+                : sourceFlipY;
+            return DrawTextureRegionTintVariant(
+                worldMapMaterialAtlas,
+                destination,
+                source,
+                Color.white.WithAlpha(Mathf.Clamp01(alpha)),
+                drawFlipX,
+                drawFlipY);
         }
 
         private bool TryDrawWorldMapExplorationTileAtlasIcon(Rect rect, int index, Color tint, bool flipX, bool flipY)
@@ -1148,7 +1257,7 @@ namespace AshenHalls
 
         private bool TryDrawMidgaardGateAtlasIcon(Rect rect, int index, Color tint)
         {
-            return TryDrawMidgaardGateAtlasIcon(rect, index, tint, new WorldMapArtSpec(1.08f, new Vector2(0.5f, 1f), Vector2.zero, true));
+            return TryDrawMidgaardGateAtlasIcon(rect, index, tint, new WorldMapArtSpec(1.02f, new Vector2(0.5f, 1f), Vector2.zero, true));
         }
 
         private bool TryDrawMidgaardGateAtlasIcon(Rect rect, int index, Color tint, WorldMapArtSpec spec)
@@ -1220,12 +1329,14 @@ namespace AshenHalls
 
         private bool IsMidgaardNpcAtlas()
         {
-            return midgaardNpcAtlas != null && midgaardNpcAtlas.width >= 768 && midgaardNpcAtlas.height >= 600;
+            return midgaardNpcAtlas != null
+                && midgaardNpcAtlas.width == NpcPortraitCatalog.Columns * 256
+                && midgaardNpcAtlas.height == NpcPortraitCatalog.Rows * 256;
         }
 
         private Rect MidgaardNpcAtlasCell(int index)
         {
-            return AtlasCell(midgaardNpcAtlas, index, 5, 4);
+            return AtlasCell(midgaardNpcAtlas, index, NpcPortraitCatalog.Columns, NpcPortraitCatalog.Rows);
         }
 
         private bool TryDrawMidgaardNpcAtlasIcon(Rect rect, int index, Color tint)
@@ -1236,7 +1347,17 @@ namespace AshenHalls
         private bool TryDrawMidgaardNpcAtlasIcon(Rect rect, int index, Color tint, WorldMapArtSpec spec)
         {
             if (!IsMidgaardNpcAtlas() || index < 0) return false;
-            return TryDrawTrimmedExplorationAtlasCell(midgaardNpcAtlas, rect, index, 5, 4, tint, "Midgaard NPC", 0.10f, 0.92f, spec);
+            return TryDrawTrimmedExplorationAtlasCell(
+                midgaardNpcAtlas,
+                rect,
+                index,
+                NpcPortraitCatalog.Columns,
+                NpcPortraitCatalog.Rows,
+                tint,
+                "Midgaard NPC",
+                0.10f,
+                0.92f,
+                spec);
         }
 
         private bool IsMidgaardInteriorPropAtlas()
@@ -1477,24 +1598,40 @@ namespace AshenHalls
 
         private bool IsAbilityIconAtlas()
         {
-            return abilityIconAtlas != null && abilityIconAtlas.width >= 1024 && abilityIconAtlas.height >= 512;
+            return abilityIconAtlas != null
+                && CombatIconCatalog.IsAbilityAtlasDimensions(
+                    abilityIconAtlas.width,
+                    abilityIconAtlas.height);
         }
 
         private Rect AbilityIconAtlasCell(int index)
         {
-            return AtlasCell(abilityIconAtlas, index, CombatIconCatalog.AbilityAtlasColumns, AbilityIconAtlasRows());
+            if (index < 0
+                || index >= CombatIconCatalog.AbilityAtlasColumns * CombatIconCatalog.ExpandedAbilityAtlasRows)
+            {
+                return Rect.zero;
+            }
+            return AtlasCell(
+                abilityIconAtlas,
+                index,
+                CombatIconCatalog.AbilityAtlasColumns,
+                CombatIconCatalog.ExpandedAbilityAtlasRows);
         }
 
         private bool TryDrawAbilityIconAtlasIcon(Rect rect, int index, Color tint)
         {
-            if (!IsAbilityIconAtlas() || index < 0) return false;
+            if (!IsAbilityIconAtlas()
+                || index < 0
+                || index >= CombatIconCatalog.AbilityAtlasColumns * CombatIconCatalog.ExpandedAbilityAtlasRows)
+            {
+                return false;
+            }
             return DrawTextureRegionTint(abilityIconAtlas, rect, AbilityIconAtlasCell(index), tint);
         }
 
         private int AbilityIconAtlasRows()
         {
-            if (abilityIconAtlas == null) return 2;
-            return CombatIconCatalog.AbilityAtlasRows(abilityIconAtlas.width, abilityIconAtlas.height);
+            return CombatIconCatalog.ExpandedAbilityAtlasRows;
         }
 
         private bool IsRangerAbilityEffectAtlas()
@@ -1531,12 +1668,21 @@ namespace AshenHalls
 
         private bool IsCharacterCombatAtlas()
         {
-            return characterCombatAtlas != null && Mathf.Abs(characterCombatAtlas.width - characterCombatAtlas.height) < 8 && characterCombatAtlas.width >= 768;
+            if (characterCombatAtlas == null
+                || characterCombatAtlas.width < PlayerSpriteCatalog.Columns * 128
+                || characterCombatAtlas.height < PlayerSpriteCatalog.Rows * 128)
+            {
+                return false;
+            }
+
+            float cellWidth = characterCombatAtlas.width / (float)PlayerSpriteCatalog.Columns;
+            float cellHeight = characterCombatAtlas.height / (float)PlayerSpriteCatalog.Rows;
+            return Mathf.Abs(cellWidth - cellHeight) < 2f;
         }
 
         private Rect CharacterCombatAtlasCell(int index)
         {
-            return AtlasCell(characterCombatAtlas, index, 4, 4);
+            return AtlasCell(characterCombatAtlas, index, PlayerSpriteCatalog.Columns, PlayerSpriteCatalog.Rows);
         }
 
         private bool TryDrawCharacterCombatAtlasIcon(Rect rect, int index, Color tint)

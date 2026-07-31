@@ -53,6 +53,10 @@ namespace AshenHalls
                 case ObjectType.Diner:
                 case ObjectType.Tavern:
                 case ObjectType.TavernKeeper:
+                case ObjectType.DinerCook:
+                case ObjectType.Provisioner:
+                case ObjectType.DockWorker:
+                case ObjectType.Scholar:
                 case ObjectType.CityCourier:
                 case ObjectType.StableHand:
                 case ObjectType.WeaponVendor:
@@ -139,11 +143,14 @@ namespace AshenHalls
                     case ObjectType.CityWall:
                         return "ambgate";
                     case ObjectType.Sewer:
+                    case ObjectType.DockWorker:
                         return "ambdrip";
                     case ObjectType.Market:
                     case ObjectType.MarketClerk:
                     case ObjectType.Provisions:
+                    case ObjectType.Provisioner:
                     case ObjectType.Diner:
+                    case ObjectType.DinerCook:
                     case ObjectType.Tavern:
                     case ObjectType.TavernKeeper:
                     case ObjectType.CityCourier:

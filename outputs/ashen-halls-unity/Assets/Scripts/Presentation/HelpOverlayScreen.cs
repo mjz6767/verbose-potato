@@ -102,7 +102,7 @@ namespace AshenHalls
                     {
                         "WASD / arrows: move one tile. Click adjacent tiles to walk.",
                         "Space / E: use the highlighted nearby target: talk, loot, enter, recall, or descend.",
-                        "Q: Location Details. Tab: toggle close/wide map.",
+                        "Q: Location Details. Tab: toggle Local/Region Map.",
                         "I: Party and inventory. J: Journal. C: spell reference.",
                         "P or Esc: Menu for save, load, settings, return, or new game.",
                         "Midgaard starts the sewer contract: speak with the king, gather supplies, then clear the rat den.",

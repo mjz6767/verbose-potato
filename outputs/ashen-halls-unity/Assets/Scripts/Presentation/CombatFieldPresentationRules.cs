@@ -89,6 +89,16 @@ namespace AshenHalls
             return false;
         }
 
+        public static string DurationBadgeLabel(int rounds)
+        {
+            return rounds > 0 ? rounds + "R" : "";
+        }
+
+        public static bool DurationBadgeUrgent(int rounds)
+        {
+            return rounds == 1;
+        }
+
         public static CombatFieldPresentationProfile For(string kind)
         {
             switch (Normalize(kind))

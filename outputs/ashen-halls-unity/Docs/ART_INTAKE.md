@@ -3,6 +3,35 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Source-Control Promotion
+
+`Docs/ArtReferences/` is both the runtime-art input folder and a local
+authoring/history workspace. A release checkpoint commits the exact approved
+and package-selected PNGs, not every raw generation, prompt, validation,
+contact-sheet, or superseded runtime file in that folder. Preserve those
+authoring artifacts in the local/source archive; add promoted PNGs by exact
+filename and never use a broad repository add for an art pass.
+Promoted runtime PNGs live directly in `Docs/ArtReferences/`; nested
+authoring folders are never copied into a player package.
+
+`Tools/BuildAndPackageWindows.ps1` treats `Docs/PACKAGED_ART.txt` as the
+authoritative packaged PNG inventory. Its default release path requires
+committed release inputs, requires every package-selected PNG to be tracked,
+compares staged and source hashes, and records all packaged PNG hashes in the
+release-integrity manifest. `-AllowDirtySource` is only for an explicitly
+requested development package and must not be used for a distributable. The
+two build/smoke skip switches also require that development override, so a
+cleanly labeled final package cannot silently reuse an older staged player or
+bypass the clean-extraction boot. Development output uses a separate `-dev`
+zip and development evidence folder; it cannot replace the canonical release
+artifact or evidence.
+
+A developer may locally exclude the retained ArtReferences authoring/history
+pile through `.git/info/exclude` to keep routine status readable. That local
+convenience never promotes an asset: the package tracking gate remains the
+authority and will reject any newly selected runtime PNG that was not
+explicitly committed.
+
 ## Runtime Naming
 
 Use these prefixes when creating replacement or expansion atlases:
@@ -58,6 +87,7 @@ Use these prefixes when creating replacement or expansion atlases:
 - `ability-icon-atlas-runtime-v0.xx.png`
 - `signature-spell-icon-atlas-runtime-v0.xx.png`
 - `lightning-spell-icon-atlas-runtime-vX.XX.X.png`
+- `power-book-state-icon-atlas-runtime-vX.XX.X.png`
 - `ranger-ability-effect-atlas-runtime-v0.xx.png`
 - `spellbook-combat-ui-atlas-runtime-v0.xx.png`
 - `combat-spellbook-ui-atlas-runtime-v0.xx.png`
@@ -73,22 +103,27 @@ Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-r
 
 ## Atlas Layouts
 
-- Creature, enemy sprite, character combat, spell animation, combat terrain, kobold route, kobold boss, kobold cave prop, and kobold combat terrain atlases are currently read as 4 by 4 grids.
+- Creature, enemy sprite, spell animation, combat terrain, kobold route, kobold boss, kobold cave prop, and kobold combat terrain atlases are currently read as 4 by 4 grids.
+- `character-combat-atlas-runtime-v1.93.0.png` is the expanded transparent 5 by 7 player grid described below.
 - `ability-icon-atlas-runtime-*` is read as a 4 by 2 grid for older sheets, a 4 by 3 grid for v0.73+ sheets, or a 4 by 5 grid for the expanded v1.31+ warrior/rogue/ranger sheet.
-- `signature-spell-icon-atlas-runtime-*` is read as a transparent 5 by 5 grid and provides unique art for the 25 signature formulas listed below.
-- `lightning-spell-icon-atlas-runtime-*` is an exact transparent 4 by 2 grid. The v1.79 contract maps Arc Spark, Chain Lightning, Arcane Tempest, Thunder Step, and Thunderclap to cells 0, 1, 3, 4, and 5; Storm Cage, Storm Ward, and Thunderhead remain reserved in cells 2, 6, and 7.
+- `signature-spell-icon-atlas-runtime-*` is read as a transparent 7 by 7 grid and provides unique art for every formula in `FormulaCatalog.All`.
+- `lightning-spell-icon-atlas-runtime-*` is an exact transparent 4 by 2 grid. The v1.97 contract maps Arc Spark, Chain Lightning, Arcane Tempest, Thunder Step, and Thunderclap to cells 0, 1, 3, 4, and 5; Storm Cage, Storm Ward, and Thunderhead remain reserved in cells 2, 6, and 7 with distinct forward-compatible symbols.
+- `power-book-state-icon-atlas-runtime-*` is an exact transparent 4 by 3, 256 by 192 grid of 64-pixel UI symbols. It reinforces book interaction and availability states but never replaces the adjacent text.
 - `magic-ui-atlas-runtime-*` is read as a transparent 4 by 4 grid for shared spell schools, utility effects, and formula fallbacks.
 - `ranger-ability-effect-atlas-runtime-*` is read as a 4 by 4 grid for ranger/missile battlefield effects.
 - Most UI, item, world object, world-map, story-card, and icon atlases are currently read as 5 by 4 grids. The expanded world-map material and blocked-terrain contracts below are explicit exceptions.
 - `roaming-threat-atlas-runtime-*` is a transparent 5 by 4 grid. The v1.62.0 contract reserves cells 0-19 for rat, ratfolk, kobold, demon, drow, undead, elite, boss-escort, and encounter-marker silhouettes; keep each figure centered with a common foot baseline and clear gutters.
 - `world-map-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by exploration/map command buttons.
 - `tavern-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by the tavern/title menu buttons.
-- Current active world/Midgaard/combat terrain sheets: `world-map-material-atlas-runtime-v1.68.0.png`, `world-map-exploration-tile-atlas-runtime-v1.68.0.png`, `world-map-overlay-atlas-runtime-v0.80.png`, `world-map-progression-overlay-atlas-runtime-v0.63.png`, `combat-terrain-atlas-runtime-v1.5.8.png`, `midgaard-tile-atlas-runtime-v1.6.3.png`, `midgaard-city-prop-atlas-runtime-v1.29.0.png`, `midgaard-gate-atlas-runtime-v1.64.0.png`, and `midgaard-wall-atlas-runtime-v1.30.0.png`.
-- `world-map-material-atlas-runtime-v1.68.0.png` is the active exact 8 by 8, 2048 by 2048 passable-ground contract. Each semantic material owns four adjacent 256-pixel variants.
+- Current active world/Midgaard/combat terrain sheets: `world-map-material-atlas-runtime-v1.92.0.png`, `world-map-exploration-tile-atlas-runtime-v1.68.0.png`, `world-map-overlay-atlas-runtime-v0.80.png`, `world-map-progression-overlay-atlas-runtime-v0.63.png`, `combat-terrain-atlas-runtime-v1.5.8.png`, `midgaard-tile-atlas-runtime-v1.6.3.png`, `midgaard-city-prop-atlas-runtime-v1.29.0.png`, `midgaard-gate-atlas-runtime-v1.93.0.png`, and `midgaard-wall-atlas-runtime-v1.91.0.png`.
+- `midgaard-gate-atlas-runtime-v1.93.0.png` is the active exact 5 by 4, 1280 by 1024 gate contract. Cells 0 and 1 preserve the approved front-view sealed/open variants; cells 6 and 7 are a compact wall-aligned West/East pair with two low bastions above and below an open horizontal passage. Runtime maps sealed north and south to cell 0, West to cell 6, and East to cell 7. Side-gate cells must keep local bounds near 62 by 224 pixels, at least 16 pixels of gutter, a fully transparent local-y 104-151 road band, an exact horizontal visible-RGB/alpha mirror, and the authored town-side mass bias that distinguishes West from East. Do not replace them with a front-elevation facade or horizontal wall wings.
+- `midgaard-wall-atlas-runtime-v1.91.0.png` is the active exact 5 by 4, 1280 by 1024 wall contract. Cells 0-3 are north, south, west, and east straight runs; cells 4-7 are the four inward-facing corners; cells 8 and 9 are horizontal and vertical structural accents. Continuous foundations and gate joins are renderer-owned: horizontal foundations are 0.56 cells in Local Map and 0.52 in Region Map, while vertical foundations are 0.36 / 0.34 to fit the narrower authored masonry. Open east/west gates inherit the narrow vertical join only above and below the travel lane; their underlying straight-wall tile is suppressed and no sill may cross the road. Replacement art must preserve these connection directions and avoid opaque square-cell backgrounds.
+- `world-map-token-sprite-atlas-runtime-v1.91.0.png` is the active exact 5 by 4, 1280 by 1024 token contract. Cell 0 is the compact near-portrait group marker; cells 1-8 remain the shield, bow, knife, mender, ember, hex, ward, and pike role markers. Keep the group silhouette centered, vertically readable, and inside the shared safe gutter rather than returning to a wide horizontal lineup.
+- `world-map-material-atlas-runtime-v1.92.0.png` is the active exact 8 by 8, 2048 by 2048 passable-ground contract. Each semantic material owns four adjacent 256-pixel variants. Cells 0-15 contain the coherent v1.92 civic families and cells 28-31 contain the matched packed-dirt approach bank; cells 16-27 and 32-63 remain pixel-identical to v1.68.
 - `world-map-exploration-tile-atlas-runtime-v1.68.0.png` is the active exact 5 by 8, 1280 by 2048 blocked/fallback terrain contract. Cells 0-19 preserve the repaired v1.24.2 bank and cells 20-39 add blocked-terrain variants. This is a deliberate two-bank expansion, not the older irregular 5 by 7 experiment.
 - `unique-item-atlas-runtime-*` is read as a 5 by 4 grid and is checked before generic equipment art.
 - `combat-ui-panel-atlas-runtime-*` is read as a 5 by 4 grid and used as subtle panel chrome/backdrop art.
-- Current active tavern/combat/UI/ability/effect sheets include `tavern-ui-atlas-runtime-v1.5.9.png`, `world-map-ui-atlas-runtime-v1.6.0.png`, `combat-ui-panel-atlas-runtime-v0.72.png`, `ability-icon-atlas-runtime-v1.31.0.png`, `signature-spell-icon-atlas-runtime-v1.31.0.png`, `lightning-spell-icon-atlas-runtime-v1.79.0.png`, `magic-ui-atlas-runtime-v1.31.0.png`, `spellbook-combat-ui-atlas-runtime-v1.24.0.png`, `combat-spell-effects-atlas-runtime-v0.73.png`, `spell-animation-atlas-runtime-v1.49.0.png`, `combat-command-icon-atlas-runtime-v0.73.png`, `combat-hud-ui-atlas-runtime-v0.73.png`, `combat-spell-float-atlas-runtime-v0.73.png`, and `ranger-ability-effect-atlas-runtime-v0.73.png`.
+- Current active tavern/combat/UI/ability/effect sheets include `tavern-ui-atlas-runtime-v1.5.9.png`, `world-map-ui-atlas-runtime-v1.6.0.png`, `combat-ui-panel-atlas-runtime-v0.72.png`, `ability-icon-atlas-runtime-v1.97.0.png`, `signature-spell-icon-atlas-runtime-v1.97.0.png`, `lightning-spell-icon-atlas-runtime-v1.97.0.png`, `power-book-state-icon-atlas-runtime-v1.97.0.png`, `magic-ui-atlas-runtime-v1.31.0.png`, `spellbook-combat-ui-atlas-runtime-v1.24.0.png`, `combat-spell-effects-atlas-runtime-v0.73.png`, `spell-animation-atlas-runtime-v1.49.0.png`, `combat-command-icon-atlas-runtime-v0.73.png`, `combat-hud-ui-atlas-runtime-v0.73.png`, `combat-spell-float-atlas-runtime-v0.73.png`, and `ranger-ability-effect-atlas-runtime-v0.73.png`.
 - Midgaard town, tile, NPC, and sewer atlases are read as 5 by 4 grids.
 - `npc-portrait-atlas-runtime-*` is read as a transparent 5 by 4 grid.
 - `route-scaffold-atlas-runtime-*`, `faction-banner-atlas-runtime-*`, and `service-scaffold-atlas-runtime-*` are read as 5 by 4 grids.
@@ -124,30 +159,27 @@ Pure sewer rats and other non-humanoid creature shapes should use the creature s
 
 ## Character Combat Atlas Cells
 
-`character-combat-atlas-runtime-vX.XX.X.png` is the main combat-board and roster portrait sheet for player characters. It is read as a transparent 4 by 4 grid and should preserve centered silhouettes, consistent foot anchors, and at least 18 pixels of gutter.
+`character-combat-atlas-runtime-vX.XX.X.png` is the main combat-board and
+roster portrait sheet for player characters. Preserve centered silhouettes,
+consistent foot anchors, square cells, and at least 18 pixels of gutter.
 
-Current runtime sheet: `character-combat-atlas-runtime-v1.77.0.png`, an exact 1024 by 1024 RGBA sheet with 256-pixel cells.
+Current runtime sheet: `character-combat-atlas-runtime-v1.93.0.png`, an exact
+1280 by 1792 RGBA sheet with 256-pixel cells. It is a 5-column by 7-row
+matrix:
 
-- Cell 0: Human warrior.
-- Cell 1: Stoneborn warrior.
-- Cell 2: Human rogue.
-- Cell 3: Dusk elf rogue.
-- Cell 4: Human ranger.
-- Cell 5: Dusk elf ranger.
-- Cell 6: Fenkin priest.
-- Cell 7: Human priest.
-- Cell 8: Human/default warlock.
-- Cell 9: Dusk elf warlock / alternate hex caster.
-- Cell 10: Human wizard.
-- Cell 11: Ashling wizard.
-- Cell 12: Human paladin.
-- Cell 13: Stoneborn paladin.
-- Cell 14: Fenkin rogue.
-- Cell 15: Dusk elf warrior.
+- Race columns, left to right: human, dusk elf, stoneborn, fenkin, ashling.
+- Class rows, top to bottom: warrior, rogue, ranger, priest, warlock,
+  wizard/mage, paladin.
+- The cell index is `class row * 5 + race column`.
+
+Every selectable race/class combination now has a distinct sprite. The 16
+approved v1.77 cells are copied pixel-for-pixel into their new semantic
+positions; the remaining 19 cells are new v1.93 art. `mage` intentionally
+uses the wizard row.
 
 ## Ability Icon Atlas Cells
 
-`ability-icon-atlas-runtime-v0.xx.png` is the Combat Skills icon sheet. Older sheets retain their legacy layouts; the current runtime sheet is an exact transparent 4 by 5 grid. Current runtime sheet: `ability-icon-atlas-runtime-v1.31.0.png`, with editable source `source-ability-icon-atlas-v1.31.0.aseprite`.
+`ability-icon-atlas-runtime-v0.xx.png` is the Combat Skills icon sheet. Older sheets retain their legacy layouts; the current runtime sheet is an exact transparent 4 by 5 grid. Current runtime sheet: `ability-icon-atlas-runtime-v1.97.0.png`, derived from the preserved class-specific chroma-key and alpha sources named `source-ability-warrior-icon-atlas-v1.97.0-*`, `source-ability-rogue-icon-atlas-v1.97.0-*`, and `source-ability-ranger-icon-atlas-v1.97.0-*`.
 
 - Cell 0: Charge.
 - Cell 1: Execute.
@@ -172,33 +204,40 @@ Current runtime sheet: `character-combat-atlas-runtime-v1.77.0.png`, an exact 10
 
 ## Signature Spell Icon Atlas Cells
 
-`signature-spell-icon-atlas-runtime-v0.xx.png` is an exact transparent 5 by 5 grid used before generic school art. Current runtime sheet: `signature-spell-icon-atlas-runtime-v1.31.0.png`, with editable source `source-signature-spell-icon-atlas-v1.31.0.aseprite`.
+`signature-spell-icon-atlas-runtime-v0.xx.png` is an exact transparent 7 by 7 grid used before generic school art. Current runtime sheet: `signature-spell-icon-atlas-runtime-v1.97.0.png`. It preserves the stronger approved v1.96 cells and replaces the weaker cells from `source-power-book-refresh-icon-atlas-v1.97.0-*`, with deterministic trim, centering, and 22-pixel padding.
 
-- Cell 0: Tree Cover (GBH).
-- Cell 1: Hallowed Circle (HLC).
-- Cell 2: Heal (OIC).
-- Cell 3: Ward (TBQ).
-- Cell 4: Sun Brand (SBN).
-- Cell 5: Fire Spark (FIF).
-- Cell 6: Fireball (FBL).
-- Cell 7: Meteor Shower (MTR).
-- Cell 8: Chain Lightning (CLT).
-- Cell 9: Frost Bind (FRB).
-- Cell 10: Web Snare (WBK).
-- Cell 11: Poison Gas (WBP).
-- Cell 12: Sleep (RMS).
-- Cell 13: Drain Life (INH).
-- Cell 14: Death Burst (RLM).
-- Cell 15: Summon Imp (IBD).
-- Cell 16: Summon Lesser Demon (IBF).
-- Cell 17: Summon Greater Demon (IBG).
-- Cell 18: Pact Brand (PBR).
-- Cell 19: Doom Circle (DMC).
-- Cell 20: Cold Lance (RCL).
-- Cell 21: Flame Jet (RDF).
-- Cell 22: Shock Burst (RSG).
-- Cell 23: Circle Heal (LBC).
-- Cell 24: Regenerate (TNC).
+The row-major contract follows `FormulaCatalog.All` exactly:
+
+- Cells 0-6: Tree Cover (GBH), Stone Block (GBX), Hallowed Circle (HLC), Heal (OIC), Cleanse (NVC), Rift Seal (SRF), Ward (TBQ).
+- Cells 7-13: Sanctuary Ward (SGW), Regenerate (TNC), Circle Heal (LBC), Circle Ward (TBG), Light Bolt (OBL), Hold Sign (LNH), Still Water (SWR).
+- Cells 14-20: Sun Brand (SBN), Fire Spark (FIF), Fire Floor (WBF), Burn Cover (BTF), Ice Slick (WBI), Cold Lance (RCL), Flame Jet (RDF).
+- Cells 21-27: Arc Spark (RIG), Fireball (FBL), Fireburst (RLF), Thunderclap (RSG), Iceburst (RBI), Meteor Shower (MTR), Chain Lightning (CLT).
+- Cells 28-34: Frost Bind (FRB), Thunder Step (VST), Arcane Tempest (AST), Web Snare (WBK), Poison Gas (WBP), Doom Circle (DMC), Sleep (RMS).
+- Cells 35-41: Weaken (RNH), Night Veil (NVL), Bind (RKW), Poison Burst (RPX), Drain Life (INH), Mind Break (RMB), Death Burst (RLM).
+- Cells 42-48: Wither (WTR), Dream Smoke (DSM), Summon Imp (IBD), Summon Lesser Demon (IBF), Pact Brand (PBR), Summon Greater Demon (IBG), Abyssal Ascendance (DFA).
+
+Every formula receives one dedicated cell. Generic `spellbook-combat-ui` and `magic-ui` art remains a defensive fallback only.
+
+The v1.97 refresh replaces cells 5, 7, 9-11, 13, 17, 27, 31, 33-36, 39, 41-48. All other formula cells retain their v1.96 subjects while being normalized into the same safe-gutter contract.
+
+## Power-Book State Icon Atlas Cells
+
+`power-book-state-icon-atlas-runtime-v1.97.0.png` is the exact transparent 4 by 3 state sheet shared by Spellbook and Skillbook. It is derived from `source-power-book-state-icon-atlas-v1.97.0-*`; every 64-pixel cell has an 8-pixel clear gutter. The deterministic code-generated fallback uses the same semantic order.
+
+- Cell 0: Selection.
+- Cell 1: Targeting.
+- Cell 2: Locked.
+- Cell 3: Low Resource.
+- Cell 4: No Target.
+- Cell 5: Action Used.
+- Cell 6: Disabled.
+- Cell 7: Blocked.
+- Cell 8: Cost.
+- Cell 9: Reach.
+- Cell 10: Target.
+- Cell 11: Preview.
+
+Preview is transient and noncommitting; Selection identifies the retained browse choice; Targeting identifies the armed power. Availability symbols remain paired with their exact text reason so color or icon recognition is never the only communication channel.
 
 ## Magic UI Atlas Cells
 
@@ -494,7 +533,9 @@ v0.67 adds `glyph` and `demonrift` non-blocking terrain kinds. They currently wa
 
 ## World Map Material Atlas Cells
 
-`world-map-material-atlas-runtime-v1.68.0.png` is the authoritative passable world-map ground sheet. It is an opaque 8 by 8 grid with 256-pixel cells. Every four-cell run contains the approved v1.28 foundation followed by generated variants A, B, and C. Runtime selection is coordinate-deterministic, favors the approved foundation, and never changes save data.
+`world-map-material-atlas-runtime-v1.92.0.png` is the authoritative passable world-map ground sheet. It is an opaque 8 by 8 grid with 256-pixel cells. Cells 0-15 replace the former checkerboard-prone civic bank with four coherent, edge-to-edge families whose scale and value remain closely matched within each four-cell run. Cells 28-31 similarly replace the high-variance packed-dirt bank with four matched orientations for roads and gate approaches. Cells 16-27 and 32-63 remain pixel-identical to `world-map-material-atlas-runtime-v1.68.0.png`.
+
+Runtime selection gives all four variants in a material family equal coordinate-deterministic distribution and never changes save data. A tile beneath a static exploration-object footprint uses its family's quiet variant so ground noise does not compete with buildings, gates, props, or characters.
 
 - Cells 0-3: City paving.
 - Cells 4-7: Market cobbles.
@@ -503,7 +544,7 @@ v0.67 adds `glyph` and `demonrift` non-blocking terrain kinds. They currently wa
 - Cells 16-19: Natural ground / forest loam. Forest excludes the bright open-ground cell 16.
 - Cells 20-23: Moss.
 - Cells 24-27: Ruined paving / ruined wall material.
-- Cells 28-31: Packed dirt / bridge-deck fallback.
+- Cells 28-31: Matched packed dirt / bridge-deck fallback orientations. These share exact luminance and edge statistics so road approaches do not become tan square quilts.
 - Cells 32-35: Fen mud.
 - Cells 36-39: Shallow / deep water material.
 - Cells 40-43: Quarry stone / cliff material.
@@ -514,6 +555,8 @@ v0.67 adds `glyph` and `demonrift` non-blocking terrain kinds. They currently wa
 - Cells 60-63: Sewer brick.
 
 Keep these cells quiet and edge-to-edge. Large trees, buildings, gates, shrines, stairs, bridges, and other focal objects belong in the transparent prop/landmark sheets or the blocked/fallback terrain sheet.
+
+The renderer softens a boundary between different recognized passable material families with three progressively lighter inward bands. It does not feather out of bounds or across blocked cells, gates, or threshold-role cells, preserving the structural seams and traversal silhouettes owned by those features.
 
 ## World Map Tile Atlas Cells
 
@@ -618,7 +661,7 @@ These v0.54+ atlases are optional but preferred for the depth-1 Midgaard town sc
 - Cell 18: Notice board ground.
 - Cell 19: Rat warning muddy stone.
 
-`midgaard-npc-atlas-runtime-v1.81.0.png` is the approved exact 5 by 4 world-sprite contract:
+`midgaard-npc-atlas-runtime-v1.93.0.png` is the approved exact 5 by 4 world-sprite contract:
 - Cell 0: Watchman Rusk / west guard.
 - Cell 1: Watchwoman Ilyra / east guard.
 - Cell 2: King Halvard.
@@ -629,20 +672,30 @@ These v0.54+ atlases are optional but preferred for the depth-1 Midgaard town sc
 - Cell 7: Tessa / weaponsmith.
 - Cell 8: Gate Captain Brann.
 - Cell 9: Maud / enchanter.
-- Cells 10-11: Reserved city contacts.
+- Cell 10: Kate / diner cook.
+- Cell 11: Lute / provisioner.
 - Cell 12: City Courier Tovan.
 - Cell 13: Wounded Traveler Edda.
-- Cell 14: Reserved city contact.
+- Cell 14: Dock worker.
 - Cell 15: Stable Hand Pell.
 - Cell 16: Royal Herald Vann.
 - Cell 17: Novice Healer Sera.
 - Cell 18: Old Road Scout Yara.
-- Cell 19: Reserved city contact.
+- Cell 19: Scholar.
 
-All 20 cells must remain valid and gutter-safe. Active code mappings use cells 0-9, 12-13, and 15-18.
+All 20 cells must remain valid and gutter-safe. Current placed-world mappings
+use every cell. Cells 10, 11, 14, and 19 are live through explicit
+`DinerCook`, `Provisioner`, `DockWorker`, and `Scholar` world-object types.
+They place Kate beside the diner, Lute beside provisions, the dock worker in
+the south-quarter works, and the scholar near the keep. Runtime acceptance
+requires the exact 1280 by 1024 contract and valid square-cell geometry before
+any of those mappings may render.
 
 v1.81.0 replaces the four stylistically mismatched named-NPC inserts in cells
 7, 9, 13, and 18. The other sixteen cells remain pixel-identical to v1.64.1.
+v1.93.0 replaces only the four former reserved contact cells with Kate, Lute,
+the dock worker, and the scholar. The other sixteen cells remain
+pixel-identical to v1.81.0.
 
 `midgaard-sewer-atlas-runtime-v0.xx.png`:
 - Cell 0: Sewer grate entrance.

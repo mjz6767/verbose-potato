@@ -53,6 +53,8 @@ namespace AshenHalls
             if (name.Contains("maud")) return NpcId.Maud;
             if (name.Contains("yara")) return NpcId.Yara;
             if (name.Contains("lute") || name.Contains("provision")) return NpcId.Lute;
+            if (name.Contains("dock worker") || name.Contains("dockworker")) return NpcId.DockWorker;
+            if (name.Contains("scholar")) return NpcId.Scholar;
 
             switch (focus)
             {
@@ -84,6 +86,10 @@ namespace AshenHalls
                     return NpcId.Maud;
                 case ObjectType.OldRoadScout: return NpcId.Yara;
                 case ObjectType.Provisions: return NpcId.Lute;
+                case ObjectType.DinerCook: return NpcId.Kate;
+                case ObjectType.Provisioner: return NpcId.Lute;
+                case ObjectType.DockWorker: return NpcId.DockWorker;
+                case ObjectType.Scholar: return NpcId.Scholar;
                 default: return NpcId.Unknown;
             }
         }
@@ -97,21 +103,54 @@ namespace AshenHalls
         {
             switch (type)
             {
-                case ObjectType.TownGuard: return eastSideGuard ? 1 : 0;
-                case ObjectType.KingHalvard: return 2;
-                case ObjectType.MarketClerk: return 3;
-                case ObjectType.TempleHealer: return 4;
-                case ObjectType.TavernKeeper: return 5;
-                case ObjectType.ArmorerNpc: return 6;
-                case ObjectType.WeaponMerchantNpc: return 7;
-                case ObjectType.GateCaptain: return 8;
-                case ObjectType.EnchanterNpc: return 9;
-                case ObjectType.CityCourier: return 12;
-                case ObjectType.WoundedTraveler: return 13;
-                case ObjectType.StableHand: return 15;
-                case ObjectType.RoyalHerald: return 16;
-                case ObjectType.NoviceHealer: return 17;
-                case ObjectType.OldRoadScout: return 18;
+                case ObjectType.TownGuard:
+                    return WorldSpriteIndex(eastSideGuard ? NpcId.WatchwomanIlyra : NpcId.WatchmanRusk);
+                case ObjectType.KingHalvard: return WorldSpriteIndex(NpcId.KingHalvard);
+                case ObjectType.MarketClerk: return WorldSpriteIndex(NpcId.Nessa);
+                case ObjectType.TempleHealer: return WorldSpriteIndex(NpcId.Mira);
+                case ObjectType.TavernKeeper: return WorldSpriteIndex(NpcId.Orren);
+                case ObjectType.ArmorerNpc: return WorldSpriteIndex(NpcId.Borin);
+                case ObjectType.WeaponMerchantNpc: return WorldSpriteIndex(NpcId.Tessa);
+                case ObjectType.GateCaptain: return WorldSpriteIndex(NpcId.CaptainBrann);
+                case ObjectType.EnchanterNpc: return WorldSpriteIndex(NpcId.Maud);
+                case ObjectType.CityCourier: return WorldSpriteIndex(NpcId.Tovan);
+                case ObjectType.WoundedTraveler: return WorldSpriteIndex(NpcId.Edda);
+                case ObjectType.StableHand: return WorldSpriteIndex(NpcId.Pell);
+                case ObjectType.RoyalHerald: return WorldSpriteIndex(NpcId.HeraldVann);
+                case ObjectType.NoviceHealer: return WorldSpriteIndex(NpcId.Sera);
+                case ObjectType.OldRoadScout: return WorldSpriteIndex(NpcId.Yara);
+                case ObjectType.DinerCook: return WorldSpriteIndex(NpcId.Kate);
+                case ObjectType.Provisioner: return WorldSpriteIndex(NpcId.Lute);
+                case ObjectType.DockWorker: return WorldSpriteIndex(NpcId.DockWorker);
+                case ObjectType.Scholar: return WorldSpriteIndex(NpcId.Scholar);
+                default: return -1;
+            }
+        }
+
+        public static int WorldSpriteIndex(NpcId id)
+        {
+            switch (id)
+            {
+                case NpcId.WatchmanRusk: return 0;
+                case NpcId.WatchwomanIlyra: return 1;
+                case NpcId.KingHalvard: return 2;
+                case NpcId.Nessa: return 3;
+                case NpcId.Mira: return 4;
+                case NpcId.Orren: return 5;
+                case NpcId.Borin: return 6;
+                case NpcId.Tessa: return 7;
+                case NpcId.CaptainBrann: return 8;
+                case NpcId.Maud: return 9;
+                case NpcId.Kate: return 10;
+                case NpcId.Lute: return 11;
+                case NpcId.Tovan: return 12;
+                case NpcId.Edda: return 13;
+                case NpcId.DockWorker: return 14;
+                case NpcId.Pell: return 15;
+                case NpcId.HeraldVann: return 16;
+                case NpcId.Sera: return 17;
+                case NpcId.Yara: return 18;
+                case NpcId.Scholar: return 19;
                 default: return -1;
             }
         }

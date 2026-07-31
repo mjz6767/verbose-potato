@@ -12,23 +12,92 @@ Ash & Brimstone uses AI vision only as an optional development-time second revie
 - checks required scenario/resolution coverage;
 - calculates SHA-256 hashes that bind a review to exact evidence;
 - optionally corroborates captures against the game's deterministic visual-smoke log summaries;
+- derives `releaseVersion` from source `VersionInfo.cs` or requires an explicit packaged-build version, then records that value and its source;
 - writes `visual-qa-packet.json` and `visual-qa-packet.md`; and
 - exits `0` on deterministic success, `2` on validation failure, or `1` on an operational error.
 
 The script does not call a model, use the network, or make a model opinion part of its exit status.
 
-## v1.89 Default Matrix
+## v1.98 One-Intent Power-Book Matrix
+
+The v1.98 packet lives under `QA/v1.98.0-one-intent` and binds direct packaged-player captures to the typed state emitted by `-ashen-book-state`. The required set covers committed Selection, passive Preview, and armed Targeting in both books, then distributes Locked, Low Resource, No Target, Action Used, Disabled, and Blocked across the Spellbook and Skillbook at 1280x720 and 1920x1080.
+
+Each capture log must contain the staged tuple (`book`, requested state, filter, committed card, detail card, typed state, availability text, context icon, preview card, and targeting flag), complete with `complete=True` and `failure=None`. A re-entrant `Attempting to select ... while already selecting` warning is a packet blocker even when the PNG otherwise validates.
+
+Use an explicit `-ReleaseVersion 'v1.98.0'` when building the packet from the packaged player. This prevents a copied tool or old package from silently labeling evidence with a stale default.
+
+The final twelve-capture packet passes with zero failures and zero warnings. It records `releaseVersion=v1.98.0`, `releaseVersionSource=parameter`, and capture-set SHA-256 `ff8e2a3d83ffddbf2bb935e54a5206d9c14415cf3068f3a069e8e7bfe72822a9`. The exact matrix, staged tuples, local representative visual review, and remaining physical-input checks are retained in `QA/v1.98.0-one-intent/README.md`.
+
+## v1.92 Accepted Matrix and Evidence
 
 The default expected matrix covers the Golden Thread exploration guidance at both supported visual-QA resolutions:
 
-- `explore-compact-1280x720.png`
-- `explore-compact-1920x1080.png`
-- `explore-wide-1280x720.png`
-- `explore-wide-1920x1080.png`
+- `explore-compact-1280x720.png` (Local Map)
+- `explore-compact-1920x1080.png` (Local Map)
+- `explore-wide-1280x720.png` (Region Map)
+- `explore-wide-1920x1080.png` (Region Map)
 
 Use the exact rendered dimensions in each basename. The script rejects a renamed image whose PNG dimensions do not agree.
+Add `-ashen-details-smoke` to an exploration capture command for a deterministic Details-open companion image; the capture log records the actual map scale, Details state, guidance target, and guidance text.
 
-For a later release or a focused feature, pass an explicit `-ExpectedCapture` array using `scenario@WIDTHxHEIGHT`. Unexpected valid captures are retained as supplemental evidence and reported as warnings.
+For the v1.92 art signoff, also stage `-ashen-gate-smoke east|west|north|south` close-ups and retain them as `gate-east-*`, `gate-west-*`, `gate-north-*`, and `gate-south-*`. Review the full perimeter and compact party marker in at least one 1920x1080 Region Map capture. Pass an explicit `-ExpectedCapture` array using `scenario@WIDTHxHEIGHT` when these are required packet members; unexpected valid captures are retained as supplemental evidence and reported as warnings.
+
+The v1.92 material-art review must confirm that city, market, temple, and keep ground read as four coherent families rather than a one-cell quilt; the packed-dirt east/west approaches no longer alternate between light and dark square paintings; static object footprints stay visually quiet; and three-band material feathering does not cross blocked terrain, gates, or thresholds. Compare both map scales for hard district carpets, grid seams, moire, and loss of wall or route hierarchy.
+
+The v1.92 rule smoke, runtime boot smoke, and Windows build pass. The four canonical Local/Region captures, all four gate close-ups, and the 1280x720 Details-open companion report `complete=True` with `failure=None`. The deterministic packet passes with capture-set SHA-256 `2669b531e4ba7660c37b66cc31ce0672aab5cb9c427182fcfea6019d30e51d65`; the assisted inspection record is `QA/v1.92.0/manual-visual-signoff.md`.
+
+## v1.93 Focused Gate and Wall Evidence
+
+The four canonical Local/Region captures remain the default matrix. The
+v1.93 gate/wall packet adds:
+
+- `gate-west-1280x720.png`
+- `gate-east-1280x720.png`
+- `gate-north-1280x720.png`
+- `gate-south-1280x720.png`
+- `gate-west-3200x1800.png`
+- `gate-east-3200x1800.png`
+
+All ten capture/log pairs report exact requested, rendered, filename, and PNG
+dimensions with `complete=True`, `failure=None`, nonzero samples, and non-black
+variation. The packet passes with capture-set SHA-256
+`6f9c4d6fdaf9aa91caedc742afb889cc2c736de798eb0bc25b57a95751c58cf7`.
+An advisory OpenAI Codex / GPT-5 inspection reports no visible blocker: West
+presents wilderness left and town right, East presents town left and wilderness
+right, both place low bastions above and below a clear horizontal road,
+vertical wall backing hugs the authored masonry, and no facade, broad rail,
+hidden straight-wall cell, or cross-road sill remains. Confidence is high for
+the captured states; uncertainty remains around physical traversal, collision,
+clean extraction, and other GPU/display configurations. The pending human
+disposition is recorded in
+`QA/v1.93.0/codex-assisted-visual-review.md`; the packet and comparison sheet
+are retained beside it.
+
+## v1.93 NPC Contact and Combat-Book Continuation Evidence
+
+The focused continuation set is retained in
+`QA/v1.93.0-contact-book-continuation`. It contains 14 packaged-player PNG/log
+pairs: four adjacent NPC contact views, four opened contact dialogues, and six
+Spellbook/Skillbook states spanning 1280x720 and 1920x1080.
+
+All 14 logs report exact requested/rendered/PNG dimensions,
+`complete=True`, `failure=None`, and non-black sampling variation. The contact
+stager additionally records the exact object and atlas cell:
+
+- Kate: `DinerCook`, cell 10, portrait 12, four choices;
+- Lute: `Provisioner`, cell 11, portrait 17, four choices;
+- Dock Worker: `DockWorker`, cell 14, portrait 18, no topic choices; and
+- Midgaard Scholar: `Scholar`, cell 19, portrait 19, no topic choices.
+
+The six book captures cover future, armed-targeting, and action-used states in
+both the Spellbook and Skillbook. Advisory local Codex inspection found no
+visible blocker: selection, filter counts, state labels, target counts, CTA
+copy, formula/casting detail, and controller footer remained coherent and
+legible at both resolutions. No images or logs were transmitted externally.
+The complete evidence inventory, observations, atlas SHA-256 matches, and
+remaining human checks are recorded in
+`QA/v1.93.0-contact-book-continuation/README.md`. This remains pending human
+release disposition.
 
 ## Example
 
@@ -37,7 +106,7 @@ Run this from the Unity project root after creating deterministic in-player capt
 ```powershell
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 
-$qaOutput = '..\..\QA\v1.89.0'
+$qaOutput = '..\..\QA\v1.92.0'
 $screenshots = @(
     "$qaOutput\explore-compact-1280x720.png",
     "$qaOutput\explore-compact-1920x1080.png",
@@ -45,17 +114,17 @@ $screenshots = @(
     "$qaOutput\explore-wide-1920x1080.png"
 )
 $captureLogs = @(
-    "$qaOutput\capture-explore-compact-1280x720.log",
-    "$qaOutput\capture-explore-compact-1920x1080.log",
-    "$qaOutput\capture-explore-wide-1280x720.log",
-    "$qaOutput\capture-explore-wide-1920x1080.log"
+    "$qaOutput\explore-compact-1280x720.log",
+    "$qaOutput\explore-compact-1920x1080.log",
+    "$qaOutput\explore-wide-1280x720.log",
+    "$qaOutput\explore-wide-1920x1080.log"
 )
 
 & '.\Tools\NewVisualQaPacket.ps1' `
     -ScreenshotPath $screenshots `
     -CaptureLogPath $captureLogs `
-    -OutputDirectory $qaOutput `
-    -ReleaseVersion 'v1.89.0'
+    -OutputDirectory "$qaOutput\visual-qa-packet" `
+    -ReleaseVersion 'v1.92.0'
 ```
 
 The process-scope execution-policy change is temporary. Do not weaken the user- or machine-level policy.

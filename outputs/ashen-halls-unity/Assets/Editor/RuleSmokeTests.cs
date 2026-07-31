@@ -58,7 +58,9 @@ namespace AshenHalls.Editor
             ExplorationSurfaceRulesPreserveAuthoredMapStructure();
             CombatHudScreenLayoutFitsSupportedResolutions();
             CombatAbilityModalLayoutFitsSupportedResolutions();
+            CombatAbilityModalNavigationRepeatsPredictably();
             CombatAbilityModalCardsExposeArtIdentity();
+            CombatTargetHighlightsRequireAnArmedPower();
             AdvancedCasterProgressionPowersAreExplicit();
             LightningPowerRulesDefineTacticalStormLadder();
             CombatIconCatalogDefinesUniqueActiveSkillArt();
@@ -100,6 +102,7 @@ namespace AshenHalls.Editor
             MidgaardInteriorPortalsRemainPaired();
             RoamingThreatsTelegraphAndPathAroundTerrain();
             CombatCommandPresentationExposesSixCommands();
+            CombatInputRoutingKeepsHudFocusAuthoritative();
             CombatTargetingCancellationIsExplicitAndSafe();
             EnemyTacticsProfilesAreRoleAware();
             CombatThreatForecastsAreSharedAndReadable();
@@ -309,24 +312,50 @@ namespace AshenHalls.Editor
             AssertEqual(abilityIds.Count, iconIndices.Distinct().Count(), "active martial ability icons are unique");
             AssertEqual(19, CombatIconCatalog.AbilityIndex("smokebomb"), "expanded smoke bomb icon cell");
             AssertEqual(5, CombatIconCatalog.AbilityAtlasRows(1024, 1280), "expanded ability atlas rows");
-            AssertEqual(3, CombatIconCatalog.AbilityAtlasRows(1448, 1086), "legacy 4x3 ability atlas rows");
-            AssertEqual(2, CombatIconCatalog.AbilityAtlasRows(1024, 512), "legacy 4x2 ability atlas rows");
+            AssertEqual(true, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1280), "exact expanded ability atlas dimensions are accepted");
+            AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1448, 1086), "legacy irregular ability atlas dimensions are rejected");
+            AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 512), "legacy 4x2 ability atlas dimensions are rejected");
+
+            AssertEqual(4, CombatIconCatalog.BookStateAtlasColumns, "power-book state atlas columns");
+            AssertEqual(3, CombatIconCatalog.BookStateAtlasRows, "power-book state atlas rows");
+            AssertEqual(64, CombatIconCatalog.BookStateAtlasCellSize, "power-book state atlas cell size");
+            AssertEqual(256, CombatIconCatalog.BookStateAtlasWidth, "power-book state atlas width");
+            AssertEqual(192, CombatIconCatalog.BookStateAtlasHeight, "power-book state atlas height");
+            AssertEqual(
+                "0,1,2,3,4,5,6,7,8,9,10,11",
+                string.Join(",", new[]
+                {
+                    CombatIconCatalog.BookStateSelectionIndex,
+                    CombatIconCatalog.BookStateTargetingIndex,
+                    CombatIconCatalog.BookStateLockedIndex,
+                    CombatIconCatalog.BookStateLowResourceIndex,
+                    CombatIconCatalog.BookStateNoTargetIndex,
+                    CombatIconCatalog.BookStateActionUsedIndex,
+                    CombatIconCatalog.BookStateDisabledIndex,
+                    CombatIconCatalog.BookStateBlockedIndex,
+                    CombatIconCatalog.BookStateCostIndex,
+                    CombatIconCatalog.BookStateReachIndex,
+                    CombatIconCatalog.BookStateTargetIndex,
+                    CombatIconCatalog.BookStatePreviewIndex
+                }),
+                "power-book state semantics preserve the authored row-major contract");
+            AssertEqual(true, CombatIconCatalog.IsBookStateAtlasDimensions(256, 192), "exact power-book state atlas dimensions are accepted");
+            AssertEqual(false, CombatIconCatalog.IsBookStateAtlasDimensions(192, 256), "transposed power-book state atlas dimensions are rejected");
         }
 
         private static void SignatureSpellIconCatalogDefinesUniqueFormulaArt()
         {
-            string[] codes =
-            {
-                "GBH", "HLC", "OIC", "TBQ", "SBN",
-                "FIF", "FBL", "MTR", "CLT", "FRB",
-                "WBK", "WBP", "RMS", "INH", "RLM",
-                "IBD", "IBF", "IBG", "PBR", "DMC",
-                "RCL", "RDF", "RSG", "LBC", "TNC"
-            };
+            string[] codes = FormulaCatalog.All.Select(formula => formula.Code).ToArray();
             List<int> indices = codes.Select(CombatIconCatalog.SignatureSpellIndex).ToList();
-            AssertEqual(true, codes.All(code => FormulaCatalog.All.Any(formula => formula.Code == code)), "signature art codes resolve to formulas");
-            AssertEqual(true, indices.All(index => index >= 0), "every signature spell has icon art");
-            AssertEqual(25, indices.Distinct().Count(), "signature spell icons are unique");
+            AssertEqual(49, codes.Length, "full prototype formula count");
+            AssertEqual(true, indices.All(index => index >= 0), "every spellbook formula has dedicated icon art");
+            AssertEqual(codes.Length, indices.Distinct().Count(), "every spellbook formula icon is unique");
+            AssertEqual(
+                string.Join(",", Enumerable.Range(0, codes.Length)),
+                string.Join(",", indices),
+                "formula catalog order is the stable row-major spell icon contract");
+            AssertEqual(7, CombatIconCatalog.SignatureSpellAtlasColumns, "expanded spell icon atlas columns");
+            AssertEqual(7, CombatIconCatalog.SignatureSpellAtlasRows, "expanded spell icon atlas rows");
             AssertEqual(-1, CombatIconCatalog.SignatureSpellIndex("UNKNOWN"), "unknown spell has no signature cell");
             string[] lightningCodes = { "RIG", "CLT", "RSG", "AST", "VST" };
             int[] lightningIndices = lightningCodes
@@ -343,6 +372,7 @@ namespace AshenHalls.Editor
             Texture2D ability = null;
             Texture2D spell = null;
             Texture2D lightning = null;
+            Texture2D powerBookState = null;
             Texture2D magic = null;
             Texture2D effects = null;
             Texture2D epicEffects = null;
@@ -351,23 +381,60 @@ namespace AshenHalls.Editor
                 ability = LoadApprovedRuntimeAtlas(RuntimeArtManifest.AbilityIconAtlas);
                 spell = LoadApprovedRuntimeAtlas(RuntimeArtManifest.SignatureSpellIconAtlas);
                 lightning = LoadApprovedRuntimeAtlas(RuntimeArtManifest.LightningSpellIconAtlas);
+                powerBookState = LoadApprovedRuntimeAtlas(RuntimeArtManifest.PowerBookStateIconAtlas);
                 magic = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MagicUiAtlas);
                 effects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.SpellAnimationAtlas);
                 epicEffects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.EpicSpellEffectsAtlas);
                 AssertEqual(new Vector2Int(1024, 1280), new Vector2Int(ability.width, ability.height), "approved ability atlas dimensions");
-                AssertEqual(new Vector2Int(1280, 1280), new Vector2Int(spell.width, spell.height), "approved signature spell atlas dimensions");
+                AssertEqual(new Vector2Int(1792, 1792), new Vector2Int(spell.width, spell.height), "approved signature spell atlas dimensions");
                 AssertEqual(new Vector2Int(1024, 512), new Vector2Int(lightning.width, lightning.height), "approved lightning spell atlas dimensions");
+                AssertEqual(
+                    new Vector2Int(CombatIconCatalog.BookStateAtlasWidth, CombatIconCatalog.BookStateAtlasHeight),
+                    new Vector2Int(powerBookState.width, powerBookState.height),
+                    "approved power-book state atlas dimensions");
                 AssertEqual(new Vector2Int(1024, 1024), new Vector2Int(magic.width, magic.height), "approved magic UI atlas dimensions");
                 AssertEqual(new Vector2Int(1276, 1276), new Vector2Int(effects.width, effects.height), "approved spell animation atlas dimensions");
                 AssertEqual(new Vector2Int(1254, 1254), new Vector2Int(epicEffects.width, epicEffects.height), "approved epic spell effects atlas dimensions");
                 AssertAtlasCellCoverage(ability, 4, 5, Enumerable.Range(0, 20), 0.10f, 0.90f, "approved ability icon");
-                AssertAtlasCellCoverage(spell, 5, 5, Enumerable.Range(0, 25), 0.10f, 0.90f, "approved signature spell icon");
+                AssertAtlasCellCoverage(
+                    spell,
+                    CombatIconCatalog.SignatureSpellAtlasColumns,
+                    CombatIconCatalog.SignatureSpellAtlasRows,
+                    Enumerable.Range(0, FormulaCatalog.All.Length),
+                    0.10f,
+                    0.90f,
+                    "approved signature spell icon");
                 AssertAtlasCellCoverage(lightning, LightningSpellIconCatalog.AtlasColumns, LightningSpellIconCatalog.AtlasRows, Enumerable.Range(0, 8), 0.10f, 0.90f, "approved lightning spell icon");
+                AssertAtlasCellCoverage(
+                    powerBookState,
+                    CombatIconCatalog.BookStateAtlasColumns,
+                    CombatIconCatalog.BookStateAtlasRows,
+                    Enumerable.Range(0, CombatIconCatalog.BookStateAtlasColumns * CombatIconCatalog.BookStateAtlasRows),
+                    0.10f,
+                    0.90f,
+                    "approved power-book state icon");
                 AssertAtlasCellCoverage(magic, 4, 4, Enumerable.Range(0, 16), 0.10f, 0.90f, "approved magic UI icon");
                 AssertAtlasCellCoverage(effects, 4, 4, Enumerable.Range(0, 16), 0.02f, 0.92f, "approved spell animation");
                 AssertAtlasCellSafeGutter(ability, 4, 5, Enumerable.Range(0, 20), 12, 8, 32, "approved ability icon");
-                AssertAtlasCellSafeGutter(spell, 5, 5, Enumerable.Range(0, 25), 12, 8, 32, "approved signature spell icon");
+                AssertAtlasCellSafeGutter(
+                    spell,
+                    CombatIconCatalog.SignatureSpellAtlasColumns,
+                    CombatIconCatalog.SignatureSpellAtlasRows,
+                    Enumerable.Range(0, FormulaCatalog.All.Length),
+                    12,
+                    8,
+                    32,
+                    "approved signature spell icon");
                 AssertAtlasCellSafeGutter(lightning, LightningSpellIconCatalog.AtlasColumns, LightningSpellIconCatalog.AtlasRows, Enumerable.Range(0, 8), 12, 8, 32, "approved lightning spell icon");
+                AssertAtlasCellSafeGutter(
+                    powerBookState,
+                    CombatIconCatalog.BookStateAtlasColumns,
+                    CombatIconCatalog.BookStateAtlasRows,
+                    Enumerable.Range(0, CombatIconCatalog.BookStateAtlasColumns * CombatIconCatalog.BookStateAtlasRows),
+                    8,
+                    8,
+                    0,
+                    "approved power-book state icon");
                 AssertAtlasCellSafeGutter(magic, 4, 4, Enumerable.Range(0, 16), 12, 8, 32, "approved magic UI icon");
             }
             finally
@@ -375,6 +442,7 @@ namespace AshenHalls.Editor
                 if (ability != null) UnityEngine.Object.DestroyImmediate(ability);
                 if (spell != null) UnityEngine.Object.DestroyImmediate(spell);
                 if (lightning != null) UnityEngine.Object.DestroyImmediate(lightning);
+                if (powerBookState != null) UnityEngine.Object.DestroyImmediate(powerBookState);
                 if (magic != null) UnityEngine.Object.DestroyImmediate(magic);
                 if (effects != null) UnityEngine.Object.DestroyImmediate(effects);
                 if (epicEffects != null) UnityEngine.Object.DestroyImmediate(epicEffects);
@@ -408,7 +476,7 @@ namespace AshenHalls.Editor
             AssertEqual("spellanim:10", CombatFeedbackRules.SpellGlyphKind(shock, "impact"), "shock impact animation");
             AssertEqual("spellanim:0", CombatFeedbackRules.SpellGlyphKind(fireball, "caster"), "fireball caster begins on ember spark art");
             AssertEqual("fireball", CombatFeedbackRules.SpellGlyphKind(fireball, "fireball"), "fireball keeps staged animation");
-            AssertEqual("signature:2", CombatFeedbackRules.SpellGlyphKind(basicHeal, "impact"), "signature heal uses dedicated art");
+            AssertEqual("signature:3", CombatFeedbackRules.SpellGlyphKind(basicHeal, "impact"), "signature heal uses dedicated art");
             AssertEqual(13, CombatFeedbackRules.MagicUiIconIndex(cure), "cleanse magic icon");
             AssertEqual(14, CombatFeedbackRules.MagicUiIconIndex(sanctuary), "sanctuary magic icon");
             AssertEqual(12, CombatFeedbackRules.MagicUiIconIndex(light), "light magic icon");
@@ -934,21 +1002,21 @@ namespace AshenHalls.Editor
                 "missing contextual targets remain actionable and safe");
 
             AssertEqual(
-                "WASD / arrows | King's Hall | Move N | 1 step",
+                "W / Up | King's Hall | North | 1 step",
                 ExplorationGuidanceRules.Route("King's Hall", "n", 1),
-                "one-step route guidance uses a singular distance");
+                "one-step north guidance names the physical keyboard and arrow inputs");
             AssertEqual(
-                "WASD / arrows | Midgaard Sewer | Move S | 2 steps",
+                "S / Down | Midgaard Sewer | South | 2 steps",
                 ExplorationGuidanceRules.Route("Midgaard Sewer", "S", 2),
-                "multi-step route guidance uses a plural distance");
+                "multi-step south guidance uses a plural distance");
             AssertEqual(
-                "WASD / arrows | Borin | Move E | 14 steps",
+                "D / Right | Borin | East | 14 steps",
                 ExplorationGuidanceRules.Route("Borin", " e ", 14),
-                "route guidance normalizes a path-aware cardinal direction");
+                "east guidance maps the path direction to the correct physical input");
             AssertEqual(
-                "WASD / arrows | Marked: Green Shrine Turn | Move W | 12 steps",
+                "A / Left | Marked: Green Shrine Turn | West | 12 steps",
                 ExplorationGuidanceRules.Route("Green Shrine Turn", "W", 12, true),
-                "marked routes identify their explicit waypoint");
+                "west guidance never mislabels the northbound W key");
             AssertEqual(
                 "J | Marked: Green Shrine Turn | Here - open Journal to Clear",
                 ExplorationGuidanceRules.Route("Green Shrine Turn", "", 0, true),
@@ -974,7 +1042,7 @@ namespace AshenHalls.Editor
             ExplorationGuidanceRoute markedRoute = new ExplorationGuidanceRoute("Green Shrine Turn", "W", 12);
             string markedPreferred = ExplorationGuidanceRules.PreferredRoute(objectiveRoute, markedRoute);
             AssertEqual(
-                "WASD / arrows | Marked: Green Shrine Turn | Move W | 12 steps",
+                "A / Left | Marked: Green Shrine Turn | West | 12 steps",
                 markedPreferred,
                 "an explicit marked waypoint takes precedence over automatic story guidance");
             AssertEqual(
@@ -988,7 +1056,7 @@ namespace AshenHalls.Editor
                 ExplorationGuidanceRules.PreferredRoute(objectiveRoute, blockedMarkedRoute),
                 "a blocked marked waypoint still retains explicit player-selected precedence");
             AssertEqual(
-                "WASD / arrows | King's Hall | Move N | 7 steps",
+                "W / Up | King's Hall | North | 7 steps",
                 ExplorationGuidanceRules.PreferredRoute(
                     objectiveRoute,
                     new ExplorationGuidanceRoute("  ", "W", 4)),
@@ -998,10 +1066,21 @@ namespace AshenHalls.Editor
                 ExplorationGuidanceRules.PreferredRoute(default, default),
                 "default route values remain null-safe");
 
-            foreach (string direction in new[] { "N", "S", "E", "W" })
+            string[] directions = { "N", "S", "E", "W" };
+            string[] inputs = { "W / Up", "S / Down", "D / Right", "A / Left" };
+            string[] keys = { "W", "S", "D", "A" };
+            string[] names = { "North", "South", "East", "West" };
+            for (int i = 0; i < directions.Length; i++)
             {
-                string cardinal = ExplorationGuidanceRules.Route("Road Marker", direction, 3);
-                AssertEqual(true, cardinal.Contains("Move " + direction + " | 3 steps"), direction + " remains an exact path-aware first step");
+                string cardinal = ExplorationGuidanceRules.Route("Road Marker", directions[i], 3);
+                AssertEqual(
+                    inputs[i] + " | Road Marker | " + names[i] + " | 3 steps",
+                    cardinal,
+                    directions[i] + " maps to one exact physical input and readable direction");
+                AssertEqual(
+                    keys[i],
+                    ExplorationGuidanceRules.MovementKey(directions[i]),
+                    directions[i] + " exposes the same WASD key used by the on-map next-step cue");
             }
 
             string longTarget = "The Extremely Long and Ceremonially Named Objective Beyond the Last Old Road Marker "
@@ -1010,8 +1089,8 @@ namespace AshenHalls.Editor
             string boundedMarkedHere = ExplorationGuidanceRules.Route(longTarget, "", 0, true);
             string boundedUse = ExplorationGuidanceRules.UseNow(longTarget, "Deliberately overlong contextual interaction verb");
             AssertEqual(true, boundedRoute.Length <= ExplorationGuidanceRules.MaxHudLineLength, "long marked route copy stays inside the HUD bound");
-            AssertEqual(true, boundedRoute.StartsWith("WASD / arrows | Marked: ", StringComparison.Ordinal), "bounded route preserves the exact movement input");
-            AssertEqual(true, boundedRoute.EndsWith("| Move W | 2147483647 steps", StringComparison.Ordinal), "bounded route preserves direction and distance after target truncation");
+            AssertEqual(true, boundedRoute.StartsWith("A / Left | Marked: ", StringComparison.Ordinal), "bounded route preserves the exact movement input");
+            AssertEqual(true, boundedRoute.EndsWith("| West | 2147483647 steps", StringComparison.Ordinal), "bounded route preserves direction and distance after target truncation");
             AssertEqual(true, boundedMarkedHere.Length <= ExplorationGuidanceRules.MaxHudLineLength, "reached marked waypoint copy stays inside the HUD bound");
             AssertEqual(true, boundedMarkedHere.StartsWith("J | Marked: ", StringComparison.Ordinal), "reached marked waypoint preserves the exact Journal input");
             AssertEqual(true, boundedMarkedHere.EndsWith("| Here - open Journal to Clear", StringComparison.Ordinal), "reached marked waypoint preserves the resumable action after target truncation");
@@ -1027,6 +1106,188 @@ namespace AshenHalls.Editor
                 markedPreferred,
                 ExplorationGuidanceRules.PreferredRoute(objectiveRoute, markedRoute),
                 "guidance formatting is deterministic across repeated calls");
+
+            AssertEqual(10, ExplorationMapGuidanceRules.VisiblePointLimit(false, false), "automatic Local Map thread remains restrained to nine segments");
+            AssertEqual(18, ExplorationMapGuidanceRules.VisiblePointLimit(true, false), "automatic Region Map thread shows seventeen route segments");
+            AssertEqual(14, ExplorationMapGuidanceRules.VisiblePointLimit(false, true), "marked Local Map route retains its stronger thirteen-segment reach");
+            AssertEqual(25, ExplorationMapGuidanceRules.VisiblePointLimit(true, true), "marked Region Map route retains its stronger twenty-four-segment reach");
+
+            Point[] eastExitPath =
+            {
+                new Point(2, 2),
+                new Point(3, 2),
+                new Point(4, 2),
+                new Point(5, 2),
+                new Point(6, 2)
+            };
+            AssertEqual(
+                true,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    eastExitPath,
+                    1,
+                    1,
+                    4,
+                    4,
+                    out ExplorationMapExitCue eastCue),
+                "a guided path leaving the viewport produces one edge continuation cue");
+            AssertEqual(ExplorationMapEdge.East, eastCue.Edge, "edge cue follows the path rather than a geometric target bearing");
+            AssertEqual(4, eastCue.MapX, "edge cue anchors to the final visible route cell");
+            AssertEqual(2, eastCue.MapY, "edge cue retains the path row");
+            AssertEqual(2, eastCue.RemainingSteps, "edge cue reports the remaining walk from the final visible route cell");
+            AssertEqual(2, eastCue.PathIndex, "edge cue exposes its route-prefix anchor for bounded rendering");
+            AssertEqual(
+                true,
+                ExplorationMapGuidanceRules.IsExitCueWithinVisiblePrefix(
+                    new ExplorationMapExitCue(ExplorationMapEdge.East, 0, 0, 1, 9),
+                    10),
+                "the last rendered route point may own an edge continuation cue");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.IsExitCueWithinVisiblePrefix(
+                    new ExplorationMapExitCue(ExplorationMapEdge.East, 0, 0, 1, 10),
+                    10),
+                "the first omitted route point cannot own a disconnected edge cue");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.IsExitCueWithinVisiblePrefix(default, 10),
+                "an empty edge cue never renders");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.IsExitCueWithinVisiblePrefix(eastCue, 0),
+                "a zero-length route prefix never renders an edge cue");
+
+            Point[] northExitPath =
+            {
+                new Point(3, 2),
+                new Point(3, 1),
+                new Point(3, 0)
+            };
+            AssertEqual(
+                true,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    northExitPath,
+                    1,
+                    1,
+                    4,
+                    4,
+                    out ExplorationMapExitCue northCue),
+                "northbound routes receive a north edge cue");
+            AssertEqual(ExplorationMapEdge.North, northCue.Edge, "north exit direction is exact");
+            AssertEqual(1, northCue.RemainingSteps, "north exit remaining distance is exact");
+            AssertEqual(1, northCue.PathIndex, "north edge cue anchors to the last visible path point");
+            AssertEqual(
+                true,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    new[]
+                    {
+                        new Point(2, 2),
+                        new Point(1, 2),
+                        new Point(0, 2)
+                    },
+                    1,
+                    1,
+                    4,
+                    4,
+                    out ExplorationMapExitCue westCue),
+                "westbound routes receive a west edge cue");
+            AssertEqual(ExplorationMapEdge.West, westCue.Edge, "west exit direction is exact");
+            AssertEqual(1, westCue.MapX, "west cue anchors to the final visible column");
+            AssertEqual(2, westCue.MapY, "west cue retains the path row");
+            AssertEqual(1, westCue.RemainingSteps, "west cue distance is measured from its visible anchor");
+            AssertEqual(1, westCue.PathIndex, "west cue exposes its visible path index");
+            AssertEqual(
+                true,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    new[]
+                    {
+                        new Point(2, 3),
+                        new Point(2, 4),
+                        new Point(2, 5)
+                    },
+                    1,
+                    1,
+                    4,
+                    4,
+                    out ExplorationMapExitCue southCue),
+                "southbound routes receive a south edge cue");
+            AssertEqual(ExplorationMapEdge.South, southCue.Edge, "south exit direction is exact");
+            AssertEqual(2, southCue.MapX, "south cue retains the path column");
+            AssertEqual(4, southCue.MapY, "south cue anchors to the final visible row");
+            AssertEqual(1, southCue.RemainingSteps, "south cue distance is measured from its visible anchor");
+            AssertEqual(1, southCue.PathIndex, "south cue exposes its visible path index");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    new[] { new Point(2, 2), new Point(3, 2), new Point(4, 2) },
+                    1,
+                    1,
+                    4,
+                    4,
+                    out _),
+                "a route ending inside the viewport does not create a misleading edge cue");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    new[] { new Point(2, 2), new Point(4, 2) },
+                    1,
+                    1,
+                    4,
+                    4,
+                    out _),
+                "a discontinuous path cannot produce a misleading continuation cue");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    new[] { new Point(2, 2), null, new Point(2, 0) },
+                    1,
+                    1,
+                    4,
+                    4,
+                    out _),
+                "a malformed path remains safe and cue-free");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    new[] { new Point(2, 2) },
+                    1,
+                    1,
+                    4,
+                    4,
+                    out _),
+                "a one-point route cannot claim to continue beyond the map");
+
+            Point[] windingLocalPath =
+            {
+                new Point(2, 2),
+                new Point(3, 2),
+                new Point(3, 3),
+                new Point(2, 3),
+                new Point(1, 3),
+                new Point(1, 2),
+                new Point(1, 1),
+                new Point(2, 1),
+                new Point(3, 1),
+                new Point(4, 1),
+                new Point(4, 2),
+                new Point(4, 3),
+                new Point(5, 3)
+            };
+            AssertEqual(
+                true,
+                ExplorationMapGuidanceRules.TryFindViewportExit(
+                    windingLocalPath,
+                    0,
+                    0,
+                    5,
+                    5,
+                    out ExplorationMapExitCue lateExitCue),
+                "a winding route still finds its true viewport crossing");
+            AssertEqual(
+                false,
+                ExplorationMapGuidanceRules.IsExitCueWithinVisiblePrefix(
+                    lateExitCue,
+                    ExplorationMapGuidanceRules.VisiblePointLimit(false, false)),
+                "an edge chip is suppressed when its anchor lies beyond the rendered Local Map thread");
         }
 
         private static void WorldMapGenerationRulesDefineModestExpansion()
@@ -1306,23 +1567,24 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v1.89.0", VersionInfo.PackageVersion, "package version matches the v1.89 release");
+            AssertEqual("v1.98.0", VersionInfo.PackageVersion, "package version matches the v1.98 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
-            AssertEqual("ability-icon-atlas-runtime-v1.31.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v1.31 ability atlas pin");
-            AssertEqual("signature-spell-icon-atlas-runtime-v1.31.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v1.31 signature spell atlas pin");
-            AssertEqual("lightning-spell-icon-atlas-runtime-v1.79.0.png", RuntimeArtManifest.LightningSpellIconAtlas, "approved v1.79 lightning spell atlas pin");
+            AssertEqual("ability-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v1.97 ability atlas pin");
+            AssertEqual("signature-spell-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v1.97 signature spell atlas pin");
+            AssertEqual("lightning-spell-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.LightningSpellIconAtlas, "approved v1.97 lightning spell atlas pin");
+            AssertEqual("power-book-state-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.PowerBookStateIconAtlas, "approved v1.97 power-book state atlas pin");
             AssertEqual("magic-ui-atlas-runtime-v1.31.0.png", RuntimeArtManifest.MagicUiAtlas, "approved v1.31 magic UI atlas pin");
             AssertEqual("spell-animation-atlas-runtime-v1.49.0.png", RuntimeArtManifest.SpellAnimationAtlas, "approved v1.49 spell animation atlas pin");
             AssertEqual("combat-spell-effects-atlas-runtime-v0.73.png", RuntimeArtManifest.EpicSpellEffectsAtlas, "approved epic spell effects atlas pin");
             AssertEqual("tavern-backdrop-runtime-v1.49.0.png", RuntimeArtManifest.TavernBackdrop, "approved v1.49 tavern backdrop pin");
-            AssertEqual("midgaard-gate-atlas-runtime-v1.64.0.png", RuntimeArtManifest.MidgaardGateAtlas, "approved v1.64 gate atlas pin");
-            AssertEqual("midgaard-wall-atlas-runtime-v1.30.0.png", RuntimeArtManifest.MidgaardWallAtlas, "approved v1.30 wall atlas pin");
+            AssertEqual("midgaard-gate-atlas-runtime-v1.93.0.png", RuntimeArtManifest.MidgaardGateAtlas, "approved v1.93 gate atlas pin");
+            AssertEqual("midgaard-wall-atlas-runtime-v1.91.0.png", RuntimeArtManifest.MidgaardWallAtlas, "approved v1.91 wall atlas pin");
             AssertEqual("world-map-exploration-tile-atlas-runtime-v1.68.0.png", RuntimeArtManifest.WorldMapExplorationTileAtlas, "approved v1.68 exploration terrain pin");
-            AssertEqual("world-map-material-atlas-runtime-v1.68.0.png", RuntimeArtManifest.WorldMapMaterialAtlas, "approved v1.68 material atlas pin");
+            AssertEqual("world-map-material-atlas-runtime-v1.92.0.png", RuntimeArtManifest.WorldMapMaterialAtlas, "approved v1.92 material atlas pin");
             AssertEqual("world-map-overlay-atlas-runtime-v0.80.png", RuntimeArtManifest.WorldMapOverlayAtlas, "approved v0.80 world overlay pin");
             AssertEqual("world-map-progression-overlay-atlas-runtime-v0.63.png", RuntimeArtManifest.WorldMapProgressionOverlayAtlas, "approved v0.63 progression overlay pin");
             AssertEqual("world-map-ui-atlas-runtime-v1.6.0.png", RuntimeArtManifest.WorldMapUiAtlas, "approved v1.6 world UI pin");
-            AssertEqual("world-map-token-sprite-atlas-runtime-v1.29.0.png", RuntimeArtManifest.WorldMapTokenSpriteAtlas, "approved v1.29 party token atlas pin");
+            AssertEqual("world-map-token-sprite-atlas-runtime-v1.91.0.png", RuntimeArtManifest.WorldMapTokenSpriteAtlas, "approved v1.91 party token atlas pin");
             AssertEqual("world-map-prop-atlas-runtime-v1.29.0.png", RuntimeArtManifest.WorldMapPropAtlas, "approved v1.29 world prop atlas pin");
             AssertEqual("world-map-biome-prop-atlas-runtime-v1.29.0.png", RuntimeArtManifest.WorldMapBiomePropAtlas, "approved v1.29 biome prop atlas pin");
             AssertEqual("world-map-landmark-atlas-runtime-v1.29.0.png", RuntimeArtManifest.WorldMapLandmarkAtlas, "approved v1.29 landmark atlas pin");
@@ -1332,12 +1594,12 @@ namespace AshenHalls.Editor
             AssertEqual("midgaard-city-prop-atlas-runtime-v1.29.0.png", RuntimeArtManifest.MidgaardCityPropAtlas, "approved v1.29 city prop atlas pin");
             AssertEqual("midgaard-street-life-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardStreetLifeAtlas, "approved v1.50 street-life atlas pin");
             AssertEqual("midgaard-paving-decal-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardPavingDecalAtlas, "approved v1.50 paving-decal atlas pin");
-            AssertEqual("midgaard-npc-atlas-runtime-v1.81.0.png", RuntimeArtManifest.MidgaardNpcAtlas, "approved v1.81 NPC atlas pin");
+            AssertEqual("midgaard-npc-atlas-runtime-v1.93.0.png", RuntimeArtManifest.MidgaardNpcAtlas, "approved v1.93 NPC atlas pin");
             AssertEqual("route-scaffold-atlas-runtime-v1.30.0.png", RuntimeArtManifest.RouteScaffoldAtlas, "approved v1.30 route scaffold atlas pin");
             AssertEqual("kobold-route-atlas-runtime-v1.30.0.png", RuntimeArtManifest.KoboldRouteAtlas, "approved v1.30 kobold route atlas pin");
             AssertEqual("midgaard-sewer-atlas-runtime-v1.30.0.png", RuntimeArtManifest.MidgaardSewerAtlas, "approved v1.30 sewer atlas pin");
             AssertEqual("npc-portrait-atlas-runtime-v1.60.0.png", RuntimeArtManifest.NpcPortraitAtlas, "approved v1.60 NPC portrait atlas pin");
-            AssertEqual("character-combat-atlas-runtime-v1.77.0.png", RuntimeArtManifest.CharacterCombatAtlas, "approved v1.77 character sprite atlas pin");
+            AssertEqual("character-combat-atlas-runtime-v1.93.0.png", RuntimeArtManifest.CharacterCombatAtlas, "approved v1.93 character sprite atlas pin");
             AssertEqual("enemy-sprite-atlas-runtime-v1.77.0.png", RuntimeArtManifest.EnemySpriteAtlas, "approved v1.77 enemy sprite atlas pin");
             AssertEqual("midgaard-interior-prop-atlas-runtime-v1.61.0.png", RuntimeArtManifest.MidgaardInteriorPropAtlas, "approved v1.61 interior prop atlas pin");
             AssertEqual("midgaard-interior-tile-atlas-runtime-v1.61.0.png", RuntimeArtManifest.MidgaardInteriorTileAtlas, "approved v1.61 interior tile atlas pin");
@@ -1345,10 +1607,10 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v1.31.0.png|signature-spell-icon-atlas-runtime-v1.31.0.png|lightning-spell-icon-atlas-runtime-v1.79.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.64.0.png|midgaard-wall-atlas-runtime-v1.30.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.68.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.29.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.81.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.77.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v1.97.0.png|signature-spell-icon-atlas-runtime-v1.97.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(36, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(37, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -1418,6 +1680,38 @@ namespace AshenHalls.Editor
                 AssertEqual(new Vector2Int(1280, 1024), new Vector2Int(wallAtlas.width, wallAtlas.height), "approved wall atlas dimensions");
                 AssertEqual(new Vector2Int(2048, 2048), new Vector2Int(materialAtlas.width, materialAtlas.height), "approved material atlas dimensions");
                 AssertAtlasCellCoverage(gateAtlas, 5, 4, new[] { 0, 1, 6, 7 }, 0.08f, 0.92f, "approved gate sprite");
+                AssertAtlasCellSafeGutter(gateAtlas, 5, 4, new[] { 0, 1, 6, 7 }, 16, 8, 8, "approved gate sprite");
+                RectInt closedGateBounds = AtlasCellVisibleBounds(gateAtlas, 5, 4, 0, 8);
+                RectInt westGateBounds = AtlasCellVisibleBounds(gateAtlas, 5, 4, 6, 8);
+                RectInt eastGateBounds = AtlasCellVisibleBounds(gateAtlas, 5, 4, 7, 8);
+                AssertEqual(true, closedGateBounds.width >= 216 && closedGateBounds.width <= 228, "sealed gate keeps a coherent two-tower width");
+                AssertEqual(true, closedGateBounds.height >= 178 && closedGateBounds.height <= 188, "sealed gate keeps a coherent wall-scale height");
+                AssertEqual(true, eastGateBounds.width >= 58 && eastGateBounds.width <= 66, "east gate keeps its compact wall-aligned width");
+                AssertEqual(true, westGateBounds.width >= 58 && westGateBounds.width <= 66, "west gate keeps its compact wall-aligned width");
+                AssertEqual(true, eastGateBounds.height >= 220 && eastGateBounds.height <= 228, "east gate keeps its portrait side-view height");
+                AssertEqual(true, westGateBounds.height >= 220 && westGateBounds.height <= 228, "west gate keeps its portrait side-view height");
+                AssertAtlasCellClearHorizontalPassage(
+                    gateAtlas,
+                    5,
+                    4,
+                    new[] { 6, 7 },
+                    104,
+                    48,
+                    1,
+                    0f,
+                    "approved side gate");
+                AssertAtlasCellsHorizontalMirrors(gateAtlas, 5, 4, 6, 7, "west/east gate directional pair");
+                float westGateMassX = AtlasCellVisibleCentroidX(gateAtlas, 5, 4, 6, 32);
+                float eastGateMassX = AtlasCellVisibleCentroidX(gateAtlas, 5, 4, 7, 32);
+                AssertEqual(true, westGateMassX > 127.5f, "west gate cell 6 keeps its authored town-side mass bias");
+                AssertEqual(true, eastGateMassX < 127.5f, "east gate cell 7 keeps its authored town-side mass bias");
+                AssertEqual(true, Mathf.Abs(westGateMassX + eastGateMassX - 255f) < 0.01f, "east/west directional mass remains an exact mirror pair");
+                RectInt westWallBounds = AtlasCellVisibleBounds(wallAtlas, 5, 4, 2, 8);
+                RectInt eastWallBounds = AtlasCellVisibleBounds(wallAtlas, 5, 4, 3, 8);
+                AssertEqual(true, westWallBounds.width >= 53 && westWallBounds.width <= 61, "west straight wall contains one connected masonry run");
+                AssertEqual(true, eastWallBounds.width >= 53 && eastWallBounds.width <= 61, "east straight wall contains one connected masonry run");
+                AssertEqual(true, westWallBounds.height >= 171 && westWallBounds.height <= 179, "west straight wall keeps its authored height");
+                AssertEqual(true, eastWallBounds.height >= 171 && eastWallBounds.height <= 179, "east straight wall keeps its authored height");
                 AssertAtlasCellCoverage(wallAtlas, 5, 4, Enumerable.Range(0, 10), 0.04f, 0.92f, "approved wall sprite");
                 AssertAtlasCellCoverage(materialAtlas, 8, 8, Enumerable.Range(0, 64), 0.99f, 1f, "approved material ground");
 
@@ -1459,6 +1753,14 @@ namespace AshenHalls.Editor
                     AssertEqual(new Vector2Int(1280, 1024), new Vector2Int(atlas.width, atlas.height), fileName + " normalized dimensions");
                     AssertAtlasCellCoverage(atlas, 5, 4, Enumerable.Range(0, 20), 0.04f, 0.92f, fileName + " cell");
                     AssertAtlasCellSafeGutter(atlas, 5, 4, Enumerable.Range(0, 20), 18, 8, 8, fileName + " cell");
+                    if (string.Equals(fileName, RuntimeArtManifest.WorldMapTokenSpriteAtlas, StringComparison.Ordinal))
+                    {
+                        RectInt partyBounds = AtlasCellVisibleBounds(atlas, 5, 4, 0, 8);
+                        float partyAspect = partyBounds.width / (float)Mathf.Max(1, partyBounds.height);
+                        AssertEqual(true, partyBounds.width >= 164 && partyBounds.width <= 174, "party marker is compact rather than a horizontal lineup");
+                        AssertEqual(true, partyBounds.height >= 216 && partyBounds.height <= 224, "party marker uses the vertical space needed at region scale");
+                        AssertEqual(true, partyAspect >= 0.74f && partyAspect <= 0.80f, "party marker keeps a readable near-portrait group silhouette");
+                    }
                 }
 
                 Texture2D npcPortraits = LoadApprovedRuntimeAtlas(RuntimeArtManifest.NpcPortraitAtlas);
@@ -1468,12 +1770,27 @@ namespace AshenHalls.Editor
                 normalizedAtlases.Add(characterSprites);
                 normalizedAtlases.Add(enemySprites);
                 AssertEqual(new Vector2Int(1400, 1120), new Vector2Int(npcPortraits.width, npcPortraits.height), "approved NPC portrait dimensions");
-                AssertEqual(new Vector2Int(1024, 1024), new Vector2Int(characterSprites.width, characterSprites.height), "approved character sprite dimensions");
+                AssertEqual(new Vector2Int(1280, 1792), new Vector2Int(characterSprites.width, characterSprites.height), "approved character sprite dimensions");
                 AssertEqual(new Vector2Int(1024, 1024), new Vector2Int(enemySprites.width, enemySprites.height), "approved enemy sprite dimensions");
                 AssertAtlasCellCoverage(npcPortraits, 5, 4, Enumerable.Range(0, 20), 0.04f, 0.92f, "approved NPC portrait");
-                AssertAtlasCellCoverage(characterSprites, 4, 4, Enumerable.Range(0, 16), 0.02f, 0.92f, "approved character sprite");
+                AssertAtlasCellCoverage(
+                    characterSprites,
+                    PlayerSpriteCatalog.Columns,
+                    PlayerSpriteCatalog.Rows,
+                    Enumerable.Range(0, PlayerSpriteCatalog.Columns * PlayerSpriteCatalog.Rows),
+                    0.02f,
+                    0.92f,
+                    "approved character sprite");
                 AssertAtlasCellCoverage(enemySprites, 4, 4, Enumerable.Range(0, 16), 0.02f, 0.92f, "approved enemy sprite");
-                AssertAtlasCellSafeGutter(characterSprites, 4, 4, Enumerable.Range(0, 16), 18, 8, 8, "approved character sprite");
+                AssertAtlasCellSafeGutter(
+                    characterSprites,
+                    PlayerSpriteCatalog.Columns,
+                    PlayerSpriteCatalog.Rows,
+                    Enumerable.Range(0, PlayerSpriteCatalog.Columns * PlayerSpriteCatalog.Rows),
+                    18,
+                    8,
+                    8,
+                    "approved character sprite");
                 AssertAtlasCellSafeGutter(enemySprites, 4, 4, Enumerable.Range(0, 16), 18, 8, 8, "approved enemy sprite");
 
                 Texture2D roamingThreats = LoadApprovedRuntimeAtlas(RuntimeArtManifest.RoamingThreatAtlas);
@@ -1549,30 +1866,33 @@ namespace AshenHalls.Editor
             AssertEqual(true, enemyMethod != null, "enemy sprite mapping exists");
             AssertEqual(true, tokenMethod != null, "world-map token mapping exists");
 
-            object[][] characterMappings =
+            string[] characterClasses =
             {
-                new object[] { "warrior", "human", "shield", 0 },
-                new object[] { "warrior", "stoneborn", "shield", 1 },
-                new object[] { "rogue", "human", "knife", 2 },
-                new object[] { "rogue", "dusk elf", "knife", 3 },
-                new object[] { "ranger", "human", "bow", 4 },
-                new object[] { "ranger", "dusk elf", "bow", 5 },
-                new object[] { "priest", "fenkin", "mender", 6 },
-                new object[] { "priest", "human", "mender", 7 },
-                new object[] { "warlock", "human", "hex", 8 },
-                new object[] { "warlock", "dusk elf", "hex", 9 },
-                new object[] { "wizard", "human", "ember", 10 },
-                new object[] { "wizard", "ashling", "ember", 11 },
-                new object[] { "paladin", "human", "ward", 12 },
-                new object[] { "paladin", "stoneborn", "ward", 13 },
-                new object[] { "rogue", "fenkin", "knife", 14 },
-                new object[] { "warrior", "dusk elf", "shield", 15 }
+                "warrior", "rogue", "ranger", "priest", "warlock", "wizard", "paladin"
             };
-            foreach (object[] mapping in characterMappings)
+            string[] characterRoles =
             {
-                int actual = (int)characterMethod.Invoke(game, new[] { mapping[0], mapping[1], mapping[2] });
-                AssertEqual((int)mapping[3], actual, mapping[1] + " " + mapping[0] + " character sprite cell");
+                "shield", "knife", "bow", "mender", "hex", "ember", "ward"
+            };
+            string[] characterRaces =
+            {
+                "human", "dusk elf", "stoneborn", "fenkin", "ashling"
+            };
+            for (int classRow = 0; classRow < characterClasses.Length; classRow++)
+            {
+                for (int raceColumn = 0; raceColumn < characterRaces.Length; raceColumn++)
+                {
+                    int expected = classRow * PlayerSpriteCatalog.Columns + raceColumn;
+                    int actual = (int)characterMethod.Invoke(
+                        game,
+                        new object[] { characterClasses[classRow], characterRaces[raceColumn], characterRoles[classRow] });
+                    AssertEqual(
+                        expected,
+                        actual,
+                        characterRaces[raceColumn] + " " + characterClasses[classRow] + " character sprite cell");
+                }
             }
+            AssertEqual(29, (int)characterMethod.Invoke(game, new object[] { "mage", "ashling", "ember" }), "mage alias uses the ashling wizard sprite");
             AssertEqual(0, (int)characterMethod.Invoke(game, new object[] { " ", null, "shield" }), "blank legacy class falls back to its role sprite");
 
             Dictionary<string, int> enemyMappings = new Dictionary<string, int>
@@ -1621,19 +1941,28 @@ namespace AshenHalls.Editor
         private static void AssertApprovedV128GateAndWallMappings(AshenHallsGame game)
         {
             Type orientationType = typeof(AshenHallsGame).GetNestedType("GateOrientation", BindingFlags.NonPublic);
+            MethodInfo orientationMethod = typeof(AshenHallsGame).GetMethod("GetGateOrientation", BindingFlags.Instance | BindingFlags.NonPublic);
             MethodInfo gateMethod = typeof(AshenHallsGame).GetMethod("GateAtlasIndex", BindingFlags.Instance | BindingFlags.NonPublic);
             MethodInfo fallbackMethod = typeof(AshenHallsGame).GetMethod("GateTownFallbackAtlasIndex", BindingFlags.Instance | BindingFlags.NonPublic);
+            FieldInfo stateField = typeof(AshenHallsGame).GetField("state", BindingFlags.Instance | BindingFlags.NonPublic);
             AssertEqual(true, orientationType != null, "runtime gate orientation contract exists");
+            AssertEqual(true, orientationMethod != null, "runtime gate object-to-orientation bridge exists");
             AssertEqual(true, gateMethod != null, "runtime gate atlas mapping exists");
             AssertEqual(true, fallbackMethod != null, "runtime gate fallback atlas mapping exists");
+            AssertEqual(true, stateField != null, "runtime state field exists for gate and wall mapping contracts");
             AssertEqual("North,South,East,West", string.Join(",", Enum.GetNames(orientationType)), "runtime gate orientations remain exhaustive and ordered");
+            stateField.SetValue(game, new GameState
+            {
+                Depth = 1,
+                Map = new MapData { Width = 41, Height = 33, StartX = 20, StartY = 16 }
+            });
 
             Dictionary<string, int> gateIndices = new Dictionary<string, int>
             {
                 { "North", 0 },
                 { "South", 0 },
-                { "East", 6 },
-                { "West", 7 }
+                { "East", 7 },
+                { "West", 6 }
             };
             Dictionary<string, int> fallbackIndices = new Dictionary<string, int>
             {
@@ -1652,34 +1981,57 @@ namespace AshenHalls.Editor
                 int fallback = (int)fallbackMethod.Invoke(game, new[] { orientation });
                 AssertEqual(fallbackIndices[mapping.Key], fallback, mapping.Key + " approved town fallback atlas cell");
             }
+            Dictionary<ObjectType, string> gateObjectOrientations = new Dictionary<ObjectType, string>
+            {
+                { ObjectType.NorthGate, "North" },
+                { ObjectType.SouthGate, "South" },
+                { ObjectType.EastGate, "East" },
+                { ObjectType.WestGate, "West" }
+            };
+            foreach (KeyValuePair<ObjectType, string> mapping in gateObjectOrientations)
+            {
+                object markerOrientation = orientationMethod.Invoke(
+                    game,
+                    new object[] { new MapObject { Type = mapping.Key }, ObjectType.Town });
+                AssertEqual(mapping.Value, markerOrientation?.ToString(), mapping.Key + " map object resolves to the intended orientation");
+                AssertEqual(
+                    gateIndices[mapping.Value],
+                    (int)gateMethod.Invoke(game, new[] { markerOrientation }),
+                    mapping.Key + " map object reaches the intended runtime atlas cell");
+
+                object fallbackOrientation = orientationMethod.Invoke(game, new object[] { null, mapping.Key });
+                AssertEqual(mapping.Value, fallbackOrientation?.ToString(), mapping.Key + " fallback type resolves to the intended orientation");
+                AssertEqual(
+                    gateIndices[mapping.Value],
+                    (int)gateMethod.Invoke(game, new[] { fallbackOrientation }),
+                    mapping.Key + " fallback type reaches the intended runtime atlas cell");
+            }
 
             MethodInfo objectRectMethod = typeof(AshenHallsGame).GetMethod("ExploreObjectRect", BindingFlags.Instance | BindingFlags.NonPublic);
             AssertEqual(true, objectRectMethod != null, "gate composition rect exists");
-            Rect gateRect = (Rect)objectRectMethod.Invoke(game, new object[] { new Rect(100f, 100f, 80f, 80f), new MapObject { Type = ObjectType.EastGate } });
-            AssertEqual(true, gateRect.width >= 128f && gateRect.height >= 104f, "local gatehouse art spans more than one visual tile");
+            Rect eastGateRect = (Rect)objectRectMethod.Invoke(game, new object[] { new Rect(100f, 100f, 80f, 80f), new MapObject { Type = ObjectType.EastGate } });
+            Rect southGateRect = (Rect)objectRectMethod.Invoke(game, new object[] { new Rect(100f, 100f, 80f, 80f), new MapObject { Type = ObjectType.SouthGate } });
+            AssertEqual(true, eastGateRect.width >= 61f && eastGateRect.width <= 63f, "local side gate keeps a compact wall-aligned objective frame");
+            AssertEqual(true, eastGateRect.height >= 135f && eastGateRect.height <= 137f, "local side gate has a portrait landmark height");
+            AssertEqual(true, Mathf.Abs(eastGateRect.center.y - 140f) < 0.01f, "local side gate is centered symmetrically on its wall opening");
+            AssertEqual(true, southGateRect.width >= 160f && southGateRect.width <= 163f, "local sealed gate remains wider than the side gate");
+            AssertEqual(true, southGateRect.height >= 125f && southGateRect.height <= 128f, "local sealed gate remains wall-scale instead of engulfing the map");
 
-            FieldInfo stateField = typeof(AshenHallsGame).GetField("state", BindingFlags.Instance | BindingFlags.NonPublic);
             MethodInfo wallMethod = typeof(AshenHallsGame).GetMethod("MidgaardWallAtlasIndexForCoordinate", BindingFlags.Instance | BindingFlags.NonPublic);
-            AssertEqual(true, stateField != null, "runtime state field exists for wall mapping contract");
             AssertEqual(true, wallMethod != null, "runtime wall atlas mapping exists");
-            stateField.SetValue(game, new GameState
-            {
-                Depth = 1,
-                Map = new MapData { Width = 41, Height = 33, StartX = 20, StartY = 16 }
-            });
 
             AssertEqual(0, (int)wallMethod.Invoke(game, new object[] { 20, 8, false }), "north wall approved atlas cell");
             AssertEqual(1, (int)wallMethod.Invoke(game, new object[] { 20, 23, false }), "south wall approved atlas cell");
             AssertEqual(2, (int)wallMethod.Invoke(game, new object[] { 10, 16, false }), "west wall approved atlas cell");
             AssertEqual(3, (int)wallMethod.Invoke(game, new object[] { 30, 16, false }), "east wall approved atlas cell");
-            AssertEqual(4, (int)wallMethod.Invoke(game, new object[] { 10, 8, false }), "northwest wall corner approved atlas cell");
-            AssertEqual(5, (int)wallMethod.Invoke(game, new object[] { 30, 8, false }), "northeast wall corner approved atlas cell");
+            AssertEqual(5, (int)wallMethod.Invoke(game, new object[] { 10, 8, false }), "northwest wall corner points into the perimeter");
+            AssertEqual(4, (int)wallMethod.Invoke(game, new object[] { 30, 8, false }), "northeast wall corner points into the perimeter");
             AssertEqual(6, (int)wallMethod.Invoke(game, new object[] { 10, 23, false }), "southwest wall corner approved atlas cell");
             AssertEqual(7, (int)wallMethod.Invoke(game, new object[] { 30, 23, false }), "southeast wall corner approved atlas cell");
             AssertEqual(8, (int)wallMethod.Invoke(game, new object[] { 16, 8, true }), "horizontal wall accent approved atlas cell");
             AssertEqual(8, (int)wallMethod.Invoke(game, new object[] { 16, 23, true }), "south horizontal wall accent approved atlas cell");
-            AssertEqual(9, (int)wallMethod.Invoke(game, new object[] { 10, 16, true }), "vertical wall accent approved atlas cell");
-            AssertEqual(9, (int)wallMethod.Invoke(game, new object[] { 30, 16, true }), "east vertical wall accent approved atlas cell");
+            AssertEqual(9, (int)wallMethod.Invoke(game, new object[] { 10, 14, true }), "west vertical wall accent follows town-relative cadence");
+            AssertEqual(9, (int)wallMethod.Invoke(game, new object[] { 30, 22, true }), "east vertical wall accent follows town-relative cadence");
             AssertEqual(0, (int)wallMethod.Invoke(game, new object[] { 16, 8, false }), "north terrain wall does not use object accent art");
             AssertEqual(2, (int)wallMethod.Invoke(game, new object[] { 10, 16, false }), "west terrain wall does not use object accent art");
             AssertEqual(-1, (int)wallMethod.Invoke(game, new object[] { 20, 16, false }), "interior cell has no wall atlas mapping");
@@ -1801,6 +2153,193 @@ namespace AshenHalls.Editor
             }
         }
 
+        private static void AssertAtlasCellClearHorizontalPassage(
+            Texture2D texture,
+            int columns,
+            int rows,
+            IEnumerable<int> cells,
+            int passageTop,
+            int passageHeight,
+            byte visibleAlphaThreshold,
+            float maximumVisibleFraction,
+            string label)
+        {
+            AssertEqual(true, texture != null, label + " atlas loads for passage inspection");
+            AssertEqual(true, columns > 0 && rows > 0, label + " passage atlas grid is positive");
+            AssertEqual(0, texture.width % columns, label + " atlas width divides into whole passage cells");
+            AssertEqual(0, texture.height % rows, label + " atlas height divides into whole passage cells");
+            AssertEqual(true, cells != null, label + " passage cells are provided");
+            int cellWidth = texture.width / columns;
+            int cellHeight = texture.height / rows;
+            AssertEqual(true, passageTop >= 0 && passageHeight > 0 && passageTop + passageHeight <= cellHeight, label + " passage band is inside the atlas cell");
+            AssertEqual(true, visibleAlphaThreshold > 0, label + " passage alpha threshold is positive");
+            AssertEqual(true, maximumVisibleFraction >= 0f && maximumVisibleFraction <= 1f, label + " passage coverage limit is normalized");
+            Color32[] pixels = texture.GetPixels32();
+
+            foreach (int cell in cells)
+            {
+                AssertEqual(true, cell >= 0 && cell < columns * rows, label + " passage cell index " + cell + " is in range");
+                int column = cell % columns;
+                int row = cell / columns;
+                int visible = 0;
+                for (int localY = passageTop; localY < passageTop + passageHeight; localY++)
+                {
+                    int topY = row * cellHeight + localY;
+                    int pixelY = texture.height - 1 - topY;
+                    int offset = pixelY * texture.width + column * cellWidth;
+                    for (int localX = 0; localX < cellWidth; localX++)
+                    {
+                        if (pixels[offset + localX].a >= visibleAlphaThreshold) visible++;
+                    }
+                }
+
+                float visibleFraction = visible / (float)(cellWidth * passageHeight);
+                if (visibleFraction > maximumVisibleFraction)
+                {
+                    throw new InvalidOperationException(
+                        $"{label} cell {cell} horizontal passage: expected at most {maximumVisibleFraction:P0} visible pixels, got {visibleFraction:P1}");
+                }
+            }
+        }
+
+        private static void AssertAtlasCellsHorizontalMirrors(
+            Texture2D texture,
+            int columns,
+            int rows,
+            int sourceCell,
+            int mirroredCell,
+            string label)
+        {
+            AssertEqual(true, texture != null, label + " atlas loads for mirror inspection");
+            AssertEqual(true, columns > 0 && rows > 0, label + " mirror atlas grid is positive");
+            AssertEqual(0, texture.width % columns, label + " atlas width divides into whole mirror cells");
+            AssertEqual(0, texture.height % rows, label + " atlas height divides into whole mirror cells");
+            AssertEqual(true, sourceCell >= 0 && sourceCell < columns * rows, label + " source cell is in range");
+            AssertEqual(true, mirroredCell >= 0 && mirroredCell < columns * rows, label + " mirrored cell is in range");
+            AssertEqual(true, sourceCell != mirroredCell, label + " uses distinct directional cells");
+            int cellWidth = texture.width / columns;
+            int cellHeight = texture.height / rows;
+            int sourceColumn = sourceCell % columns;
+            int sourceRow = sourceCell / columns;
+            int mirroredColumn = mirroredCell % columns;
+            int mirroredRow = mirroredCell / columns;
+            Color32[] pixels = texture.GetPixels32();
+            int mismatchedPixels = 0;
+
+            for (int localY = 0; localY < cellHeight; localY++)
+            {
+                int sourceTopY = sourceRow * cellHeight + localY;
+                int sourcePixelY = texture.height - 1 - sourceTopY;
+                int sourceOffset = sourcePixelY * texture.width + sourceColumn * cellWidth;
+                int mirroredTopY = mirroredRow * cellHeight + localY;
+                int mirroredPixelY = texture.height - 1 - mirroredTopY;
+                int mirroredOffset = mirroredPixelY * texture.width + mirroredColumn * cellWidth;
+                for (int localX = 0; localX < cellWidth; localX++)
+                {
+                    Color32 sourcePixel = pixels[sourceOffset + localX];
+                    Color32 mirroredPixel = pixels[mirroredOffset + cellWidth - 1 - localX];
+                    if (sourcePixel.a != mirroredPixel.a
+                        || (sourcePixel.a > 0
+                            && (sourcePixel.r != mirroredPixel.r
+                                || sourcePixel.g != mirroredPixel.g
+                                || sourcePixel.b != mirroredPixel.b)))
+                    {
+                        mismatchedPixels++;
+                    }
+                }
+            }
+
+            if (mismatchedPixels > 0)
+            {
+                throw new InvalidOperationException($"{label}: expected exact horizontal mirrors, found {mismatchedPixels} mismatched pixels");
+            }
+        }
+
+        private static float AtlasCellVisibleCentroidX(
+            Texture2D texture,
+            int columns,
+            int rows,
+            int cell,
+            byte visibleAlphaThreshold)
+        {
+            AssertEqual(true, texture != null, "atlas loads for visible-centroid inspection");
+            AssertEqual(true, columns > 0 && rows > 0, "visible-centroid atlas grid is positive");
+            AssertEqual(0, texture.width % columns, "visible-centroid atlas width divides into whole cells");
+            AssertEqual(0, texture.height % rows, "visible-centroid atlas height divides into whole cells");
+            AssertEqual(true, cell >= 0 && cell < columns * rows, "visible-centroid cell index is in range");
+            AssertEqual(true, visibleAlphaThreshold > 0, "visible-centroid alpha threshold is positive");
+            int cellWidth = texture.width / columns;
+            int cellHeight = texture.height / rows;
+            int column = cell % columns;
+            int row = cell / columns;
+            Color32[] pixels = texture.GetPixels32();
+            long visible = 0;
+            long weightedX = 0;
+
+            for (int localY = 0; localY < cellHeight; localY++)
+            {
+                int topY = row * cellHeight + localY;
+                int pixelY = texture.height - 1 - topY;
+                int offset = pixelY * texture.width + column * cellWidth;
+                for (int localX = 0; localX < cellWidth; localX++)
+                {
+                    if (pixels[offset + localX].a < visibleAlphaThreshold) continue;
+                    visible++;
+                    weightedX += localX;
+                }
+            }
+
+            AssertEqual(true, visible > 0, "visible-centroid cell contains visible pixels");
+            return weightedX / (float)visible;
+        }
+
+        private static RectInt AtlasCellVisibleBounds(
+            Texture2D texture,
+            int columns,
+            int rows,
+            int cell,
+            byte visibleAlphaThreshold)
+        {
+            AssertEqual(true, texture != null, "atlas loads for visible-bounds inspection");
+            AssertEqual(true, columns > 0 && rows > 0, "visible-bounds atlas grid is positive");
+            AssertEqual(0, texture.width % columns, "visible-bounds atlas width divides into whole cells");
+            AssertEqual(0, texture.height % rows, "visible-bounds atlas height divides into whole cells");
+            AssertEqual(true, cell >= 0 && cell < columns * rows, "visible-bounds cell index is in range");
+
+            int cellWidth = texture.width / columns;
+            int cellHeight = texture.height / rows;
+            int column = cell % columns;
+            int row = cell / columns;
+            int minimumX = cellWidth;
+            int minimumY = cellHeight;
+            int maximumX = -1;
+            int maximumY = -1;
+            Color32[] pixels = texture.GetPixels32();
+
+            for (int localY = 0; localY < cellHeight; localY++)
+            {
+                int topY = row * cellHeight + localY;
+                int pixelY = texture.height - 1 - topY;
+                int offset = pixelY * texture.width + column * cellWidth;
+                for (int localX = 0; localX < cellWidth; localX++)
+                {
+                    if (pixels[offset + localX].a < visibleAlphaThreshold) continue;
+                    minimumX = Mathf.Min(minimumX, localX);
+                    minimumY = Mathf.Min(minimumY, localY);
+                    maximumX = Mathf.Max(maximumX, localX);
+                    maximumY = Mathf.Max(maximumY, localY);
+                }
+            }
+
+            return maximumX < minimumX || maximumY < minimumY
+                ? new RectInt(0, 0, 0, 0)
+                : new RectInt(
+                    minimumX,
+                    minimumY,
+                    maximumX - minimumX + 1,
+                    maximumY - minimumY + 1);
+        }
+
         private static void AssertAtlasCellSafeGutter(
             Texture2D texture,
             int columns,
@@ -1915,8 +2454,30 @@ namespace AshenHalls.Editor
 
             float localFill = 1f - 2f * ExplorationArtRules.PartyTokenPadding(false);
             float wideFill = 1f - 2f * ExplorationArtRules.PartyTokenPadding(true);
-            AssertEqual(true, localFill >= 0.74f && localFill <= 0.78f, "local party token occupies a strong readable tile area");
-            AssertEqual(true, wideFill >= 0.62f && wideFill <= 0.66f, "region party token remains readable without covering its tile");
+            AssertEqual(true, localFill >= 0.78f && localFill <= 0.82f, "local party token occupies a strong readable tile area");
+            AssertEqual(true, wideFill >= 0.80f && wideFill <= 0.84f, "region party token uses the compact silhouette's safe tile area");
+            AssertEqual(true, ExplorationArtRules.PartyRegionMarkerScale() >= 0.80f && ExplorationArtRules.PartyRegionMarkerScale() <= 0.84f, "region party marker remains legible at map scale");
+            AssertEqual(true, ExplorationArtRules.PartyRegionMarkerMinimumPixels() >= 22f, "region party marker retains a readable small-window floor");
+
+            AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(false, true) >= 0.76f && ExplorationArtRules.GateArtWidthInCells(false, true) <= 0.80f, "local side gate keeps a compact wall-aligned frame");
+            AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(false, false) >= 1.98f && ExplorationArtRules.GateArtWidthInCells(false, false) <= 2.06f, "local sealed gate width is bounded");
+            AssertEqual(true, ExplorationArtRules.GateArtHeightInCells(false, true) >= 1.66f && ExplorationArtRules.GateArtHeightInCells(false, true) <= 1.74f, "local side gate keeps its portrait height");
+            AssertEqual(true, ExplorationArtRules.GateArtHeightInCells(false, false) >= 1.54f && ExplorationArtRules.GateArtHeightInCells(false, false) <= 1.62f, "local sealed gate height is bounded");
+            AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(true, true) < ExplorationArtRules.GateArtWidthInCells(false, true), "region side gate footprint steps down cleanly");
+            AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(true, false) < ExplorationArtRules.GateArtWidthInCells(false, false), "region sealed gate footprint steps down cleanly");
+            AssertEqual(true, ExplorationArtRules.MidgaardWallBandThickness(false) >= 0.54f && ExplorationArtRules.MidgaardWallBandThickness(false) <= 0.58f, "local wall foundation remains substantial");
+            AssertEqual(true, ExplorationArtRules.MidgaardWallBandThickness(true) >= 0.50f && ExplorationArtRules.MidgaardWallBandThickness(true) <= 0.54f, "region wall foundation remains continuous");
+            AssertEqual(true, ExplorationArtRules.MidgaardWallVerticalBandThickness(false) >= 0.34f && ExplorationArtRules.MidgaardWallVerticalBandThickness(false) <= 0.38f, "local vertical wall foundation hugs the authored masonry");
+            AssertEqual(true, ExplorationArtRules.MidgaardWallVerticalBandThickness(true) >= 0.32f && ExplorationArtRules.MidgaardWallVerticalBandThickness(true) <= 0.36f, "region vertical wall foundation stays narrow and continuous");
+            AssertEqual(true, ExplorationArtRules.MidgaardWallVerticalBandThickness(false) < ExplorationArtRules.MidgaardWallBandThickness(false), "vertical wall foundation avoids broad side rails");
+            int[] wallConnections = { 10, 10, 5, 5, 12, 6, 3, 9, 10, 5 };
+            for (int wallCell = 0; wallCell < wallConnections.Length; wallCell++)
+            {
+                AssertEqual(
+                    wallConnections[wallCell],
+                    ExplorationArtRules.MidgaardWallConnectionMask(wallCell),
+                    "wall cell " + wallCell + " has the approved perimeter connection mask");
+            }
 
             AssertEqual(0, ExplorationArtRules.MaterialAtlasIndex(ExplorationMaterial.CityPaving), "material atlas city paving cell");
             AssertEqual(3, ExplorationArtRules.MaterialAtlasIndex(ExplorationMaterial.KeepStone), "material atlas keep stone cell");
@@ -1928,14 +2489,105 @@ namespace AshenHalls.Editor
             AssertEqual(3, ExplorationArtRules.MaterialAtlasVariantIndex(ExplorationMaterial.CityPaving, 3), "city paving exposes three additional variants");
             AssertEqual(60, ExplorationArtRules.MaterialAtlasVariantIndex(ExplorationMaterial.SewerBrick, 0), "approved sewer brick begins the final variant bank");
             AssertEqual(63, ExplorationArtRules.MaterialAtlasVariantIndex(ExplorationMaterial.SewerBrick, 3), "expanded material atlas ends at cell sixty-three");
-            AssertEqual(0, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 24), "preserved city foundation keeps one quarter of the distribution");
-            AssertEqual(1, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 25), "first v1.68 city variant begins the current-art majority");
-            AssertEqual(2, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 50), "second v1.68 city variant is evenly weighted");
-            AssertEqual(3, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 75), "third v1.68 city variant is evenly weighted");
+            AssertEqual(0, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 24), "first v1.92 city variant owns one quarter of the distribution");
+            AssertEqual(1, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 25), "second v1.92 city variant begins at the next quarter");
+            AssertEqual(2, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 50), "third v1.92 city variant is evenly weighted");
+            AssertEqual(3, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.CityPaving, 75), "fourth v1.92 city variant is evenly weighted");
             AssertEqual(0, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.NaturalGround, 24), "open natural ground retains its grassy foundation");
             AssertEqual(1, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.NaturalGround, 25), "new natural-ground variants own most visible cells");
             AssertEqual(1, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.Forest, 0), "forest avoids the bright open-ground variant");
             AssertEqual(3, ExplorationArtRules.MaterialAtlasVariant(ExplorationMaterial.Forest, 2), "all three forest-loam variants are reachable");
+            AssertEqual(
+                true,
+                ExplorationArtRules.ShouldBlendMaterialEdge(
+                    ExplorationMaterial.CityPaving,
+                    ExplorationMaterial.MarketCobbles,
+                    true,
+                    true,
+                    false),
+                "different passable material banks receive a feathered join");
+            AssertEqual(
+                false,
+                ExplorationArtRules.ShouldBlendMaterialEdge(
+                    ExplorationMaterial.CityPaving,
+                    ExplorationMaterial.CityPaving,
+                    true,
+                    true,
+                    false),
+                "one material bank never feathers against itself");
+            AssertEqual(
+                false,
+                ExplorationArtRules.ShouldBlendMaterialEdge(
+                    ExplorationMaterial.CityPaving,
+                    ExplorationMaterial.MarketCobbles,
+                    true,
+                    true,
+                    true),
+                "gate and threshold cells keep a crisp protected join");
+            AssertEqual(
+                false,
+                ExplorationArtRules.ShouldBlendMaterialEdge(
+                    ExplorationMaterial.CityPaving,
+                    ExplorationMaterial.MarketCobbles,
+                    true,
+                    false,
+                    false),
+                "passable material feathering never crosses a blocked boundary");
+            AssertEqual(3, ExplorationArtRules.MaterialBlendBandCount(), "material feather uses three restrained inward bands");
+            AssertEqual(
+                true,
+                ExplorationArtRules.MaterialBlendBandFraction(true) > ExplorationArtRules.MaterialBlendBandFraction(false),
+                "Region view gives material joins a slightly wider visual feather");
+            AssertEqual(
+                true,
+                ExplorationArtRules.MaterialBlendBandAlpha(0, true) > ExplorationArtRules.MaterialBlendBandAlpha(1, true)
+                    && ExplorationArtRules.MaterialBlendBandAlpha(1, true) > ExplorationArtRules.MaterialBlendBandAlpha(2, true),
+                "material feather opacity falls off toward the cell interior");
+            float blendFraction = ExplorationArtRules.MaterialBlendBandFraction(false);
+            AssertEqual(
+                true,
+                Math.Abs(
+                    ExplorationArtRules.MaterialBlendSourceStart(true, 0, blendFraction, false)
+                    - (1f - blendFraction)) < 0.0001f,
+                "an unflipped negative-axis neighbor samples its boundary-side source strip");
+            AssertEqual(
+                true,
+                Math.Abs(
+                    ExplorationArtRules.MaterialBlendSourceStart(false, 0, blendFraction, false))
+                    < 0.0001f,
+                "an unflipped positive-axis neighbor samples its boundary-side source strip");
+            AssertEqual(
+                true,
+                Math.Abs(
+                    ExplorationArtRules.MaterialBlendSourceStart(true, 0, blendFraction, true))
+                    < 0.0001f,
+                "a flipped negative-axis neighbor converts its logical boundary into source coordinates");
+            AssertEqual(
+                true,
+                Math.Abs(
+                    ExplorationArtRules.MaterialBlendSourceStart(false, 0, blendFraction, true)
+                    - (1f - blendFraction)) < 0.0001f,
+                "a flipped positive-axis neighbor converts its logical boundary into source coordinates");
+            AssertEqual(true, ExplorationArtRules.MaterialBlendDrawFlip(false), "an unflipped source strip reverses toward the shared edge");
+            AssertEqual(false, ExplorationArtRules.MaterialBlendDrawFlip(true), "an already flipped source strip reverses back toward the shared edge");
+            AssertEqual(
+                false,
+                ExplorationArtRules.ShouldDrawMaterialPathStroke(
+                    ExplorationMaterial.PackedDirt,
+                    ExplorationCellRole.Road | ExplorationCellRole.Plaza),
+                "packed-dirt approach plazas suppress their inherited per-cell road grid");
+            AssertEqual(
+                true,
+                ExplorationArtRules.ShouldDrawMaterialPathStroke(
+                    ExplorationMaterial.PackedDirt,
+                    ExplorationCellRole.Road),
+                "ordinary packed-dirt road cells retain their route stroke");
+            AssertEqual(
+                true,
+                ExplorationArtRules.ShouldDrawMaterialPathStroke(
+                    ExplorationMaterial.CityPaving,
+                    ExplorationCellRole.Road | ExplorationCellRole.Plaza),
+                "city plaza roads retain their deliberate street connection");
 
             AssertEqual(0, ExplorationArtRules.WorldMapTileIndex(1, "road", 80, false), "road maps to detailed road tile");
             AssertEqual(13, ExplorationArtRules.WorldMapTileIndex(1, "road", 80, true), "connected road junction maps to intersection art");
@@ -2048,6 +2700,18 @@ namespace AshenHalls.Editor
                     AssertEqual(true, buttons[3].xMin - buttons[2].xMax > buttons[2].xMin - buttons[1].xMax, $"targeted and instant command groups stay visually separated at {size.x}x{size.y}");
                     AssertEqual(promoteEndTurn, buttons[5].width > buttons[4].width, $"end turn width promotion is intentional at {size.x}x{size.y}");
                 }
+                foreach (int commandCount in new[] { 0, 1, 4, 6 })
+                {
+                    Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, commandCount, false);
+                    AssertEqual(commandCount, buttons.Length, $"combat command geometry follows the rendered model count ({commandCount})");
+                    foreach (Rect button in buttons)
+                    {
+                        AssertEqual(
+                            true,
+                            button.xMin >= 0f && button.yMin >= 0f && button.xMax <= geometry.Command.width && button.yMax <= geometry.Command.height,
+                            $"data-driven combat command button fits {size.x}x{size.y} count={commandCount}");
+                    }
+                }
                 foreach (bool showUndoMove in new[] { false, true })
                 foreach (bool showCancelTarget in new[] { false, true })
                 {
@@ -2134,9 +2798,64 @@ namespace AshenHalls.Editor
                 AssertEqual(true, geometry.CloseButton.width >= 200f && geometry.CloseButton.height >= 40f, $"combat ability modal Back/Esc control is readable at {size.x}x{size.y}");
                 AssertEqual(true, geometry.Filters.height >= 40f && geometry.Filters.width == geometry.List.width, $"combat ability modal filters align to the list with a full control-height target at {size.x}x{size.y}");
                 AssertEqual(true, geometry.List.width >= 540f && geometry.Detail.width >= 400f, $"combat ability modal keeps useful list and detail measures at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Detail.width >= geometry.List.width * 0.70f, $"combat ability modal gives the selected power a useful reading measure at {size.x}x{size.y}");
                 AssertEqual(true, geometry.CloseButton.height >= 40f, $"combat ability modal close control keeps a full-height target at {size.x}x{size.y}");
                 AssertEqual(true, geometry.Footer.yMin >= geometry.List.yMax && geometry.Footer.yMin >= geometry.Detail.yMax, $"combat ability modal footer stays below both columns at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Footer.width >= geometry.List.width + geometry.Detail.width, $"combat ability modal footer spans the complete book at {size.x}x{size.y}");
+
+                float rowHeight = CombatAbilityModalListRules.RowHeight(size.y);
+                float rowGap = CombatAbilityModalListRules.RowGap(size.y);
+                float viewportHeight = geometry.List.height - 14f;
+                float sixRowContent = CombatAbilityModalListRules.ContentHeight(
+                    6,
+                    rowHeight,
+                    rowGap,
+                    viewportHeight);
+                AssertEqual(
+                    true,
+                    6f * (rowHeight + rowGap) + CombatAbilityModalListRules.ContentPadding <= viewportHeight,
+                    $"combat ability modal fully fits six rows without clipping at {size.x}x{size.y}");
+                AssertEqual(
+                    "1–6 OF 6",
+                    CombatAbilityModalListRules.ScrollLabel(
+                        6,
+                        rowHeight,
+                        rowGap,
+                        viewportHeight,
+                        sixRowContent,
+                        0f),
+                    $"combat ability modal reports a truthful unscrolled six-row range at {size.x}x{size.y}");
             }
+
+            CombatAbilityModalGeometry minimumGeometry = CombatAbilityModalLayout.Calculate(1280, 720);
+            float minimumViewport = minimumGeometry.List.height - 14f;
+            float minimumRowHeight = CombatAbilityModalListRules.RowHeight(720f);
+            float minimumRowGap = CombatAbilityModalListRules.RowGap(720f);
+            float longContent = CombatAbilityModalListRules.ContentHeight(
+                18,
+                minimumRowHeight,
+                minimumRowGap,
+                minimumViewport);
+            AssertEqual(
+                "1–6 OF 18  ↓",
+                CombatAbilityModalListRules.ScrollLabel(
+                    18,
+                    minimumRowHeight,
+                    minimumRowGap,
+                    minimumViewport,
+                    longContent,
+                    0f),
+                "combat ability modal top range counts only fully visible 720p rows and advertises content below");
+            AssertEqual(
+                "13–18 OF 18  ↑",
+                CombatAbilityModalListRules.ScrollLabel(
+                    18,
+                    minimumRowHeight,
+                    minimumRowGap,
+                    minimumViewport,
+                    longContent,
+                    longContent - minimumViewport),
+                "combat ability modal bottom range counts only fully visible 720p rows and advertises content above");
         }
 
         private static void CombatAbilityModalCardsExposeArtIdentity()
@@ -2157,19 +2876,37 @@ namespace AshenHalls.Editor
             AssertEqual(true, typeof(CombatAbilityModalView).GetField("ContextKey") != null, "ability modal scroll context distinguishes picker and combatant");
             AssertEqual(true, typeof(CombatAbilityModalView).GetField("Actor") != null, "ability modal structured actor header contract");
             AssertEqual(true, typeof(CombatAbilityModalView).GetField("Resource") != null, "ability modal structured resource header contract");
+            AssertEqual(true, typeof(CombatAbilityModalView).GetField("StateIconTexture") != null, "ability modal exposes the optional power-book state atlas");
             AssertEqual(true, typeof(CombatAbilityModalBindings).GetField("PreviewCard") != null, "ability modal hover/focus preview binding contract");
 
             CombatAbilityModalCardView targeted = new CombatAbilityModalCardView
             {
                 Id = "targeted",
+                Kind = "Ember formula",
+                Tier = "starter",
+                Impact = "Single target",
+                ResourceAfter = "7 MP after",
+                Target = "enemy",
                 Targeted = true,
                 TargetCountKnown = true,
                 ValidTargetCount = 2,
                 Usable = true,
                 RowSummary = "Shock one enemy.",
-                CurrentEffect = "12-16 shock damage."
+                CurrentEffect = "12-16 shock damage.",
+                Detail = "CASTING RULES\nRequires sight.\n\nFORMULA NOTE\nDo not waste the opening."
+            };
+            CombatAbilityModalCardView skillDetail = new CombatAbilityModalCardView
+            {
+                Detail = "CURRENT EFFECT\n12 physical damage.\n\nTACTICS\nUse after the target is marked."
             };
             CombatAbilityModalCardView instant = new CombatAbilityModalCardView { Id = "instant", Targeted = false, Usable = true };
+            CombatAbilityModalCardView whirlwind = new CombatAbilityModalCardView
+            {
+                Id = "whirlwind",
+                Targeted = false,
+                Usable = true,
+                Impact = "Adjacent enemies"
+            };
             CombatAbilityModalCardView ready = new CombatAbilityModalCardView
             {
                 Id = "ready",
@@ -2179,7 +2916,14 @@ namespace AshenHalls.Editor
                 Usable = true,
                 Ready = true
             };
-            CombatAbilityModalCardView locked = new CombatAbilityModalCardView { Id = "locked", Locked = true, UnlockLevel = 4 };
+            CombatAbilityModalCardView locked = new CombatAbilityModalCardView
+            {
+                Id = "locked",
+                Locked = true,
+                UnlockLevel = 4,
+                Cost = "13 MP",
+                Range = "Range 7"
+            };
             CombatAbilityModalCardView noTarget = new CombatAbilityModalCardView
             {
                 Id = "no-target",
@@ -2202,28 +2946,113 @@ namespace AshenHalls.Editor
                 Usable = false,
                 DisabledReason = "Needs 1 more MP (4/5)."
             };
+            CombatAbilityModalCardView actionUsed = new CombatAbilityModalCardView
+            {
+                Id = "action-used",
+                Usable = false,
+                DisabledReason = "Action already used."
+            };
+            CombatAbilityModalCardView disabled = new CombatAbilityModalCardView
+            {
+                Id = "disabled",
+                Ready = true,
+                Targeted = true,
+                TargetCountKnown = true,
+                ValidTargetCount = 0,
+                Usable = false,
+                DisabledReason = "Stunned for 2 more turns."
+            };
+            CombatAbilityModalCardView blocked = new CombatAbilityModalCardView
+            {
+                Id = "blocked",
+                Usable = false,
+                DisabledReason = "Combat resolution pending."
+            };
+            CombatAbilityModalCardView readyWithoutTarget = new CombatAbilityModalCardView
+            {
+                Id = "ready-without-target",
+                Ready = true,
+                Targeted = true,
+                TargetCountKnown = true,
+                ValidTargetCount = 0,
+                Usable = true,
+                TacticalNote = "Step back into line of sight."
+            };
             AssertEqual("Choose Target", CombatAbilityModalPresentationRules.CardActionLabel(targeted), "targeted modal card uses an explicit action verb");
             AssertEqual("Use Now", CombatAbilityModalPresentationRules.CardActionLabel(instant), "instant modal card uses an explicit action verb");
-            AssertEqual("Return to Target", CombatAbilityModalPresentationRules.CardActionLabel(ready), "armed modal card returns to battlefield targeting");
+            AssertEqual("Resume Targeting", CombatAbilityModalPresentationRules.CardActionLabel(ready), "armed modal card resumes battlefield targeting");
             AssertEqual("Unlocks at Level 4", CombatAbilityModalPresentationRules.CardActionLabel(locked), "locked modal card names its unlock level");
-            AssertEqual("No Target in Range", CombatAbilityModalPresentationRules.CardActionLabel(noTarget), "zero-target card blocks preparation honestly");
+            AssertEqual("LOCKED", CombatAbilityModalPresentationRules.AvailabilityLabel(locked), "locked cards use familiar plain language");
+            AssertEqual("No Legal Target", CombatAbilityModalPresentationRules.CardActionLabel(noTarget), "zero-target card blocks preparation without assuming range is the cause");
+            AssertEqual("NO TARGET", CombatAbilityModalPresentationRules.AvailabilityLabel(noTarget), "zero-target badge avoids prescribing the wrong remedy");
             AssertEqual("Needs 3 more MP (2/5)", CombatAbilityModalPresentationRules.CardActionLabel(lowMana), "short resource deficit remains explicit on the primary action");
-            AssertEqual("Back to Board  [Esc]", CombatAbilityModalPresentationRules.BackButtonLabel(new[] { targeted }), "ordinary modal back control names the board and shortcut");
-            AssertEqual("Return to Target  [Esc]", CombatAbilityModalPresentationRules.BackButtonLabel(new[] { ready }), "armed modal back control names the pending target");
+            AssertEqual(CombatAbilityModalBookState.Unavailable, CombatAbilityModalPresentationRules.ResolveBookState(null), "missing cards resolve to the typed unavailable state");
+            AssertEqual(CombatAbilityModalBookState.ReadyNow, CombatAbilityModalPresentationRules.ResolveBookState(targeted), "ordinary legal powers resolve to ready-now");
+            AssertEqual(CombatAbilityModalBookState.Targeting, CombatAbilityModalPresentationRules.ResolveBookState(ready), "armed powers resolve to targeting");
+            AssertEqual(CombatAbilityModalBookState.Locked, CombatAbilityModalPresentationRules.ResolveBookState(locked), "future powers resolve to locked");
+            AssertEqual(CombatAbilityModalBookState.LowResource, CombatAbilityModalPresentationRules.ResolveBookState(lowMana), "mana deficits resolve to low-resource");
+            AssertEqual(CombatAbilityModalBookState.NoTarget, CombatAbilityModalPresentationRules.ResolveBookState(noTarget), "empty target sets resolve to no-target");
+            AssertEqual(CombatAbilityModalBookState.ActionUsed, CombatAbilityModalPresentationRules.ResolveBookState(actionUsed), "spent turns resolve to action-used");
+            AssertEqual(CombatAbilityModalBookState.Disabled, CombatAbilityModalPresentationRules.ResolveBookState(disabled), "incapacitation resolves to disabled before stale targeting");
+            AssertEqual(CombatAbilityModalBookState.Blocked, CombatAbilityModalPresentationRules.ResolveBookState(blocked), "other global gates resolve to blocked");
+            AssertEqual(CombatIconCatalog.BookStateBlockedIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.Unavailable), "unavailable state uses the blocked fallback microicon");
+            AssertEqual(CombatIconCatalog.BookStateSelectionIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.ReadyNow), "ready-now selection uses the committed selector microicon");
+            AssertEqual(CombatIconCatalog.BookStateTargetingIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.Targeting), "targeting uses the targeting microicon");
+            AssertEqual(CombatIconCatalog.BookStateLockedIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.Locked), "locked uses the locked microicon");
+            AssertEqual(CombatIconCatalog.BookStateLowResourceIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.LowResource), "low-resource uses the low-resource microicon");
+            AssertEqual(CombatIconCatalog.BookStateNoTargetIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.NoTarget), "no-target uses the no-target microicon");
+            AssertEqual(CombatIconCatalog.BookStateActionUsedIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.ActionUsed), "action-used uses the action-used microicon");
+            AssertEqual(CombatIconCatalog.BookStateDisabledIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.Disabled), "disabled uses the disabled microicon");
+            AssertEqual(CombatIconCatalog.BookStateBlockedIndex, CombatAbilityModalPresentationRules.BookStateIconIndex(CombatAbilityModalBookState.Blocked), "blocked uses the blocked microicon");
+            AssertEqual("Back to Battle  [Esc]", CombatAbilityModalPresentationRules.BackButtonLabel(new[] { targeted }), "ordinary modal back control names the destination and shortcut");
+            AssertEqual("Back to Battle  [Esc]", CombatAbilityModalPresentationRules.BackButtonLabel(new[] { ready }), "armed and ordinary views keep one invariant exit");
             AssertEqual("", CombatAbilityModalPresentationRules.DetailPrompt(targeted), "Choose Target CTA does not repeat itself in the detail pane");
             AssertEqual("Move closer.", CombatAbilityModalPresentationRules.DetailPrompt(noTarget), "zero-target detail publishes its tactical remedy");
             AssertEqual("Shock one enemy.", targeted.RowSummary, "power row keeps one concise tactical summary");
             AssertEqual("12-16 shock damage.", targeted.CurrentEffect, "selected power exposes only its live resolved effect");
+            AssertEqual(
+                "Ember formula  •  Starter tier  •  Single target  •  7 MP after",
+                CombatAbilityModalPresentationRules.DetailMeta(targeted),
+                "selected power detail exposes identity, tier, footprint, and projected resource");
+            AssertEqual(
+                "Do not waste the opening.",
+                CombatAbilityModalPresentationRules.DetailNotes(targeted),
+                "formula detail keeps authored guidance without duplicating the structured casting profile");
+            AssertEqual(
+                "Use after the target is marked.",
+                CombatAbilityModalPresentationRules.DetailNotes(skillDetail),
+                "skill detail removes the repeated live-effect section");
             AssertEqual(true, CombatAbilityModalPresentationRules.CanActivate(targeted), "legal targeted power can activate");
             AssertEqual(true, CombatAbilityModalPresentationRules.CanActivate(instant), "usable instant power can activate");
             AssertEqual(false, CombatAbilityModalPresentationRules.CanActivate(noTarget), "targeted power with no current mark cannot activate");
             AssertEqual(false, CombatAbilityModalPresentationRules.CanActivate(lowMana), "unaffordable power cannot activate");
             AssertEqual(false, CombatAbilityModalPresentationRules.CanActivate(locked), "future power cannot activate");
-            AssertEqual(true, CombatAbilityModalPresentationRules.CanActivate(ready), "already armed power can always return to its target step");
+            AssertEqual(true, CombatAbilityModalPresentationRules.CanActivate(ready), "already armed power with a live target can return to its target step");
             AssertEqual(false, CombatAbilityModalPresentationRules.CanActivate(staleReady), "an armed power that lost affordability cannot masquerade as actionable targeting");
             AssertEqual("Needs 1 more MP (4/5)", CombatAbilityModalPresentationRules.CardActionLabel(staleReady), "stale armed power exposes its new blocking requirement");
-            AssertEqual("2 legal targets", CombatAbilityModalPresentationRules.TargetCountLabel(targeted), "target count is explicit");
+            AssertEqual(false, CombatAbilityModalPresentationRules.CanActivate(readyWithoutTarget), "armed targeting cannot bypass a newly empty legal-target set");
+            AssertEqual("No Legal Target", CombatAbilityModalPresentationRules.CardActionLabel(readyWithoutTarget), "armed zero-target card exposes the actual blocker");
+            AssertEqual("NO TARGET", CombatAbilityModalPresentationRules.AvailabilityLabel(readyWithoutTarget), "armed zero-target card does not retain a false targeting badge");
+            AssertEqual("Step back into line of sight.", CombatAbilityModalPresentationRules.DetailPrompt(readyWithoutTarget), "armed zero-target detail publishes its tactical remedy");
+            AssertEqual("Back to Battle  [Esc]", CombatAbilityModalPresentationRules.BackButtonLabel(new[] { readyWithoutTarget }), "dead armed targeting keeps the standard exit");
+            AssertEqual("2 legal enemies", CombatAbilityModalPresentationRules.TargetCountLabel(targeted), "target count names the legal target type");
             AssertEqual("Immediate", CombatAbilityModalPresentationRules.TargetCountLabel(instant), "instant power avoids a fake target count");
+            AssertEqual("Adjacent enemies", CombatAbilityModalPresentationRules.TargetCountLabel(whirlwind), "untargeted area skills describe their real footprint");
+            AssertEqual(
+                "Unlocks L4  •  13 MP  •  Range 7",
+                CombatAbilityModalPresentationRules.RowMeta(locked),
+                "locked modal rows expose their distinct unlock level beside ordinary cost and reach facts");
+            AssertEqual(
+                "",
+                CombatAbilityModalPresentationRules.RowMeta(null),
+                "missing modal rows do not publish placeholder progression metadata");
+            AssertEqual(false, CombatAbilityModalPresentationRules.ShouldShowRowBadge(targeted, CombatAbilityModalFilter.All, "ACTION READY"), "ordinary usable rows stay visually quiet");
+            AssertEqual(true, CombatAbilityModalPresentationRules.ShouldShowRowBadge(ready, CombatAbilityModalFilter.Ready, "ACTION READY"), "the one armed power keeps its targeting badge");
+            AssertEqual(true, CombatAbilityModalPresentationRules.ShouldShowRowBadge(noTarget, CombatAbilityModalFilter.Learned, "ACTION READY"), "card-specific no-target state remains visible");
+            AssertEqual(true, CombatAbilityModalPresentationRules.ShouldShowRowBadge(lowMana, CombatAbilityModalFilter.Learned, "ACTION READY"), "card-specific low-resource state remains visible");
+            AssertEqual(true, CombatAbilityModalPresentationRules.ShouldShowRowBadge(locked, CombatAbilityModalFilter.All, "ACTION READY"), "All view labels locked cards");
+            AssertEqual(false, CombatAbilityModalPresentationRules.ShouldShowRowBadge(locked, CombatAbilityModalFilter.Future, "ACTION READY"), "Locked view does not repeat LOCKED on every row");
+            AssertEqual(false, CombatAbilityModalPresentationRules.ShouldShowRowBadge(actionUsed, CombatAbilityModalFilter.Learned, "ACTION USED"), "global action-used state does not repeat on every row");
 
             CombatAbilityModalCardView[] cards = { targeted, instant, ready, locked, noTarget, lowMana };
             AssertEqual(6, CombatAbilityModalPresentationRules.Count(cards, CombatAbilityModalFilter.All), "All filter retains complete book");
@@ -2232,6 +3061,144 @@ namespace AshenHalls.Editor
             AssertEqual(1, CombatAbilityModalPresentationRules.Count(cards, CombatAbilityModalFilter.Future), "Future filter isolates progression");
             AssertEqual(CombatAbilityModalFilter.Ready, CombatAbilityModalPresentationRules.InitialFilter(cards), "combat picker opens on action-ready choices");
             AssertEqual(false, ready.Selected, "armed state remains separate from browse selection");
+            AssertEqual("[1]  READY  3", CombatAbilityModalPresentationRules.FilterLabel(CombatAbilityModalFilter.Ready, cards), "Ready filter advertises key 1 and its count");
+            AssertEqual("[2]  KNOWN  5", CombatAbilityModalPresentationRules.FilterLabel(CombatAbilityModalFilter.Learned, cards), "Known filter advertises key 2 and its count");
+            AssertEqual("[3]  LOCKED  1", CombatAbilityModalPresentationRules.FilterLabel(CombatAbilityModalFilter.Future, cards), "Locked filter advertises key 3 and its count");
+            AssertEqual("[4]  ALL  6", CombatAbilityModalPresentationRules.FilterLabel(CombatAbilityModalFilter.All, cards), "All filter advertises key 4 and its count");
+            AssertEqual(
+                "Back to Battle  [Esc]",
+                CombatAbilityModalPresentationRules.BackButtonLabel(new[] { staleReady }),
+                "stale armed power keeps the standard battle exit");
+            AssertEqual(true, CombatAbilityModalDetailScrollRules.ApplyAxis(0.5f, 1f, 0.1f) > 0.5f, "right-stick detail input scrolls without changing row focus");
+            AssertEqual(0.5f, CombatAbilityModalDetailScrollRules.ApplyAxis(0.5f, 0.1f, 0.1f), "right-stick dead zone prevents detail drift");
+            AssertEqual(1f, CombatAbilityModalDetailScrollRules.ApplyPage(0.9f, 1), "detail Page Up clamps at the top");
+            AssertEqual(0f, CombatAbilityModalDetailScrollRules.ApplyPage(0.1f, -1), "detail Page Down clamps at the bottom");
+        }
+
+        private static void CombatAbilityModalNavigationRepeatsPredictably()
+        {
+            CombatAbilityModalNavigationStep neutral =
+                CombatAbilityModalNavigationRules.SeedVertical(0f, 10f);
+            AssertEqual(0, neutral.Direction, "neutral book input does not move");
+            AssertEqual(0, neutral.HeldDirection, "neutral book input does not retain a direction");
+            AssertEqual(0f, neutral.NextRepeatAt, "neutral book input has no repeat deadline");
+
+            CombatAbilityModalNavigationStep heldAtOpen =
+                CombatAbilityModalNavigationRules.SeedVertical(1f, 10f);
+            AssertEqual(0, heldAtOpen.Direction, "held input at book open does not jump the initial selection");
+            AssertEqual(-1, heldAtOpen.HeldDirection, "positive vertical input maps to the previous row");
+            AssertEqual(
+                10f + CombatAbilityModalNavigationRules.InitialRepeatDelay,
+                heldAtOpen.NextRepeatAt,
+                "held input at book open receives the normal initial repeat delay");
+
+            CombatAbilityModalNavigationStep beforeDelay =
+                CombatAbilityModalNavigationRules.ResolveVertical(
+                    1f,
+                    heldAtOpen.HeldDirection,
+                    heldAtOpen.NextRepeatAt,
+                    10.2f);
+            AssertEqual(0, beforeDelay.Direction, "held input waits through the initial repeat delay");
+
+            CombatAbilityModalNavigationStep repeated =
+                CombatAbilityModalNavigationRules.ResolveVertical(
+                    1f,
+                    beforeDelay.HeldDirection,
+                    beforeDelay.NextRepeatAt,
+                    heldAtOpen.NextRepeatAt);
+            AssertEqual(-1, repeated.Direction, "held input repeats toward the previous row");
+            AssertEqual(
+                heldAtOpen.NextRepeatAt + CombatAbilityModalNavigationRules.RepeatInterval,
+                repeated.NextRepeatAt,
+                "held input switches to the faster repeat interval");
+
+            CombatAbilityModalNavigationStep reversed =
+                CombatAbilityModalNavigationRules.ResolveVertical(
+                    -1f,
+                    repeated.HeldDirection,
+                    repeated.NextRepeatAt,
+                    11f);
+            AssertEqual(1, reversed.Direction, "reversing the stick immediately moves toward the next row");
+            AssertEqual(1, reversed.HeldDirection, "reversing the stick replaces the held direction");
+
+            CombatAbilityModalNavigationStep released =
+                CombatAbilityModalNavigationRules.ResolveVertical(
+                    0f,
+                    reversed.HeldDirection,
+                    reversed.NextRepeatAt,
+                    11.1f);
+            AssertEqual(0, released.Direction, "releasing the stick does not move");
+            AssertEqual(0, released.HeldDirection, "releasing the stick resets repeat state");
+            AssertEqual(0f, released.NextRepeatAt, "releasing the stick clears the repeat deadline");
+
+            CombatAbilityModalNavigationStep freshPress =
+                CombatAbilityModalNavigationRules.ResolveVertical(1f, 0, 0f, 12f);
+            AssertEqual(-1, freshPress.Direction, "a fresh press still moves exactly once immediately");
+        }
+
+        private static void CombatTargetHighlightsRequireAnArmedPower()
+        {
+            AssertEqual(
+                true,
+                CombatTargetingRules.ShouldDrawTargetHighlights(ActionMode.Attack, false, false),
+                "ordinary weapon targeting keeps its board highlights");
+            AssertEqual(
+                false,
+                CombatTargetingRules.ShouldDrawTargetHighlights(ActionMode.Cast, false, false),
+                "opening the Spellbook cannot paint ghost cast targets before a formula is armed");
+            AssertEqual(
+                true,
+                CombatTargetingRules.ShouldDrawTargetHighlights(ActionMode.Cast, true, false),
+                "an armed resolved formula owns cast target highlights");
+            AssertEqual(
+                false,
+                CombatTargetingRules.ShouldDrawTargetHighlights(ActionMode.Ability, false, false),
+                "opening the Skillbook cannot paint ghost skill targets before a skill is armed");
+            AssertEqual(
+                true,
+                CombatTargetingRules.ShouldDrawTargetHighlights(ActionMode.Ability, false, true),
+                "an armed resolved skill owns ability target highlights");
+            AssertEqual(
+                false,
+                CombatTargetingRules.ShouldDrawTargetHighlights(ActionMode.Move, true, true),
+                "non-targeting modes ignore stale power references");
+            AssertEqual(
+                true,
+                CombatTargetingRules.RoutesUnitPreviewToSideRail(ActionMode.Attack, true),
+                "unit attack previews use the persistent target rail instead of covering the board");
+            AssertEqual(
+                true,
+                CombatTargetingRules.RoutesUnitPreviewToSideRail(ActionMode.Cast, true),
+                "unit spell previews use the persistent target rail instead of covering the board");
+            AssertEqual(
+                false,
+                CombatTargetingRules.RoutesUnitPreviewToSideRail(ActionMode.Move, true),
+                "movement keeps its destination tooltip");
+            AssertEqual(
+                false,
+                CombatTargetingRules.RoutesUnitPreviewToSideRail(ActionMode.Cast, false),
+                "tile-targeted powers keep their necessary board tooltip");
+            Rect tooltipBoard = new Rect(0f, 0f, 800f, 480f);
+            Rect tooltipDecision = new Rect(350f, 200f, 80f, 80f);
+            List<Rect> tooltipBlockers = new List<Rect>
+            {
+                new Rect(8f, 8f, 320f, 100f),
+                new Rect(8f, 372f, 320f, 100f),
+                new Rect(472f, 372f, 320f, 100f)
+            };
+            Rect placedTooltip = CombatTargetingRules.PlaceBoardTooltip(
+                tooltipBoard,
+                tooltipDecision,
+                tooltipDecision.center,
+                320f,
+                100f,
+                tooltipBlockers);
+            AssertEqual(true, placedTooltip.xMin >= tooltipBoard.xMin
+                && placedTooltip.yMin >= tooltipBoard.yMin
+                && placedTooltip.xMax <= tooltipBoard.xMax
+                && placedTooltip.yMax <= tooltipBoard.yMax, "combat board tooltip remains inside the tactical map");
+            AssertEqual(true, placedTooltip.xMin > tooltipDecision.xMax
+                && placedTooltip.yMin < tooltipDecision.yMin, "combat board tooltip selects the unobstructed corner away from the decision and combatants");
         }
 
         private static void AdvancedCasterProgressionPowersAreExplicit()
@@ -2669,6 +3636,10 @@ namespace AshenHalls.Editor
             AssertEqual(true, CombatFieldPresentationRules.UsesPropSprite("tree"), "cover retains one foreground prop");
             AssertEqual(false, CombatFieldPresentationRules.UsesAlwaysOnTacticalFrame("stone"), "cover no longer carries an always-on tactical card");
             AssertEqual(false, CombatFieldPresentationRules.UsesAlwaysOnTacticalFrame("demonrift"), "ritual ground art replaces the old always-on tactical frame");
+            AssertEqual("3R", CombatFieldPresentationRules.DurationBadgeLabel(3), "persistent field countdown names its round unit");
+            AssertEqual("", CombatFieldPresentationRules.DurationBadgeLabel(0), "permanent terrain has no countdown badge");
+            AssertEqual(true, CombatFieldPresentationRules.DurationBadgeUrgent(1), "last-round field countdown receives urgency treatment");
+            AssertEqual(false, CombatFieldPresentationRules.DurationBadgeUrgent(2), "multi-round field countdown stays informational");
             AssertEqual(fields.Length, profiles.Select(profile => profile.ActivationSfx).Distinct().Count(), "each tactical field has a distinct activation cue");
             foreach (CombatFieldPresentationProfile profile in profiles)
             {
@@ -2722,6 +3693,10 @@ namespace AshenHalls.Editor
             AssertEqual("ambforge", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.Armorer), "armorer district uses forge ambience");
             AssertEqual("ambgate", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.EastGate), "city gate uses chain ambience");
             AssertEqual("ambmarket", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.MarketClerk), "market district uses crowd ambience");
+            AssertEqual("ambmarket", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.DinerCook), "Kate retains warm market-lane ambience");
+            AssertEqual("ambmarket", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.Provisioner), "Lute retains provision-market ambience");
+            AssertEqual("ambdrip", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.DockWorker), "south-quarter worker carries the wet works ambience");
+            AssertEqual("ambcity", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.Scholar), "keep scholar uses restrained city ambience instead of market crowds");
             AssertEqual("ambdrip", GameAudioCueRules.AmbientFor("salt-cisterns", null), "cisterns use water ambience");
             AssertEqual("ambdrum", GameAudioCueRules.AmbientFor("dusk-market", null), "Dusk Market uses distant drums");
             AssertEqual("ambstone", GameAudioCueRules.AmbientFor("old-quarry", null), "Old Quarry uses stone ambience");
@@ -2756,6 +3731,10 @@ namespace AshenHalls.Editor
             AssertEqual(MusicDirectorRules.MidgaardGateWatch, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.EastGate, true, false), "Midgaard gates receive a watch score");
             AssertEqual(MusicDirectorRules.MidgaardCisternMouth, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.Sewer, true, false), "sewer approach receives a threshold score");
             AssertEqual(MusicDirectorRules.MidgaardRoyalApproach, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.KingHall, true, false), "King's Hall approach receives a processional score");
+            AssertEqual(MusicDirectorRules.MidgaardTavernLane, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.DinerCook, true, false), "Kate's live contact retains Tavern Lane music");
+            AssertEqual(MusicDirectorRules.MidgaardMarket, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.Provisioner, true, false), "Lute's live contact retains market music");
+            AssertEqual(MusicDirectorRules.MidgaardGateWatch, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.DockWorker, true, false), "south-quarter worker follows the gate-watch score");
+            AssertEqual(MusicDirectorRules.MidgaardRoyalApproach, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.Scholar, true, false), "keep scholar follows the royal-approach score");
             AssertEqual("midgaard-throne-room", MusicDirectorRules.ExploreTrackKey("midgaard-throne-room", ObjectType.KingHalvard, true, false), "throne-room score is not overridden by its NPC");
             AssertEqual(MusicDirectorRules.MidgaardRoad, MusicDirectorRules.ExploreTrackKey("midgaard-road", ObjectType.Waystone, true, false), "safe approach retains its own road score");
             AssertEqual(MusicDirectorRules.RoadsideRest, MusicDirectorRules.ExploreTrackKey("old-quarry", ObjectType.Camp, true, false), "roadside camp receives a rest score");
@@ -3178,6 +4157,12 @@ namespace AshenHalls.Editor
             AssertEqual(true, pages.All(page => !string.IsNullOrWhiteSpace(page) && page.Length <= 180), "dialogue beats stay within the hard reading limit");
             AssertEqual(longSpeech, string.Join(" ", pages), "dialogue paging preserves authored text");
 
+            AssertEqual(62, (int)ObjectType.MerchantCounter, "serialized object enum preserves the pre-contact append point");
+            AssertEqual(63, (int)ObjectType.DinerCook, "serialized Kate contact id is append-only");
+            AssertEqual(64, (int)ObjectType.Provisioner, "serialized Lute contact id is append-only");
+            AssertEqual(65, (int)ObjectType.DockWorker, "serialized dock-worker contact id is append-only");
+            AssertEqual(66, (int)ObjectType.Scholar, "serialized scholar contact id is append-only");
+
             AssertEqual(0, NpcPortraitCatalog.PortraitIndex(ObjectType.KingHall, "King Halvard"), "king uses royal portrait");
             AssertEqual(1, NpcPortraitCatalog.PortraitIndex(ObjectType.RoyalHerald, "Herald Vann"), "herald is visually distinct from the king");
             AssertEqual(3, NpcPortraitCatalog.PortraitIndex(ObjectType.TownGuard, "Watchman Rusk"), "west watch uses Rusk portrait");
@@ -3208,7 +4193,9 @@ namespace AshenHalls.Editor
                 { "Tessa", 14 },
                 { "Maud", 15 },
                 { "Yara", 16 },
-                { "Lute", 17 }
+                { "Lute", 17 },
+                { "Dock Worker", 18 },
+                { "Midgaard Scholar", 19 }
             };
             foreach (KeyValuePair<string, int> speaker in namedSpeakers)
             {
@@ -3236,11 +4223,60 @@ namespace AshenHalls.Editor
                 { ObjectType.StableHand, 15 },
                 { ObjectType.RoyalHerald, 16 },
                 { ObjectType.NoviceHealer, 17 },
-                { ObjectType.OldRoadScout, 18 }
+                { ObjectType.OldRoadScout, 18 },
+                { ObjectType.DinerCook, 10 },
+                { ObjectType.Provisioner, 11 },
+                { ObjectType.DockWorker, 14 },
+                { ObjectType.Scholar, 19 }
             };
             foreach (KeyValuePair<ObjectType, int> sprite in worldSprites)
             {
                 AssertEqual(sprite.Value, NpcPortraitCatalog.WorldSpriteIndex(sprite.Key, false), sprite.Key + " world-sprite identity");
+            }
+            Dictionary<NpcId, int> namedWorldSprites = new Dictionary<NpcId, int>
+            {
+                { NpcId.WatchmanRusk, 0 },
+                { NpcId.WatchwomanIlyra, 1 },
+                { NpcId.KingHalvard, 2 },
+                { NpcId.Nessa, 3 },
+                { NpcId.Mira, 4 },
+                { NpcId.Orren, 5 },
+                { NpcId.Borin, 6 },
+                { NpcId.Tessa, 7 },
+                { NpcId.CaptainBrann, 8 },
+                { NpcId.Maud, 9 },
+                { NpcId.Kate, 10 },
+                { NpcId.Lute, 11 },
+                { NpcId.Tovan, 12 },
+                { NpcId.Edda, 13 },
+                { NpcId.DockWorker, 14 },
+                { NpcId.Pell, 15 },
+                { NpcId.HeraldVann, 16 },
+                { NpcId.Sera, 17 },
+                { NpcId.Yara, 18 },
+                { NpcId.Scholar, 19 }
+            };
+            foreach (KeyValuePair<NpcId, int> sprite in namedWorldSprites)
+            {
+                AssertEqual(
+                    sprite.Value,
+                    NpcPortraitCatalog.WorldSpriteIndex(sprite.Key),
+                    sprite.Key + " named world-sprite identity");
+            }
+            AssertEqual(
+                NpcPortraitCatalog.Columns * NpcPortraitCatalog.Rows,
+                namedWorldSprites.Values.Distinct().Count(),
+                "all named NPC world-sprite identities are unique");
+            foreach (ObjectType type in new[]
+            {
+                ObjectType.DinerCook,
+                ObjectType.Provisioner,
+                ObjectType.DockWorker,
+                ObjectType.Scholar
+            })
+            {
+                AssertEqual(true, ExplorationInteractionRules.IsUseObject(type), type + " is a reachable Midgaard contact");
+                AssertEqual(true, ExplorationTraversalRules.CanUseFromAdjacent(type), type + " supports adjacent Talk interaction");
             }
         }
 
@@ -3812,6 +4848,30 @@ namespace AshenHalls.Editor
             AssertEqual(true, CombatCommandPresentationRules.ShouldPromoteEndTurn(true, 3, true, true, false), "stunned promotes end turn");
         }
 
+        private static void CombatInputRoutingKeepsHudFocusAuthoritative()
+        {
+            AssertEqual(
+                false,
+                CombatInputRoutingRules.ShouldRouteToWorld(true, CombatHotkeyKind.Navigation),
+                "focused combat HUD owns WASD and arrow navigation");
+            AssertEqual(
+                false,
+                CombatInputRoutingRules.ShouldRouteToWorld(true, CombatHotkeyKind.Submit),
+                "focused combat HUD owns keyboard and controller submit");
+            AssertEqual(
+                true,
+                CombatInputRoutingRules.ShouldRouteToWorld(true, CombatHotkeyKind.Dedicated),
+                "focused combat HUD preserves dedicated combat hotkeys");
+            AssertEqual(
+                true,
+                CombatInputRoutingRules.ShouldRouteToWorld(false, CombatHotkeyKind.Navigation),
+                "unfocused combat HUD leaves world movement available");
+            AssertEqual(
+                true,
+                CombatInputRoutingRules.ShouldRouteToWorld(false, CombatHotkeyKind.Submit),
+                "unfocused combat HUD leaves the End Turn shortcut available");
+        }
+
         private static void CombatTargetingCancellationIsExplicitAndSafe()
         {
             CombatState combat = new CombatState
@@ -4002,6 +5062,10 @@ namespace AshenHalls.Editor
                 20);
             AssertEqual(true, legalityOnly.Legal && !legalityOnly.HasOutcome, "AI legality probe avoids outcome work");
             AssertEqual(CombatThreatLevel.Direct, legalityOnly.ThreatLevel, "legal probe still reports direct reach");
+            AssertEqual("safe", CombatThreatRules.MovementDestinationLabel(0, 0), "safe movement destination is explicit");
+            AssertEqual("threat: 1 can hit", CombatThreatRules.MovementDestinationLabel(1, 0), "one direct movement threat is explicit");
+            AssertEqual("threat: 2 can reach", CombatThreatRules.MovementDestinationLabel(0, 2), "closing movement threats are distinguished from direct attacks");
+            AssertEqual("threat: 1 can hit + 2 can reach", CombatThreatRules.MovementDestinationLabel(1, 2), "mixed destination threats retain both responsible groups");
             AssertEqual(25, VersionInfo.SaveVersion, "current save schema persists weapon enchantments and the route waypoint");
         }
 
@@ -4641,6 +5705,62 @@ namespace AshenHalls.Editor
             AssertEqual(999, costs[1, 1], "blocked center tile");
             AssertEqual(4, costs[2, 0], "terrain-cost detour tile");
             AssertEqual(999, costs[3, 0], "beyond move budget");
+
+            IReadOnlyList<Vector2Int> path = CombatGridRules.ShortestReachablePath(
+                active,
+                costs,
+                2,
+                0,
+                999,
+                (unit, x, y) => x == 2 && y == 0 ? 2 : 1);
+            AssertEqual(4, path.Count, "movement preview path includes origin, weighted steps, and destination");
+            AssertEqual(new Vector2Int(0, 1), path[0], "movement preview begins at actor");
+            AssertEqual(new Vector2Int(2, 0), path[path.Count - 1], "movement preview ends at staged destination");
+            AssertEqual(false, path.Contains(new Vector2Int(1, 1)), "movement preview never crosses a blocking cell");
+            int pathCost = path
+                .Skip(1)
+                .Sum(cell => cell.x == 2 && cell.y == 0 ? 2 : 1);
+            AssertEqual(costs[2, 0], pathCost, "movement preview weighted cost matches reachable-cost truth");
+            AssertEqual(
+                true,
+                path.SequenceEqual(CombatGridRules.ShortestReachablePath(
+                    active,
+                    costs,
+                    2,
+                    0,
+                    999,
+                    (unit, x, y) => x == 2 && y == 0 ? 2 : 1)),
+                "movement preview path is deterministic");
+            AssertEqual(
+                0,
+                CombatGridRules.ShortestReachablePath(
+                    active,
+                    costs,
+                    3,
+                    0,
+                    999,
+                    (unit, x, y) => 1).Count,
+                "movement preview returns no route for an unreachable destination");
+
+            CombatUnit detourActor = new CombatUnit { Id = "detour", X = 0, Y = 1 };
+            int[,] detourCosts = CombatGridRules.ReachableMoveCosts(
+                detourActor,
+                5,
+                3,
+                8,
+                999,
+                (unit, x, y) => x >= 0 && y >= 0 && x < 5 && y < 3,
+                (unit, x, y) => x == 2 && y == 1 ? 4 : 1);
+            IReadOnlyList<Vector2Int> cheaperDetour = CombatGridRules.ShortestReachablePath(
+                detourActor,
+                detourCosts,
+                4,
+                1,
+                999,
+                (unit, x, y) => x == 2 && y == 1 ? 4 : 1);
+            AssertEqual(6, detourCosts[4, 1], "weighted movement chooses the cheaper route around costly terrain");
+            AssertEqual(false, cheaperDetour.Contains(new Vector2Int(2, 1)), "movement preview follows the cheaper detour instead of the costly shortcut");
+            AssertEqual(new Vector2Int(4, 1), cheaperDetour[cheaperDetour.Count - 1], "weighted detour reaches its intended destination");
         }
 
         private static void SupercoverLineIncludesCornerTouchCells()

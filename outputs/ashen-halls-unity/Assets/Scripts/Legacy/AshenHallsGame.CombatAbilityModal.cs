@@ -156,7 +156,7 @@ namespace AshenHalls
                 : DisplayClass(active?.ClassKey);
             string actor = active == null
                 ? "No active combatant"
-                : active.Name;
+                : $"{active.Name}  •  L{active.Level}";
             string resource = spellbook && active != null
                 ? $"MP  {active.Mana} / {active.MaxMana}"
                 : state?.Combat == null ? "" : $"MOVE  {state.Combat.MovePoints}";
@@ -175,6 +175,7 @@ namespace AshenHalls
                 Resource = resource,
                 ActionState = actionState,
                 Trait = trait,
+                StateIconTexture = powerBookStateIconAtlas,
                 ContextKey = (spellbook ? "spellbook|" : "skills|") + (active?.Id ?? ""),
                 EmptyText = spellbook ? "No usable spell formulas are available on this turn." : "No combat skills are available on this turn.",
                 SelectedId = selection,
@@ -591,48 +592,10 @@ namespace AshenHalls
             source = default;
             if (formula == null) return false;
 
-            int lightningIndex = LightningSpellIconCatalog.LightningIndex(formula.Code);
-            if (lightningIndex >= 0 && IsLightningSpellIconAtlas())
-            {
-                texture = lightningSpellIconAtlas;
-                source = LightningSpellIconAtlasCell(lightningIndex);
-                return true;
-            }
-
             int signatureIndex = CombatIconCatalog.SignatureSpellIndex(formula.Code);
-            if (signatureIndex >= 0 && IsSignatureSpellIconAtlas())
-            {
-                texture = signatureSpellIconAtlas;
-                source = SignatureSpellIconAtlasCell(signatureIndex);
-                return true;
-            }
-
-            int pactIndex = PactFormulaIconIndex(formula);
-            if (pactIndex >= 0 && IsPactSpellbookAtlas())
-            {
-                texture = pactSpellbookAtlas;
-                source = PactSpellbookAtlasCell(pactIndex);
-                return true;
-            }
-
-            int spellbookIndex = SpellbookFormulaIconIndex(formula, formula.School);
-            if (spellbookIndex >= 0 && IsSpellbookUiAtlas())
-            {
-                texture = spellbookUiAtlas;
-                source = SpellbookUiAtlasCell(spellbookIndex);
-                return true;
-            }
-
-            if ((formula.Code == "FBL" || formula.Code == "MTR") && IsEmberSpellAtlas())
-            {
-                texture = emberSpellAtlas;
-                source = EmberSpellAtlasCell(formula.Code == "MTR" ? 7 : 1);
-                return true;
-            }
-
-            if (formulaLabArt == null) return false;
-            texture = formulaLabArt;
-            source = FormulaLabIconRegion(formula, formula.School);
+            if (signatureIndex < 0 || !IsSignatureSpellIconAtlas()) return false;
+            texture = signatureSpellIconAtlas;
+            source = SignatureSpellIconAtlasCell(signatureIndex);
             return source.width > 0f && source.height > 0f;
         }
 

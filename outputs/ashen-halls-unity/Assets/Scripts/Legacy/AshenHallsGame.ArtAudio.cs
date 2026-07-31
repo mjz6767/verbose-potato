@@ -41,6 +41,8 @@ namespace AshenHalls
 
         private Texture2D lightningSpellIconAtlas;
 
+        private Texture2D powerBookStateIconAtlas;
+
         private Texture2D emberSpellAtlas;
 
         private Texture2D epicSpellEffectsAtlas;
@@ -2775,6 +2777,7 @@ namespace AshenHalls
             signatureSpellIconAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.SignatureSpellIconAtlas, 0.20f, "signature spell icons", 0.10f)
                 ?? LoadLatestExternalPngWithAlpha("signature-spell-icon-atlas-runtime-", "", 0.20f, "signature spell icons", 0.10f);
             lightningSpellIconAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.LightningSpellIconAtlas, 0.20f, "lightning spell icons", 0.10f);
+            powerBookStateIconAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.PowerBookStateIconAtlas, 0.08f, "power book state icons", 0.06f);
             emberSpellAtlas = LoadLatestExternalPng("ember-spell-effects-atlas-runtime-", "ember-spell-effects-atlas-runtime-v0.46.png");
             epicSpellEffectsAtlas = LoadExternalPng(RuntimeArtManifest.EpicSpellEffectsAtlas)
                 ?? LoadLatestExternalPng("combat-spell-effects-atlas-runtime-", "")
@@ -2845,14 +2848,23 @@ namespace AshenHalls
                 ?? LoadLatestExternalPng("midgaard-tile-atlas-runtime-", "");
             midgaardWallAtlas = LoadExternalPng(RuntimeArtManifest.MidgaardWallAtlas)
                 ?? LoadLatestExternalPng("midgaard-wall-atlas-runtime-", "");
-            midgaardGateAtlas = LoadExternalPng(RuntimeArtManifest.MidgaardGateAtlas)
-                ?? LoadLatestExternalPngWithAlpha("midgaard-gate-atlas-runtime-", "", 0.20f, "Midgaard gates", 0.08f);
+            // v1.93 side gates deliberately trade the old opaque facade footprint
+            // for a clear road lane. The active four cells still validate
+            // individually at draw time, so the family-level floor can stay low.
+            midgaardGateAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardGateAtlas, 0.20f, "Midgaard gates", 0.05f)
+                ?? LoadLatestExternalPngWithAlpha("midgaard-gate-atlas-runtime-", "", 0.20f, "Midgaard gates", 0.05f);
             midgaardCityPropAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardCityPropAtlas, 0.20f, "Midgaard props", 0.16f)
                 ?? LoadLatestExternalPngWithAlpha("midgaard-city-prop-atlas-runtime-", "", 0.20f, "Midgaard props", 0.16f);
             midgaardStreetLifeAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardStreetLifeAtlas, 0.20f, "Midgaard street life", 0.10f);
             midgaardPavingDecalAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardPavingDecalAtlas, 0.20f, "Midgaard paving decals", 0.08f);
-            midgaardNpcAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardNpcAtlas, 0.20f, "Midgaard NPCs", 0.16f)
-                ?? LoadLatestExternalPngWithAlpha("midgaard-npc-atlas-runtime-", "", 0.20f, "Midgaard NPCs", 0.16f);
+            // NPC cells are semantic identities, not interchangeable art slots.
+            // Older 5x4 sheets used several v1.93 cells as empty reserves, so a
+            // geometry-compatible family fallback would silently miscast actors.
+            midgaardNpcAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.MidgaardNpcAtlas,
+                0.20f,
+                "Midgaard NPCs",
+                0.16f);
             midgaardSewerAtlas = LoadExternalPng(RuntimeArtManifest.MidgaardSewerAtlas);
             midgaardInteriorPropAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardInteriorPropAtlas, 0.20f, "Midgaard interior props", 0.10f)
                 ?? LoadLatestExternalPngWithAlpha("midgaard-interior-prop-atlas-runtime-", "", 0.20f, "Midgaard interior props", 0.10f);
@@ -2905,21 +2917,83 @@ namespace AshenHalls
 
         private void ValidateWorldMapArtContracts()
         {
+            ValidateAtlasCells(
+                abilityIconAtlas,
+                "ability icon",
+                CombatIconCatalog.AbilityAtlasColumns,
+                CombatIconCatalog.ExpandedAbilityAtlasRows,
+                true,
+                Enumerable.Range(0, CombatIconCatalog.AbilityAtlasColumns * CombatIconCatalog.ExpandedAbilityAtlasRows).ToArray());
+            ValidateAtlasSquareCells(
+                abilityIconAtlas,
+                "ability icon",
+                CombatIconCatalog.AbilityAtlasColumns,
+                CombatIconCatalog.ExpandedAbilityAtlasRows,
+                1f);
+            ValidateAtlasCells(
+                signatureSpellIconAtlas,
+                "signature spell icon",
+                CombatIconCatalog.SignatureSpellAtlasColumns,
+                CombatIconCatalog.SignatureSpellAtlasRows,
+                true,
+                Enumerable.Range(0, FormulaCatalog.All.Length).ToArray());
+            ValidateAtlasSquareCells(
+                signatureSpellIconAtlas,
+                "signature spell icon",
+                CombatIconCatalog.SignatureSpellAtlasColumns,
+                CombatIconCatalog.SignatureSpellAtlasRows,
+                1f);
             ValidateAtlasCells(lightningSpellIconAtlas, "lightning spell icon", LightningSpellIconCatalog.AtlasColumns, LightningSpellIconCatalog.AtlasRows, true, 0, 1, 2, 3, 4, 5, 6, 7);
             ValidateAtlasSquareCells(lightningSpellIconAtlas, "lightning spell icon", LightningSpellIconCatalog.AtlasColumns, LightningSpellIconCatalog.AtlasRows, 1f);
+            ValidateAtlasCells(
+                powerBookStateIconAtlas,
+                "power book state icon",
+                CombatIconCatalog.BookStateAtlasColumns,
+                CombatIconCatalog.BookStateAtlasRows,
+                true,
+                Enumerable.Range(0, CombatIconCatalog.BookStateAtlasColumns * CombatIconCatalog.BookStateAtlasRows).ToArray());
+            ValidateAtlasSquareCells(
+                powerBookStateIconAtlas,
+                "power book state icon",
+                CombatIconCatalog.BookStateAtlasColumns,
+                CombatIconCatalog.BookStateAtlasRows,
+                1f);
             ValidateAtlasCells(spellAnimationAtlas, "spell animation", 4, 4, true, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
             ValidateAtlasSquareCells(spellAnimationAtlas, "spell animation", 4, 4, 1f);
             ValidateAtlasCells(midgaardGateAtlas, "Midgaard gate", 5, 4, false, 0, 1, 6, 7);
             if (midgaardGateAtlas == null) ValidateAtlasCells(midgaardTownAtlas, "Midgaard gate fallback", 5, 4, false, 8, 9);
-            ValidateAtlasCells(midgaardWallAtlas, "Midgaard wall", 5, 4, false, 0, 1, 2, 3, 4, 5, 6, 7);
+            ValidateAtlasCells(midgaardWallAtlas, "Midgaard wall", 5, 4, false, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9);
             ValidateAtlasSquareCells(midgaardWallAtlas, "Midgaard wall", 5, 4, 3f);
             ValidateAtlasSquareCells(midgaardGateAtlas, "Midgaard gate", 5, 4, 3f);
             ValidateAtlasCells(midgaardTownAtlas, "Midgaard town object", 5, 4, false, 0, 1, 2, 3, 4, 5, 6, 7, 11, 12, 14, 15, 17);
-            ValidateAtlasCells(midgaardNpcAtlas, "Midgaard NPC", 5, 4, false, Enumerable.Range(0, 20).ToArray());
+            ValidateAtlasCells(
+                midgaardNpcAtlas,
+                "Midgaard NPC",
+                NpcPortraitCatalog.Columns,
+                NpcPortraitCatalog.Rows,
+                false,
+                Enumerable.Range(0, NpcPortraitCatalog.Columns * NpcPortraitCatalog.Rows).ToArray());
+            ValidateAtlasSquareCells(
+                midgaardNpcAtlas,
+                "Midgaard NPC",
+                NpcPortraitCatalog.Columns,
+                NpcPortraitCatalog.Rows,
+                1f);
             ValidateAtlasCells(npcPortraitAtlas, "NPC portrait", NpcPortraitCatalog.Columns, NpcPortraitCatalog.Rows, true, Enumerable.Range(0, NpcPortraitCatalog.Columns * NpcPortraitCatalog.Rows).ToArray());
             ValidateAtlasSquareCells(npcPortraitAtlas, "NPC portrait", NpcPortraitCatalog.Columns, NpcPortraitCatalog.Rows, 1f);
-            ValidateAtlasCells(characterCombatAtlas, "character combat sprite", 4, 4, true, Enumerable.Range(0, 16).ToArray());
-            ValidateAtlasSquareCells(characterCombatAtlas, "character combat sprite", 4, 4, 1f);
+            ValidateAtlasCells(
+                characterCombatAtlas,
+                "character combat sprite",
+                PlayerSpriteCatalog.Columns,
+                PlayerSpriteCatalog.Rows,
+                true,
+                Enumerable.Range(0, PlayerSpriteCatalog.Columns * PlayerSpriteCatalog.Rows).ToArray());
+            ValidateAtlasSquareCells(
+                characterCombatAtlas,
+                "character combat sprite",
+                PlayerSpriteCatalog.Columns,
+                PlayerSpriteCatalog.Rows,
+                1f);
             ValidateAtlasCells(enemySpriteAtlas, "enemy combat sprite", 4, 4, true, Enumerable.Range(0, 16).ToArray());
             ValidateAtlasSquareCells(enemySpriteAtlas, "enemy combat sprite", 4, 4, 1f);
             ValidateAtlasCells(midgaardInteriorPropAtlas, "Midgaard interior prop", 5, 4, false, 0, 1, 2, 3, 4, 10, 11, 12, 13, 14, 15, 16);
@@ -3524,7 +3598,12 @@ namespace AshenHalls
             int midgaardSewerIndex = MidgaardSewerObjectIconIndex(type);
             if (midgaardSewerIndex >= 0 && TryDrawMidgaardSewerAtlasIcon(rect, midgaardSewerIndex, tint, spec)) return true;
             int midgaardNpcIndex = MidgaardNpcObjectIconIndex(type, obj);
-            if (midgaardNpcIndex >= 0 && TryDrawMidgaardNpcAtlasIcon(rect, midgaardNpcIndex, tint, spec)) return true;
+            if (midgaardNpcIndex >= 0)
+            {
+                // A missing semantic NPC sheet must reach the role-aware
+                // procedural silhouette, never a clamped generic atlas cell.
+                return TryDrawMidgaardNpcAtlasIcon(rect, midgaardNpcIndex, tint, spec);
+            }
             int midgaardTownIndex = MidgaardTownObjectIconIndex(type);
             if (midgaardTownIndex >= 0 && TryDrawMidgaardTownAtlasIcon(rect, midgaardTownIndex, tint, spec)) return true;
             int regionalLandmarkIndex = WorldMapRegionLandmarkIconIndex(type, obj);
@@ -3555,7 +3634,7 @@ namespace AshenHalls
         {
             if (GetGateOrientation(obj, type).HasValue)
             {
-                return new WorldMapArtSpec(1.10f, new Vector2(0.5f, 1f), Vector2.zero, true);
+                return new WorldMapArtSpec(1.02f, new Vector2(0.5f, 1f), Vector2.zero, true);
             }
 
             if (IsMidgaardNpcObject(type) || type == ObjectType.TownGuard || type == ObjectType.GateCaptain)
@@ -3805,7 +3884,23 @@ namespace AshenHalls
             bool flipY = false;
             Color tint = ExploreTerrainTextureTint(kind, alpha);
             int midgaardWallIndex = MidgaardWallTileAtlasIndex(x, y, tile, kind);
-            if (midgaardWallIndex >= 0 && TryDrawMidgaardWallAtlasIcon(rect, midgaardWallIndex, tint)) return true;
+            if (midgaardWallIndex >= 0)
+            {
+                MapObject wallMarker = ObjectAt(state?.Map, x, y);
+                bool openSideGate = wallMarker != null
+                    && (wallMarker.Type == ObjectType.EastGate || wallMarker.Type == ObjectType.WestGate);
+                if (openSideGate)
+                {
+                    // The side-gate object owns the two interrupted wall ends.
+                    // Drawing a complete straight wall cell underneath it would
+                    // seal the transparent left-right passage in the new art.
+                    DrawMidgaardWallTerrainUnderlay(rect, x, y);
+                    return true;
+                }
+                DrawMidgaardWallFoundation(rect, midgaardWallIndex, x, y);
+                TryDrawMidgaardWallAtlasIcon(rect, midgaardWallIndex, tint);
+                return true;
+            }
             if (tile == 1)
             {
                 ExplorationMaterial material = ExploreMaterialAt(x, y);
@@ -4143,7 +4238,9 @@ namespace AshenHalls
         private int MidgaardWallTileAtlasIndex(int x, int y, int tile, string kind)
         {
             if (tile != 0 || kind != "midgaardwall") return -1;
-            return MidgaardWallAtlasIndexForCoordinate(x, y, false);
+            MapObject marker = ObjectAt(state?.Map, x, y);
+            bool structuralAccent = marker != null && marker.Type == ObjectType.CityWall;
+            return MidgaardWallAtlasIndexForCoordinate(x, y, structuralAccent);
         }
 
         private int MidgaardWallObjectAtlasIndex(MapObject obj)
@@ -4173,8 +4270,8 @@ namespace AshenHalls
             {
                 case GateOrientation.North: return 0;
                 case GateOrientation.South: return 0;
-                case GateOrientation.East: return 6;
-                case GateOrientation.West: return 7;
+                case GateOrientation.East: return 7;
+                case GateOrientation.West: return 6;
                 default: return -1;
             }
         }
@@ -4199,14 +4296,17 @@ namespace AshenHalls
             int right = MidgaardRight(state.Map);
             int top = MidgaardTop(state.Map);
             int bottom = MidgaardBottom(state.Map);
-            if (x == left && y == top) return 4;
-            if (x == right && y == top) return 5;
+            // Cells 4 and 5 are authored as top-right and top-left respectively.
+            // The older mapping crossed them, leaving both top joins pointing out
+            // of town instead of into the perimeter.
+            if (x == left && y == top) return 5;
+            if (x == right && y == top) return 4;
             if (x == left && y == bottom) return 6;
             if (x == right && y == bottom) return 7;
-            if (y == top) return objectArt && x % 8 == 0 ? 8 : 0;
-            if (y == bottom) return objectArt && x % 8 == 0 ? 8 : 1;
-            if (x == left) return objectArt && y % 8 == 0 ? 9 : 2;
-            if (x == right) return objectArt && y % 8 == 0 ? 9 : 3;
+            if (y == top) return objectArt && PositiveModulo(x - left - 6, 8) == 0 ? 8 : 0;
+            if (y == bottom) return objectArt && PositiveModulo(x - left - 6, 8) == 0 ? 8 : 1;
+            if (x == left) return objectArt && PositiveModulo(y - top - 6, 8) == 0 ? 9 : 2;
+            if (x == right) return objectArt && PositiveModulo(y - top - 6, 8) == 0 ? 9 : 3;
             return -1;
         }
 
@@ -4227,8 +4327,16 @@ namespace AshenHalls
 
         private bool HasStaticExploreObjectFootprint(int x, int y)
         {
-            if (state?.Map?.Objects == null) return false;
-            return state.Map.Objects.Any(obj => obj != null && Distance(obj.X, obj.Y, x, y) <= 1);
+            MapData map = state?.Map;
+            if (map == null) return false;
+            // Distance <= 1 is the center plus four cardinal neighbors. Use the
+            // map's coordinate lookup rather than allocating a capturing LINQ
+            // predicate and scanning every authored object for every drawn band.
+            return ObjectAt(map, x, y) != null
+                || ObjectAt(map, x, y - 1) != null
+                || ObjectAt(map, x + 1, y) != null
+                || ObjectAt(map, x, y + 1) != null
+                || ObjectAt(map, x - 1, y) != null;
         }
 
         private int CountRoadExploreNeighbors(int x, int y)
@@ -4707,25 +4815,7 @@ namespace AshenHalls
         private int CharacterCombatAtlasIndex(string classKey, string race, string role)
         {
             string cls = (string.IsNullOrWhiteSpace(classKey) ? ClassForRole(role) : classKey).Trim().ToLowerInvariant();
-            string r = (string.IsNullOrWhiteSpace(race) ? "human" : race).Trim().ToLowerInvariant();
-            if (cls == "warrior")
-            {
-                if (r == "stoneborn") return 1;
-                if (r == "dusk elf") return 15;
-                return 0;
-            }
-            if (cls == "rogue")
-            {
-                if (r == "dusk elf") return 3;
-                if (r == "fenkin") return 14;
-                return 2;
-            }
-            if (cls == "ranger") return r == "dusk elf" ? 5 : 4;
-            if (cls == "priest") return r == "fenkin" ? 6 : 7;
-            if (cls == "warlock") return r == "dusk elf" ? 9 : 8;
-            if (cls == "wizard" || cls == "mage") return r == "ashling" ? 11 : 10;
-            if (cls == "paladin") return r == "stoneborn" ? 13 : 12;
-            return -1;
+            return PlayerSpriteCatalog.AtlasIndex(cls, race);
         }
 
         private int CreatureSpriteIndexForRole(string role, UnitSide side)

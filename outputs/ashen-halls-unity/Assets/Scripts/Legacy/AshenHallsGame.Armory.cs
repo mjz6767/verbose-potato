@@ -860,7 +860,7 @@ namespace AshenHalls
                 Title = "Armorer's Reward",
                 Subtitle = rewardClaimed ? "claimed" : rewardReady ? "ready" : $"proof {proof}/{ContentSetCatalog.SewerSliceRequiredProofCount}",
                 Detail = rewardClaimed
-                    ? "Rat-pelt armor is claimed. The Old Road teaser is unlocked."
+                    ? "Rat-pelt armor is claimed. Sluice Steps now opens the Old Road toward Dusk Market."
                     : rewardReady
                         ? "Return to the Midgaard armorer to trade the sewer proof for stitched rat-pelt armor."
                         : "Each authored sewer room yields one proof bundle. Bring three to the armorer.",

@@ -47,13 +47,84 @@ namespace AshenHalls
 
         public static float PartyTokenPadding(bool wideView)
         {
-            return wideView ? 0.18f : 0.12f;
+            return wideView ? 0.09f : 0.10f;
+        }
+
+        public static float PartyRegionMarkerScale()
+        {
+            return 0.82f;
+        }
+
+        public static float PartyRegionMarkerMinimumPixels()
+        {
+            return 22f;
         }
 
         public static string PartyTokenRole(int partyCount, string leadRole)
         {
             if (partyCount != 1) return "party";
             return string.IsNullOrWhiteSpace(leadRole) ? "shield" : leadRole.Trim().ToLowerInvariant();
+        }
+
+        public static float GateArtWidthInCells(bool wideView, bool sideGate)
+        {
+            // East and west use a wall-aligned pair of bastions with a transparent
+            // horizontal lane. Keep their objective frame close to the wall instead
+            // of restoring the old front-elevation landmark footprint.
+            if (wideView) return sideGate ? 0.70f : 1.78f;
+            return sideGate ? 0.78f : 2.02f;
+        }
+
+        public static float GateArtHeightInCells(bool wideView, bool sideGate)
+        {
+            if (wideView) return sideGate ? 1.50f : 1.40f;
+            return sideGate ? 1.70f : 1.58f;
+        }
+
+        public static float GateArtBaseOffsetInCells()
+        {
+            return 0.08f;
+        }
+
+        public static float MidgaardWallBandThickness(bool wideView)
+        {
+            return wideView ? 0.52f : 0.56f;
+        }
+
+        public static float MidgaardWallVerticalBandThickness(bool wideView)
+        {
+            // The authored north-south wall cells are deliberately narrow. A
+            // separate vertical foundation prevents the old broad gray rails
+            // from showing on both sides of the masonry while horizontal runs
+            // retain their substantial parapet depth.
+            return wideView ? 0.34f : 0.36f;
+        }
+
+        public static int MidgaardWallConnectionMask(int atlasIndex)
+        {
+            // N=1, E=2, S=4, W=8. The atlas's top corner paintings are ordered
+            // top-right (4), top-left (5), then bottom-left/right (6/7).
+            switch (atlasIndex)
+            {
+                case 0:
+                case 1:
+                case 8:
+                    return 2 | 8;
+                case 2:
+                case 3:
+                case 9:
+                    return 1 | 4;
+                case 4:
+                    return 4 | 8;
+                case 5:
+                    return 2 | 4;
+                case 6:
+                    return 1 | 2;
+                case 7:
+                    return 1 | 8;
+                default:
+                    return 0;
+            }
         }
 
         public static int MaterialAtlasIndex(ExplorationMaterial material)
@@ -101,10 +172,82 @@ namespace AshenHalls
             // bright grassy approved cell inside dense woodland.
             if (material == ExplorationMaterial.Forest) return 1 + roll % 3;
 
-            // v1.68 supplies three newer variants beside the preserved foundation
-            // painting. Give all four cells an even share so the current art owns
-            // most of the visible map without removing the familiar foundation.
+            // Each semantic bank is authored as four compatible variants. Keep the
+            // coordinate-derived distribution even so Local and Region views share
+            // one stable material field without movement-dependent texture changes.
             return roll / 25;
+        }
+
+        public static bool ShouldBlendMaterialEdge(
+            ExplorationMaterial current,
+            ExplorationMaterial neighbor,
+            bool currentOpen,
+            bool neighborOpen,
+            bool protectedThreshold)
+        {
+            if (!currentOpen || !neighborOpen || protectedThreshold) return false;
+            int currentSlot = MaterialAtlasIndex(current);
+            int neighborSlot = MaterialAtlasIndex(neighbor);
+            return currentSlot >= 0 && neighborSlot >= 0 && currentSlot != neighborSlot;
+        }
+
+        public static int MaterialBlendBandCount()
+        {
+            return 3;
+        }
+
+        public static float MaterialBlendBandFraction(bool wideView)
+        {
+            return wideView ? 0.075f : 0.065f;
+        }
+
+        public static float MaterialBlendBandAlpha(int band, bool wideView)
+        {
+            switch (Clamp(band, 0, MaterialBlendBandCount() - 1))
+            {
+                case 0: return wideView ? 0.46f : 0.42f;
+                case 1: return wideView ? 0.23f : 0.20f;
+                default: return 0.08f;
+            }
+        }
+
+        public static float MaterialBlendSourceStart(
+            bool neighborOnNegativeAxis,
+            int band,
+            float bandFraction,
+            bool sourceFlipped)
+        {
+            bandFraction = Math.Max(0.01f, Math.Min(0.20f, bandFraction));
+            band = Math.Max(0, band);
+            float logicalStart = neighborOnNegativeAxis
+                ? 1f - (band + 1) * bandFraction
+                : band * bandFraction;
+            logicalStart = Math.Max(0f, Math.Min(1f - bandFraction, logicalStart));
+            if (sourceFlipped)
+            {
+                logicalStart = 1f - logicalStart - bandFraction;
+            }
+            return Math.Max(0f, Math.Min(1f - bandFraction, logicalStart));
+        }
+
+        public static bool MaterialBlendDrawFlip(bool sourceFlipped)
+        {
+            // A feather extends away from the shared edge into the current cell.
+            // Reverse the sampled neighbor strip so its boundary texel remains on
+            // that shared edge rather than landing on the strip's interior side.
+            return !sourceFlipped;
+        }
+
+        public static bool ShouldDrawMaterialPathStroke(
+            ExplorationMaterial material,
+            ExplorationCellRole roles)
+        {
+            if (!ExplorationSurfaceRules.IsPath(roles)) return false;
+            // The 3x3 approach clearings outside Midgaard can retain generated
+            // road roles beneath their Plaza role. Painting every connection there
+            // produces a dark tic-tac-toe grid over otherwise coherent packed dirt.
+            return material != ExplorationMaterial.PackedDirt
+                || (roles & ExplorationCellRole.Plaza) == 0;
         }
 
         public static int MidgaardTileIndex(int tile, string kind, int roll, bool landmarkCell)

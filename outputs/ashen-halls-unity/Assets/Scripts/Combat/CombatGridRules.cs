@@ -50,6 +50,69 @@ namespace AshenHalls
             return costs;
         }
 
+        public static IReadOnlyList<Vector2Int> ShortestReachablePath(
+            CombatUnit active,
+            int[,] reachableCosts,
+            int destinationX,
+            int destinationY,
+            int unreachableCost,
+            Func<CombatUnit, int, int, int> stepCost)
+        {
+            List<Vector2Int> path = new List<Vector2Int>();
+            if (active == null || reachableCosts == null) return path;
+
+            int width = reachableCosts.GetLength(0);
+            int height = reachableCosts.GetLength(1);
+            if (active.X < 0 || active.X >= width || active.Y < 0 || active.Y >= height) return path;
+            if (destinationX < 0 || destinationX >= width || destinationY < 0 || destinationY >= height) return path;
+
+            int destinationCost = reachableCosts[destinationX, destinationY];
+            if (destinationCost < 0 || destinationCost >= unreachableCost) return path;
+
+            int x = destinationX;
+            int y = destinationY;
+            path.Add(new Vector2Int(x, y));
+            int remainingSteps = width * height;
+            int[] dx = { -1, 0, 1, 0 };
+            int[] dy = { 0, -1, 0, 1 };
+            while ((x != active.X || y != active.Y) && remainingSteps-- > 0)
+            {
+                int currentCost = reachableCosts[x, y];
+                int enterCost = stepCost == null ? 1 : Mathf.Max(1, stepCost(active, x, y));
+                bool foundPredecessor = false;
+                for (int i = 0; i < dx.Length; i++)
+                {
+                    int nx = x + dx[i];
+                    int ny = y + dy[i];
+                    if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+                    int predecessorCost = reachableCosts[nx, ny];
+                    if (predecessorCost < 0 || predecessorCost >= unreachableCost) continue;
+                    if (predecessorCost + enterCost != currentCost) continue;
+
+                    x = nx;
+                    y = ny;
+                    path.Add(new Vector2Int(x, y));
+                    foundPredecessor = true;
+                    break;
+                }
+
+                if (!foundPredecessor)
+                {
+                    path.Clear();
+                    return path;
+                }
+            }
+
+            if (x != active.X || y != active.Y)
+            {
+                path.Clear();
+                return path;
+            }
+
+            path.Reverse();
+            return path;
+        }
+
         public static bool HasLineOfSight(int ax, int ay, int bx, int by, int width, int height, bool missiles, Func<int, int, bool> blocksSight)
         {
             if (!missiles) return true;

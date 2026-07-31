@@ -284,6 +284,10 @@ namespace AshenHalls
 
         private bool visualSmokeSaveBlocked;
 
+        private bool visualSmokeHideCombatDebug;
+
+        private Vector2Int? visualSmokeCombatHoverCell;
+
         private string activeContentSet = ContentSetCatalog.SewerSlice;
 
         private int uiRevision = 1;
@@ -476,6 +480,28 @@ namespace AshenHalls
         {
             if (args == null || args.Length == 0) return;
             ApplyVisualSmokeSeed(args);
+            bool contactDialogueSmoke = args.Any(arg => string.Equals(
+                arg,
+                "-ashen-contact-dialogue-smoke",
+                StringComparison.OrdinalIgnoreCase));
+            bool contactSmoke = args.Any(arg => string.Equals(
+                arg,
+                "-ashen-contact-smoke",
+                StringComparison.OrdinalIgnoreCase));
+            if (contactDialogueSmoke || contactSmoke)
+            {
+                QuickStart();
+                ApplyVisualSmokeExploreView(args);
+                if (!StageVisualSmokeContact(args, contactDialogueSmoke))
+                {
+                    throw new InvalidOperationException(
+                        "Visual smoke could not stage the requested live Midgaard contact.");
+                }
+                Debug.Log(VersionInfo.ProductName + (contactDialogueSmoke
+                    ? " visual smoke mode: live contact dialogue."
+                    : " visual smoke mode: live contact close-up."));
+                return;
+            }
             if (args.Any(arg => string.Equals(arg, "-ashen-gate-smoke", StringComparison.OrdinalIgnoreCase)))
             {
                 QuickStart();
@@ -556,19 +582,76 @@ namespace AshenHalls
             {
                 StartBetaCombatLab();
                 CombatUnit tester = CurrentUnit();
-                PromoteMageTester(tester);
+                int schoolOption = Array.FindIndex(
+                    args,
+                    arg => string.Equals(arg, "-ashen-spell-school", StringComparison.OrdinalIgnoreCase));
+                string requestedSchool = schoolOption >= 0 && schoolOption + 1 < args.Length
+                    ? (args[schoolOption + 1] ?? "").Trim().ToLowerInvariant()
+                    : "ember";
+                if (requestedSchool != "ember"
+                    && requestedSchool != "mend"
+                    && requestedSchool != "hex"
+                    && requestedSchool != "pact")
+                {
+                    throw new InvalidOperationException(
+                        "Unknown spell-book visual smoke school '" + requestedSchool + "'.");
+                }
+
+                if (requestedSchool == "hex" || requestedSchool == "pact")
+                {
+                    PromoteWarlockTester(tester);
+                }
+                else
+                {
+                    PromoteMageTester(tester);
+                }
+                tester.Spell = requestedSchool;
+                if (tester.Skills == null) tester.Skills = new SkillSet();
+                if (requestedSchool == "mend") tester.Skills.Mend = Mathf.Max(tester.Skills.Mend, 36);
+                if (requestedSchool == "hex" || requestedSchool == "pact") tester.Skills.Hex = Mathf.Max(tester.Skills.Hex, 36);
                 ApplyVisualSmokeCombatBookState(args, tester, true);
-                Debug.Log(VersionInfo.ProductName + " visual smoke mode: spellbook.");
+                Debug.Log(VersionInfo.ProductName + " visual smoke mode: " + requestedSchool + " spellbook.");
                 return;
             }
 
             if (args.Any(arg => string.Equals(arg, "-ashen-skills-smoke", StringComparison.OrdinalIgnoreCase)))
             {
                 StartMartialCombatLab();
+                int classOption = Array.FindIndex(
+                    args,
+                    arg => string.Equals(arg, "-ashen-skill-class", StringComparison.OrdinalIgnoreCase));
+                string requestedClass = classOption >= 0 && classOption + 1 < args.Length
+                    ? (args[classOption + 1] ?? "").Trim().ToLowerInvariant()
+                    : "";
+                if (requestedClass.Length > 0
+                    && requestedClass != "warrior"
+                    && requestedClass != "rogue"
+                    && requestedClass != "ranger")
+                {
+                    throw new InvalidOperationException(
+                        "Unknown skill-book visual smoke class '" + requestedClass + "'.");
+                }
+
                 CombatUnit tester = state?.Combat?.Units?
                     .FirstOrDefault(unit => unit.Side == UnitSide.Party
                         && unit.Hp > 0
-                        && (unit.ClassKey == "warrior" || unit.ClassKey == "rogue" || unit.ClassKey == "ranger"));
+                        && (requestedClass.Length > 0
+                            ? unit.ClassKey == requestedClass
+                            : unit.ClassKey == "warrior" || unit.ClassKey == "rogue" || unit.ClassKey == "ranger"));
+                if (tester == null && requestedClass == "rogue")
+                {
+                    tester = state?.Combat?.Units?
+                        .FirstOrDefault(unit => unit.Side == UnitSide.Party
+                            && unit.Hp > 0
+                            && (unit.ClassKey == "warrior" || unit.ClassKey == "ranger"));
+                    if (tester != null)
+                    {
+                        tester.ClassKey = "rogue";
+                        tester.Role = "knife";
+                        tester.Range = 1;
+                        tester.Color = RoleColor(tester.Role).ToHex();
+                    }
+                }
                 if (tester != null)
                 {
                     state.Combat.ActiveId = tester.Id;
@@ -577,27 +660,250 @@ namespace AshenHalls
                     SelectOrRunAction(ActionMode.Ability, tester);
                     ApplyVisualSmokeCombatBookState(args, tester, false);
                 }
-                Debug.Log(VersionInfo.ProductName + " visual smoke mode: combat skills.");
+                Debug.Log(
+                    VersionInfo.ProductName
+                    + " visual smoke mode: combat skills"
+                    + (tester == null ? "." : " / " + tester.ClassKey + "."));
                 return;
             }
 
             if (args.Any(arg => string.Equals(arg, "-ashen-combat-smoke", StringComparison.OrdinalIgnoreCase)))
             {
                 StartBetaCombatLab();
+                StageVisualSmokeCombatState(args);
                 Debug.Log(VersionInfo.ProductName + " visual smoke mode: combat.");
             }
+        }
+
+        private void StageVisualSmokeCombatState(string[] args)
+        {
+            if (args == null || state?.Combat?.Units == null)
+            {
+                throw new InvalidOperationException("Combat visual smoke is missing its staged combat state.");
+            }
+
+            visualSmokeHideCombatDebug = true;
+            visualSmokeCombatHoverCell = null;
+            showSpellbook = false;
+            showAbilityPanel = false;
+            ClearFormulaEntry();
+            pendingAbilityId = "";
+
+            int option = Array.FindIndex(
+                args,
+                arg => string.Equals(arg, "-ashen-combat-state", StringComparison.OrdinalIgnoreCase));
+            string requested = option >= 0 && option + 1 < args.Length
+                ? (args[option + 1] ?? "").Trim().ToLowerInvariant()
+                : "overview";
+            if (string.IsNullOrWhiteSpace(requested)) requested = "overview";
+
+            CombatUnit active = state.Combat.Units
+                .FirstOrDefault(unit => unit != null && unit.Side == UnitSide.Party && unit.Hp > 0);
+            CombatUnit target = state.Combat.Units
+                .FirstOrDefault(unit => unit != null && unit.Side == UnitSide.Enemy && unit.Hp > 0);
+            if (active == null || target == null)
+            {
+                throw new InvalidOperationException("Combat visual smoke needs one living party unit and enemy.");
+            }
+
+            int partyIndex = 0;
+            foreach (CombatUnit unit in state.Combat.Units.Where(unit => unit != null && unit.Side == UnitSide.Party && unit.Hp > 0))
+            {
+                unit.X = 1;
+                unit.Y = Mathf.Clamp(1 + partyIndex * 2, 0, CombatH - 1);
+                partyIndex++;
+            }
+            int enemyIndex = 0;
+            foreach (CombatUnit unit in state.Combat.Units.Where(unit => unit != null && unit.Side == UnitSide.Enemy && unit.Hp > 0))
+            {
+                unit.X = Mathf.Clamp(8 + enemyIndex % 3, 0, CombatW - 1);
+                unit.Y = Mathf.Clamp(1 + enemyIndex * 2, 0, CombatH - 1);
+                enemyIndex++;
+            }
+
+            active.X = 2;
+            active.Y = 4;
+            target.X = 8;
+            target.Y = 4;
+            state.Combat.ActiveId = active.Id;
+            state.Combat.Obstacles.Clear();
+            state.Combat.Phase = CombatPhase.ChooseAction;
+            state.Combat.ActionAvailable = true;
+            state.Combat.Acted = false;
+            state.Combat.Moved = false;
+            CombatLifecycle().BeginTurn(active, false);
+            selectedAction = ActionMode.Attack;
+
+            if (requested == "move-path")
+            {
+                selectedAction = ActionMode.Move;
+                state.Combat.Obstacles.Add(new Point(3, 4, "stone", 3));
+                state.Combat.Obstacles.Add(new Point(7, 1, "fire", 3));
+                state.Combat.Obstacles.Add(new Point(6, 6, "ice", 2));
+                visualSmokeCombatHoverCell = new Vector2Int(4, 3);
+                int moveCost = MoveCostTo(active, 4, 3);
+                if (moveCost >= UnreachableMoveCost || moveCost > state.Combat.MovePoints)
+                {
+                    throw new InvalidOperationException(
+                        $"Combat move-path smoke staged an illegal destination: cost={moveCost}, move={state.Combat.MovePoints}.");
+                }
+            }
+            else if (requested == "attack-legal" || requested == "attack-blocked")
+            {
+                active.ClassKey = "ranger";
+                active.Role = "bow";
+                active.Range = Mathf.Max(active.Range, 5);
+                active.WeaponName = "lab longbow";
+                active.DamageType = "physical";
+                active.Color = RoleColor("bow").ToHex();
+                target.X = 5;
+                target.Y = 4;
+                selectedAction = ActionMode.Attack;
+                if (requested == "attack-blocked")
+                {
+                    state.Combat.Obstacles.Add(new Point(3, 4, "stone", 3));
+                }
+                visualSmokeCombatHoverCell = new Vector2Int(target.X, target.Y);
+                CombatAttackForecast forecast = AttackForecast(active, target);
+                if (forecast.Legal != (requested == "attack-legal"))
+                {
+                    throw new InvalidOperationException(
+                        $"Combat {requested} smoke legality mismatch: legal={forecast.Legal}, reason={forecast.BlockReason}.");
+                }
+            }
+            else if (requested == "spell-aoe")
+            {
+                ApplyMageTesterKit(active);
+                target.X = 6;
+                target.Y = 4;
+                active.Mana = active.MaxMana;
+                if (!PrepareFormulaCode(active, "FBL"))
+                {
+                    throw new InvalidOperationException("Combat spell-AOE smoke could not arm Fireball.");
+                }
+                selectedAction = ActionMode.Cast;
+                visualSmokeCombatHoverCell = new Vector2Int(target.X, target.Y);
+                if (!IsFormulaActionable(GetFormula("FBL"), active, target, target.X, target.Y))
+                {
+                    throw new InvalidOperationException("Combat spell-AOE smoke staged an illegal Fireball target.");
+                }
+            }
+            else if (requested != "overview")
+            {
+                throw new InvalidOperationException("Unknown combat visual smoke state '" + requested + "'.");
+            }
+
+            bannerText = "";
+            bannerUntil = 0f;
+            MarkUiDirty();
+            string hover = visualSmokeCombatHoverCell.HasValue
+                ? $"{visualSmokeCombatHoverCell.Value.x},{visualSmokeCombatHoverCell.Value.y}"
+                : "none";
+            Debug.Log(
+                $"{VersionInfo.ProductName} combat smoke staged: state={requested}, "
+                + $"actor={active.Name}@{active.X},{active.Y}, action={selectedAction}, hover={hover}, "
+                + $"round={state.Combat.Round}, move={state.Combat.MovePoints}, actionReady={state.Combat.ActionAvailable}.");
+        }
+
+        private static string RequestedVisualSmokeBookState(string[] args)
+        {
+            if (args == null) return "selected";
+            int option = Array.FindIndex(
+                args,
+                arg => string.Equals(arg, "-ashen-book-state", StringComparison.OrdinalIgnoreCase));
+            string requested = option >= 0 && option + 1 < args.Length
+                ? (args[option + 1] ?? "").Trim().ToLowerInvariant()
+                : "";
+            if (string.IsNullOrWhiteSpace(requested))
+            {
+                if (args.Any(arg => string.Equals(arg, "-ashen-book-future", StringComparison.OrdinalIgnoreCase))) return "locked";
+                if (args.Any(arg => string.Equals(arg, "-ashen-book-armed", StringComparison.OrdinalIgnoreCase))) return "targeting";
+                if (args.Any(arg => string.Equals(arg, "-ashen-book-unavailable", StringComparison.OrdinalIgnoreCase))) return "action-used";
+                if (args.Any(arg => string.Equals(arg, "-ashen-book-hover", StringComparison.OrdinalIgnoreCase))) return "preview";
+                return "selected";
+            }
+
+            switch (requested)
+            {
+                case "selected":
+                case "preview":
+                case "targeting":
+                case "locked":
+                case "low-resource":
+                case "no-target":
+                case "action-used":
+                case "disabled":
+                case "blocked":
+                    return requested;
+                default:
+                    throw new InvalidOperationException(
+                        "Unknown power-book visual smoke state '" + requested + "'.");
+            }
+        }
+
+        private static CombatAbilityModalBookState ExpectedVisualSmokeBookState(string requested)
+        {
+            switch (requested)
+            {
+                case "targeting": return CombatAbilityModalBookState.Targeting;
+                case "locked": return CombatAbilityModalBookState.Locked;
+                case "low-resource": return CombatAbilityModalBookState.LowResource;
+                case "no-target": return CombatAbilityModalBookState.NoTarget;
+                case "action-used": return CombatAbilityModalBookState.ActionUsed;
+                case "disabled": return CombatAbilityModalBookState.Disabled;
+                case "blocked": return CombatAbilityModalBookState.Blocked;
+                default: return CombatAbilityModalBookState.ReadyNow;
+            }
+        }
+
+        private static int ExpectedVisualSmokeBookContextIcon(
+            string requested,
+            CombatAbilityModalBookState state)
+        {
+            if (requested == "selected") return CombatIconCatalog.BookStateSelectionIndex;
+            if (requested == "preview") return CombatIconCatalog.BookStatePreviewIndex;
+            return CombatAbilityModalPresentationRules.BookStateIconIndex(state);
         }
 
         private void ApplyVisualSmokeCombatBookState(string[] args, CombatUnit tester, bool spellbook)
         {
             if (args == null || tester == null || state?.Combat == null) return;
-            bool future = args.Any(arg => string.Equals(arg, "-ashen-book-future", StringComparison.OrdinalIgnoreCase));
+            string requestedState = RequestedVisualSmokeBookState(args);
+            bool future = requestedState == "locked";
             bool bottom = args.Any(arg => string.Equals(arg, "-ashen-book-bottom", StringComparison.OrdinalIgnoreCase));
-            bool unavailable = args.Any(arg => string.Equals(arg, "-ashen-book-unavailable", StringComparison.OrdinalIgnoreCase));
-            bool armed = args.Any(arg => string.Equals(arg, "-ashen-book-armed", StringComparison.OrdinalIgnoreCase));
+            bool armed = requestedState == "targeting";
+            bool hover = requestedState == "preview";
 
+            tester.Stunned = 0;
+            tester.Sleeping = 0;
+            tester.Mana = tester.MaxMana;
+            state.Combat.ActionAvailable = true;
+            combatAdvancePending = false;
+            combatAdvanceAt = -1f;
             if (future) tester.Level = 1;
-            if (unavailable) state.Combat.ActionAvailable = false;
+            if (requestedState == "low-resource") tester.Mana = 0;
+            if (requestedState == "action-used") state.Combat.ActionAvailable = false;
+            if (requestedState == "disabled") tester.Stunned = 2;
+            if (requestedState == "blocked")
+            {
+                combatAdvancePending = true;
+                combatAdvanceAt = Time.time + 120f;
+            }
+            if (requestedState == "no-target")
+            {
+                tester.X = 0;
+                tester.Y = 0;
+                int enemyIndex = 0;
+                foreach (CombatUnit enemy in state.Combat.Units.Where(unit =>
+                             unit != null
+                             && unit.Side == UnitSide.Enemy
+                             && unit.Hp > 0))
+                {
+                    enemy.X = Mathf.Clamp(CombatW - 1 - enemyIndex % 4, 0, CombatW - 1);
+                    enemy.Y = Mathf.Clamp(CombatH - 1 - enemyIndex / 4, 0, CombatH - 1);
+                    enemyIndex++;
+                }
+            }
             if (armed)
             {
                 state.Combat.ActionAvailable = true;
@@ -635,24 +941,110 @@ namespace AshenHalls
             {
                 throw new InvalidOperationException("Visual smoke armed state did not reach the combat power book.");
             }
-            CombatAbilityModalFilter filter = armed
-                ? CombatAbilityModalFilter.Ready
-                : future
-                    ? CombatAbilityModalFilter.Future
-                    : unavailable
-                        ? CombatAbilityModalFilter.Learned
-                        : bottom
-                            ? CombatAbilityModalFilter.All
-                            : CombatAbilityModalPresentationRules.InitialFilter(view.Cards);
+            CombatAbilityModalFilter filter;
+            if (armed) filter = CombatAbilityModalFilter.Ready;
+            else if (future) filter = CombatAbilityModalFilter.Future;
+            else if (requestedState == "selected" || requestedState == "preview")
+            {
+                filter = CombatAbilityModalPresentationRules.InitialFilter(view.Cards);
+            }
+            else filter = CombatAbilityModalFilter.Learned;
+            if (bottom && !future && !armed) filter = CombatAbilityModalFilter.All;
             combatAbilityModalScreen?.SetFilterForTest(filter);
 
             IEnumerable<CombatAbilityModalCardView> visible = (view.Cards ?? Array.Empty<CombatAbilityModalCardView>())
                 .Where(card => CombatAbilityModalPresentationRules.MatchesFilter(card, filter));
-            CombatAbilityModalCardView selected = bottom || future
-                ? visible.LastOrDefault()
-                : visible.FirstOrDefault(card => card.Ready) ?? visible.FirstOrDefault();
-            if (selected != null) PreviewCombatAbilityModalCard(selected.Id);
+            List<CombatAbilityModalCardView> visibleList = visible.ToList();
+            CombatAbilityModalCardView selected;
+            switch (requestedState)
+            {
+                case "targeting":
+                    selected = visibleList.FirstOrDefault(card => card.Ready && card.Usable);
+                    break;
+                case "locked":
+                    selected = visibleList.LastOrDefault(card => card.Locked);
+                    break;
+                case "low-resource":
+                    selected = visibleList.FirstOrDefault(card =>
+                        CombatAbilityModalPresentationRules.ResolveBookState(card)
+                            == CombatAbilityModalBookState.LowResource);
+                    break;
+                case "no-target":
+                    selected = visibleList.FirstOrDefault(card =>
+                            string.Equals(card.Id, "FBL", StringComparison.OrdinalIgnoreCase)
+                            && CombatAbilityModalPresentationRules.ResolveBookState(card)
+                                == CombatAbilityModalBookState.NoTarget)
+                        ?? visibleList.FirstOrDefault(card =>
+                            CombatAbilityModalPresentationRules.ResolveBookState(card)
+                                == CombatAbilityModalBookState.NoTarget);
+                    break;
+                case "action-used":
+                    selected = visibleList.FirstOrDefault(card =>
+                        CombatAbilityModalPresentationRules.ResolveBookState(card)
+                            == CombatAbilityModalBookState.ActionUsed);
+                    break;
+                case "disabled":
+                    selected = visibleList.FirstOrDefault(card =>
+                        CombatAbilityModalPresentationRules.ResolveBookState(card)
+                            == CombatAbilityModalBookState.Disabled);
+                    break;
+                case "blocked":
+                    selected = visibleList.FirstOrDefault(card =>
+                        CombatAbilityModalPresentationRules.ResolveBookState(card)
+                            == CombatAbilityModalBookState.Blocked);
+                    break;
+                default:
+                    selected = bottom
+                        ? visibleList.LastOrDefault(card =>
+                            CombatAbilityModalPresentationRules.ResolveBookState(card)
+                                == CombatAbilityModalBookState.ReadyNow)
+                        : visibleList.FirstOrDefault(card => card.Ready) ?? visibleList.FirstOrDefault();
+                    selected ??= visibleList.FirstOrDefault();
+                    break;
+            }
+            if (selected == null)
+            {
+                throw new InvalidOperationException(
+                    $"Visual smoke could not stage {requestedState} in the {(spellbook ? "Spellbook" : "Skillbook")}.");
+            }
+            SelectCombatAbilityModalCard(selected.Id);
+            if (hover && selected != null && combatAbilityModalScreen != null)
+            {
+                List<CombatAbilityModalCardView> visibleCards = (BuildCombatAbilityModalView().Cards
+                        ?? Array.Empty<CombatAbilityModalCardView>())
+                    .Where(card => CombatAbilityModalPresentationRules.MatchesFilter(card, filter))
+                    .ToList();
+                int previewIndex = visibleCards.FindIndex(card => card != null
+                    && !string.Equals(card.Id, selected.Id, StringComparison.Ordinal));
+                if (previewIndex >= 0)
+                {
+                    combatAbilityModalScreen.HoverVisibleIndexForTest(previewIndex);
+                }
+            }
             MarkUiDirty();
+            CombatAbilityModalView stagedView = BuildCombatAbilityModalView();
+            string detailId = combatAbilityModalScreen?.DetailIdForTest ?? selected.Id;
+            CombatAbilityModalCardView stagedDetail = (stagedView.Cards ?? Array.Empty<CombatAbilityModalCardView>())
+                .FirstOrDefault(card => string.Equals(card?.Id, detailId, StringComparison.Ordinal));
+            CombatAbilityModalBookState bookState =
+                CombatAbilityModalPresentationRules.ResolveBookState(stagedDetail);
+            CombatAbilityModalBookState expectedState =
+                ExpectedVisualSmokeBookState(requestedState);
+            string availability = CombatAbilityModalPresentationRules.BookStateLabel(bookState);
+            int contextIcon = ExpectedVisualSmokeBookContextIcon(requestedState, bookState);
+            if (bookState != expectedState)
+            {
+                throw new InvalidOperationException(
+                    $"Visual smoke state mismatch: requested={requestedState}, card={detailId}, "
+                    + $"state={bookState}, expected={expectedState}, availability={availability}.");
+            }
+            Debug.Log(
+                $"{VersionInfo.ProductName} power-book smoke staged: "
+                + $"book={(spellbook ? "spellbook" : "skillbook")}, requested={requestedState}, "
+                + $"filter={filter}, committed={selected.Id}, detail={detailId}, state={bookState}, "
+                + $"availability={availability}, icon={contextIcon}, "
+                + $"preview={combatAbilityModalScreen?.PreviewedIdForTest ?? ""}, "
+                + $"targeting={stagedDetail?.Ready == true}.");
         }
 
         private void ValidateDialogueSmokeState(bool responseMode)
@@ -715,6 +1107,18 @@ namespace AshenHalls
         private void ApplyVisualSmokeExploreView(string[] args)
         {
             exploreWideView = args != null && args.Any(arg => string.Equals(arg, "-ashen-region-smoke", StringComparison.OrdinalIgnoreCase));
+            exploreHudCollapsed = args == null
+                || !args.Any(arg => string.Equals(arg, "-ashen-details-smoke", StringComparison.OrdinalIgnoreCase));
+            Debug.Log(
+                VersionInfo.ProductName
+                + " visual smoke exploration view: "
+                + (exploreWideView ? "Region Map" : "Local Map")
+                + ", Details "
+                + (exploreHudCollapsed ? "closed" : "open")
+                + ", target "
+                + (CurrentExploreGuidanceTargetName() ?? "none")
+                + ", guidance "
+                + ExploreWaypointLine());
         }
 
         private bool PositionVisualSmokeAtGate(string[] args)
@@ -803,6 +1207,187 @@ namespace AshenHalls
             }
 
             return false;
+        }
+
+        private bool StageVisualSmokeContact(string[] args, bool openDialogue)
+        {
+            if (state?.Map?.Objects == null || state.Mode != GameMode.Explore) return false;
+            string optionName = openDialogue
+                ? "-ashen-contact-dialogue-smoke"
+                : "-ashen-contact-smoke";
+            string requested = "kate";
+            int option = Array.FindIndex(
+                args,
+                arg => string.Equals(arg, optionName, StringComparison.OrdinalIgnoreCase));
+            if (option >= 0
+                && option + 1 < args.Length
+                && !args[option + 1].StartsWith("-", StringComparison.Ordinal))
+            {
+                requested = args[option + 1].Trim().ToLowerInvariant();
+            }
+
+            if (!TryResolveVisualSmokeContact(requested, out ObjectType requestedType))
+            {
+                throw new InvalidOperationException(
+                    "Unknown Midgaard contact smoke target '" + requested + "'.");
+            }
+
+            List<MapObject> matches = state.Map.Objects
+                .Where(obj => obj != null && obj.Type == requestedType)
+                .ToList();
+            if (matches.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Contact smoke expected exactly one {requestedType}, found {matches.Count}.");
+            }
+
+            MapObject contact = matches[0];
+            int[] dx = { 0, -1, 1, 0 };
+            int[] dy = { -1, 0, 0, 1 };
+            for (int i = 0; i < dx.Length; i++)
+            {
+                int standX = contact.X - dx[i];
+                int standY = contact.Y - dy[i];
+                if (!CanStepExplore(standX, standY)) continue;
+
+                state.PlayerX = standX;
+                state.PlayerY = standY;
+                exploreFacingX = dx[i];
+                exploreFacingY = dy[i];
+                lastExploreRegion = ExploreRegionName(standX, standY);
+                InvalidateExplorationController();
+                ExplorationInteraction interaction = CurrentExploreInteraction();
+                if (!interaction.HasTarget
+                    || !ReferenceEquals(interaction.Target, contact)
+                    || !string.Equals(interaction.Verb, "Talk", StringComparison.Ordinal)
+                    || !string.Equals(interaction.Icon, "talk", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                int atlasCell = MidgaardNpcObjectIconIndex(requestedType, contact);
+                int expectedCell = NpcPortraitCatalog.WorldSpriteIndex(
+                    requestedType,
+                    contact.X > state.Map.StartX);
+                if (atlasCell != expectedCell)
+                {
+                    throw new InvalidOperationException(
+                        $"{requestedType} resolved NPC cell {atlasCell}, expected {expectedCell}.");
+                }
+
+                bannerText = "";
+                bannerUntil = 0f;
+                if (openDialogue)
+                {
+                    UseNearbyExploreObject();
+                    ValidateVisualSmokeContactDialogue(requestedType);
+                }
+                else if (CurrentUiOverlay() != UiOverlay.None)
+                {
+                    throw new InvalidOperationException(
+                        "Contact close-up unexpectedly opened a modal overlay.");
+                }
+
+                MarkUiDirty();
+                Debug.Log(
+                    $"{VersionInfo.ProductName} contact smoke: "
+                    + $"contact={requested}, type={requestedType}, cell={atlasCell}, "
+                    + $"position={contact.X},{contact.Y}, stand={standX},{standY}, "
+                    + $"dialogue={openDialogue}.");
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryResolveVisualSmokeContact(string requested, out ObjectType type)
+        {
+            switch ((requested ?? "").Trim().ToLowerInvariant())
+            {
+                case "kate":
+                case "cook":
+                case "diner":
+                    type = ObjectType.DinerCook;
+                    return true;
+                case "lute":
+                case "provisioner":
+                case "provisions":
+                    type = ObjectType.Provisioner;
+                    return true;
+                case "dock":
+                case "worker":
+                case "dockworker":
+                    type = ObjectType.DockWorker;
+                    return true;
+                case "scholar":
+                case "records":
+                    type = ObjectType.Scholar;
+                    return true;
+                default:
+                    type = ObjectType.Town;
+                    return false;
+            }
+        }
+
+        private void ValidateVisualSmokeContactDialogue(ObjectType expectedType)
+        {
+            if (CurrentUiOverlay() != UiOverlay.Dialogue || !showDialogue)
+            {
+                throw new InvalidOperationException(
+                    expectedType + " contact smoke did not retain dialogue ownership.");
+            }
+
+            string expectedSpeaker;
+            int expectedPortrait;
+            int expectedChoices;
+            switch (expectedType)
+            {
+                case ObjectType.DinerCook:
+                    expectedSpeaker = "Kate";
+                    expectedPortrait = 12;
+                    expectedChoices = 4;
+                    break;
+                case ObjectType.Provisioner:
+                    expectedSpeaker = "Lute";
+                    expectedPortrait = 17;
+                    expectedChoices = 4;
+                    break;
+                case ObjectType.DockWorker:
+                    expectedSpeaker = "Dock Worker";
+                    expectedPortrait = 18;
+                    expectedChoices = 0;
+                    break;
+                case ObjectType.Scholar:
+                    expectedSpeaker = "Midgaard Scholar";
+                    expectedPortrait = 19;
+                    expectedChoices = 0;
+                    break;
+                default:
+                    throw new InvalidOperationException(
+                        "Unsupported contact dialogue type " + expectedType + ".");
+            }
+
+            int portrait = NpcPortraitCatalog.PortraitIndex(dialogueFocus, dialogueSpeaker);
+            int choiceCount = dialogueScreen == null
+                ? dialogueChoices?.Length ?? 0
+                : dialogueScreen.VisibleChoiceCountForTest;
+            if (dialogueFocus != expectedType
+                || !string.Equals(dialogueSpeaker, expectedSpeaker, StringComparison.Ordinal)
+                || portrait != expectedPortrait
+                || choiceCount != expectedChoices
+                || dialogueScreen == null
+                || !dialogueScreen.HasPortraitArt)
+            {
+                throw new InvalidOperationException(
+                    $"{expectedType} contact dialogue mismatch: "
+                    + $"speaker={dialogueSpeaker}, focus={dialogueFocus}, portrait={portrait}, "
+                    + $"choices={choiceCount}, portraitArt={dialogueScreen?.HasPortraitArt ?? false}.");
+            }
+
+            Debug.Log(
+                $"{VersionInfo.ProductName} contact dialogue smoke: "
+                + $"speaker={dialogueSpeaker}, focus={dialogueFocus}, "
+                + $"portrait={portrait}, choices={choiceCount}.");
         }
 
         private void RequestVisualSmokeCaptureIfNeeded(string[] args)

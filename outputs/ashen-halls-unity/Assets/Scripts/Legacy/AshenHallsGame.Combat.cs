@@ -31,6 +31,8 @@ namespace AshenHalls
 
         private readonly List<CombatUnitPresentationBeat> combatUnitPresentationBeats = new List<CombatUnitPresentationBeat>();
 
+        private readonly List<Rect> combatTooltipBlockers = new List<Rect>(32);
+
         private float combatShakeStarted;
 
         private float combatShakeUntil;
@@ -172,6 +174,7 @@ namespace AshenHalls
 
             if (active != null && active.Side == UnitSide.Party && !resolvingPower)
             {
+                DrawCombatTargetStateShapes(grid, cell, active);
                 DrawEnemyThreatCues(grid, cell, active);
                 DrawHoverAim(grid, cell, active);
             }
@@ -200,6 +203,7 @@ namespace AshenHalls
                 Vector2 pos = UnitDrawPos(unit);
                 Rect cellRect = new Rect(grid.x + pos.x * cell, grid.y + pos.y * cell, cell, cell);
                 bool isActive = active != null && active.Id == unit.Id;
+                DrawCombatStatusFrame(cellRect, unit, isActive, cell);
                 if (isActive) DrawActiveCursor(cellRect, cell);
                 Rect hp = new Rect(cellRect.x + cell * 0.15f, cellRect.yMax - cell * 0.14f, cell * 0.7f, cell * 0.07f);
                 DrawRect(hp, Hex("111619"));
@@ -580,12 +584,46 @@ namespace AshenHalls
             }
         }
 
+        private bool TryCombatHoverCell(
+            Rect grid,
+            float cell,
+            out int x,
+            out int y,
+            out Vector2 pointer)
+        {
+            x = -1;
+            y = -1;
+            pointer = Vector2.zero;
+            if (cell <= 0f) return false;
+
+            if (visualSmokeCombatHoverCell.HasValue)
+            {
+                Vector2Int staged = visualSmokeCombatHoverCell.Value;
+                if (staged.x < 0 || staged.x >= CombatW || staged.y < 0 || staged.y >= CombatH) return false;
+                x = staged.x;
+                y = staged.y;
+                pointer = new Vector2(
+                    grid.x + (x + 0.5f) * cell,
+                    grid.y + (y + 0.5f) * cell);
+                return true;
+            }
+
+            Event current = Event.current;
+            if (current == null || !grid.Contains(current.mousePosition)) return false;
+            pointer = current.mousePosition;
+            x = Mathf.FloorToInt((pointer.x - grid.x) / cell);
+            y = Mathf.FloorToInt((pointer.y - grid.y) / cell);
+            return x >= 0 && x < CombatW && y >= 0 && y < CombatH;
+        }
+
         private void DrawHoverPreview(Rect grid, float cell, CombatUnit active)
         {
-            if (active == null || active.Side != UnitSide.Party || Event.current == null || !grid.Contains(Event.current.mousePosition)) return;
-            int x = Mathf.FloorToInt((Event.current.mousePosition.x - grid.x) / cell);
-            int y = Mathf.FloorToInt((Event.current.mousePosition.y - grid.y) / cell);
-            if (x < 0 || x >= CombatW || y < 0 || y >= CombatH) return;
+            if (active == null
+                || active.Side != UnitSide.Party
+                || !TryCombatHoverCell(grid, cell, out int x, out int y, out Vector2 pointer))
+            {
+                return;
+            }
 
             string text = "";
             CombatUnit target = UnitAt(x, y);
@@ -597,7 +635,11 @@ namespace AshenHalls
                 if (distance <= 0) text = "current tile";
                 else if (!CanStandAt(x, y)) text = "blocked";
                 else if (moveCost >= UnreachableMoveCost) text = $"path blocked{terrain}";
-                else if (moveCost <= state.Combat.MovePoints) text = $"move {moveCost}, {state.Combat.MovePoints - moveCost} left{terrain}";
+                else if (moveCost <= state.Combat.MovePoints)
+                {
+                    string threat = ProjectedMoveThreatSummary(active, x, y);
+                    text = $"move {moveCost}, {state.Combat.MovePoints - moveCost} left / {threat}{terrain}";
+                }
                 else text = $"too far by {moveCost - state.Combat.MovePoints}{terrain}";
             }
             else if (selectedAction == ActionMode.Attack && target != null)
@@ -622,22 +664,102 @@ namespace AshenHalls
             }
 
             if (string.IsNullOrEmpty(text)) return;
+            if (CombatTargetingRules.RoutesUnitPreviewToSideRail(
+                    selectedAction,
+                    target != null))
+            {
+                return;
+            }
             Point coverTarget = ObstacleAt(x, y);
             string title = HoverPreviewTitle(active, target, coverTarget);
             Color accent = HoverPreviewAccent(text, target, coverTarget);
-            Rect box = PlaceCombatTooltip(Event.current.mousePosition, 360f, 118f);
-            DrawCombatTooltipBackplate(box, accent, 1);
-            DrawActionButtonGlyph(new Rect(box.x + 10, box.y + 10, 42, 42), selectedAction, true, true);
-            GUI.Label(new Rect(box.x + 62, box.y + 7, box.width - 78, 20), title, CenterLeftStyle(13, cursorWhite));
             string[] previewLines = text.Split(new[] { '\n' }, 2);
-            GUI.Label(new Rect(box.x + 62, box.y + 31, box.width - 78, 17), FitText(previewLines[0], box.width - 78, CenterLeftStyle(12, ink)), CenterLeftStyle(12, ink));
+            float tooltipWidth = Mathf.Clamp(grid.width * 0.42f, 280f, 330f);
+            float tooltipHeight = previewLines.Length > 1 ? 108f : 92f;
+            Rect box = PlaceCombatBoardTooltip(
+                grid,
+                cell,
+                active,
+                x,
+                y,
+                pointer,
+                tooltipWidth,
+                tooltipHeight);
+            DrawCombatTooltipBackplate(box, accent, 1);
+            DrawActionButtonGlyph(new Rect(box.x + 9, box.y + 8, 36, 36), selectedAction, true, true);
+            GUI.Label(new Rect(box.x + 55, box.y + 5, box.width - 67, 20), title, CenterLeftStyle(13, cursorWhite));
+            GUI.Label(new Rect(box.x + 55, box.y + 27, box.width - 67, 17), FitText(previewLines[0], box.width - 67, CenterLeftStyle(12, ink)), CenterLeftStyle(12, ink));
             if (previewLines.Length > 1)
             {
-                GUI.Label(new Rect(box.x + 10, box.y + 56, box.width - 20, 16), FitText(previewLines[1], box.width - 20, CenterLeftStyle(10, muted)), CenterLeftStyle(10, muted));
+                GUI.Label(new Rect(box.x + 9, box.y + 50, box.width - 18, 16), FitText(previewLines[1], box.width - 18, CenterLeftStyle(10, muted)), CenterLeftStyle(10, muted));
             }
             string tileLine = CombatHoverTileLine(x, y, coverTarget);
-            GUI.Label(new Rect(box.x + 10, box.y + 76, box.width - 20, 16), FitText(tileLine, box.width - 20, CenterLeftStyle(10, gold)), CenterLeftStyle(10, gold));
-            GUI.Label(new Rect(box.x + 10, box.yMax - 25, box.width - 20, 16), FitText(HoverClickInstruction(active, target, coverTarget, x, y), box.width - 20, CenterLeftStyle(10, muted)), CenterLeftStyle(10, muted));
+            float tileY = previewLines.Length > 1 ? 68f : 49f;
+            GUI.Label(new Rect(box.x + 9, box.y + tileY, box.width - 18, 16), FitText(tileLine, box.width - 18, CenterLeftStyle(10, gold)), CenterLeftStyle(10, gold));
+            GUI.Label(new Rect(box.x + 9, box.yMax - 22f, box.width - 18, 16), FitText(HoverClickInstruction(active, target, coverTarget, x, y), box.width - 18, CenterLeftStyle(10, muted)), CenterLeftStyle(10, muted));
+        }
+
+        private Rect PlaceCombatBoardTooltip(
+            Rect grid,
+            float cell,
+            CombatUnit active,
+            int targetX,
+            int targetY,
+            Vector2 pointer,
+            float width,
+            float height)
+        {
+            combatTooltipBlockers.Clear();
+            if (state?.Combat?.Units != null)
+            {
+                foreach (CombatUnit unit in state.Combat.Units)
+                {
+                    if (unit == null || unit.Hp <= 0) continue;
+                    combatTooltipBlockers.Add(new Rect(
+                        grid.x + unit.X * cell,
+                        grid.y + unit.Y * cell,
+                        cell,
+                        cell));
+                }
+            }
+            if (selectedAction == ActionMode.Move && active != null)
+            {
+                int moveCost = MoveCostTo(active, targetX, targetY);
+                if (CanStandAt(targetX, targetY)
+                    && moveCost < UnreachableMoveCost
+                    && moveCost <= state.Combat.MovePoints)
+                {
+                    IReadOnlyList<Vector2Int> path = ReachableMovePath(
+                        active,
+                        targetX,
+                        targetY,
+                        state.Combat.MovePoints);
+                    if (path != null)
+                    {
+                        for (int i = 0; i < path.Count; i++)
+                        {
+                            Vector2Int point = path[i];
+                            combatTooltipBlockers.Add(new Rect(
+                                grid.x + point.x * cell,
+                                grid.y + point.y * cell,
+                                cell,
+                                cell));
+                        }
+                    }
+                }
+            }
+            Rect decision = new Rect(
+                grid.x + targetX * cell,
+                grid.y + targetY * cell,
+                cell,
+                cell);
+            return CombatTargetingRules.PlaceBoardTooltip(
+                grid,
+                decision,
+                pointer,
+                width,
+                height,
+                combatTooltipBlockers);
         }
 
         private string CombatHoverTileLine(int x, int y, Point cover)
@@ -781,9 +903,26 @@ namespace AshenHalls
             }
             if (selectedAction == ActionMode.Attack)
             {
-                if (target != null && target.Side == UnitSide.Enemy) return state.Combat.ActionAvailable ? "Click to attack" : "Action already used";
-                if (IsDisruptableRitual(cover)) return state.Combat.ActionAvailable ? "Click to disrupt ritual" : "Action already used";
-                if (IsBreakableCover(cover)) return state.Combat.ActionAvailable ? "Click to break cover" : "Action already used";
+                if (!state.Combat.ActionAvailable) return "Action already used";
+                if (target != null && target.Side == UnitSide.Enemy)
+                {
+                    CombatAttackForecast forecast = AttackForecast(active, target);
+                    return forecast.Legal
+                        ? "Click to attack"
+                        : CombatThreatRules.BlockLabel(forecast.BlockReason);
+                }
+                if (IsDisruptableRitual(cover))
+                {
+                    return CanAttackCombatObstacle(active, cover)
+                        ? "Click to disrupt ritual"
+                        : CombatObstacleAttackBlockReason(active, cover);
+                }
+                if (IsBreakableCover(cover))
+                {
+                    return CanAttackCombatObstacle(active, cover)
+                        ? "Click to break cover"
+                        : CombatObstacleAttackBlockReason(active, cover);
+                }
                 return "Choose an enemy, ritual, or cover";
             }
             if (selectedAction == ActionMode.Cast)
@@ -802,12 +941,36 @@ namespace AshenHalls
             return "Choose a command";
         }
 
+        private bool CanAttackCombatObstacle(CombatUnit active, Point obstacle)
+        {
+            if (active == null || obstacle == null) return false;
+            if (!IsDisruptableRitual(obstacle) && !IsBreakableCover(obstacle)) return false;
+            int range = EffectiveAttackRangeTo(active, obstacle.X, obstacle.Y);
+            if (Distance(active.X, active.Y, obstacle.X, obstacle.Y) > range) return false;
+            bool ranged = UsesRangedAttackAt(active, active.X, active.Y, obstacle.X, obstacle.Y);
+            return !ranged || HasLineOfSight(active.X, active.Y, obstacle.X, obstacle.Y, true);
+        }
+
+        private string CombatObstacleAttackBlockReason(CombatUnit active, Point obstacle)
+        {
+            if (active == null || obstacle == null) return "No valid target";
+            int range = EffectiveAttackRangeTo(active, obstacle.X, obstacle.Y);
+            if (Distance(active.X, active.Y, obstacle.X, obstacle.Y) > range) return "Out of range";
+            bool ranged = UsesRangedAttackAt(active, active.X, active.Y, obstacle.X, obstacle.Y);
+            if (ranged && !HasLineOfSight(active.X, active.Y, obstacle.X, obstacle.Y, true))
+            {
+                return "Line of sight blocked";
+            }
+            return "Cannot attack that";
+        }
+
         private void DrawHoverAim(Rect grid, float cell, CombatUnit active)
         {
-            if (active == null || Event.current == null || !grid.Contains(Event.current.mousePosition)) return;
-            int x = Mathf.FloorToInt((Event.current.mousePosition.x - grid.x) / cell);
-            int y = Mathf.FloorToInt((Event.current.mousePosition.y - grid.y) / cell);
-            if (x < 0 || x >= CombatW || y < 0 || y >= CombatH) return;
+            if (active == null
+                || !TryCombatHoverCell(grid, cell, out int x, out int y, out _))
+            {
+                return;
+            }
 
             CombatUnit target = UnitAt(x, y);
             Rect tile = new Rect(grid.x + x * cell, grid.y + y * cell, cell, cell);
@@ -820,6 +983,11 @@ namespace AshenHalls
                 bool reachable = CanStandAt(x, y) && moveCost < UnreachableMoveCost;
                 bool valid = reachable && moveCost <= state.Combat.MovePoints;
                 color = valid ? teal : Hex("8a5c35");
+                if (valid)
+                {
+                    IReadOnlyList<Vector2Int> path = ReachableMovePath(active, x, y, state.Combat.MovePoints);
+                    DrawMovementPathPreview(grid, cell, path, color);
+                }
                 DrawTargetBadge(tile, reachable ? moveCost.ToString() : "X", color, valid);
             }
             else if (selectedAction == ActionMode.Attack && target != null)
@@ -837,16 +1005,14 @@ namespace AshenHalls
                 if (IsDisruptableRitual(cover))
                 {
                     drawLine = true;
-                    bool ranged = UsesRangedAttackAt(active, active.X, active.Y, x, y);
-                    bool valid = Distance(active.X, active.Y, x, y) <= EffectiveAttackRangeTo(active, x, y) && (!ranged || HasLineOfSight(active.X, active.Y, x, y, true));
+                    bool valid = CanAttackCombatObstacle(active, cover);
                     color = valid ? ObstacleAccent(cover.Kind) : Hex("8a5c35");
                     DrawTargetReticle(tile, color, valid ? "BREAK" : "NO", valid);
                 }
                 else if (IsBreakableCover(cover))
                 {
                     drawLine = true;
-                    bool ranged = UsesRangedAttackAt(active, active.X, active.Y, x, y);
-                    bool valid = Distance(active.X, active.Y, x, y) <= EffectiveAttackRangeTo(active, x, y) && (!ranged || HasLineOfSight(active.X, active.Y, x, y, true));
+                    bool valid = CanAttackCombatObstacle(active, cover);
                     color = valid ? gold : Hex("8a5c35");
                     DrawTargetReticle(tile, color, valid ? "BREAK" : "NO", valid);
                 }
@@ -894,6 +1060,40 @@ namespace AshenHalls
             }
         }
 
+        private void DrawMovementPathPreview(
+            Rect grid,
+            float cell,
+            IReadOnlyList<Vector2Int> path,
+            Color color)
+        {
+            if (path == null || path.Count < 2) return;
+            float thickness = Mathf.Max(2f, cell * 0.025f);
+            Color shadow = Hex("030405", 0.66f);
+            Color trace = color.WithAlpha(0.62f);
+            for (int i = 1; i < path.Count; i++)
+            {
+                Vector2Int previous = path[i - 1];
+                Vector2Int current = path[i];
+                Vector2 from = new Vector2(
+                    grid.x + (previous.x + 0.5f) * cell,
+                    grid.y + (previous.y + 0.5f) * cell);
+                Vector2 to = new Vector2(
+                    grid.x + (current.x + 0.5f) * cell,
+                    grid.y + (current.y + 0.5f) * cell);
+                DrawPixelLine(from, to, shadow, thickness + 3f);
+                DrawPixelLine(from, to, trace, thickness);
+
+                float dotSize = Mathf.Clamp(cell * 0.10f, 5f, 10f);
+                Rect dot = new Rect(
+                    to.x - dotSize * 0.5f,
+                    to.y - dotSize * 0.5f,
+                    dotSize,
+                    dotSize);
+                DrawRect(Pad(dot, -2f), shadow);
+                DrawRect(dot, Color.Lerp(trace, cursorWhite, i == path.Count - 1 ? 0.30f : 0.12f));
+            }
+        }
+
         private void DrawBlockingCoverMarkers(Rect grid, float cell, int ax, int ay, int bx, int by)
         {
             foreach (Point cover in BlockingCoverAlongLine(ax, ay, bx, by))
@@ -907,16 +1107,37 @@ namespace AshenHalls
 
         private void DrawTargetReticle(Rect tile, Color color, string label, bool valid)
         {
-            Rect ring = Pad(tile, tile.width * 0.13f);
-            DrawRect(new Rect(ring.x, ring.y, ring.width * 0.26f, 3f), color);
-            DrawRect(new Rect(ring.x, ring.y, 3f, ring.height * 0.26f), color);
-            DrawRect(new Rect(ring.xMax - ring.width * 0.26f, ring.y, ring.width * 0.26f, 3f), color);
-            DrawRect(new Rect(ring.xMax - 3f, ring.y, 3f, ring.height * 0.26f), color);
-            DrawRect(new Rect(ring.x, ring.yMax - 3f, ring.width * 0.26f, 3f), color);
-            DrawRect(new Rect(ring.x, ring.yMax - ring.height * 0.26f, 3f, ring.height * 0.26f), color);
-            DrawRect(new Rect(ring.xMax - ring.width * 0.26f, ring.yMax - 3f, ring.width * 0.26f, 3f), color);
-            DrawRect(new Rect(ring.xMax - 3f, ring.yMax - ring.height * 0.26f, 3f, ring.height * 0.26f), color);
+            DrawTargetStateShape(tile, color, valid);
             DrawTargetBadge(tile, label, color, valid);
+        }
+
+        private void DrawTargetStateShape(Rect tile, Color color, bool valid)
+        {
+            Rect ring = Pad(tile, tile.width * 0.13f);
+            float stroke = Mathf.Max(2f, tile.width * 0.035f);
+            if (!valid)
+            {
+                float inset = tile.width * 0.10f;
+                Vector2 topLeft = new Vector2(ring.x + inset, ring.y + inset);
+                Vector2 topRight = new Vector2(ring.xMax - inset, ring.y + inset);
+                Vector2 bottomLeft = new Vector2(ring.x + inset, ring.yMax - inset);
+                Vector2 bottomRight = new Vector2(ring.xMax - inset, ring.yMax - inset);
+                DrawPixelLine(topLeft, bottomRight, Hex("030405", 0.72f), stroke + 3f);
+                DrawPixelLine(topRight, bottomLeft, Hex("030405", 0.72f), stroke + 3f);
+                DrawPixelLine(topLeft, bottomRight, color.WithAlpha(0.90f), stroke);
+                DrawPixelLine(topRight, bottomLeft, color.WithAlpha(0.90f), stroke);
+                return;
+            }
+
+            float corner = ring.width * 0.26f;
+            DrawRect(new Rect(ring.x, ring.y, corner, stroke), color);
+            DrawRect(new Rect(ring.x, ring.y, stroke, ring.height * 0.26f), color);
+            DrawRect(new Rect(ring.xMax - corner, ring.y, corner, stroke), color);
+            DrawRect(new Rect(ring.xMax - stroke, ring.y, stroke, ring.height * 0.26f), color);
+            DrawRect(new Rect(ring.x, ring.yMax - stroke, corner, stroke), color);
+            DrawRect(new Rect(ring.x, ring.yMax - ring.height * 0.26f, stroke, ring.height * 0.26f), color);
+            DrawRect(new Rect(ring.xMax - corner, ring.yMax - stroke, corner, stroke), color);
+            DrawRect(new Rect(ring.xMax - stroke, ring.yMax - ring.height * 0.26f, stroke, ring.height * 0.26f), color);
         }
 
         private void DrawTargetBadge(Rect tile, string label, Color color, bool valid)
@@ -1669,7 +1890,20 @@ namespace AshenHalls
             if (!state.Combat.ActionAvailable) return "Action spent. Move if you can, or press Space to end.";
             if (state.Combat.MovePoints <= 0) return "No movement left. Attack, Spells/Skills, Guard, or press Space.";
             if (selectedAction == ActionMode.Move) return state.Combat.MovePoints > 0 ? "Click a highlighted tile to move." : "No movement remains.";
-            if (selectedAction == ActionMode.Attack) return state.Combat.ActionAvailable ? "Click an enemy, breakable cover, or a ritual." : "Attack already spent.";
+            if (selectedAction == ActionMode.Attack)
+            {
+                if (!state.Combat.ActionAvailable) return "Attack already spent.";
+                int legalTargets = CountLegalAttackTargets(active);
+                if (legalTargets <= 0)
+                {
+                    return state.Combat.MovePoints > 0
+                        ? "No attack target from here. Move closer, use a power, Guard, or end the turn."
+                        : "No attack target from here. Use a power, Guard, or end the turn.";
+                }
+                return legalTargets == 1
+                    ? "1 attack target. Click its bracket to attack."
+                    : $"{legalTargets} attack targets. Click a bracket to attack.";
+            }
             if (selectedAction == ActionMode.Cast)
             {
                 FormulaDef formula = GetFormula(pendingFormulaCode);
@@ -1732,6 +1966,36 @@ namespace AshenHalls
             if (direct > 0) return direct == 1 ? "1 enemy can hit" : $"{direct} enemies can hit";
             if (pressure > 0) return pressure == 1 ? "1 enemy threatening" : $"{pressure} enemies threatening";
             return "no direct threat";
+        }
+
+        private Vector2Int ProjectedMoveThreatCounts(CombatUnit active, int destinationX, int destinationY)
+        {
+            if (active == null || state?.Combat?.Units == null) return Vector2Int.zero;
+            int direct = 0;
+            int pressure = 0;
+            foreach (CombatUnit enemy in state.Combat.Units.Where(unit =>
+                         unit != null
+                         && unit.Side == UnitSide.Enemy
+                         && unit.Hp > 0))
+            {
+                bool canHit = CanEnemyAttackAt(enemy, active, destinationX, destinationY)
+                    || CanEnemySpecialReachAt(enemy, active, destinationX, destinationY);
+                if (canHit)
+                {
+                    direct++;
+                }
+                else if (IsEnemyPressureThreatAt(enemy, active, destinationX, destinationY))
+                {
+                    pressure++;
+                }
+            }
+            return new Vector2Int(direct, pressure);
+        }
+
+        private string ProjectedMoveThreatSummary(CombatUnit active, int destinationX, int destinationY)
+        {
+            Vector2Int counts = ProjectedMoveThreatCounts(active, destinationX, destinationY);
+            return CombatThreatRules.MovementDestinationLabel(counts.x, counts.y);
         }
 
         private int DirectThreatCount(CombatUnit active)
@@ -1948,76 +2212,192 @@ namespace AshenHalls
             {
                 FormulaDef formula = selectedAction == ActionMode.Cast ? GetFormula(pendingFormulaCode) : null;
                 MartialAbility ability = selectedAction == ActionMode.Ability ? AbilityDef(pendingAbilityId) : null;
-                int range = selectedAction == ActionMode.Cast ? formula != null ? EffectiveFormulaRange(formula, active) : 4 : selectedAction == ActionMode.Ability && ability != null ? ability.Range : EffectiveAttackRangeFrom(active, active.X, active.Y);
+                if (!CombatTargetingRules.ShouldDrawTargetHighlights(
+                    selectedAction,
+                    formula != null,
+                    ability != null))
+                {
+                    return;
+                }
                 for (int y = 0; y < CombatH; y++)
                 for (int x = 0; x < CombatW; x++)
                 {
-                    if (Distance(x, y, active.X, active.Y) <= range)
+                    CombatTargetHighlightState highlight = CombatTargetHighlightStateAt(
+                        active,
+                        formula,
+                        ability,
+                        x,
+                        y);
+                    if (highlight == CombatTargetHighlightState.None) continue;
+                    bool legal = highlight == CombatTargetHighlightState.Legal;
+                    Color accent = Hex("8a5c35");
+                    if (legal && selectedAction == ActionMode.Cast)
                     {
-                        Color highlight = Hex("d7a84e", 0.15f);
-                        if (selectedAction == ActionMode.Cast && formula != null)
-                        {
-                            CombatUnit unit = UnitAt(x, y);
-                            if (CanTargetFormula(formula, active, unit, x, y))
-                            {
-                                if (!HasFormulaLineOfSight(formula, active, x, y)) highlight = Hex("8a5c35", 0.22f);
-                                else highlight = FormulaColor(formula, 0.25f);
-                            }
-                            else continue;
-                        }
-                        if (selectedAction == ActionMode.Attack)
-                        {
-                            CombatUnit unit = UnitAt(x, y);
-                            Point cover = ObstacleAt(x, y);
-                            if (unit != null && unit.Side == UnitSide.Enemy)
-                            {
-                                if (UsesRangedAttackAt(active, active.X, active.Y, x, y) && !HasLineOfSight(active.X, active.Y, x, y, true)) highlight = Hex("8a5c35", 0.22f);
-                                else highlight = Hex("d7a84e", 0.22f);
-                            }
-                            else if (IsDisruptableRitual(cover))
-                            {
-                                highlight = ObstacleAccent(cover.Kind).WithAlpha(0.24f);
-                            }
-                            else if (IsBreakableCover(cover))
-                            {
-                                highlight = Hex("d7a84e", 0.18f);
-                            }
-                            else continue;
-                        }
-                        if (selectedAction == ActionMode.Ability)
-                        {
-                            CombatUnit unit = UnitAt(x, y);
-                            string reason;
-                            if (ability != null && CanTargetAbility(active, ability, unit, x, y, out reason))
-                            {
-                                highlight = ability.Id == "charge" ? Hex("58b7a5", 0.24f) : Hex("d7a84e", 0.24f);
-                            }
-                            else continue;
-                        }
-                        DrawRect(new Rect(grid.x + x * cell + 6, grid.y + y * cell + 6, cell - 12, cell - 12), highlight);
+                        accent = FormulaColor(formula);
                     }
+                    else if (legal && selectedAction == ActionMode.Ability)
+                    {
+                        accent = CombatPowerPresentationRules.AbilityAccent(ability.ClassKey).ToColor();
+                    }
+                    else if (legal)
+                    {
+                        Point cover = ObstacleAt(x, y);
+                        accent = IsDisruptableRitual(cover)
+                            ? ObstacleAccent(cover.Kind)
+                            : gold;
+                    }
+                    Rect tile = new Rect(grid.x + x * cell, grid.y + y * cell, cell, cell);
+                    Rect mark = new Rect(tile.x + 6f, tile.y + 6f, tile.width - 12f, tile.height - 12f);
+                    DrawRect(mark, accent.WithAlpha(legal ? 0.22f : 0.16f));
                 }
             }
+        }
+
+        private void DrawCombatTargetStateShapes(Rect grid, float cell, CombatUnit active)
+        {
+            FormulaDef formula = selectedAction == ActionMode.Cast ? GetFormula(pendingFormulaCode) : null;
+            MartialAbility ability = selectedAction == ActionMode.Ability ? AbilityDef(pendingAbilityId) : null;
+            if (!CombatTargetingRules.ShouldDrawTargetHighlights(
+                selectedAction,
+                formula != null,
+                ability != null))
+            {
+                return;
+            }
+
+            for (int y = 0; y < CombatH; y++)
+            for (int x = 0; x < CombatW; x++)
+            {
+                CombatTargetHighlightState highlight = CombatTargetHighlightStateAt(
+                    active,
+                    formula,
+                    ability,
+                    x,
+                    y);
+                if (highlight == CombatTargetHighlightState.None) continue;
+                bool legal = highlight == CombatTargetHighlightState.Legal;
+                Color accent = Hex("8a5c35");
+                if (legal && selectedAction == ActionMode.Cast)
+                {
+                    accent = FormulaColor(formula);
+                }
+                else if (legal && selectedAction == ActionMode.Ability)
+                {
+                    accent = CombatPowerPresentationRules.AbilityAccent(ability.ClassKey).ToColor();
+                }
+                else if (legal)
+                {
+                    Point cover = ObstacleAt(x, y);
+                    accent = IsDisruptableRitual(cover)
+                        ? ObstacleAccent(cover.Kind)
+                        : gold;
+                }
+                Rect tile = new Rect(grid.x + x * cell, grid.y + y * cell, cell, cell);
+                DrawTargetStateShape(tile, accent.WithAlpha(legal ? 0.82f : 0.74f), legal);
+            }
+        }
+
+        private CombatTargetHighlightState CombatTargetHighlightStateAt(
+            CombatUnit active,
+            FormulaDef formula,
+            MartialAbility ability,
+            int x,
+            int y)
+        {
+            if (active == null) return CombatTargetHighlightState.None;
+            CombatUnit unit = UnitAt(x, y);
+            Point cover = ObstacleAt(x, y);
+            if (selectedAction == ActionMode.Cast && formula != null)
+            {
+                bool candidate = CanTargetFormula(formula, active, unit, x, y);
+                if (!candidate) return CombatTargetHighlightState.None;
+                bool inRange = Distance(x, y, active.X, active.Y) <= EffectiveFormulaRange(formula, active);
+                if (!inRange && unit == null && cover == null)
+                {
+                    return CombatTargetHighlightState.None;
+                }
+                return IsFormulaActionable(formula, active, unit, x, y)
+                    ? CombatTargetHighlightState.Legal
+                    : CombatTargetHighlightState.Blocked;
+            }
+            if (selectedAction == ActionMode.Attack)
+            {
+                if (unit != null && unit.Side == UnitSide.Enemy)
+                {
+                    return AttackForecast(active, unit).Legal
+                        ? CombatTargetHighlightState.Legal
+                        : CombatTargetHighlightState.Blocked;
+                }
+                if (IsDisruptableRitual(cover) || IsBreakableCover(cover))
+                {
+                    return CanAttackCombatObstacle(active, cover)
+                        ? CombatTargetHighlightState.Legal
+                        : CombatTargetHighlightState.Blocked;
+                }
+                return CombatTargetHighlightState.None;
+            }
+            if (selectedAction == ActionMode.Ability && ability != null)
+            {
+                if (unit == null || unit.Side != UnitSide.Enemy)
+                {
+                    return CombatTargetHighlightState.None;
+                }
+                return CanTargetAbility(active, ability, unit, x, y, out _)
+                    ? CombatTargetHighlightState.Legal
+                    : CombatTargetHighlightState.Blocked;
+            }
+            return CombatTargetHighlightState.None;
         }
 
         private void DrawEnemyThreatCues(Rect grid, float cell, CombatUnit active)
         {
             if (active == null || state?.Combat?.Units == null) return;
+            bool previewsDestination = false;
+            int previewX = active.X;
+            int previewY = active.Y;
+            if (selectedAction == ActionMode.Move
+                && TryCombatHoverCell(grid, cell, out int hoverX, out int hoverY, out _))
+            {
+                int moveCost = MoveCostTo(active, hoverX, hoverY);
+                previewsDestination = CanStandAt(hoverX, hoverY)
+                    && moveCost < UnreachableMoveCost
+                    && moveCost <= state.Combat.MovePoints;
+                if (previewsDestination)
+                {
+                    previewX = hoverX;
+                    previewY = hoverY;
+                }
+            }
+
             foreach (CombatUnit enemy in state.Combat.Units.Where(u => u.Side == UnitSide.Enemy && u.Hp > 0))
             {
                 CombatAttackForecast forecast = AttackForecast(enemy, active);
-                bool special = !forecast.Legal && CanEnemySpecialReach(enemy, active);
-                bool direct = forecast.Legal || special;
-                bool pressure = !direct && IsEnemyPressureThreat(enemy, active);
+                bool standard = previewsDestination
+                    ? CanEnemyAttackAt(enemy, active, previewX, previewY)
+                    : forecast.Legal;
+                bool special = !standard && (previewsDestination
+                    ? CanEnemySpecialReachAt(enemy, active, previewX, previewY)
+                    : CanEnemySpecialReach(enemy, active));
+                bool direct = standard || special;
+                bool pressure = !direct && (previewsDestination
+                    ? IsEnemyPressureThreatAt(enemy, active, previewX, previewY)
+                    : IsEnemyPressureThreat(enemy, active));
                 if (!direct && !pressure) continue;
                 if (!direct && selectedAction != ActionMode.Move) continue;
                 Rect tile = new Rect(grid.x + enemy.X * cell + cell * 0.08f, grid.y + enemy.Y * cell + cell * 0.08f, cell * 0.84f, cell * 0.84f);
-                CombatThreatLevel level = forecast.Legal ? forecast.ThreatLevel : direct ? CombatThreatLevel.Direct : CombatThreatLevel.Pressure;
+                CombatThreatLevel level = !previewsDestination && forecast.Legal
+                    ? forecast.ThreatLevel
+                    : direct ? CombatThreatLevel.Direct : CombatThreatLevel.Pressure;
                 Color accent = CombatThreatAccent(level);
                 float pulse = state.ReducedMotion ? 0.45f : 0.5f + Mathf.Sin(Time.time * (direct ? 7.5f : 4.5f)) * 0.5f;
                 float railW = Mathf.Max(direct ? 3f : 2f, cell * (direct ? 0.035f : 0.025f));
                 Rect rail = new Rect(tile.xMax - railW, tile.y + tile.height * 0.20f, railW, tile.height * 0.60f);
                 DrawRect(rail, accent.WithAlpha((direct ? 0.72f : 0.42f) + pulse * 0.12f));
+                if (previewsDestination)
+                {
+                    DrawBorder(tile, accent.WithAlpha(direct ? 0.90f : 0.68f), direct ? 2 : 1);
+                    DrawTargetBadge(tile, direct ? "HIT" : "MOVE", accent, false);
+                }
             }
         }
 
@@ -2039,13 +2419,34 @@ namespace AshenHalls
             return CanEnemyAttack(enemy, active) || CanEnemySpecialReach(enemy, active);
         }
 
-        private bool IsEnemyPressureThreat(CombatUnit enemy, CombatUnit active)
+        private bool CanEnemyAttackAt(CombatUnit enemy, CombatUnit active, int targetX, int targetY)
+        {
+            if (enemy == null || active == null || active.Hp <= 0 || enemy.Side == active.Side) return false;
+            int range = EffectiveAttackRangeFrom(enemy, enemy.X, enemy.Y);
+            if (Distance(enemy.X, enemy.Y, targetX, targetY) > range) return false;
+            bool ranged = UsesRangedAttackAt(enemy, enemy.X, enemy.Y, targetX, targetY);
+            return !ranged || HasLineOfSight(enemy.X, enemy.Y, targetX, targetY, true);
+        }
+
+        private bool CanEnemySpecialReachAt(CombatUnit enemy, CombatUnit active, int targetX, int targetY)
         {
             if (enemy == null || active == null || active.Hp <= 0) return false;
-            int distance = Distance(enemy.X, enemy.Y, active.X, active.Y);
+            if (Distance(enemy.X, enemy.Y, targetX, targetY) > enemy.Range) return false;
+            return HasLineOfSight(enemy.X, enemy.Y, targetX, targetY, true) || EnemySpecialArcsOverCover(enemy);
+        }
+
+        private bool IsEnemyPressureThreat(CombatUnit enemy, CombatUnit active)
+        {
+            return active != null && IsEnemyPressureThreatAt(enemy, active, active.X, active.Y);
+        }
+
+        private bool IsEnemyPressureThreatAt(CombatUnit enemy, CombatUnit active, int targetX, int targetY)
+        {
+            if (enemy == null || active == null || active.Hp <= 0) return false;
+            int distance = Distance(enemy.X, enemy.Y, targetX, targetY);
             int reach = Mathf.Max(1, enemy.Range) + UnitMoveAllowance(enemy);
             if (distance > reach) return false;
-            if (enemy.Range > 1) return HasLineOfSight(enemy.X, enemy.Y, active.X, active.Y, true) || EnemySpecialArcsOverCover(enemy);
+            if (enemy.Range > 1) return HasLineOfSight(enemy.X, enemy.Y, targetX, targetY, true) || EnemySpecialArcsOverCover(enemy);
             return true;
         }
 
@@ -3465,6 +3866,17 @@ namespace AshenHalls
             if (unit == null) return "";
             List<StatusMark> marks = StatusMarks(unit);
             List<string> parts = marks.Select(m => StatusName(m) + " " + m.Turns).ToList();
+            CombatUnit active = CurrentUnit();
+            if (active != null
+                && unit.Side == UnitSide.Party
+                && !string.IsNullOrEmpty(active.Id)
+                && active.Id == unit.Id)
+            {
+                string conditions = parts.Count == 0
+                    ? "No conditions"
+                    : string.Join(", ", parts.Take(2).ToArray());
+                return conditions + " / " + ActiveThreatSummary(unit);
+            }
             return parts.Count == 0 ? "steady" : string.Join(", ", parts.Take(4).ToArray());
         }
 
@@ -3771,12 +4183,59 @@ namespace AshenHalls
             if (active == null) return "";
             switch (mode)
             {
-                case ActionMode.Move: return "Click tile";
-                case ActionMode.Attack: return "Click target";
-                case ActionMode.Cast: return GetFormula(pendingFormulaCode) == null ? "Choose spell" : "Choose target";
-                case ActionMode.Ability: return AbilityDef(pendingAbilityId) == null ? "Choose skill" : "Choose target";
+                case ActionMode.Move:
+                    return LegalChoiceCountLabel(CountReachableMoveDestinations(active), "tile");
+                case ActionMode.Attack:
+                    return LegalChoiceCountLabel(CountLegalAttackTargets(active), "target");
+                case ActionMode.Cast:
+                    FormulaDef formula = GetFormula(pendingFormulaCode);
+                    if (formula == null) return "Choose spell";
+                    return string.Equals(formula.Target, "self", StringComparison.OrdinalIgnoreCase)
+                        ? "Use now"
+                        : LegalChoiceCountLabel(CountLegalFormulaTargets(formula, active), "target");
+                case ActionMode.Ability:
+                    MartialAbility ability = AbilityDef(pendingAbilityId);
+                    if (ability == null) return "Choose skill";
+                    return !ability.Targeted
+                        ? "Use now"
+                        : LegalChoiceCountLabel(CountLegalAbilityTargets(ability, active), "target");
                 default: return ActionButtonSubLabel(mode, active);
             }
+        }
+
+        private int CountReachableMoveDestinations(CombatUnit active)
+        {
+            if (active == null || state?.Combat == null || state.Combat.MovePoints <= 0) return 0;
+            int[,] reachable = ReachableMoveCosts(active, state.Combat.MovePoints);
+            int count = 0;
+            for (int y = 0; y < CombatH; y++)
+            for (int x = 0; x < CombatW; x++)
+            {
+                if (x == active.X && y == active.Y) continue;
+                if (reachable[x, y] < UnreachableMoveCost && CanStandAt(x, y)) count++;
+            }
+            return count;
+        }
+
+        private int CountLegalAttackTargets(CombatUnit active)
+        {
+            if (active == null || state?.Combat == null || !state.Combat.ActionAvailable) return 0;
+            int count = state.Combat.Units.Count(unit =>
+                unit != null
+                && unit.Hp > 0
+                && unit.Side == UnitSide.Enemy
+                && AttackForecast(active, unit).Legal);
+            count += state.Combat.Obstacles.Count(obstacle =>
+                obstacle != null
+                && (IsDisruptableRitual(obstacle) || IsBreakableCover(obstacle))
+                && CanAttackCombatObstacle(active, obstacle));
+            return count;
+        }
+
+        private static string LegalChoiceCountLabel(int count, string singular)
+        {
+            if (count <= 0) return "No " + singular + "s";
+            return count == 1 ? "1 " + singular : count + " " + singular + "s";
         }
 
         private int GuardActionBonus(CombatUnit active)
@@ -4616,6 +5075,11 @@ namespace AshenHalls
                 DrawBorder(rect, formula == null ? line : FormulaColor(formula), 1);
                 return;
             }
+            if (formula != null)
+            {
+                DrawFormulaRuneCode(rect, formula.Code, formula);
+                return;
+            }
             Rect source = FormulaLabIconRegion(formula, schoolFallback);
             if (!DrawFormulaLabRegion(rect, source))
             {
@@ -4629,19 +5093,17 @@ namespace AshenHalls
 
         private bool TryDrawSpellbookFormulaIcon(Rect rect, FormulaDef formula, string schoolFallback, Color tint)
         {
-            int lightningIndex = LightningSpellIconCatalog.LightningIndex(formula?.Code);
-            if (lightningIndex >= 0 && TryDrawLightningSpellIconAtlasIcon(rect, lightningIndex, tint)) return true;
-            int signatureIndex = CombatIconCatalog.SignatureSpellIndex(formula?.Code);
-            if (signatureIndex >= 0 && TryDrawSignatureSpellIconAtlasIcon(rect, signatureIndex, tint)) return true;
+            if (formula != null)
+            {
+                int signatureIndex = CombatIconCatalog.SignatureSpellIndex(formula.Code);
+                return signatureIndex >= 0
+                    && TryDrawSignatureSpellIconAtlasIcon(rect, signatureIndex, tint);
+            }
+
             int pactIndex = PactFormulaIconIndex(formula);
             if (pactIndex >= 0 && TryDrawPactSpellbookAtlasIcon(rect, pactIndex, tint)) return true;
             int index = SpellbookFormulaIconIndex(formula, schoolFallback);
             if (index >= 0 && TryDrawSpellbookUiAtlasIcon(rect, index, tint)) return true;
-            if (formula != null && (formula.Code == "FBL" || formula.Code == "MTR"))
-            {
-                int emberIndex = formula.Code == "MTR" ? 7 : 1;
-                return TryDrawEmberSpellAtlasIcon(rect, emberIndex, tint);
-            }
             return false;
         }
 
@@ -5395,6 +5857,10 @@ namespace AshenHalls
                 case ObjectType.ArmorerNpc:
                 case ObjectType.WeaponMerchantNpc:
                 case ObjectType.EnchanterNpc:
+                case ObjectType.DinerCook:
+                case ObjectType.Provisioner:
+                case ObjectType.DockWorker:
+                case ObjectType.Scholar:
                     return true;
                 default:
                     return false;
@@ -5438,6 +5904,18 @@ namespace AshenHalls
                 case ObjectType.Diner:
                 case ObjectType.Provisions:
                     VisitKatesDiner(obj.Type == ObjectType.Provisions);
+                    break;
+                case ObjectType.DinerCook:
+                    VisitKatesDiner(false, ObjectType.DinerCook);
+                    break;
+                case ObjectType.Provisioner:
+                    VisitKatesDiner(true, ObjectType.Provisioner);
+                    break;
+                case ObjectType.DockWorker:
+                    VisitDockWorker();
+                    break;
+                case ObjectType.Scholar:
+                    VisitMidgaardScholar();
                     break;
                 case ObjectType.Tavern:
                     VisitMidgaardTavern();
@@ -6247,20 +6725,66 @@ namespace AshenHalls
 
         private void VisitKatesDiner(bool provisionStall)
         {
+            VisitKatesDiner(
+                provisionStall,
+                provisionStall ? ObjectType.Provisions : ObjectType.Diner);
+        }
+
+        private void VisitKatesDiner(bool provisionStall, ObjectType interactionFocus)
+        {
             RestoreLivingParty(10, 6);
             MarkLampRoundVisit("diner", provisionStall ? "Lute's Provision Stall" : "Kate's Diner");
             PushLog(provisionStall
                 ? "Lute checks the party's packs and names the price before touching a single coin."
                 : "Kate clears a place near the stove and lets the party choose food before advice.", Tone.Normal);
             ShowBanner(provisionStall ? "Provision Stall" : "Kate's Diner");
-            ShowKateConversation(provisionStall);
+            ShowKateConversation(provisionStall, null, interactionFocus);
             PlaySfx("heal", 0.66f);
         }
 
-        private void ShowKateConversation(bool provisionStall, string greeting = null)
+        private void VisitDockWorker()
+        {
+            const string warning =
+                "The river landing is shut while the south gate and cistern works are sealed. "
+                + "I am hauling rope for the crews instead. If you go below, keep off any stone "
+                + "that shines wet and never trust a handrail until you have put your weight on it.";
+            PushLog("A dock worker coils a tarred line beside the south-quarter works and points out the slick approach.", Tone.Normal);
+            ShowBanner("South-Quarter Worker");
+            ShowDialogue("South-Quarter Works", "Dock Worker", warning, ObjectType.DockWorker, stone);
+            PlaySfx("ui", 0.52f);
+        }
+
+        private void VisitMidgaardScholar()
+        {
+            const string note =
+                "Midgaard's old records call the cisterns a second road beneath the city. "
+                + "The masons marked safe junctions with paired cuts in the stone. Ratfolk marks "
+                + "are newer, rougher, and often point toward an ambush rather than an exit. "
+                + "Formula scribes copied those paired cuts into warding diagrams: the same measured "
+                + "rhythm gives lightning a safe channel instead of a path through the caster.";
+            PushLog("A city scholar compares a water-stained cistern plan with the paving around the keep.", Tone.Normal);
+            ShowBanner("Midgaard Scholar");
+            ShowDialogue("Keep Records", "Midgaard Scholar", note, ObjectType.Scholar, frost);
+            PlaySfx("ui", 0.52f);
+        }
+
+        private static ObjectType KateConversationFocus(bool provisionStall, ObjectType interactionFocus)
+        {
+            if (interactionFocus == ObjectType.DinerCook || interactionFocus == ObjectType.Provisioner)
+            {
+                return interactionFocus;
+            }
+
+            return provisionStall ? ObjectType.Provisions : ObjectType.Diner;
+        }
+
+        private void ShowKateConversation(
+            bool provisionStall,
+            string greeting = null,
+            ObjectType interactionFocus = ObjectType.Town)
         {
             string speaker = provisionStall ? "Lute" : "Kate";
-            ObjectType focus = provisionStall ? ObjectType.Provisions : ObjectType.Diner;
+            ObjectType focus = KateConversationFocus(provisionStall, interactionFocus);
             int cost = provisionStall ? 10 : 12;
             int bundle = provisionStall ? 3 : 4;
             bool bought = HasKateStarterBundle();
@@ -6288,18 +6812,18 @@ namespace AshenHalls
                     MakeDialogueChoice("safe", "Where can we rest safely?", "Reliable places for light, water, and help in Midgaard."),
                     MakeDialogueChoice("sewer", "What food keeps in the cisterns?", "Packing a meal that survives damp and a long fight.")
                 },
-                choice => ResolveKateDialogueChoice(choice, provisionStall));
+                choice => ResolveKateDialogueChoice(choice, provisionStall, focus));
         }
 
-        private void ResolveKateDialogueChoice(string choice, bool provisionStall)
+        private void ResolveKateDialogueChoice(string choice, bool provisionStall, ObjectType interactionFocus)
         {
             string speaker = provisionStall ? "Lute" : "Kate";
-            ObjectType focus = provisionStall ? ObjectType.Provisions : ObjectType.Diner;
-            Action returnToKate = () => ShowKateConversation(provisionStall);
+            ObjectType focus = KateConversationFocus(provisionStall, interactionFocus);
+            Action returnToKate = () => ShowKateConversation(provisionStall, null, focus);
             switch (choice)
             {
                 case "buy":
-                    PurchaseKateStarterBundle(provisionStall);
+                    PurchaseKateStarterBundle(provisionStall, focus);
                     break;
                 case "safe":
                     ShowDialogueResponse(
@@ -6343,13 +6867,13 @@ namespace AshenHalls
                 || HasStoryFlag(StoryFlags.MidgaardProvisionBundleBought);
         }
 
-        private void PurchaseKateStarterBundle(bool provisionStall)
+        private void PurchaseKateStarterBundle(bool provisionStall, ObjectType interactionFocus)
         {
             int cost = provisionStall ? 10 : 12;
             int bundle = provisionStall ? 3 : 4;
             if (HasKateStarterBundle() || state.Gold < cost)
             {
-                ShowKateConversation(provisionStall);
+                ShowKateConversation(provisionStall, null, interactionFocus);
                 return;
             }
 
@@ -6365,7 +6889,7 @@ namespace AshenHalls
             ShowBanner("Provisions Packed");
             PlaySfx("servicecoin", 0.48f);
             QueueSfx("cache", 0.08f, 0.54f);
-            ShowKateConversation(provisionStall, greeting);
+            ShowKateConversation(provisionStall, greeting, interactionFocus);
         }
 
         private void VisitMidgaardTavern()
@@ -8500,18 +9024,35 @@ namespace AshenHalls
             if (active == null || active.Side != UnitSide.Party) return;
 
             NormalizeCombatSelection(active);
+            bool combatHudOwnsSelection = CombatHudOwnsCurrentSelection();
             if (Input.GetKeyDown(KeyCode.U) || Input.GetKeyDown(KeyCode.Backspace))
             {
                 UndoActiveMovement();
                 return;
             }
-            if (TryCombatDirectionalHotkey(active)) return;
+            if (CombatInputRoutingRules.ShouldRouteToWorld(combatHudOwnsSelection, CombatHotkeyKind.Navigation)
+                && TryCombatDirectionalHotkey(active)) return;
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1) || Input.GetKeyDown(KeyCode.Z)) TryHotkeyAction(ActionMode.Move, active);
             if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2) || Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.F)) TryHotkeyAction(ActionMode.Attack, active);
             if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3) || Input.GetKeyDown(KeyCode.C)) TryHotkeyAction(PreferredThirdAction(active), active);
-            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4) || Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) TryHotkeyAction(ActionMode.Wait, active);
+            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) TryHotkeyAction(ActionMode.Wait, active);
+            if (CombatInputRoutingRules.ShouldRouteToWorld(combatHudOwnsSelection, CombatHotkeyKind.Submit)
+                && (Input.GetKeyDown(KeyCode.Space)
+                    || Input.GetKeyDown(KeyCode.Return)
+                    || Input.GetKeyDown(KeyCode.KeypadEnter)))
+            {
+                TryHotkeyAction(ActionMode.Wait, active);
+            }
             if (Input.GetKeyDown(KeyCode.G)) TryHotkeyAction(ActionMode.Guard, active);
             if (Input.GetKeyDown(KeyCode.H)) TryHotkeyAction(ActionMode.Elixir, active);
+        }
+
+        private bool CombatHudOwnsCurrentSelection()
+        {
+            UnityEngine.EventSystems.EventSystem eventSystem = UnityEngine.EventSystems.EventSystem.current;
+            return combatHudScreen != null
+                && eventSystem != null
+                && combatHudScreen.OwnsSelection(eventSystem.currentSelectedGameObject);
         }
 
         private bool TryCombatDirectionalHotkey(CombatUnit active)
@@ -15149,6 +15690,23 @@ namespace AshenHalls
                 maxCost,
                 UnreachableMoveCost,
                 CanEnterMoveTile,
+                (unit, x, y) => 1 + TerrainMoveExtraCost(ObstacleAt(x, y), unit));
+        }
+
+        private IReadOnlyList<Vector2Int> ReachableMovePath(
+            CombatUnit active,
+            int destinationX,
+            int destinationY,
+            int maxCost)
+        {
+            if (active == null) return Array.Empty<Vector2Int>();
+            int[,] costs = ReachableMoveCosts(active, maxCost);
+            return CombatGridRules.ShortestReachablePath(
+                active,
+                costs,
+                destinationX,
+                destinationY,
+                UnreachableMoveCost,
                 (unit, x, y) => 1 + TerrainMoveExtraCost(ObstacleAt(x, y), unit));
         }
 

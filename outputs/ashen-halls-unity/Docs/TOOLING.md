@@ -30,7 +30,7 @@
 - `outputs/tools/TOOLS_MANIFEST.md` lists the source links, install notes, and local SHA-256 checksums.
 - `outputs/tools/Verify-ToolDownloads.ps1` checks the staged files before install.
 - These files are a project convenience only; installers are not run automatically.
-- The Windows release package copies the manifest into `Docs/TOOL_DOWNLOADS.md` when the manifest is present.
+- Tool-cache files never enter a release implicitly. Promote a reviewed manifest explicitly to tracked `Docs/TOOL_DOWNLOADS.md` before distribution; the Windows package copies only that committed document.
 - LibreSprite 1.2 is staged as a zip archive for future hand-drawn sprite and tile work.
 - Generated art-reference sheets live under `Docs/ArtReferences/` and should guide the final pixel language rather than be copied blindly into runtime art. `Docs/ART_INTAKE.md` defines the filename prefixes, grid expectations, and handoff notes for parallel art threads. The runtime now prefers the newest matching atlas filename by prefix, so versioned art drops can be tested without a C# filename edit.
 

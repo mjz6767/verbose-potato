@@ -105,6 +105,8 @@ namespace AshenHalls.Editor
             ValidateApprovedRuntimeArtIsLatest(projectRoot);
             RuleSmokeTests.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build rule smoke tests passed.");
+            RuntimeBootSmoke.RunCombatUiOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build combat UI runtime smoke passed.");
             RuntimeBootSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build runtime boot smoke passed.");
 
@@ -174,7 +176,6 @@ namespace AshenHalls.Editor
             CopyPackageNote(projectRoot, outputRoot, "KNOWN_ISSUES.txt");
             CopyPackageNote(projectRoot, outputRoot, Path.Combine("Tools", "NewVisualQaPacket.ps1"));
             CopyDocsFolder(projectRoot, outputRoot);
-            CopySiblingToolManifest(projectRoot, outputRoot);
             WritePackageHint(outputRoot, zipPath);
 
             Debug.Log(VersionInfo.ProductName + " Windows build complete: " + exePath);
@@ -294,9 +295,15 @@ namespace AshenHalls.Editor
         {
             string normalized = relativePath.Replace('\\', '/');
             string name = Path.GetFileName(normalized).ToLowerInvariant();
-            if (!normalized.StartsWith("Docs/ArtReferences/"))
+            const string artReferencesPrefix = "Docs/ArtReferences/";
+            if (!normalized.StartsWith(artReferencesPrefix, StringComparison.OrdinalIgnoreCase))
             {
                 return false;
+            }
+            string artRelativePath = normalized.Substring(artReferencesPrefix.Length);
+            if (artRelativePath.IndexOf('/') >= 0)
+            {
+                return true;
             }
 
             if (name.StartsWith("source-"))
@@ -457,18 +464,6 @@ namespace AshenHalls.Editor
             File.WriteAllLines(path, lines);
         }
 
-        private static void CopySiblingToolManifest(string projectRoot, string outputRoot)
-        {
-            string source = Path.GetFullPath(Path.Combine(projectRoot, "..", "tools", "TOOLS_MANIFEST.md"));
-            if (!File.Exists(source))
-            {
-                return;
-            }
-
-            string destination = Path.Combine(outputRoot, "Docs", "TOOL_DOWNLOADS.md");
-            Directory.CreateDirectory(Path.GetDirectoryName(destination));
-            File.Copy(source, destination, true);
-        }
     }
 }
 

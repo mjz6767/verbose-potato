@@ -2,6 +2,8 @@
 .agents/
 .codex/
 work/
+/*.log
+/tmp/
 
 # Packaged releases and build staging
 outputs/ashen-halls-build/

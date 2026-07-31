@@ -206,6 +206,10 @@ namespace AshenHalls
                 case ObjectType.OldRoadScout:
                 case ObjectType.TownGuard:
                 case ObjectType.KingHalvard:
+                case ObjectType.DinerCook:
+                case ObjectType.Provisioner:
+                case ObjectType.DockWorker:
+                case ObjectType.Scholar:
                     return 30;
                 case ObjectType.QuestBoard:
                 case ObjectType.Waystone:
@@ -292,6 +296,10 @@ namespace AshenHalls
                 case ObjectType.ArmorerNpc:
                 case ObjectType.WeaponMerchantNpc:
                 case ObjectType.EnchanterNpc:
+                case ObjectType.DinerCook:
+                case ObjectType.Provisioner:
+                case ObjectType.DockWorker:
+                case ObjectType.Scholar:
                     return true;
                 default:
                     return false;
@@ -364,6 +372,21 @@ namespace AshenHalls
                 case "ward": return "paladin";
                 default: return "";
             }
+        }
+    }
+
+    public enum CombatHotkeyKind
+    {
+        Dedicated,
+        Navigation,
+        Submit
+    }
+
+    public static class CombatInputRoutingRules
+    {
+        public static bool ShouldRouteToWorld(bool combatHudOwnsSelection, CombatHotkeyKind kind)
+        {
+            return !combatHudOwnsSelection || kind == CombatHotkeyKind.Dedicated;
         }
     }
 

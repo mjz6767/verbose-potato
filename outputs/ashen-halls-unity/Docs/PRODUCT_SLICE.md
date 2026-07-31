@@ -16,7 +16,7 @@ Ash & Brimstone's first playable loop is a four-person tactical dungeon RPG slic
 - Recovery valve: retreat from a campaign fight for one supply, abandon its loot, and regroup at Temple Square.
 - Tactical correction: undo uncommitted movement once or several steps into a turn, then choose a better position before spending the action.
 - Targeting recovery: cancel an armed spell or skill from the command deck, with Esc, or by right-clicking the board without spending the action or disturbing movement.
-- Golden Thread: the persistent NEXT rail derives one exact physical action from campaign state, uses path-aware travel, retargets the correct person inside Midgaard interiors, and yields to explicitly marked Journal waypoints without adding modal tutorials or automatic walking.
+- Golden Thread: one campaign-derived guidance plan drives the persistent NEXT rail and a bounded on-map route with an exact next-step key, visible arrival or viewport continuation, correct Midgaard interior targets, and stronger explicitly marked Journal waypoints—without modal tutorials or automatic walking.
 - Progress protection: quiet checkpoints before each room and after each permanent reward.
 
 The bounded kobold Chapter II route is normal playable content. Other prototype classes, encounters, formulas, services, factions, dungeons, and generic route scaffolds remain gated behind the full prototype content set. Existing saves retain their serialized map dimensions and biome layout; save schema remains v25.

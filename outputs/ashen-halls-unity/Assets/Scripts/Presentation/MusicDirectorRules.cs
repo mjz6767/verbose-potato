@@ -200,6 +200,7 @@ namespace AshenHalls
                 || type == ObjectType.WeaponVendor
                 || type == ObjectType.Enchanter
                 || type == ObjectType.Provisions
+                || type == ObjectType.Provisioner
                 || type == ObjectType.ArmorerNpc
                 || type == ObjectType.WeaponMerchantNpc
                 || type == ObjectType.EnchanterNpc;
@@ -209,7 +210,8 @@ namespace AshenHalls
         {
             return type == ObjectType.Tavern
                 || type == ObjectType.TavernKeeper
-                || type == ObjectType.Diner;
+                || type == ObjectType.Diner
+                || type == ObjectType.DinerCook;
         }
 
         private static bool IsGateLandmark(ObjectType type)
@@ -219,14 +221,16 @@ namespace AshenHalls
                 || type == ObjectType.NorthGate
                 || type == ObjectType.SouthGate
                 || type == ObjectType.TownGuard
-                || type == ObjectType.GateCaptain;
+                || type == ObjectType.GateCaptain
+                || type == ObjectType.DockWorker;
         }
 
         private static bool IsRoyalLandmark(ObjectType type)
         {
             return type == ObjectType.KingHall
                 || type == ObjectType.KingHalvard
-                || type == ObjectType.RoyalHerald;
+                || type == ObjectType.RoyalHerald
+                || type == ObjectType.Scholar;
         }
     }
 }

@@ -6,11 +6,19 @@ using UnityEngine.UI;
 
 namespace AshenHalls
 {
+    public enum CombatHudStateTone
+    {
+        Neutral,
+        Ready,
+        Blocked
+    }
+
     public sealed class CombatHudUnitView
     {
         public string Name;
         public string Header;
         public string StateLine;
+        public CombatHudStateTone StateTone;
         public string StatusLine;
         public string AccentHex;
         public int Hp;
@@ -52,6 +60,15 @@ namespace AshenHalls
     {
         public string Title;
         public string RouteLine;
+        public int RoundNumber;
+        public int MovePoints;
+        public int MovePointsMaximum;
+        public bool ActionReady;
+        public string RoundLabel;
+        public string MoveLabel;
+        public string ActionLabel;
+        // Retained for compatibility with callers that still use the combat view
+        // as a compact campaign-state snapshot.
         public string Gold;
         public string Supplies;
         public string Elixirs;
@@ -181,12 +198,21 @@ namespace AshenHalls
 
         public static Rect[] CommandButtons(float width, bool promoteEndTurn)
         {
+            return CommandButtons(width, 6, promoteEndTurn);
+        }
+
+        public static Rect[] CommandButtons(float width, int commandCount, bool promoteEndTurn)
+        {
             const float padding = 8f;
             const float gap = 7f;
             const float groupGap = 16f;
+            commandCount = Mathf.Max(0, commandCount);
+            if (commandCount == 0) return Array.Empty<Rect>();
+
             float endTurnBonus = promoteEndTurn ? Mathf.Clamp(width * 0.09f, 60f, 120f) : 0f;
-            const int commandCount = 6;
-            float gapsWidth = gap * 4f + groupGap;
+            int groupBreakIndex = CommandGroupBreakIndex(commandCount);
+            int ordinaryGaps = commandCount - 1 - (groupBreakIndex >= 0 ? 1 : 0);
+            float gapsWidth = gap * ordinaryGaps + (groupBreakIndex >= 0 ? groupGap : 0f);
             float buttonW = Mathf.Max(72f, (width - padding * 2f - endTurnBonus - gapsWidth) / commandCount);
             float buttonY = 28f;
             float buttonH = 66f;
@@ -196,9 +222,14 @@ namespace AshenHalls
             {
                 float w = i == commandCount - 1 && promoteEndTurn ? buttonW + endTurnBonus : buttonW;
                 rects[i] = new Rect(x, buttonY, w, buttonH);
-                x += w + (i == 2 ? groupGap : gap);
+                if (i + 1 < commandCount) x += w + (i == groupBreakIndex ? groupGap : gap);
             }
             return rects;
+        }
+
+        public static int CommandGroupBreakIndex(int commandCount)
+        {
+            return commandCount >= 4 ? Mathf.Min(2, commandCount - 2) : -1;
         }
 
         public static Rect CommandPrompt(float width, bool showUndoMove, bool showCancelTarget)
@@ -278,10 +309,17 @@ namespace AshenHalls
         }
     }
 
-    internal sealed class CombatHudCommandHoverRelay : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+    internal sealed class CombatHudCommandHoverRelay :
+        MonoBehaviour,
+        IPointerEnterHandler,
+        IPointerExitHandler,
+        ISelectHandler,
+        IDeselectHandler
     {
         public Action Enter;
         public Action Exit;
+        public Action Select;
+        public Action Deselect;
 
         public void OnPointerEnter(PointerEventData eventData)
         {
@@ -291,6 +329,16 @@ namespace AshenHalls
         public void OnPointerExit(PointerEventData eventData)
         {
             Exit?.Invoke();
+        }
+
+        public void OnSelect(BaseEventData eventData)
+        {
+            Select?.Invoke();
+        }
+
+        public void OnDeselect(BaseEventData eventData)
+        {
+            Deselect?.Invoke();
         }
     }
 
@@ -312,9 +360,9 @@ namespace AshenHalls
         private Text titleText;
         private Text routeText;
         private Text phaseText;
-        private Text goldText;
-        private Text suppliesText;
-        private Text elixirsText;
+        private Text roundStatText;
+        private Text moveStatText;
+        private Text actionStatText;
         private Text activeTitle;
         private Text activeName;
         private Text activeHeader;
@@ -355,7 +403,16 @@ namespace AshenHalls
         private bool lastPromoteEndTurn;
         private bool lastShowUndoMove;
         private bool lastShowCancelTarget;
+        private int lastCommandCount = -1;
+        private int expectedCommandCount = 6;
+        private int displayedRoundNumber;
+        private int displayedMovePoints;
+        private int displayedMovePointsMaximum;
+        private bool displayedActionReady;
         private int hoveredCommandIndex = -1;
+        private int focusedCommandIndex = -1;
+        private bool pointerOwnsCommandContext;
+        private bool selectingCommandFromPointer;
 
         public bool IsReady => canvas != null
             && canvasGroup != null
@@ -367,6 +424,9 @@ namespace AshenHalls
             && turnQueueText != null
             && commandPanel != null
             && commandPromptText != null
+            && roundStatText != null
+            && moveStatText != null
+            && actionStatText != null
             && undoMoveButton != null
             && cancelTargetButton != null
             && utilityPopup != null
@@ -375,7 +435,7 @@ namespace AshenHalls
             && guardButton != null
             && elixirButton != null
             && menuButton != null
-            && commandRows.Count == 6
+            && commandRows.Count > 0
             && logRows.Count == 5;
         public bool IsVisible => IsReady && UiRuntime.IsCanvasVisible(canvas);
         public bool HasRenderableGeometry => IsReady && UiRuntime.IsRenderableRootOverlay(canvas);
@@ -390,7 +450,8 @@ namespace AshenHalls
                 return commandPanel.gameObject.activeInHierarchy
                     && rect.width >= minimumWidth
                     && rect.height >= 54f
-                    && VisibleCommandCount == 6;
+                    && expectedCommandCount > 0
+                    && VisibleCommandCount == expectedCommandCount;
             }
         }
         public bool IsSuppressedByImguiFallback => IsVisible
@@ -462,6 +523,14 @@ namespace AshenHalls
             && turnQueueText.gameObject.activeInHierarchy
             && !string.IsNullOrWhiteSpace(turnQueueText.text);
 
+        public bool OwnsSelection(GameObject selected)
+        {
+            if (!IsVisible || selected == null || canvas == null) return false;
+            Transform selectedTransform = selected.transform;
+            Transform canvasTransform = canvas.transform;
+            return selectedTransform == canvasTransform || selectedTransform.IsChildOf(canvasTransform);
+        }
+
         public void InvokeCommandForTest(ActionMode mode)
         {
             CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
@@ -469,16 +538,78 @@ namespace AshenHalls
             row.Button.onClick.Invoke();
         }
 
+        public void HoverCommandForTest(ActionMode mode)
+        {
+            int index = commandRows.FindIndex(candidate => candidate != null
+                && candidate.Mode == mode
+                && candidate.Root != null
+                && candidate.Root.gameObject.activeInHierarchy);
+            if (index < 0) throw new InvalidOperationException($"Combat command {mode} is not visible.");
+            SetHoveredCommand(index);
+        }
+
+        public void ClearCommandHoverForTest()
+        {
+            if (hoveredCommandIndex < 0) return;
+            ClearHoveredCommand(hoveredCommandIndex);
+        }
+
+        public void ClearCommandFocusForTest()
+        {
+            if (focusedCommandIndex < 0) return;
+            ClearFocusedCommand(focusedCommandIndex);
+        }
+
+        public string CommandPromptForTest => commandPromptText == null ? "" : commandPromptText.text;
+        public bool PointerOwnsCommandContextForTest => pointerOwnsCommandContext;
+        public string RoundLabelForTest => roundStatText == null ? "" : roundStatText.text;
+        public string MoveLabelForTest => moveStatText == null ? "" : moveStatText.text;
+        public string ActionLabelForTest => actionStatText == null ? "" : actionStatText.text;
+        public int RoundNumberForTest => displayedRoundNumber;
+        public int MovePointsForTest => displayedMovePoints;
+        public int MovePointsMaximumForTest => displayedMovePointsMaximum;
+        public bool ActionReadyForTest => displayedActionReady;
+        public int CommandCapacityForTest => commandRows.Count;
+
+        public ActionMode? FocusedCommandForTest
+        {
+            get
+            {
+                if (focusedCommandIndex < 0 || focusedCommandIndex >= commandRows.Count) return null;
+                CommandRow row = commandRows[focusedCommandIndex];
+                return row?.Root != null && row.Root.gameObject.activeInHierarchy
+                    ? row.Mode
+                    : (ActionMode?)null;
+            }
+        }
+
+        public ActionMode? HoveredCommandForTest => VisibleCommandModeForIndex(hoveredCommandIndex);
+        public ActionMode? ContextCommandForTest => VisibleCommandModeForIndex(ContextualCommandIndex());
+
         public void FocusCommand(ActionMode mode)
         {
-            if (!IsVisible || EventSystem.current == null) return;
-            CommandRow row = commandRows.Find(candidate => candidate != null
+            if (!IsVisible) return;
+            EventSystem eventSystem = EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying)
+            {
+                // Unity does not register EventSystem.current while the editor
+                // boot smoke invokes this screen outside Play Mode. Reuse the
+                // editor-only system retained by UiRuntime so selection events
+                // still exercise the same focus and deselect path as runtime.
+                eventSystem = UiRuntime.EnsureEventSystemReady();
+            }
+            int index = commandRows.FindIndex(candidate => candidate != null
                 && candidate.Mode == mode
                 && candidate.Root != null
                 && candidate.Root.gameObject.activeInHierarchy
-                && candidate.Button != null
-                && candidate.Button.interactable);
-            if (row != null) EventSystem.current.SetSelectedGameObject(row.Button.gameObject);
+                && candidate.Button != null);
+            if (index < 0) return;
+            CommandRow row = commandRows[index];
+            SetFocusedCommand(index);
+            if (eventSystem != null)
+            {
+                eventSystem.SetSelectedGameObject(row.Button.gameObject);
+            }
         }
 
         public void InvokeUtilityForTest()
@@ -518,11 +649,22 @@ namespace AshenHalls
 
         public bool SetVisible(bool visible)
         {
+            EventSystem eventSystem = EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            bool ownedSelection = IsCanvasSelection(selected);
             bool changed = UiRuntime.SetCanvasVisible(canvas, visible);
-            if (changed && visible)
+            if (changed)
             {
-                lastWidth = -1f;
-                lastHeight = -1f;
+                ClearTransientCommandContext();
+                if (ownedSelection && eventSystem != null) eventSystem.SetSelectedGameObject(null);
+                if (visible)
+                {
+                    lastWidth = -1f;
+                    lastHeight = -1f;
+                }
+                CombatHudView view = bindings?.View?.Invoke();
+                if (view != null) RefreshCommandPrompt(view);
             }
             return changed;
         }
@@ -549,10 +691,13 @@ namespace AshenHalls
             CombatHudView view = bindings.View == null ? null : bindings.View();
             if (view == null) return;
 
+            IReadOnlyList<CombatHudCommandView> commands = view.Commands ?? Array.Empty<CombatHudCommandView>();
+            EnsureCommandRowCount(commands.Count);
+            expectedCommandCount = commands.Count;
             bool promoteEndTurn = false;
-            for (int i = 0; i < view.Commands.Count; i++)
+            for (int i = 0; i < commands.Count; i++)
             {
-                if (view.Commands[i].Mode == ActionMode.Wait && view.Commands[i].Promoted) promoteEndTurn = true;
+                if (commands[i].Mode == ActionMode.Wait && commands[i].Promoted) promoteEndTurn = true;
             }
 
             if (!Mathf.Approximately(lastWidth, Screen.width)
@@ -560,20 +705,37 @@ namespace AshenHalls
                 || lastTimelineExpanded != view.TimelineExpanded
                 || lastPromoteEndTurn != promoteEndTurn
                 || lastShowUndoMove != view.CanUndoMove
-                || lastShowCancelTarget != view.CanCancelTarget)
+                || lastShowCancelTarget != view.CanCancelTarget
+                || lastCommandCount != commands.Count)
             {
-                ApplyLayout(view.TimelineExpanded, promoteEndTurn, view.CanUndoMove, view.CanCancelTarget);
+                ApplyLayout(view.TimelineExpanded, promoteEndTurn, view.CanUndoMove, view.CanCancelTarget, commands.Count);
             }
 
             titleText.text = string.IsNullOrEmpty(view.Title) ? VersionInfo.ProductName : view.Title;
             routeText.text = view.RouteLine ?? "";
             phaseText.text = view.PhaseLine ?? "";
+            displayedRoundNumber = view.RoundNumber;
+            displayedMovePoints = view.MovePoints;
+            displayedMovePointsMaximum = view.MovePointsMaximum;
+            displayedActionReady = view.ActionReady;
             phaseText.color = view.ActiveUnit == null
                 ? Hex("b7aa90", 1f)
                 : view.PlayerTurn ? Hex("58b7a5", 1f) : Hex("c65c3b", 1f);
-            goldText.text = "Gold\n" + (view.Gold ?? "0");
-            suppliesText.text = "Supplies\n" + (view.Supplies ?? "0");
-            elixirsText.text = "Elixirs\n" + (view.Elixirs ?? "0");
+            roundStatText.text = string.IsNullOrWhiteSpace(view.RoundLabel)
+                ? "ROUND\n" + (view.RoundNumber > 0 ? view.RoundNumber.ToString() : "-")
+                : view.RoundLabel;
+            moveStatText.text = string.IsNullOrWhiteSpace(view.MoveLabel)
+                ? "MOVE\n" + (view.MovePointsMaximum > 0 ? $"{view.MovePoints} / {view.MovePointsMaximum}" : "-")
+                : view.MoveLabel;
+            actionStatText.text = string.IsNullOrWhiteSpace(view.ActionLabel)
+                ? "ACTION\n" + (view.ActionReady ? "READY" : "USED")
+                : view.ActionLabel;
+            moveStatText.color = view.PlayerTurn && view.MovePoints > 0 ? Hex("58b7a5", 1f) : Hex("b7aa90", 1f);
+            actionStatText.color = view.ActiveUnit == null
+                ? Hex("b7aa90", 1f)
+                : view.ActionReady
+                    ? Hex("58b7a5", 1f)
+                    : view.PlayerTurn ? Hex("d7a84e", 1f) : Hex("c65c3b", 1f);
             timelineTitle.text = string.IsNullOrEmpty(view.RoundLine) ? "Timeline" : "Timeline / " + view.RoundLine;
             timelineButtonText.text = view.TimelineExpanded ? "Hide" : "Show";
             string queue = BuildTurnQueueText(view.Turns);
@@ -595,10 +757,10 @@ namespace AshenHalls
 
             for (int i = 0; i < commandRows.Count; i++)
             {
-                bool visible = i < view.Commands.Count;
+                bool visible = i < commands.Count;
                 commandRows[i].Root.gameObject.SetActive(visible);
                 if (!visible) continue;
-                CombatHudCommandView command = view.Commands[i];
+                CombatHudCommandView command = commands[i];
                 commandRows[i].Mode = command.Mode;
                 commandRows[i].Button.interactable = command.Enabled;
                 commandRows[i].Label.text = command.Promoted ? (command.Label ?? "").ToUpperInvariant() : command.Label ?? "";
@@ -685,9 +847,9 @@ namespace AshenHalls
             phaseText.resizeTextForBestFit = true;
             phaseText.resizeTextMinSize = 8;
             phaseText.resizeTextMaxSize = 10;
-            goldText = AddText("Gold", topPanel, "", 9, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
-            suppliesText = AddText("Supplies", topPanel, "", 9, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
-            elixirsText = AddText("Elixirs", topPanel, "", 9, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            roundStatText = AddText("Round", topPanel, "", 9, Hex("d7a84e", 1f), TextAnchor.MiddleCenter);
+            moveStatText = AddText("Move", topPanel, "", 9, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
+            actionStatText = AddText("Action", topPanel, "", 9, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
 
             sidePanel = AddPanel("Combat Side", canvas.transform, Hex("0e1114", 0.08f), Hex("0e1114", 0f));
             activePanel = AddPanel("Active", sidePanel, Hex("1a2026", 0.96f), Hex("58b7a5", 0.82f));
@@ -719,11 +881,7 @@ namespace AshenHalls
             cancelTargetText.color = Hex("f3ead7", 1f);
             cancelTargetButton.gameObject.SetActive(false);
             commandDivider = AddImage("Command Group Divider", commandPanel, Hex("d7a84e", 0.42f)).rectTransform;
-            for (int i = 0; i < 6; i++)
-            {
-                CommandRow row = CreateCommandRow(commandPanel, i);
-                commandRows.Add(row);
-            }
+            EnsureCommandRowCount(6);
             utilityButton = AddButton("Utility", commandPanel, "", ToggleUtility, false);
             utilityLabel = AddText("Utility Label", utilityButton.transform, "Utility", 12, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             utilitySubLabel = AddText("Utility Sub", utilityButton.transform, "", 9, Hex("b7aa90", 1f), TextAnchor.LowerCenter);
@@ -736,6 +894,15 @@ namespace AshenHalls
             menuText = menuButton.GetComponentInChildren<Text>();
             utilityPopup.gameObject.SetActive(false);
             utilityButton.gameObject.SetActive(false);
+        }
+
+        private void EnsureCommandRowCount(int commandCount)
+        {
+            commandCount = Mathf.Max(0, commandCount);
+            while (commandRows.Count < commandCount)
+            {
+                commandRows.Add(CreateCommandRow(commandPanel, commandRows.Count));
+            }
         }
 
         private void BuildUnitCard(RectTransform panel, out Text title, out Text name, out Text header, out Text state, out Text status, out RectTransform hpFill, out RectTransform manaFill)
@@ -807,6 +974,8 @@ namespace AshenHalls
             CombatHudCommandHoverRelay relay = button.gameObject.AddComponent<CombatHudCommandHoverRelay>();
             relay.Enter = () => SetHoveredCommand(index);
             relay.Exit = () => ClearHoveredCommand(index);
+            relay.Select = () => SetFocusedCommand(index);
+            relay.Deselect = () => ClearFocusedCommand(index);
             return new CommandRow(button.GetComponent<RectTransform>(), button, outline, label, hotkey, sub, iconWell, iconOutline, icon, iconFallback, hotkeyBackground, accentRail);
         }
 
@@ -818,7 +987,7 @@ namespace AshenHalls
             return new LogRow(root, stripe, text);
         }
 
-        private void ApplyLayout(bool timelineExpanded, bool promoteEndTurn, bool showUndoMove, bool showCancelTarget)
+        private void ApplyLayout(bool timelineExpanded, bool promoteEndTurn, bool showUndoMove, bool showCancelTarget, int commandCount)
         {
             lastWidth = Screen.width;
             lastHeight = Screen.height;
@@ -826,23 +995,24 @@ namespace AshenHalls
             lastPromoteEndTurn = promoteEndTurn;
             lastShowUndoMove = showUndoMove;
             lastShowCancelTarget = showCancelTarget;
+            lastCommandCount = commandCount;
             CombatHudGeometry geometry = CombatHudScreenLayout.Calculate(Screen.width, Screen.height);
             SetScreenRect(topPanel, geometry.Top);
             SetScreenRect(sidePanel, geometry.Side);
             SetScreenRect(commandPanel, geometry.Command);
 
-            float resourceW = Screen.width < 1240 ? 62f : 76f;
-            float resourceGap = Screen.width < 1240 ? 5f : 8f;
-            float resourcesW = resourceW * 3f + resourceGap * 2f;
-            float resourcesX = geometry.Top.width - resourcesW - 10f;
+            float statW = Screen.width < 1240 ? 62f : 76f;
+            float statGap = Screen.width < 1240 ? 5f : 8f;
+            float statsW = statW * 3f + statGap * 2f;
+            float statsX = geometry.Top.width - statsW - 10f;
             float titleX = 18f;
-            float titleW = Mathf.Max(220f, resourcesX - titleX - 16f);
+            float titleW = Mathf.Max(220f, statsX - titleX - 16f);
             SetLocalRect(titleText.rectTransform, new Rect(titleX, 6f, titleW * 0.36f, 27f));
             SetLocalRect(routeText.rectTransform, new Rect(titleX + 2f, 34f, titleW * 0.62f, 18f));
             SetLocalRect(phaseText.rectTransform, new Rect(titleX + titleW * 0.42f, 16f, titleW * 0.56f, 22f));
-            SetLocalRect(goldText.rectTransform, new Rect(resourcesX, 8f, resourceW, 42f));
-            SetLocalRect(suppliesText.rectTransform, new Rect(resourcesX + resourceW + resourceGap, 8f, resourceW, 42f));
-            SetLocalRect(elixirsText.rectTransform, new Rect(resourcesX + (resourceW + resourceGap) * 2f, 8f, resourceW, 42f));
+            SetLocalRect(roundStatText.rectTransform, new Rect(statsX, 8f, statW, 42f));
+            SetLocalRect(moveStatText.rectTransform, new Rect(statsX + statW + statGap, 8f, statW, 42f));
+            SetLocalRect(actionStatText.rectTransform, new Rect(statsX + (statW + statGap) * 2f, 8f, statW, 42f));
 
             CombatHudScreenLayout.SidePanels(geometry.Side, timelineExpanded, out Rect active, out Rect target, out Rect timeline);
             SetLocalRect(activePanel, active);
@@ -870,13 +1040,15 @@ namespace AshenHalls
                 SetLocalRect(logRows[i].Text.rectTransform, new Rect(10f, 5f, row.width - 16f, row.height - 10f));
             }
 
-            Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, promoteEndTurn);
+            Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, commandCount, promoteEndTurn);
             SetLocalRect(commandPromptText.rectTransform, CombatHudScreenLayout.CommandPrompt(geometry.Command.width, showUndoMove, showCancelTarget));
             SetLocalRect(undoMoveButton.GetComponent<RectTransform>(), CombatHudScreenLayout.UndoMoveButton(geometry.Command.width, showCancelTarget));
             SetLocalRect(cancelTargetButton.GetComponent<RectTransform>(), CombatHudScreenLayout.CancelTargetButton(geometry.Command.width));
-            if (buttons.Length >= 4)
+            int groupBreakIndex = CombatHudScreenLayout.CommandGroupBreakIndex(buttons.Length);
+            commandDivider.gameObject.SetActive(groupBreakIndex >= 0);
+            if (groupBreakIndex >= 0)
             {
-                float dividerX = (buttons[2].xMax + buttons[3].xMin) * 0.5f - 1f;
+                float dividerX = (buttons[groupBreakIndex].xMax + buttons[groupBreakIndex + 1].xMin) * 0.5f - 1f;
                 SetLocalRect(commandDivider, new Rect(dividerX, 33f, 2f, 56f));
             }
             for (int i = 0; i < commandRows.Count && i < buttons.Length; i++)
@@ -931,6 +1103,7 @@ namespace AshenHalls
                 name.text = fallbackTitle == "Active Unit" ? "Waiting" : "Hover a unit";
                 header.text = fallbackTitle == "Active Unit" ? "No active combatant." : "Inspect targets from the board.";
                 state.text = "";
+                state.color = StateToneColor(CombatHudStateTone.Neutral);
                 status.text = "";
                 SetFill(hpFill, 0, 1);
                 SetFill(manaFill, 0, 1);
@@ -942,6 +1115,7 @@ namespace AshenHalls
             name.text = unit.Name ?? "";
             header.text = unit.Header ?? "";
             state.text = unit.StateLine ?? "";
+            state.color = StateToneColor(unit.StateTone);
             status.text = unit.StatusLine ?? "";
             SetFill(hpFill, unit.Hp, unit.MaxHp);
             SetFill(manaFill, unit.Mana, unit.MaxMana);
@@ -959,9 +1133,10 @@ namespace AshenHalls
         {
             if (bindings?.View == null || bindings.RunCommand == null) return;
             CombatHudView view = bindings.View();
-            if (view == null || index < 0 || index >= view.Commands.Count) return;
+            IReadOnlyList<CombatHudCommandView> commands = view?.Commands;
+            if (commands == null || index < 0 || index >= commands.Count) return;
             utilityOpen = false;
-            bindings.RunCommand(view.Commands[index].Mode);
+            bindings.RunCommand(commands[index].Mode);
         }
 
         private void RunUtility(ActionMode mode)
@@ -972,7 +1147,23 @@ namespace AshenHalls
 
         private void SetHoveredCommand(int index)
         {
+            if (!IsVisible || index < 0 || index >= commandRows.Count) return;
+            CommandRow row = commandRows[index];
+            if (row?.Root == null || !row.Root.gameObject.activeInHierarchy || row.Button == null) return;
+            pointerOwnsCommandContext = true;
             hoveredCommandIndex = index;
+            selectingCommandFromPointer = true;
+            try
+            {
+                SetFocusedCommand(index);
+                EventSystem eventSystem = EventSystem.current;
+                if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+                if (eventSystem != null) eventSystem.SetSelectedGameObject(row.Button.gameObject);
+            }
+            finally
+            {
+                selectingCommandFromPointer = false;
+            }
             CombatHudView view = bindings?.View?.Invoke();
             if (view != null) RefreshCommandPrompt(view);
         }
@@ -981,6 +1172,27 @@ namespace AshenHalls
         {
             if (hoveredCommandIndex != index) return;
             hoveredCommandIndex = -1;
+            pointerOwnsCommandContext = false;
+            CombatHudView view = bindings?.View?.Invoke();
+            if (view != null) RefreshCommandPrompt(view);
+        }
+
+        private void SetFocusedCommand(int index)
+        {
+            if (!selectingCommandFromPointer)
+            {
+                hoveredCommandIndex = -1;
+                pointerOwnsCommandContext = false;
+            }
+            focusedCommandIndex = index;
+            CombatHudView view = bindings?.View?.Invoke();
+            if (view != null) RefreshCommandPrompt(view);
+        }
+
+        private void ClearFocusedCommand(int index)
+        {
+            if (focusedCommandIndex != index) return;
+            focusedCommandIndex = -1;
             CombatHudView view = bindings?.View?.Invoke();
             if (view != null) RefreshCommandPrompt(view);
         }
@@ -988,20 +1200,22 @@ namespace AshenHalls
         private void RefreshCommandPrompt(CombatHudView view)
         {
             if (commandPromptText == null || view == null) return;
+            IReadOnlyList<CombatHudCommandView> commands = view.Commands ?? Array.Empty<CombatHudCommandView>();
             string prompt = view.CommandPrompt ?? "";
             Color color = Hex("58b7a5", 1f);
-            if (hoveredCommandIndex >= 0 && hoveredCommandIndex < view.Commands.Count)
+            int contextualIndex = ContextualCommandIndex(commands.Count);
+            if (contextualIndex >= 0)
             {
-                CombatHudCommandView command = view.Commands[hoveredCommandIndex];
+                CombatHudCommandView command = commands[contextualIndex];
                 string detail = command.Enabled ? command.Tooltip : command.DisabledReason;
                 prompt = $"{command.Label} [{command.Hotkey}]  {detail}";
                 color = command.Promoted ? Hex("d7a84e", 1f) : command.Enabled ? Hex("f3ead7", 1f) : Hex("b94b56", 1f);
             }
             else
             {
-                for (int i = 0; i < view.Commands.Count; i++)
+                for (int i = 0; i < commands.Count; i++)
                 {
-                    if (view.Commands[i].Mode == ActionMode.Wait && view.Commands[i].Promoted)
+                    if (commands[i].Mode == ActionMode.Wait && commands[i].Promoted)
                     {
                         color = Hex("d7a84e", 1f);
                         break;
@@ -1010,6 +1224,51 @@ namespace AshenHalls
             }
             commandPromptText.text = prompt;
             commandPromptText.color = color;
+        }
+
+        private int ContextualCommandIndex(int commandCount = int.MaxValue)
+        {
+            if (pointerOwnsCommandContext
+                && hoveredCommandIndex >= 0
+                && hoveredCommandIndex < commandCount)
+            {
+                return hoveredCommandIndex;
+            }
+            return focusedCommandIndex >= 0 && focusedCommandIndex < commandCount
+                ? focusedCommandIndex
+                : -1;
+        }
+
+        private ActionMode? VisibleCommandModeForIndex(int index)
+        {
+            if (index < 0 || index >= commandRows.Count) return null;
+            CommandRow row = commandRows[index];
+            return row?.Root != null && row.Root.gameObject.activeInHierarchy
+                ? row.Mode
+                : (ActionMode?)null;
+        }
+
+        private void ClearTransientCommandContext()
+        {
+            hoveredCommandIndex = -1;
+            focusedCommandIndex = -1;
+            pointerOwnsCommandContext = false;
+            selectingCommandFromPointer = false;
+        }
+
+        private bool IsCanvasSelection(GameObject selected)
+        {
+            if (selected == null || canvas == null) return false;
+            Transform selectedTransform = selected.transform;
+            Transform canvasTransform = canvas.transform;
+            return selectedTransform == canvasTransform || selectedTransform.IsChildOf(canvasTransform);
+        }
+
+        private static Color StateToneColor(CombatHudStateTone tone)
+        {
+            if (tone == CombatHudStateTone.Ready) return Hex("58b7a5", 1f);
+            if (tone == CombatHudStateTone.Blocked) return Hex("c65c3b", 1f);
+            return Hex("d7a84e", 1f);
         }
 
         private static string CommandFallbackGlyph(ActionMode mode)

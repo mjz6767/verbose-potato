@@ -816,6 +816,10 @@ namespace AshenHalls
             UpsertMapObject(map, sx + 1, top + 2, ObjectType.RoyalHerald);
             UpsertMapObject(map, sx + 2, sy - 4, ObjectType.NoviceHealer);
             UpsertMapObject(map, sx - 6, sy - 1, ObjectType.OldRoadScout);
+            UpsertMapObject(map, sx + 5, sy + 4, ObjectType.DinerCook);
+            UpsertMapObject(map, sx + 7, sy + 3, ObjectType.Provisioner);
+            UpsertMapObject(map, sx + 2, bottom - 2, ObjectType.DockWorker);
+            UpsertMapObject(map, sx - 2, top + 2, ObjectType.Scholar);
             UpsertMapObject(map, left, gateY, ObjectType.WestGate);
             UpsertMapObject(map, right, gateY, ObjectType.EastGate);
             UpsertMapObject(map, left + 1, gateY - 1, ObjectType.TownGuard);
@@ -841,6 +845,21 @@ namespace AshenHalls
                 UpsertMapObject(map, right, y, ObjectType.CityWall);
             }
 
+            // Nearby keep and sewer plaza carving can reach the perimeter. Restore
+            // the complete wall after all interior paving, then reopen only the two
+            // road thresholds. This keeps art, terrain, and collision in agreement.
+            for (int x = left; x <= right; x++)
+            {
+                SetExploreCell(map, x, top, 0, ExplorationMaterial.CityWall, ExplorationCellRole.City);
+                SetExploreCell(map, x, bottom, 0, ExplorationMaterial.CityWall, ExplorationCellRole.City);
+            }
+            for (int y = top; y <= bottom; y++)
+            {
+                SetExploreCell(map, left, y, 0, ExplorationMaterial.CityWall, ExplorationCellRole.City);
+                SetExploreCell(map, right, y, 0, ExplorationMaterial.CityWall, ExplorationCellRole.City);
+            }
+            SetMidgaardRoadCell(map, left, gateY, true);
+            SetMidgaardRoadCell(map, right, gateY, true);
             UpsertMapObject(map, sx, top, ObjectType.NorthGate);
             UpsertMapObject(map, sx, bottom, ObjectType.SouthGate);
 
@@ -1360,6 +1379,7 @@ namespace AshenHalls
                 {
                     DrawExploreTileAccent(c, x, y, tile, tileKind);
                 }
+                DrawExploreMaterialFeather(c, x, y, tile);
                 DrawExploreSurfaceOverlay(c, x, y, tile);
                 DrawMidgaardPavingDecal(c, x, y, tile, tileKind);
                 DrawExploreTileEdges(c, x, y, tile);
@@ -1392,7 +1412,7 @@ namespace AshenHalls
                 else
                 {
                     objectRect = ExploreObjectRect(objectCell, obj);
-                    DrawExploreObject(objectRect, obj);
+                    DrawExploreObject(objectCell, objectRect, obj);
                 }
                 bool currentTarget = ReferenceEquals(CurrentExploreInteraction().Target, obj);
                 if (!currentTarget)
@@ -1426,6 +1446,7 @@ namespace AshenHalls
                 }
                 DrawExplorePlayerLocator(playerCell, tokenRect, leadColor);
             }
+            DrawExploreGuidanceCues(grid, cell, origin, viewW, viewH);
             DrawExploreUseTargetCue(grid, cell, origin, viewW, viewH);
             if (showExploreArtDebug) DrawExploreArtDebugOverlay(playerCell, tokenRect, "Party");
             UpdateExploreHoverLook(grid, cell, origin, viewW, viewH);
@@ -1512,15 +1533,14 @@ namespace AshenHalls
             if (IsMidgaardGateType(obj.Type))
             {
                 bool sideGate = obj.Type == ObjectType.EastGate || obj.Type == ObjectType.WestGate;
-                float width = cell.width * (exploreWideView
-                    ? sideGate ? 1.82f : 1.94f
-                    : sideGate ? 2.10f : 2.24f);
-                float height = cell.height * (exploreWideView
-                    ? sideGate ? 1.46f : 1.52f
-                    : sideGate ? 1.66f : 1.76f);
+                float width = cell.width * ExplorationArtRules.GateArtWidthInCells(exploreWideView, sideGate);
+                float height = cell.height * ExplorationArtRules.GateArtHeightInCells(exploreWideView, sideGate);
+                float y = sideGate
+                    ? cell.center.y - height * 0.5f
+                    : cell.yMax - height + cell.height * ExplorationArtRules.GateArtBaseOffsetInCells();
                 return new Rect(
                     cell.center.x - width * 0.5f,
-                    cell.yMax - height + cell.height * 0.10f,
+                    y,
                     width,
                     height);
             }
@@ -1563,7 +1583,9 @@ namespace AshenHalls
 
         private Rect DrawExploreRegionPartyMarker(Rect cell, Color color, string role, string sigil)
         {
-            float size = Mathf.Max(17f, cell.width * 0.64f);
+            float size = Mathf.Max(
+                ExplorationArtRules.PartyRegionMarkerMinimumPixels(),
+                cell.width * ExplorationArtRules.PartyRegionMarkerScale());
             Rect marker = new Rect(cell.center.x - size * 0.5f, cell.center.y - size * 0.5f, size, size);
             if (!TryDrawExplorePartyToken(marker, role, color, sigil))
             {
@@ -1945,6 +1967,10 @@ namespace AshenHalls
                 case ObjectType.ArmorerNpc:
                 case ObjectType.WeaponMerchantNpc:
                 case ObjectType.EnchanterNpc:
+                case ObjectType.DinerCook:
+                case ObjectType.Provisioner:
+                case ObjectType.DockWorker:
+                case ObjectType.Scholar:
                     return true;
                 default:
                     return false;
@@ -3273,6 +3299,7 @@ namespace AshenHalls
         {
             if (obj == null) return "Use";
             if (MidgaardInteriorRules.IsPortal(obj)) return obj.Type == ObjectType.InteriorDoor ? "Leave" : "Enter";
+            if (obj.Type == ObjectType.TownGuard || IsMidgaardNpcObject(obj.Type)) return "Talk";
             bool underfoot = dx == 0 && dy == 0;
             switch (obj.Type)
             {
@@ -3326,6 +3353,7 @@ namespace AshenHalls
         {
             if (obj == null) return "target";
             if (MidgaardInteriorRules.IsPortal(obj)) return obj.Type == ObjectType.KingHall ? "quest" : "market";
+            if (obj.Type == ObjectType.TownGuard || IsMidgaardNpcObject(obj.Type)) return "talk";
             switch (obj.Type)
             {
                 case ObjectType.Stairs: return "stairs";
@@ -3585,6 +3613,7 @@ namespace AshenHalls
         private void DrawExploreTileEdges(Rect rect, int x, int y, int tile)
         {
             if (tile != 1) return;
+            if (IsMidgaardGateCell(x, y)) return;
             string kind = ExploreTileKind(x, y, tile);
             Color edge = kind == "mire" || kind == "mud" || kind == "cistern" ? Hex("0f2728", 0.34f) : kind == "moss" ? Hex("17251c", 0.32f) : Hex("050708", 0.28f);
             float t = Mathf.Clamp(rect.width * 0.025f, 1f, 3f);
@@ -3592,6 +3621,102 @@ namespace AshenHalls
             if (TileAt(state.Map, x, y + 1) == 0) DrawRect(new Rect(rect.x, rect.yMax - t, rect.width, t), edge);
             if (TileAt(state.Map, x - 1, y) == 0) DrawRect(new Rect(rect.x, rect.y, t, rect.height), edge);
             if (TileAt(state.Map, x + 1, y) == 0) DrawRect(new Rect(rect.xMax - t, rect.y, t, rect.height), edge);
+        }
+
+        private void DrawExploreMaterialFeather(Rect rect, int x, int y, int tile)
+        {
+            if (state?.Map == null || tile != 1) return;
+            ExplorationMaterial current = ExploreMaterialAt(x, y);
+            DrawExploreMaterialFeatherSide(rect, x, y, current, -1, 0);
+            DrawExploreMaterialFeatherSide(rect, x, y, current, 1, 0);
+            DrawExploreMaterialFeatherSide(rect, x, y, current, 0, -1);
+            DrawExploreMaterialFeatherSide(rect, x, y, current, 0, 1);
+        }
+
+        private void DrawExploreMaterialFeatherSide(
+            Rect rect,
+            int x,
+            int y,
+            ExplorationMaterial current,
+            int dx,
+            int dy)
+        {
+            int nextX = x + dx;
+            int nextY = y + dy;
+            bool currentProtected = IsExploreMaterialFeatherProtectedCell(x, y);
+            bool neighborProtected = IsExploreMaterialFeatherProtectedCell(nextX, nextY);
+            int neighborTile = nextX >= 0
+                && nextY >= 0
+                && nextX < state.Map.Width
+                && nextY < state.Map.Height
+                ? TileAt(state.Map, nextX, nextY)
+                : 0;
+            ExplorationMaterial neighbor = neighborTile == 1
+                ? ExploreMaterialAt(nextX, nextY)
+                : ExplorationMaterial.NaturalGround;
+            if (!ExplorationArtRules.ShouldBlendMaterialEdge(
+                current,
+                neighbor,
+                true,
+                neighborTile == 1,
+                currentProtected || neighborProtected))
+            {
+                return;
+            }
+
+            if (!TryResolveWorldMapMaterialAtlasEdgeSample(
+                neighbor,
+                nextX,
+                nextY,
+                out Rect neighborSource,
+                out bool neighborFlipX,
+                out bool neighborFlipY))
+            {
+                return;
+            }
+
+            int bandCount = ExplorationArtRules.MaterialBlendBandCount();
+            float fraction = ExplorationArtRules.MaterialBlendBandFraction(exploreWideView);
+            for (int band = 0; band < bandCount; band++)
+            {
+                float width = rect.width * fraction;
+                float height = rect.height * fraction;
+                Rect destination;
+                if (dx < 0)
+                {
+                    destination = new Rect(rect.x + band * width, rect.y, width, rect.height);
+                }
+                else if (dx > 0)
+                {
+                    destination = new Rect(rect.xMax - (band + 1) * width, rect.y, width, rect.height);
+                }
+                else if (dy < 0)
+                {
+                    destination = new Rect(rect.x, rect.y + band * height, rect.width, height);
+                }
+                else
+                {
+                    destination = new Rect(rect.x, rect.yMax - (band + 1) * height, rect.width, height);
+                }
+
+                TryDrawWorldMapMaterialAtlasEdgeBand(
+                    destination,
+                    neighborSource,
+                    neighborFlipX,
+                    neighborFlipY,
+                    dx,
+                    dy,
+                    band,
+                    fraction,
+                    ExplorationArtRules.MaterialBlendBandAlpha(band, exploreWideView));
+            }
+        }
+
+        private bool IsExploreMaterialFeatherProtectedCell(int x, int y)
+        {
+            if (state?.Map == null || x < 0 || y < 0 || x >= state.Map.Width || y >= state.Map.Height) return true;
+            if (IsMidgaardGateCell(x, y)) return true;
+            return (ExploreRolesAt(x, y) & ExplorationCellRole.Threshold) != 0;
         }
 
         private void DrawExploreTerrainBoundaries(Rect grid, float cell, Point origin, int viewW, int viewH)
@@ -3602,12 +3727,11 @@ namespace AshenHalls
                 int x = origin.X + vx;
                 int y = origin.Y + vy;
                 int tile = TileAt(state.Map, x, y);
-                string family = ExploreTerrainFamily(ExploreTileKind(x, y, tile));
                 if (vx + 1 < viewW)
                 {
                     int nextTile = TileAt(state.Map, x + 1, y);
-                    string nextFamily = ExploreTerrainFamily(ExploreTileKind(x + 1, y, nextTile));
-                    float alpha = tile != nextTile ? 0.26f : family != nextFamily ? 0.045f : 0f;
+                    bool gateJoin = IsMidgaardGateCell(x, y) || IsMidgaardGateCell(x + 1, y);
+                    float alpha = gateJoin ? 0f : tile != nextTile ? 0.26f : 0f;
                     if (alpha > 0f)
                     {
                         float px = grid.x + (vx + 1) * cell - 1f;
@@ -3617,8 +3741,8 @@ namespace AshenHalls
                 if (vy + 1 < viewH)
                 {
                     int nextTile = TileAt(state.Map, x, y + 1);
-                    string nextFamily = ExploreTerrainFamily(ExploreTileKind(x, y + 1, nextTile));
-                    float alpha = tile != nextTile ? 0.26f : family != nextFamily ? 0.045f : 0f;
+                    bool gateJoin = IsMidgaardGateCell(x, y) || IsMidgaardGateCell(x, y + 1);
+                    float alpha = gateJoin ? 0f : tile != nextTile ? 0.26f : 0f;
                     if (alpha > 0f)
                     {
                         float py = grid.y + (vy + 1) * cell - 1f;
@@ -3628,19 +3752,30 @@ namespace AshenHalls
             }
         }
 
+        private bool IsMidgaardGateCell(int x, int y)
+        {
+            MapObject obj = ObjectAt(state?.Map, x, y);
+            return obj != null && IsMidgaardGateType(obj.Type);
+        }
+
         private void DrawExploreSurfaceOverlay(Rect rect, int x, int y, int tile)
         {
             if (tile != 1) return;
             ExplorationCellRole roles = ExploreRolesAt(x, y);
-            if (!ExplorationSurfaceRules.IsPath(roles)) return;
+            ExplorationMaterial material = ExploreMaterialAt(x, y);
+            if (!ExplorationArtRules.ShouldDrawMaterialPathStroke(material, roles)) return;
             MapObject occupant = ObjectAt(state?.Map, x, y);
             if (occupant != null && (UsesSemanticMidgaardGround(occupant) || IsMidgaardGateType(occupant.Type))) return;
 
             int mask = ExplorationSurfaceRules.PathNeighborMask(state?.Map, x, y);
             bool city = (roles & ExplorationCellRole.City) != 0;
             bool road = (roles & ExplorationCellRole.Road) != 0;
-            ExplorationMaterial material = ExploreMaterialAt(x, y);
-            float shoulderWidth = rect.width * (city ? 0.32f : road ? 0.27f : 0.22f);
+            float shoulderFraction = city
+                ? exploreWideView ? 0.19f : 0.23f
+                : road
+                    ? exploreWideView ? 0.18f : 0.22f
+                    : exploreWideView ? 0.16f : 0.19f;
+            float shoulderWidth = rect.width * shoulderFraction;
             float coreWidth = shoulderWidth * 0.68f;
             float highlightWidth = coreWidth * 0.20f;
             Color shoulder = city ? Hex("111719", 0.26f) : Hex("20150e", 0.30f);
@@ -3690,14 +3825,33 @@ namespace AshenHalls
 
         private void DrawExploreWaypointTrail(Rect grid, float cell, Point origin, int viewW, int viewH)
         {
-            IReadOnlyList<Point> path = ActiveRouteWaypointPath();
-            if (path == null || path.Count <= 1) return;
+            ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
+            IReadOnlyList<Point> path = plan.Path;
+            if (!plan.HasTarget
+                || plan.Immediate
+                || plan.RouteBlocked
+                || path == null
+                || path.Count <= 1)
+            {
+                return;
+            }
 
-            int shown = Mathf.Min(path.Count, exploreWideView ? 25 : 14);
+            int shown = Mathf.Min(
+                path.Count,
+                ExplorationMapGuidanceRules.VisiblePointLimit(
+                    exploreWideView,
+                    plan.MarkedWaypoint));
             float outerWidth = Mathf.Max(2f, cell * (exploreWideView ? 0.08f : 0.10f));
-            float innerWidth = Mathf.Max(1f, outerWidth * 0.42f);
-            Color outer = Hex("050708", exploreWideView ? 0.58f : 0.66f);
-            Color inner = gold.WithAlpha(exploreWideView ? 0.46f : 0.58f);
+            float innerWidth = Mathf.Max(1f, outerWidth * (plan.MarkedWaypoint ? 0.46f : 0.38f));
+            Color outer = Hex(
+                "050708",
+                plan.MarkedWaypoint
+                    ? exploreWideView ? 0.58f : 0.66f
+                    : exploreWideView ? 0.42f : 0.50f);
+            Color inner = gold.WithAlpha(
+                plan.MarkedWaypoint
+                    ? exploreWideView ? 0.52f : 0.64f
+                    : exploreWideView ? 0.34f : 0.44f);
             for (int i = 1; i < shown; i++)
             {
                 Point from = path[i - 1];
@@ -3719,6 +3873,190 @@ namespace AshenHalls
 
                 float dot = Mathf.Max(2f, innerWidth * 1.45f);
                 DrawRect(new Rect(toCenter.x - dot * 0.5f, toCenter.y - dot * 0.5f, dot, dot), inner);
+            }
+        }
+
+        private void DrawExploreGuidanceCues(
+            Rect grid,
+            float cell,
+            Point origin,
+            int viewW,
+            int viewH)
+        {
+            ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
+            IReadOnlyList<Point> path = plan.Path;
+            if (!plan.HasTarget
+                || plan.Immediate
+                || plan.RouteBlocked
+                || path == null
+                || path.Count <= 1)
+            {
+                return;
+            }
+
+            Color accent = gold;
+            DrawExploreGuidanceNextStepCue(grid, cell, origin, viewW, viewH, path, accent, plan.MarkedWaypoint);
+            int visiblePointLimit = ExplorationMapGuidanceRules.VisiblePointLimit(
+                exploreWideView,
+                plan.MarkedWaypoint);
+            if (ExplorationMapGuidanceRules.TryFindViewportExit(
+                    path,
+                    origin.X,
+                    origin.Y,
+                    viewW,
+                    viewH,
+                    out ExplorationMapExitCue exitCue)
+                && ExplorationMapGuidanceRules.IsExitCueWithinVisiblePrefix(
+                    exitCue,
+                    visiblePointLimit))
+            {
+                DrawExploreGuidanceEdgeCue(grid, cell, origin, exitCue, accent, plan.MarkedWaypoint);
+                return;
+            }
+
+            if (plan.MarkedWaypoint) return;
+            Point arrival = path[path.Count - 1];
+            if (!ExplorePointInViewport(arrival.X, arrival.Y, origin, viewW, viewH)) return;
+            Rect arrivalCell = new Rect(
+                grid.x + (arrival.X - origin.X) * cell,
+                grid.y + (arrival.Y - origin.Y) * cell,
+                cell,
+                cell);
+            DrawCornerBrackets(
+                Pad(arrivalCell, cell * 0.12f),
+                accent.WithAlpha(0.62f),
+                Mathf.Max(1f, cell * 0.035f),
+                cell * 0.16f);
+            float arrivalDot = Mathf.Max(3f, cell * 0.07f);
+            DrawRect(
+                new Rect(
+                    arrivalCell.center.x - arrivalDot * 0.5f,
+                    arrivalCell.center.y - arrivalDot * 0.5f,
+                    arrivalDot,
+                    arrivalDot),
+                accent.WithAlpha(0.72f));
+        }
+
+        private void DrawExploreGuidanceNextStepCue(
+            Rect grid,
+            float cell,
+            Point origin,
+            int viewW,
+            int viewH,
+            IReadOnlyList<Point> path,
+            Color accent,
+            bool markedWaypoint)
+        {
+            Point step = path[1];
+            if (!ExplorePointInViewport(step.X, step.Y, origin, viewW, viewH)) return;
+            Rect stepCell = new Rect(
+                grid.x + (step.X - origin.X) * cell,
+                grid.y + (step.Y - origin.Y) * cell,
+                cell,
+                cell);
+            float pulse = state != null && state.ReducedMotion
+                ? 0.78f
+                : 0.78f + Mathf.Sin(Time.time * 4.6f) * 0.12f;
+            DrawCornerBrackets(
+                Pad(stepCell, cell * 0.09f),
+                accent.WithAlpha(Mathf.Clamp01(markedWaypoint ? pulse : pulse * 0.84f)),
+                Mathf.Max(1f, cell * 0.045f),
+                cell * 0.19f);
+
+            string direction = ActiveRouteWaypointFirstDirection(path);
+            string movementKey = ExplorationGuidanceRules.MovementKey(direction);
+            if (string.IsNullOrEmpty(movementKey)) return;
+            float keySize = Mathf.Clamp(cell * 0.24f, 16f, 25f);
+            Rect keycap = new Rect(
+                stepCell.x + cell * 0.08f,
+                stepCell.y + cell * 0.08f,
+                keySize,
+                keySize);
+            DrawRect(keycap, Hex("030405", 0.92f));
+            DrawBorder(keycap, accent.WithAlpha(markedWaypoint ? 0.96f : 0.82f), 1);
+            GUI.Label(
+                keycap,
+                movementKey,
+                CenterStyle(
+                    Mathf.RoundToInt(Mathf.Clamp(keySize * 0.50f, 9f, 12f)),
+                    ink));
+        }
+
+        private void DrawExploreGuidanceEdgeCue(
+            Rect grid,
+            float cell,
+            Point origin,
+            ExplorationMapExitCue cue,
+            Color accent,
+            bool markedWaypoint)
+        {
+            Rect anchorCell = new Rect(
+                grid.x + (cue.MapX - origin.X) * cell,
+                grid.y + (cue.MapY - origin.Y) * cell,
+                cell,
+                cell);
+            float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
+            float chipWidth = Mathf.Clamp(cell * 2.15f, 78f * scale, 118f * scale);
+            float chipHeight = Mathf.Clamp(cell * 0.42f, 20f * scale, 28f * scale);
+            float inset = Mathf.Max(5f * scale, cell * 0.08f);
+            float x = Mathf.Clamp(
+                anchorCell.center.x - chipWidth * 0.5f,
+                grid.x + inset,
+                grid.xMax - chipWidth - inset);
+            float y = Mathf.Clamp(
+                anchorCell.center.y - chipHeight * 0.5f,
+                grid.y + inset,
+                grid.yMax - chipHeight - inset);
+
+            switch (cue.Edge)
+            {
+                case ExplorationMapEdge.North:
+                    y = grid.y + inset;
+                    break;
+                case ExplorationMapEdge.East:
+                    x = grid.xMax - chipWidth - inset;
+                    break;
+                case ExplorationMapEdge.South:
+                    y = grid.yMax - chipHeight - inset;
+                    break;
+                case ExplorationMapEdge.West:
+                    x = grid.x + inset;
+                    break;
+            }
+
+            Rect chip = new Rect(x, y, chipWidth, chipHeight);
+            DrawRect(chip, Hex("030405", 0.94f));
+            DrawBorder(chip, accent.WithAlpha(markedWaypoint ? 0.98f : 0.84f), markedWaypoint ? 2 : 1);
+            string edge = cue.Edge == ExplorationMapEdge.North ? "N"
+                : cue.Edge == ExplorationMapEdge.East ? "E"
+                : cue.Edge == ExplorationMapEdge.South ? "S"
+                : "W";
+            string prefix = markedWaypoint ? "MARK" : "NEXT";
+            string steps = cue.RemainingSteps == 1 ? "1" : cue.RemainingSteps.ToString();
+            string label = $"{prefix}  {edge}{steps}";
+            GUI.Label(
+                chip,
+                FitText(
+                    label,
+                    chip.width - 8f * scale,
+                    CenterStyle(ExplorationHudScreenLayout.FontSize(10, Screen.width, Screen.height), ink)),
+                CenterStyle(ExplorationHudScreenLayout.FontSize(10, Screen.width, Screen.height), ink));
+
+            float edgeWidth = Mathf.Max(3f, cell * 0.07f);
+            switch (cue.Edge)
+            {
+                case ExplorationMapEdge.North:
+                    DrawRect(new Rect(anchorCell.x + cell * 0.28f, grid.y, cell * 0.44f, edgeWidth), accent.WithAlpha(0.88f));
+                    break;
+                case ExplorationMapEdge.East:
+                    DrawRect(new Rect(grid.xMax - edgeWidth, anchorCell.y + cell * 0.28f, edgeWidth, cell * 0.44f), accent.WithAlpha(0.88f));
+                    break;
+                case ExplorationMapEdge.South:
+                    DrawRect(new Rect(anchorCell.x + cell * 0.28f, grid.yMax - edgeWidth, cell * 0.44f, edgeWidth), accent.WithAlpha(0.88f));
+                    break;
+                case ExplorationMapEdge.West:
+                    DrawRect(new Rect(grid.x, anchorCell.y + cell * 0.28f, edgeWidth, cell * 0.44f), accent.WithAlpha(0.88f));
+                    break;
             }
         }
 
@@ -3968,7 +4306,7 @@ namespace AshenHalls
             if (!CombatFieldPresentationRules.UsesPropSprite(kind))
             {
                 // Persistent fields own the terrain sprite beneath them. Keep their
-                // authored fire/ice/web/gas art visible and reveal timing only on hover.
+                // authored fire/ice/web/gas art visible; show duration at a glance.
                 DrawPersistentFieldReadout(rect, obstacle);
                 return;
             }
@@ -4072,17 +4410,34 @@ namespace AshenHalls
 
         private void DrawPersistentFieldReadout(Rect rect, Point obstacle)
         {
-            if (obstacle == null || !CombatTileReadoutHovered(rect)) return;
+            if (obstacle == null) return;
             Color accent = ObstacleAccent(obstacle.Kind);
-            float railHeight = Mathf.Max(2f, rect.height * 0.035f);
-            DrawRect(new Rect(rect.x + rect.width * 0.10f, rect.yMax - railHeight - rect.height * 0.055f, rect.width * 0.80f, railHeight), accent.WithAlpha(0.78f));
+            if (CombatTileReadoutHovered(rect))
+            {
+                float railHeight = Mathf.Max(2f, rect.height * 0.035f);
+                DrawRect(
+                    new Rect(
+                        rect.x + rect.width * 0.10f,
+                        rect.yMax - railHeight - rect.height * 0.055f,
+                        rect.width * 0.80f,
+                        railHeight),
+                    accent.WithAlpha(0.78f));
+            }
             if (obstacle.Duration <= 0 || rect.width < 44f) return;
 
-            float badgeSize = Mathf.Max(12f, rect.width * 0.16f);
-            Rect badge = new Rect(rect.xMax - badgeSize - rect.width * 0.07f, rect.y + rect.height * 0.07f, badgeSize, badgeSize);
-            DrawRect(badge, Hex("030405", 0.78f));
-            DrawBorder(badge, accent.WithAlpha(0.72f), 1);
-            GUI.Label(badge, obstacle.Duration.ToString(), CenterStyle(8, cursorWhite));
+            string durationLabel = CombatFieldPresentationRules.DurationBadgeLabel(obstacle.Duration);
+            bool urgent = CombatFieldPresentationRules.DurationBadgeUrgent(obstacle.Duration);
+            Color durationAccent = urgent ? ember : accent;
+            float badgeHeight = Mathf.Clamp(rect.height * 0.18f, 13f, 16f);
+            float badgeWidth = Mathf.Clamp(badgeHeight * 1.72f, 23f, rect.width * 0.48f);
+            Rect badge = new Rect(
+                rect.x + rect.width * 0.07f,
+                rect.yMax - badgeHeight - rect.height * 0.08f,
+                badgeWidth,
+                badgeHeight);
+            DrawRect(badge, urgent ? Hex("2b1714", 0.90f) : Hex("030405", 0.82f));
+            DrawBorder(badge, durationAccent.WithAlpha(urgent ? 0.96f : 0.76f), urgent ? 2 : 1);
+            GUI.Label(badge, durationLabel, CenterStyle(8, urgent ? Hex("f2c08f") : cursorWhite));
         }
 
         private void DrawFireFieldSurface(Rect rect, Color accent, float pulse, float drift, float edgeAlpha)
@@ -4306,7 +4661,7 @@ namespace AshenHalls
             }
         }
 
-        private void DrawExploreObject(Rect rect, MapObject obj)
+        private void DrawExploreObject(Rect cell, Rect rect, MapObject obj)
         {
             if (obj == null) return;
             bool routeObject = IsKoboldStoryObject(obj);
@@ -4325,27 +4680,30 @@ namespace AshenHalls
                 return;
             }
 
-            DrawExploreObject(rect, obj.Type, obj);
+            DrawExploreObject(cell, rect, obj.Type, obj);
             if (routeObject) DrawKoboldRouteCaveBadge(rect);
         }
 
         private void DrawExploreObject(Rect rect, ObjectType type)
         {
-            DrawExploreObject(rect, type, null);
+            DrawExploreObject(rect, rect, type, null);
         }
 
-        private void DrawExploreObject(Rect rect, ObjectType type, MapObject obj)
+        private void DrawExploreObject(Rect cell, Rect rect, ObjectType type, MapObject obj)
         {
             Color objectColor = ObjectColor(type);
             bool quiet = IsQuietExploreObject(type);
             bool framed = ShouldFrameExploreObject(type, obj);
             bool gate = IsMidgaardGateType(type);
             float pulse = quiet || state != null && state.ReducedMotion ? 0.35f : 0.35f + Mathf.Sin(Time.time * 3.5f + (int)type) * 0.12f;
-            if (gate) DrawMidgaardGateFoundation(rect, type, framed);
+            if (gate) DrawMidgaardGateFoundation(cell, rect, type, framed);
             else DrawExploreObjectPlinth(rect, objectColor, quiet, framed, pulse);
             Rect artRect = Pad(rect, rect.width * ExploreObjectArtPadding(type, quiet));
-            Rect shadowRect = new Rect(artRect.x + 2f, artRect.y + 3f, artRect.width, artRect.height);
-            TryDrawWorldObjectIcon(shadowRect, type, obj, Hex("020303", 0.82f));
+            if (!gate)
+            {
+                Rect shadowRect = new Rect(artRect.x + 2f, artRect.y + 3f, artRect.width, artRect.height);
+                TryDrawWorldObjectIcon(shadowRect, type, obj, Hex("020303", 0.82f));
+            }
             if (TryDrawWorldObjectIcon(artRect, type, obj))
             {
                 if (!gate && ShouldReinforceExploreObjectAlpha(type))
@@ -4463,7 +4821,8 @@ namespace AshenHalls
                     DrawMidgaardNpcPlaceholder(inner, type);
                     break;
                 default:
-                    if (IsRouteScaffoldObject(type)) DrawRouteScaffoldPlaceholder(inner, type);
+                    if (IsMidgaardNpcObject(type)) DrawMidgaardNpcPlaceholder(inner, type);
+                    else if (IsRouteScaffoldObject(type)) DrawRouteScaffoldPlaceholder(inner, type);
                     break;
             }
         }
@@ -4480,58 +4839,400 @@ namespace AshenHalls
             }
         }
 
+        private void DrawMidgaardWallTerrainUnderlay(Rect rect, int x, int y)
+        {
+            if (state?.Map == null) return;
+
+            int left = MidgaardLeft(state.Map);
+            int right = MidgaardRight(state.Map);
+            int top = MidgaardTop(state.Map);
+            int bottom = MidgaardBottom(state.Map);
+            bool onLeft = x == left;
+            bool onRight = x == right;
+            bool onTop = y == top;
+            bool onBottom = y == bottom;
+            if (!onLeft && !onRight && !onTop && !onBottom) return;
+
+            int inwardX = x;
+            int inwardY = y;
+            int outwardX = x;
+            int outwardY = y;
+            if (onLeft)
+            {
+                inwardX++;
+                outwardX--;
+            }
+            else if (onRight)
+            {
+                inwardX--;
+                outwardX++;
+            }
+            if (onTop)
+            {
+                inwardY++;
+                outwardY--;
+            }
+            else if (onBottom)
+            {
+                inwardY--;
+                outwardY++;
+            }
+
+            Color outside = MidgaardWallTerrainColorAt(outwardX, outwardY, Hex("202625"));
+            Color inside = MidgaardWallTerrainColorAt(inwardX, inwardY, Hex("51534d"));
+            bool verticalEdge = (onLeft || onRight) && !onTop && !onBottom;
+            bool horizontalEdge = (onTop || onBottom) && !onLeft && !onRight;
+
+            if (verticalEdge)
+            {
+                Rect outsideHalf = onLeft
+                    ? new Rect(rect.x, rect.y, rect.width * 0.5f, rect.height)
+                    : new Rect(rect.center.x, rect.y, rect.width * 0.5f, rect.height);
+                Rect insideHalf = onLeft
+                    ? new Rect(rect.center.x, rect.y, rect.width * 0.5f, rect.height)
+                    : new Rect(rect.x, rect.y, rect.width * 0.5f, rect.height);
+                DrawRect(outsideHalf, outside);
+                DrawRect(insideHalf, inside);
+                TryDrawMidgaardWallTerrainSample(
+                    outsideHalf,
+                    outwardX,
+                    outwardY,
+                    onLeft ? 0.5f : 0f,
+                    0f,
+                    0.5f,
+                    1f);
+                TryDrawMidgaardWallTerrainSample(
+                    insideHalf,
+                    inwardX,
+                    inwardY,
+                    onLeft ? 0f : 0.5f,
+                    0f,
+                    0.5f,
+                    1f);
+                return;
+            }
+
+            if (horizontalEdge)
+            {
+                Rect outsideHalf = onTop
+                    ? new Rect(rect.x, rect.y, rect.width, rect.height * 0.5f)
+                    : new Rect(rect.x, rect.center.y, rect.width, rect.height * 0.5f);
+                Rect insideHalf = onTop
+                    ? new Rect(rect.x, rect.center.y, rect.width, rect.height * 0.5f)
+                    : new Rect(rect.x, rect.y, rect.width, rect.height * 0.5f);
+                DrawRect(outsideHalf, outside);
+                DrawRect(insideHalf, inside);
+                TryDrawMidgaardWallTerrainSample(
+                    outsideHalf,
+                    outwardX,
+                    outwardY,
+                    0f,
+                    onTop ? 0.5f : 0f,
+                    1f,
+                    0.5f);
+                TryDrawMidgaardWallTerrainSample(
+                    insideHalf,
+                    inwardX,
+                    inwardY,
+                    0f,
+                    onTop ? 0f : 0.5f,
+                    1f,
+                    0.5f);
+                return;
+            }
+
+            // Corners preserve the outside field in three quadrants and the city
+            // field in the inward quadrant, now with the same authored material
+            // texture as their neighboring cells instead of flat color blocks.
+            DrawRect(rect, outside);
+            TryDrawMidgaardWallTerrainSample(rect, outwardX, outwardY, 0f, 0f, 1f, 1f);
+            Rect inner = new Rect(
+                onLeft ? rect.center.x : rect.x,
+                onTop ? rect.center.y : rect.y,
+                rect.width * 0.5f,
+                rect.height * 0.5f);
+            DrawRect(inner, inside);
+            TryDrawMidgaardWallTerrainSample(
+                inner,
+                inwardX,
+                inwardY,
+                onLeft ? 0f : 0.5f,
+                onTop ? 0f : 0.5f,
+                0.5f,
+                0.5f);
+        }
+
+        private bool TryDrawMidgaardWallTerrainSample(
+            Rect destination,
+            int sampleX,
+            int sampleY,
+            float logicalSourceX,
+            float logicalSourceY,
+            float sourceWidth,
+            float sourceHeight)
+        {
+            if (state?.Map == null
+                || sampleX < 0
+                || sampleY < 0
+                || sampleX >= state.Map.Width
+                || sampleY >= state.Map.Height)
+            {
+                return false;
+            }
+
+            ExplorationMaterial material = ExploreMaterialAt(sampleX, sampleY);
+            if (!TryResolveWorldMapMaterialAtlasSample(
+                material,
+                sampleX,
+                sampleY,
+                HasStaticExploreObjectFootprint(sampleX, sampleY),
+                out Rect source,
+                out bool flipX,
+                out bool flipY))
+            {
+                return false;
+            }
+
+            sourceWidth = Mathf.Clamp(sourceWidth, 0.01f, 1f);
+            sourceHeight = Mathf.Clamp(sourceHeight, 0.01f, 1f);
+            logicalSourceX = Mathf.Clamp(logicalSourceX, 0f, 1f - sourceWidth);
+            logicalSourceY = Mathf.Clamp(logicalSourceY, 0f, 1f - sourceHeight);
+            float sourceX = flipX ? 1f - logicalSourceX - sourceWidth : logicalSourceX;
+            float sourceY = flipY ? 1f - logicalSourceY - sourceHeight : logicalSourceY;
+            Rect croppedSource = new Rect(
+                source.x + source.width * sourceX,
+                source.y + source.height * sourceY,
+                source.width * sourceWidth,
+                source.height * sourceHeight);
+            int tile = TileAt(state.Map, sampleX, sampleY);
+            string kind = ExploreTileKind(sampleX, sampleY, tile);
+            float noise = (ExploreNoise(sampleX, sampleY, 43) % 9) / 8f;
+            float alpha = ExplorationReadabilityRules.TerrainArtAlpha(tile, kind, exploreWideView, noise);
+            return DrawTextureRegionTintVariant(
+                worldMapMaterialAtlas,
+                destination,
+                croppedSource,
+                Color.white.WithAlpha(alpha),
+                flipX,
+                flipY);
+        }
+
+        private Color MidgaardWallTerrainColorAt(int x, int y, Color fallback)
+        {
+            if (state?.Map == null
+                || x < 0
+                || y < 0
+                || x >= state.Map.Width
+                || y >= state.Map.Height)
+            {
+                return fallback;
+            }
+
+            int tile = TileAt(state.Map, x, y);
+            if (ExploreTileKind(x, y, tile) == "midgaardwall") return fallback;
+            return ExploreTileBaseColor(x, y, tile, true);
+        }
+
+        private void DrawMidgaardWallFoundation(Rect rect, int atlasIndex, int x, int y)
+        {
+            DrawMidgaardWallTerrainUnderlay(rect, x, y);
+
+            const int north = 1;
+            const int east = 2;
+            const int south = 4;
+            const int west = 8;
+            int connections = ExplorationArtRules.MidgaardWallConnectionMask(atlasIndex);
+            if (connections == 0) return;
+            bool connectsNorth = (connections & north) != 0;
+            bool connectsEast = (connections & east) != 0;
+            bool connectsSouth = (connections & south) != 0;
+            bool connectsWest = (connections & west) != 0;
+            bool horizontal = connectsEast || connectsWest;
+            bool vertical = connectsNorth || connectsSouth;
+
+            float horizontalThickness = ExplorationArtRules.MidgaardWallBandThickness(exploreWideView);
+            float verticalThickness = ExplorationArtRules.MidgaardWallVerticalBandThickness(exploreWideView);
+            float overlap = Mathf.Max(1f, rect.width * 0.035f);
+            Color foundation = Hex("111717", 0.98f);
+            Color masonry = Hex("303938", 0.96f);
+            Color cap = Hex("737b76", 0.78f);
+            Color mortar = Hex("171e1e", 0.78f);
+
+            if (horizontal)
+            {
+                float height = rect.height * horizontalThickness;
+                float bandX = connectsWest ? rect.x - overlap : rect.center.x - overlap;
+                float width = connectsEast && connectsWest
+                    ? rect.width + overlap * 2f
+                    : rect.width * 0.5f + overlap * 2f;
+                Rect band = new Rect(
+                    bandX,
+                    rect.yMax - height,
+                    width,
+                    height + overlap);
+                DrawRect(band, foundation);
+                DrawRect(
+                    new Rect(
+                        band.x,
+                        band.y + band.height * 0.14f,
+                        band.width,
+                        band.height * 0.72f),
+                    masonry);
+                DrawRect(
+                    new Rect(
+                        band.x,
+                        band.y + band.height * 0.10f,
+                        band.width,
+                        Mathf.Max(1f, band.height * 0.12f)),
+                    cap);
+                DrawRect(
+                    new Rect(
+                        band.x,
+                        band.y + band.height * 0.58f,
+                        band.width,
+                        Mathf.Max(1f, band.height * 0.055f)),
+                    mortar);
+            }
+
+            if (vertical)
+            {
+                float width = rect.width * verticalThickness;
+                float bandY = connectsNorth ? rect.y - overlap : rect.center.y - overlap;
+                float height = connectsNorth && connectsSouth
+                    ? rect.height + overlap * 2f
+                    : rect.height * 0.5f + overlap * 2f;
+                Rect band = new Rect(
+                    rect.center.x - width * 0.5f,
+                    bandY,
+                    width,
+                    height);
+                DrawRect(band, foundation);
+                DrawRect(
+                    new Rect(
+                        band.x + band.width * 0.14f,
+                        band.y,
+                        band.width * 0.72f,
+                        band.height),
+                    masonry);
+                DrawRect(
+                    new Rect(
+                        band.x + band.width * 0.10f,
+                        band.y,
+                        Mathf.Max(1f, band.width * 0.12f),
+                        band.height),
+                    cap);
+                DrawRect(
+                    new Rect(
+                        band.x + band.width * 0.58f,
+                        band.y,
+                        Mathf.Max(1f, band.width * 0.055f),
+                        band.height),
+                    mortar);
+            }
+
+            // Subtle coordinate-stable joints keep the continuous foundation from
+            // reading as a flat UI bar at region scale.
+            if (!exploreWideView && ((x + y) & 1) == 0)
+            {
+                if (horizontal)
+                {
+                    DrawRect(
+                        new Rect(
+                            rect.center.x - Mathf.Max(1f, rect.width * 0.025f),
+                            rect.yMax - rect.height * horizontalThickness * 0.46f,
+                            Mathf.Max(1f, rect.width * 0.05f),
+                            rect.height * horizontalThickness * 0.34f),
+                        mortar.WithAlpha(0.52f));
+                }
+                if (vertical)
+                {
+                    DrawRect(
+                        new Rect(
+                            rect.center.x - rect.width * verticalThickness * 0.17f,
+                            rect.center.y - Mathf.Max(1f, rect.height * 0.025f),
+                            rect.width * verticalThickness * 0.34f,
+                            Mathf.Max(1f, rect.height * 0.05f)),
+                        mortar.WithAlpha(0.52f));
+                }
+            }
+        }
+
         private bool CombatTileReadoutHovered(Rect rect)
         {
+            if (visualSmokeCombatHoverCell.HasValue && boardRect.width > 0f && boardRect.height > 0f)
+            {
+                Vector2Int staged = visualSmokeCombatHoverCell.Value;
+                if (staged.x >= 0 && staged.x < CombatW && staged.y >= 0 && staged.y < CombatH)
+                {
+                    Rect grid = CombatBoardInnerRect(boardRect);
+                    float cell = Mathf.Min(grid.width / CombatW, grid.height / CombatH);
+                    Vector2 stagedCenter = new Vector2(
+                        grid.x + (staged.x + 0.5f) * cell,
+                        grid.y + (staged.y + 0.5f) * cell);
+                    return rect.Contains(stagedCenter);
+                }
+            }
             return Event.current != null && rect.Contains(Event.current.mousePosition);
         }
 
-        private void DrawMidgaardGateFoundation(Rect rect, ObjectType type, bool framed)
+        private void DrawMidgaardGateFoundation(Rect cell, Rect rect, ObjectType type, bool framed)
         {
             bool open = type == ObjectType.EastGate || type == ObjectType.WestGate;
-            bool sideGate = type == ObjectType.EastGate || type == ObjectType.WestGate;
-            float sillHeight = Mathf.Max(4f, rect.height * 0.11f);
-            Rect groundShadow = new Rect(rect.x + rect.width * 0.09f, rect.yMax - sillHeight * 0.68f, rect.width * 0.82f, sillHeight * 0.62f);
-            DrawRect(groundShadow, Hex("020303", 0.90f));
-
-            // The gate atlas is transparent around the masonry. Mask the wall
-            // directly behind the portal so open gates read as passages instead
-            // of decorative towers pasted over an unbroken wall tile.
-            float breachWidth = rect.width * (open ? 0.30f : 0.27f);
-            Rect breach = new Rect(
-                rect.center.x - breachWidth * 0.5f,
-                rect.y + rect.height * 0.34f,
-                breachWidth,
-                rect.height * 0.54f);
-            DrawRect(breach, Hex(open ? "050708" : "111616", open ? 0.96f : 0.72f));
-            if (open)
+            if (!open)
             {
-                DrawRect(new Rect(breach.x, breach.y, breach.width, Mathf.Max(2f, breach.height * 0.05f)), Hex("69726d", 0.34f));
-                DrawRect(new Rect(breach.x + breach.width * 0.12f, breach.y, Mathf.Max(2f, breach.width * 0.05f), breach.height), Hex("020303", 0.52f));
-                DrawRect(new Rect(breach.xMax - breach.width * 0.17f, breach.y, Mathf.Max(2f, breach.width * 0.05f), breach.height), Hex("020303", 0.52f));
+                float sillHeight = Mathf.Max(3f, rect.height * 0.09f);
+                Rect groundShadow = new Rect(
+                    rect.x + rect.width * 0.10f,
+                    rect.yMax - sillHeight * 0.56f,
+                    rect.width * 0.80f,
+                    sillHeight * 0.48f);
+                DrawRect(groundShadow, Hex("020303", 0.90f));
             }
-
-            Rect sill = new Rect(rect.x + rect.width * 0.16f, rect.yMax - sillHeight, rect.width * 0.68f, sillHeight * 0.46f);
-            DrawRect(sill, Hex("4d5856", 0.62f));
-            DrawRect(new Rect(sill.x, sill.y, sill.width, Mathf.Max(1f, sill.height * 0.18f)), Hex("a9b0a2", 0.38f));
 
             if (open)
             {
-                Rect road = sideGate
-                    ? new Rect(rect.x + rect.width * 0.05f, rect.yMax - rect.height * 0.25f, rect.width * 0.90f, rect.height * 0.18f)
-                    : new Rect(rect.center.x - rect.width * 0.14f, rect.yMax - rect.height * 0.30f, rect.width * 0.28f, rect.height * 0.28f);
-                DrawRect(road, Hex("171b19", 0.48f));
-                if (sideGate)
-                {
-                    DrawRect(new Rect(road.x, road.y + road.height * 0.18f, road.width, Mathf.Max(1f, road.height * 0.08f)), stone.WithAlpha(0.28f));
-                    DrawRect(new Rect(road.x, road.yMax - road.height * 0.26f, road.width, Mathf.Max(1f, road.height * 0.08f)), stone.WithAlpha(0.24f));
-                }
-                else
-                {
-                    DrawRect(new Rect(road.x + road.width * 0.14f, road.y, road.width * 0.08f, road.height), stone.WithAlpha(0.26f));
-                    DrawRect(new Rect(road.xMax - road.width * 0.22f, road.y, road.width * 0.08f, road.height), stone.WithAlpha(0.26f));
-                }
+                // East and west gates are passable horizontal thresholds through
+                // vertical walls. Build this join in map-cell space: art-rect space
+                // is deliberately taller than the cell and used to put the road
+                // well below the actual route.
+                float wallWidth = cell.width * ExplorationArtRules.MidgaardWallVerticalBandThickness(exploreWideView);
+                Rect upperJoin = new Rect(
+                    cell.center.x - wallWidth * 0.5f,
+                    cell.y - cell.height * 0.14f,
+                    wallWidth,
+                    cell.height * 0.42f);
+                Rect lowerJoin = new Rect(
+                    cell.center.x - wallWidth * 0.5f,
+                    cell.y + cell.height * 0.72f,
+                    wallWidth,
+                    cell.height * 0.42f);
+                DrawRect(upperJoin, Hex("26302f", 0.90f));
+                DrawRect(lowerJoin, Hex("26302f", 0.90f));
+            }
+            else
+            {
+                // The north and south landmarks are sealed. A low-contrast backing
+                // joins their transparent masonry to the wall without suggesting an
+                // open portal behind the closed doors.
+                Rect backing = new Rect(
+                    rect.center.x - rect.width * 0.20f,
+                    rect.y + rect.height * 0.40f,
+                    rect.width * 0.40f,
+                    rect.height * 0.38f);
+                DrawRect(backing, Hex("161c1a", 0.46f));
             }
 
+            if (!open)
+            {
+                float sillHeight = Mathf.Max(3f, rect.height * 0.09f);
+                Rect sill = new Rect(
+                    rect.x + rect.width * 0.18f,
+                    rect.yMax - sillHeight,
+                    rect.width * 0.64f,
+                    sillHeight * 0.42f);
+                DrawRect(sill, Hex("4d5856", 0.58f));
+                DrawRect(new Rect(sill.x, sill.y, sill.width, Mathf.Max(1f, sill.height * 0.18f)), Hex("a9b0a2", 0.30f));
+            }
             if (framed) DrawRect(Pad(rect, rect.width * 0.17f), ObjectColor(type).WithAlpha(0.06f));
         }
 
@@ -4606,6 +5307,33 @@ namespace AshenHalls
                     DrawRect(new Rect(inner.x + inner.width * 0.72f, inner.y + inner.height * 0.12f, inner.width * 0.05f, inner.height * 0.68f), stone);
                     DrawRect(new Rect(inner.x + inner.width * 0.64f, inner.y + inner.height * 0.18f, inner.width * 0.20f, inner.height * 0.07f), gold);
                     DrawBorder(new Rect(inner.x + inner.width * 0.28f, inner.y + inner.height * 0.42f, inner.width * 0.44f, inner.height * 0.32f), gold.WithAlpha(0.64f), 1);
+                    break;
+                case ObjectType.DinerCook:
+                    DrawRect(new Rect(inner.x + inner.width * 0.34f, inner.y + inner.height * 0.36f, inner.width * 0.32f, inner.height * 0.07f), Hex("a43f35"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.38f, inner.y + inner.height * 0.46f, inner.width * 0.24f, inner.height * 0.25f), Hex("efe4ca"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.73f, inner.y + inner.height * 0.34f, inner.width * 0.04f, inner.height * 0.36f), Hex("c9b596"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.69f, inner.y + inner.height * 0.30f, inner.width * 0.12f, inner.height * 0.08f), Hex("d9d3c4"));
+                    break;
+                case ObjectType.Provisioner:
+                    DrawRect(new Rect(inner.x + inner.width * 0.34f, inner.y + inner.height * 0.36f, inner.width * 0.32f, inner.height * 0.07f), Hex("d7a84e"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.28f, inner.y + inner.height * 0.43f, inner.width * 0.07f, inner.height * 0.34f), Hex("6b4930"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.22f, inner.y + inner.height * 0.58f, inner.width * 0.22f, inner.height * 0.20f), Hex("8a5c35"));
+                    DrawBorder(new Rect(inner.x + inner.width * 0.67f, inner.y + inner.height * 0.47f, inner.width * 0.16f, inner.height * 0.22f), gold.WithAlpha(0.86f), 1);
+                    DrawRect(new Rect(inner.x + inner.width * 0.71f, inner.y + inner.height * 0.51f, inner.width * 0.08f, inner.height * 0.13f), ember.WithAlpha(0.78f));
+                    break;
+                case ObjectType.DockWorker:
+                    DrawRect(new Rect(inner.x + inner.width * 0.35f, inner.y + inner.height * 0.12f, inner.width * 0.30f, inner.height * 0.08f), Hex("456b78"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.43f, inner.y + inner.height * 0.07f, inner.width * 0.21f, inner.height * 0.08f), Hex("547f8c"));
+                    DrawBorder(new Rect(inner.x + inner.width * 0.65f, inner.y + inner.height * 0.47f, inner.width * 0.22f, inner.height * 0.23f), Hex("b89967"), 2);
+                    DrawBorder(new Rect(inner.x + inner.width * 0.69f, inner.y + inner.height * 0.51f, inner.width * 0.14f, inner.height * 0.15f), Hex("b89967"), 1);
+                    break;
+                case ObjectType.Scholar:
+                    DrawBorder(new Rect(inner.x + inner.width * 0.32f, inner.y + inner.height * 0.23f, inner.width * 0.14f, inner.height * 0.09f), frost, 1);
+                    DrawBorder(new Rect(inner.x + inner.width * 0.54f, inner.y + inner.height * 0.23f, inner.width * 0.14f, inner.height * 0.09f), frost, 1);
+                    DrawRect(new Rect(inner.x + inner.width * 0.46f, inner.y + inner.height * 0.26f, inner.width * 0.08f, inner.height * 0.025f), frost);
+                    DrawRect(new Rect(inner.x + inner.width * 0.64f, inner.y + inner.height * 0.48f, inner.width * 0.22f, inner.height * 0.25f), Hex("365f8a"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.68f, inner.y + inner.height * 0.52f, inner.width * 0.14f, inner.height * 0.03f), Hex("d9d3c4"));
+                    DrawRect(new Rect(inner.x + inner.width * 0.68f, inner.y + inner.height * 0.59f, inner.width * 0.11f, inner.height * 0.025f), Hex("d9d3c4"));
                     break;
             }
         }
@@ -4740,6 +5468,8 @@ namespace AshenHalls
                 case ObjectType.NoviceHealer: return Hex("97dbc2");
                 case ObjectType.Diner:
                 case ObjectType.Provisions:
+                case ObjectType.DinerCook:
+                case ObjectType.Provisioner:
                 case ObjectType.Tavern: return Hex("d98b6a");
                 case ObjectType.TavernKeeper: return Hex("c88954");
                 case ObjectType.WoundedTraveler: return blood;
@@ -4759,8 +5489,10 @@ namespace AshenHalls
                 case ObjectType.TownGuard:
                 case ObjectType.GateCaptain:
                 case ObjectType.StableHand:
+                case ObjectType.DockWorker:
                 case ObjectType.OldRoadScout:
                 case ObjectType.CityWall: return stone;
+                case ObjectType.Scholar: return frost;
                 case ObjectType.RoyalHerald: return gold;
                 case ObjectType.KingHall:
                 case ObjectType.KingHalvard:
@@ -5051,6 +5783,7 @@ namespace AshenHalls
                 case ObjectType.NoviceHealer: return "Novice Healer Sera";
                 case ObjectType.Fountain: return "Temple fountain";
                 case ObjectType.Diner: return "Kate's Diner";
+                case ObjectType.DinerCook: return "Kate";
                 case ObjectType.Tavern: return "Midgaard tavern";
                 case ObjectType.TavernKeeper: return "Tavern Keeper Orren";
                 case ObjectType.WoundedTraveler: return "Wounded Traveler";
@@ -5084,6 +5817,9 @@ namespace AshenHalls
                 case ObjectType.Sewer: return "Sewer grate";
                 case ObjectType.CityWall: return "City wall";
                 case ObjectType.Provisions: return "Provision stall";
+                case ObjectType.Provisioner: return "Provisioner Lute";
+                case ObjectType.DockWorker: return "Dock Worker";
+                case ObjectType.Scholar: return "Midgaard Scholar";
                 case ObjectType.RatPeltQuest: return "Rat-pelt workbench";
                 case ObjectType.RecallCircle: return "Recall circle";
                 case ObjectType.QuestBoard: return "Quest board";
@@ -5159,6 +5895,7 @@ namespace AshenHalls
                 case ObjectType.NoviceHealer: return "small healing and priest spell hint";
                 case ObjectType.Fountain: return "peaceful water outside the temple";
                 case ObjectType.Diner: return "safe food, provisions, and warm lamps";
+                case ObjectType.DinerCook: return "warm meals, provisions, and road advice";
                 case ObjectType.Tavern: return "rest, rumors, and party regrouping";
                 case ObjectType.TavernKeeper: return HasStoryFlag(StoryFlags.MidgaardLampRoundStarted) && !HasStoryFlag(StoryFlags.MidgaardLampRoundTavern) ? "lamp round stop and road rumors" : "rumors, rest, and road bread";
                 case ObjectType.WoundedTraveler: return "road warning and emergency elixir";
@@ -5192,6 +5929,9 @@ namespace AshenHalls
                 case ObjectType.Sewer: return "rats below the city";
                 case ObjectType.CityWall: return "no open gate here";
                 case ObjectType.Provisions: return "buy travel food";
+                case ObjectType.Provisioner: return "buy weighed and sealed travel food";
+                case ObjectType.DockWorker: return "south-quarter hauling and cistern warnings";
+                case ObjectType.Scholar: return "city history and spellcraft notes";
                 case ObjectType.RatPeltQuest: return ContentSetCatalog.IsFullPrototype(activeContentSet) ? "turn in four rat pelts" : "turn in three sewer proof bundles";
                 case ObjectType.RecallCircle: return "recall returns here";
                 case ObjectType.QuestBoard: return "future contracts and route work";
