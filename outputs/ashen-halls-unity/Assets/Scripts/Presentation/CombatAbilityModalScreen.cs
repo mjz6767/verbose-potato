@@ -1577,7 +1577,7 @@ namespace AshenHalls
             detailArtBackdrop.GetComponent<Outline>().effectColor = cardAccent.WithAlpha(previewing ? 0.34f : 0.58f);
             detailIconFrame.GetComponent<Outline>().effectColor = cardAccent.WithAlpha(previewing ? 0.58f : 0.88f);
             RefreshIcon(detailIcon, detailSigil, card, cardAccent);
-            float heroScale = card.Path?.IndexOf("field", StringComparison.OrdinalIgnoreCase) >= 0 ? 1.16f : 1f;
+            float heroScale = card.Impact?.IndexOf("field", StringComparison.OrdinalIgnoreCase) >= 0 ? 1.16f : 1f;
             detailIcon.rectTransform.localScale = Vector3.one * heroScale;
             detailSigil.rectTransform.localScale = Vector3.one * heroScale;
             detailTitle.text = card.Name ?? "";
