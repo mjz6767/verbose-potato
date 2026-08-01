@@ -21,6 +21,8 @@ namespace AshenHalls
         public CombatHudStateTone StateTone;
         public string StatusLine;
         public string AccentHex;
+        public Texture2D PortraitTexture;
+        public Rect PortraitSource;
         public int Hp;
         public int MaxHp;
         public int Mana;
@@ -54,6 +56,8 @@ namespace AshenHalls
     {
         public string Name;
         public string AccentHex;
+        public Texture2D PortraitTexture;
+        public Rect PortraitSource;
         public bool Active;
         public bool StartsNextRound;
     }
@@ -84,6 +88,7 @@ namespace AshenHalls
         public bool CanCancelTarget;
         public string CancelTargetLabel;
         public string TargetTitle;
+        public string TargetSourceLabel;
         public CombatHudUnitView ActiveUnit;
         public CombatHudUnitView TargetUnit;
         public IReadOnlyList<CombatHudCommandView> Commands = Array.Empty<CombatHudCommandView>();
@@ -126,7 +131,7 @@ namespace AshenHalls
                 && FitsRect(Command, width, height)
                 && Top.yMax <= Side.yMin
                 && Side.yMax <= height - 8f
-                && Command.yMin >= height - 158f;
+                && Command.yMin >= height - 170f;
         }
 
         private static bool FitsRect(Rect rect, float width, float height)
@@ -138,6 +143,7 @@ namespace AshenHalls
     public readonly struct CombatHudUnitCardGeometry
     {
         public readonly Rect Title;
+        public readonly Rect Portrait;
         public readonly Rect Name;
         public readonly Rect Header;
         public readonly Rect State;
@@ -146,9 +152,10 @@ namespace AshenHalls
         public readonly Rect Status;
         public readonly bool ShowsMana;
 
-        public CombatHudUnitCardGeometry(Rect title, Rect name, Rect header, Rect state, Rect hp, Rect mana, Rect status, bool showsMana)
+        public CombatHudUnitCardGeometry(Rect title, Rect portrait, Rect name, Rect header, Rect state, Rect hp, Rect mana, Rect status, bool showsMana)
         {
             Title = title;
+            Portrait = portrait;
             Name = name;
             Header = header;
             State = state;
@@ -161,6 +168,7 @@ namespace AshenHalls
         public bool Fits(float width, float height)
         {
             bool inside = FitsRect(Title, width, height)
+                && FitsRect(Portrait, width, height)
                 && FitsRect(Name, width, height)
                 && FitsRect(Header, width, height)
                 && FitsRect(State, width, height)
@@ -173,7 +181,9 @@ namespace AshenHalls
                 && State.yMax <= Hp.yMin
                 && Hp.yMax <= (ShowsMana ? Mana.yMin : Status.yMin)
                 && (!ShowsMana || Mana.yMax <= Status.yMin);
-            return inside && ordered;
+            bool portraitOrdered = Title.yMax <= Portrait.yMin
+                && Portrait.yMax <= Hp.yMin;
+            return inside && ordered && portraitOrdered;
         }
 
         private static bool FitsRect(Rect rect, float width, float height)
@@ -201,7 +211,7 @@ namespace AshenHalls
 
         public static float CommandPanelHeight(float screenHeight)
         {
-            return Mathf.Clamp(screenHeight * 0.13f, 120f, 142f);
+            return Mathf.Clamp(screenHeight * 0.14f, 128f, 154f);
         }
 
         public static Rect[] CommandButtons(float width, bool promoteEndTurn)
@@ -232,7 +242,7 @@ namespace AshenHalls
             int ordinaryGaps = commandCount - 1 - (groupBreakIndex >= 0 ? 1 : 0);
             float gapsWidth = gap * ordinaryGaps + (groupBreakIndex >= 0 ? groupGap : 0f);
             float buttonW = Mathf.Max(72f, (width - padding * 2f - endTurnBonus - gapsWidth) / commandCount);
-            float buttonY = 30f;
+            float buttonY = 36f;
             float buttonH = Mathf.Max(66f, panelHeight - buttonY - 10f);
             Rect[] rects = new Rect[commandCount];
             float x = padding;
@@ -254,7 +264,7 @@ namespace AshenHalls
         {
             int contextButtons = (showUndoMove ? 1 : 0) + (showCancelTarget ? 1 : 0);
             float reserved = 24f + contextButtons * 138f;
-            return new Rect(12f, 4f, Mathf.Max(120f, width - reserved), 20f);
+            return new Rect(18f, 5f, Mathf.Max(120f, width - reserved - 6f), 25f);
         }
 
         public static Rect UndoMoveButton(float width, bool showCancelTarget)
@@ -269,25 +279,25 @@ namespace AshenHalls
 
         private static Rect ContextButton(float width, int slotFromRight)
         {
-            return new Rect(width - 142f - slotFromRight * 138f, 3f, 132f, 22f);
+            return new Rect(width - 142f - slotFromRight * 138f, 4f, 132f, 25f);
         }
 
         public static void SidePanels(Rect side, bool timelineExpanded, out Rect active, out Rect target, out Rect timeline)
         {
             float gap = 10f;
-            float timelineH = timelineExpanded
-                ? Mathf.Clamp(side.height * 0.42f, 190f, Mathf.Max(190f, side.height - 330f))
-                : 110f;
-            float activeH = Mathf.Clamp(side.height * 0.28f, 168f, 230f);
-            float targetH = Mathf.Clamp(side.height * 0.24f, 146f, 206f);
+            float minimumCards = timelineExpanded ? 300f : 340f;
+            float maximumTimeline = Mathf.Min(
+                timelineExpanded ? 480f : 310f,
+                Mathf.Max(
+                    timelineExpanded ? 240f : 190f,
+                    side.height - gap * 2f - minimumCards));
+            float timelineH = Mathf.Clamp(
+                side.height * (timelineExpanded ? 0.50f : 0.38f),
+                timelineExpanded ? 240f : 190f,
+                maximumTimeline);
             float availableCardH = Mathf.Max(0f, side.height - timelineH - gap * 2f);
-            float requestedCardH = activeH + targetH;
-            if (requestedCardH > availableCardH)
-            {
-                float activeShare = requestedCardH <= 0f ? 0.54f : activeH / requestedCardH;
-                activeH = availableCardH * activeShare;
-                targetH = availableCardH - activeH;
-            }
+            float activeH = availableCardH * 0.54f;
+            float targetH = availableCardH - activeH;
 
             active = new Rect(0f, 0f, side.width, activeH);
             target = new Rect(0f, active.yMax + gap, side.width, targetH);
@@ -297,32 +307,43 @@ namespace AshenHalls
         public static CombatHudUnitCardGeometry UnitCard(float width, float height, bool showMana)
         {
             const float x = 12f;
-            float contentWidth = Mathf.Max(1f, width - x * 2f);
-            bool compact = height < 168f;
+            float fullWidth = Mathf.Max(1f, width - x * 2f);
+            bool compact = height < 176f;
+            bool veryCompact = height < 148f;
             float titleY = compact ? 6f : 8f;
-            float titleH = compact ? 20f : 24f;
-            float nameY = titleY + titleH + (compact ? 2f : 8f);
-            float nameH = compact ? 19f : 22f;
-            float headerY = nameY + nameH + 2f;
-            float headerH = compact ? 15f : 18f;
-            float stateY = headerY + headerH + 2f;
-            float statusH = compact ? 16f : 18f;
-            float statusY = Mathf.Max(0f, height - (compact ? 8f : 10f) - statusH);
+            float titleH = veryCompact ? 18f : compact ? 20f : 24f;
+            float contentTop = titleY + titleH + (compact ? 4f : 7f);
+            float statusH = veryCompact ? 14f : compact ? 16f : 18f;
+            float statusY = Mathf.Max(0f, height - (compact ? 7f : 10f) - statusH);
             float meterBottom = statusY - (compact ? 4f : 6f);
-            const float manaH = 13f;
+            float manaH = veryCompact ? 13f : 15f;
             float manaY = meterBottom - manaH;
-            const float hpH = 14f;
-            float hpY = (showMana ? manaY - 5f : meterBottom) - hpH;
-            float stateH = Mathf.Max(0f, Mathf.Min(compact ? 16f : 18f, hpY - stateY - 3f));
+            float hpH = veryCompact ? 15f : 18f;
+            float hpY = (showMana ? manaY - 4f : meterBottom) - hpH;
+            float desiredPortrait = Mathf.Clamp(
+                Mathf.Min(width * 0.30f, height * (compact ? 0.42f : 0.46f)),
+                44f,
+                132f);
+            float portraitSize = Mathf.Max(36f, Mathf.Min(desiredPortrait, hpY - contentTop - 2f));
+            Rect portrait = new Rect(x, contentTop, portraitSize, portraitSize);
+            float textX = portrait.xMax + (compact ? 8f : 11f);
+            float textWidth = Mathf.Max(1f, width - textX - x);
+            float nameY = contentTop;
+            float nameH = veryCompact ? 18f : compact ? 20f : 23f;
+            float headerY = nameY + nameH + 1f;
+            float headerH = veryCompact ? 13f : compact ? 15f : 18f;
+            float stateY = headerY + headerH + 2f;
+            float stateH = Mathf.Max(0f, Mathf.Min(compact ? 28f : 36f, hpY - stateY - 3f));
 
             return new CombatHudUnitCardGeometry(
-                new Rect(x, titleY, contentWidth, titleH),
-                new Rect(x, nameY, contentWidth, nameH),
-                new Rect(x, headerY, contentWidth, headerH),
-                new Rect(x, stateY, contentWidth, stateH),
-                new Rect(x, hpY, contentWidth, hpH),
-                new Rect(x, manaY, contentWidth, manaH),
-                new Rect(x, statusY, contentWidth, statusH),
+                new Rect(x, titleY, fullWidth, titleH),
+                portrait,
+                new Rect(textX, nameY, textWidth, nameH),
+                new Rect(textX, headerY, textWidth, headerH),
+                new Rect(textX, stateY, textWidth, stateH),
+                new Rect(x, hpY, fullWidth, hpH),
+                new Rect(x, manaY, fullWidth, manaH),
+                new Rect(x, statusY, fullWidth, statusH),
                 showMana);
         }
     }
@@ -364,6 +385,7 @@ namespace AshenHalls
     {
         private readonly List<CommandRow> commandRows = new List<CommandRow>();
         private readonly List<LogRow> logRows = new List<LogRow>();
+        private readonly List<TurnChip> turnChips = new List<TurnChip>();
         private CombatHudScreenBindings bindings;
         private Canvas canvas;
         private CanvasGroup canvasGroup;
@@ -375,6 +397,12 @@ namespace AshenHalls
         private RectTransform commandPanel;
         private RectTransform commandDivider;
         private RectTransform utilityPopup;
+        private RectTransform phaseBackplate;
+        private RectTransform roundStatBackplate;
+        private RectTransform moveStatBackplate;
+        private RectTransform actionStatBackplate;
+        private RectTransform commandPromptBackplate;
+        private RectTransform commandPromptRail;
         private Text titleText;
         private Text routeText;
         private Text phaseText;
@@ -386,6 +414,8 @@ namespace AshenHalls
         private Text activeHeader;
         private Text activeState;
         private Text activeStatus;
+        private Image activePortrait;
+        private Text activePortraitFallback;
         private RectTransform activeHpFill;
         private RectTransform activeManaFill;
         private Text targetTitle;
@@ -393,10 +423,14 @@ namespace AshenHalls
         private Text targetHeader;
         private Text targetState;
         private Text targetStatus;
+        private Image targetPortrait;
+        private Text targetPortraitFallback;
         private RectTransform targetHpFill;
         private RectTransform targetManaFill;
         private Text timelineTitle;
         private Text turnQueueText;
+        private RectTransform tacticalPlanPanel;
+        private Text tacticalPlanText;
         private Text timelineButtonText;
         private Text commandPromptText;
         private Button undoMoveButton;
@@ -430,7 +464,6 @@ namespace AshenHalls
         private int hoveredCommandIndex = -1;
         private int focusedCommandIndex = -1;
         private bool pointerOwnsCommandContext;
-        private bool selectingCommandFromPointer;
 
         public bool IsReady => canvas != null
             && canvasGroup != null
@@ -439,6 +472,8 @@ namespace AshenHalls
             && activePanel != null
             && targetPanel != null
             && timelinePanel != null
+            && activePortrait != null
+            && targetPortrait != null
             && turnQueueText != null
             && commandPanel != null
             && commandPromptText != null
@@ -454,6 +489,7 @@ namespace AshenHalls
             && elixirButton != null
             && menuButton != null
             && commandRows.Count > 0
+            && turnChips.Count == 6
             && logRows.Count == 5;
         public bool IsVisible => IsReady && UiRuntime.IsCanvasVisible(canvas);
         public bool HasRenderableGeometry => IsReady && UiRuntime.IsRenderableRootOverlay(canvas);
@@ -588,6 +624,22 @@ namespace AshenHalls
         public int MovePointsMaximumForTest => displayedMovePointsMaximum;
         public bool ActionReadyForTest => displayedActionReady;
         public int CommandCapacityForTest => commandRows.Count;
+        public bool ActivePortraitVisibleForTest => activePortrait != null && activePortrait.enabled && activePortrait.sprite != null;
+        public bool TargetPortraitVisibleForTest => targetPortrait != null && targetPortrait.enabled && targetPortrait.sprite != null;
+        public string ActiveCardTitleForTest => activeTitle == null ? "" : activeTitle.text;
+        public string TargetCardTitleForTest => targetTitle == null ? "" : targetTitle.text;
+        public int VisibleTurnChipCountForTest
+        {
+            get
+            {
+                int visible = 0;
+                foreach (TurnChip chip in turnChips)
+                {
+                    if (chip?.Root != null && chip.Root.gameObject.activeInHierarchy) visible++;
+                }
+                return visible;
+            }
+        }
 
         public bool CommandInputSelectableForTest(ActionMode mode)
         {
@@ -823,6 +875,16 @@ namespace AshenHalls
             phaseText.color = view.ActiveUnit == null
                 ? Hex("b7aa90", 1f)
                 : view.PlayerTurn ? Hex("58b7a5", 1f) : Hex("c65c3b", 1f);
+            if (phaseBackplate != null)
+            {
+                Image phaseFill = phaseBackplate.GetComponent<Image>();
+                Color phaseAccent = view.ActiveUnit == null
+                    ? Hex("b7aa90", 1f)
+                    : view.PlayerTurn ? Hex("58b7a5", 1f) : Hex("c65c3b", 1f);
+                if (phaseFill != null) phaseFill.color = Color.Lerp(Hex("0a1114", 0.88f), phaseAccent, 0.12f);
+                Outline phaseOutline = phaseBackplate.GetComponent<Outline>();
+                if (phaseOutline != null) phaseOutline.effectColor = phaseAccent.WithAlpha(0.58f);
+            }
             roundStatText.text = string.IsNullOrWhiteSpace(view.RoundLabel)
                 ? "ROUND\n" + (view.RoundNumber > 0 ? view.RoundNumber.ToString() : "-")
                 : view.RoundLabel;
@@ -838,14 +900,27 @@ namespace AshenHalls
                 : view.ActionReady
                     ? Hex("58b7a5", 1f)
                     : view.PlayerTurn ? Hex("d7a84e", 1f) : Hex("c65c3b", 1f);
+            RefreshStatBackplate(roundStatBackplate, Hex("d7a84e", 1f), true);
+            RefreshStatBackplate(moveStatBackplate, moveStatText.color, view.PlayerTurn && view.MovePoints > 0);
+            RefreshStatBackplate(actionStatBackplate, actionStatText.color, view.ActionReady);
             timelineTitle.text = string.IsNullOrEmpty(view.RoundLine) ? "Timeline" : "Timeline / " + view.RoundLine;
-            timelineButtonText.text = view.TimelineExpanded ? "Hide" : "Show";
-            string queue = BuildTurnQueueText(view.Turns);
-            turnQueueText.text = !view.TimelineExpanded || string.IsNullOrWhiteSpace(view.TacticalLine)
-                ? queue
-                : queue + "\n<color=#d7a84e>PLAN</color>  " + view.TacticalLine;
+            timelineButtonText.text = view.TimelineExpanded ? "Less" : "More";
+            turnQueueText.text = view.Turns == null || view.Turns.Count == 0
+                ? "INITIATIVE FORMING"
+                : "INITIATIVE  /  NEXT SIX";
+            RefreshTurnChips(view.Turns);
+            tacticalPlanText.text = string.IsNullOrWhiteSpace(view.TacticalLine)
+                ? "TACTICAL READ  /  Hover a unit or tile to inspect danger and outcomes."
+                : "OPENING PLAN  /  " + view.TacticalLine;
 
-            RefreshUnitCard(view.ActiveUnit, activeTitle, activeName, activeHeader, activeState, activeStatus, activeHpFill, activeManaFill, "Active Unit");
+            RefreshUnitCard(view.ActiveUnit, activeTitle, activeName, activeHeader, activeState, activeStatus, activePortrait, activePortraitFallback, activeHpFill, activeManaFill, "ACTIVE UNIT");
+            string targetContext = string.IsNullOrWhiteSpace(view.TargetTitle) ? "INSPECT" : view.TargetTitle.ToUpperInvariant();
+            string targetSource = string.IsNullOrWhiteSpace(view.TargetSourceLabel) ? "BOARD" : view.TargetSourceLabel.ToUpperInvariant();
+            string repeatedSourcePrefix = targetSource + " ";
+            if (targetContext.StartsWith(repeatedSourcePrefix, StringComparison.Ordinal))
+            {
+                targetContext = targetContext.Substring(repeatedSourcePrefix.Length);
+            }
             RefreshUnitCard(
                 view.TargetUnit,
                 targetTitle,
@@ -853,9 +928,11 @@ namespace AshenHalls
                 targetHeader,
                 targetState,
                 targetStatus,
+                targetPortrait,
+                targetPortraitFallback,
                 targetHpFill,
                 targetManaFill,
-                string.IsNullOrWhiteSpace(view.TargetTitle) ? "Inspect" : view.TargetTitle);
+                targetSource + "  /  " + targetContext);
 
             for (int i = 0; i < commandRows.Count; i++)
             {
@@ -881,6 +958,7 @@ namespace AshenHalls
                 bool available = command.Enabled && !command.Blocked;
                 commandRows[i].Icon.color = Color.white.WithAlpha(available ? 0.98f : 0.34f);
                 bool focused = focusedCommandIndex == i;
+                bool hovered = pointerOwnsCommandContext && hoveredCommandIndex == i;
                 Color accent = command.Promoted || command.Armed
                     ? Hex("d7a84e", 1f)
                     : CommandAccent(command.Mode);
@@ -890,7 +968,7 @@ namespace AshenHalls
                         ? Color.Lerp(Hex("080b0d", 0.98f), accent, 0.18f)
                         : Color.Lerp(Hex("080b0d", 0.96f), accent, available ? 0.08f : 0.02f);
                 commandRows[i].IconOutline.effectColor = accent.WithAlpha(
-                    command.Promoted || command.Armed || command.Selected && available ? 0.95f : focused ? 0.82f : available ? 0.56f : 0.22f);
+                    command.Promoted || command.Armed || command.Selected && available ? 0.95f : focused || hovered ? 0.82f : available ? 0.56f : 0.22f);
                 commandRows[i].HotkeyBackground.color = command.Promoted || command.Armed || command.Selected && available
                     ? accent.WithAlpha(0.94f)
                     : Hex("263035", available ? 0.92f : 0.48f);
@@ -906,7 +984,8 @@ namespace AshenHalls
                     : available
                     ? accent.WithAlpha(command.Promoted || command.Armed || command.Selected ? 1f : 0.72f)
                     : Hex("777c7c", 0.42f);
-                commandRows[i].AccentRail.gameObject.SetActive(true);
+                commandRows[i].StatePip.gameObject.SetActive(command.Blocked || command.Armed || command.Promoted);
+                commandRows[i].AccentRail.gameObject.SetActive(command.Promoted || command.Armed || command.Selected && available);
                 commandRows[i].AccentRail.color = accent.WithAlpha(
                     command.Promoted || command.Armed || command.Selected && available ? 1f : available ? 0.44f : 0.16f);
                 Image image = commandRows[i].Button.targetGraphic as Image;
@@ -955,7 +1034,7 @@ namespace AshenHalls
             IReadOnlyList<CombatHudLogView> logs = view.Logs ?? Array.Empty<CombatHudLogView>();
             int visibleLogs = view.TimelineExpanded
                 ? Mathf.Min(logRows.Count, logs.Count)
-                : Mathf.Min(1, logs.Count);
+                : Mathf.Min(2, logs.Count);
             for (int i = 0; i < logRows.Count; i++)
             {
                 bool visible = i < visibleLogs;
@@ -963,6 +1042,19 @@ namespace AshenHalls
                 if (!visible) continue;
                 logRows[i].Text.text = logs[i].Text ?? "";
                 logRows[i].Stripe.color = ToneColor(logs[i].Tone);
+            }
+            ReconcileHiddenSelection();
+        }
+
+        private void ReconcileHiddenSelection()
+        {
+            EventSystem eventSystem = EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            if (selected == null || !IsCanvasSelection(selected)) return;
+            if (!selected.activeInHierarchy)
+            {
+                eventSystem.SetSelectedGameObject(null);
             }
         }
 
@@ -976,38 +1068,56 @@ namespace AshenHalls
             Stretch(canvas.GetComponent<RectTransform>());
 
             topPanel = AddPanel("Top Chrome", canvas.transform, Hex("10161b", 0.88f), Hex("3c4544", 0.72f));
+            phaseBackplate = AddPanel("Phase Backplate", topPanel, Hex("0a1114", 0.72f), Hex("3c4544", 0.42f));
+            roundStatBackplate = AddPanel("Round Backplate", topPanel, Hex("151b20", 0.88f), Hex("d7a84e", 0.42f));
+            moveStatBackplate = AddPanel("Move Backplate", topPanel, Hex("151b20", 0.88f), Hex("58b7a5", 0.42f));
+            actionStatBackplate = AddPanel("Action Backplate", topPanel, Hex("151b20", 0.88f), Hex("58b7a5", 0.42f));
             titleText = AddText("Title", topPanel, VersionInfo.ProductName, 23, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             titleText.resizeTextForBestFit = true;
             titleText.resizeTextMinSize = 14;
             titleText.resizeTextMaxSize = 23;
             routeText = AddText("Route", topPanel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
-            phaseText = AddText("Phase", topPanel, "", 10, Hex("58b7a5", 1f), TextAnchor.MiddleRight);
+            phaseText = AddText("Phase", topPanel, "", 13, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
+            phaseText.fontStyle = FontStyle.Bold;
             phaseText.resizeTextForBestFit = true;
-            phaseText.resizeTextMinSize = 8;
-            phaseText.resizeTextMaxSize = 10;
-            roundStatText = AddText("Round", topPanel, "", 9, Hex("d7a84e", 1f), TextAnchor.MiddleCenter);
-            moveStatText = AddText("Move", topPanel, "", 9, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
-            actionStatText = AddText("Action", topPanel, "", 9, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
+            phaseText.resizeTextMinSize = 10;
+            phaseText.resizeTextMaxSize = 13;
+            roundStatText = AddText("Round", topPanel, "", 10, Hex("d7a84e", 1f), TextAnchor.MiddleCenter);
+            moveStatText = AddText("Move", topPanel, "", 10, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
+            actionStatText = AddText("Action", topPanel, "", 10, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
+            roundStatText.fontStyle = FontStyle.Bold;
+            moveStatText.fontStyle = FontStyle.Bold;
+            actionStatText.fontStyle = FontStyle.Bold;
 
             sidePanel = AddPanel("Combat Side", canvas.transform, Hex("0e1114", 0.08f), Hex("0e1114", 0f));
             activePanel = AddPanel("Active", sidePanel, Hex("1a2026", 0.96f), Hex("58b7a5", 0.82f));
             targetPanel = AddPanel("Target", sidePanel, Hex("1a2026", 0.96f), Hex("b94b56", 0.82f));
             timelinePanel = AddPanel("Timeline", sidePanel, Hex("1a2026", 0.96f), Hex("d7a84e", 0.82f));
-            BuildUnitCard(activePanel, out activeTitle, out activeName, out activeHeader, out activeState, out activeStatus, out activeHpFill, out activeManaFill);
-            BuildUnitCard(targetPanel, out targetTitle, out targetName, out targetHeader, out targetState, out targetStatus, out targetHpFill, out targetManaFill);
+            BuildUnitCard(activePanel, out activeTitle, out activeName, out activeHeader, out activeState, out activeStatus, out activePortrait, out activePortraitFallback, out activeHpFill, out activeManaFill);
+            BuildUnitCard(targetPanel, out targetTitle, out targetName, out targetHeader, out targetState, out targetStatus, out targetPortrait, out targetPortraitFallback, out targetHpFill, out targetManaFill);
             timelineTitle = AddText("Timeline Title", timelinePanel, "Timeline", 18, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
             timelineButton = AddButton("Timeline Toggle", timelinePanel, "Show", () => bindings?.ToggleTimeline?.Invoke(), false);
             timelineButtonText = timelineButton.GetComponentInChildren<Text>();
-            turnQueueText = AddText("Turn Queue", timelinePanel, "", 10, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
+            turnQueueText = AddText("Turn Queue", timelinePanel, "INITIATIVE", 9, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            turnQueueText.fontStyle = FontStyle.Bold;
             turnQueueText.supportRichText = true;
+            for (int i = 0; i < 6; i++) turnChips.Add(CreateTurnChip(timelinePanel, i));
+            tacticalPlanPanel = AddPanel("Tactical Read", timelinePanel, Hex("11191d", 0.92f), Hex("58b7a5", 0.36f));
+            AddImage("Accent", tacticalPlanPanel, Hex("58b7a5", 0.88f));
+            tacticalPlanText = AddText("Text", tacticalPlanPanel, "", 9, Hex("d9e5df", 1f), TextAnchor.MiddleLeft);
+            tacticalPlanText.resizeTextForBestFit = true;
+            tacticalPlanText.resizeTextMinSize = 8;
+            tacticalPlanText.resizeTextMaxSize = 10;
             for (int i = 0; i < 5; i++) logRows.Add(CreateLogRow(timelinePanel, i));
 
             commandPanel = AddPanel("Command Bar", canvas.transform, Hex("080b0d", 0.94f), Hex("3c4544", 0.82f));
-            commandPromptText = AddText("Command Prompt", commandPanel, "", 11, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
+            commandPromptBackplate = AddPanel("Command Prompt Backplate", commandPanel, Hex("11191d", 0.90f), Hex("3c4544", 0.38f));
+            commandPromptRail = AddImage("Command Prompt Rail", commandPromptBackplate, Hex("58b7a5", 0.92f)).rectTransform;
+            commandPromptText = AddText("Command Prompt", commandPanel, "", 12, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
             commandPromptText.fontStyle = FontStyle.Bold;
             commandPromptText.resizeTextForBestFit = true;
-            commandPromptText.resizeTextMinSize = 9;
-            commandPromptText.resizeTextMaxSize = 11;
+            commandPromptText.resizeTextMinSize = 10;
+            commandPromptText.resizeTextMaxSize = 12;
             undoMoveButton = AddButton("Undo Move", commandPanel, "Undo Move  [U]", () => bindings?.UndoMove?.Invoke(), false);
             undoMoveText = undoMoveButton.GetComponentInChildren<Text>();
             undoMoveText.fontSize = 9;
@@ -1043,22 +1153,57 @@ namespace AshenHalls
             }
         }
 
-        private void BuildUnitCard(RectTransform panel, out Text title, out Text name, out Text header, out Text state, out Text status, out RectTransform hpFill, out RectTransform manaFill)
+        private void BuildUnitCard(
+            RectTransform panel,
+            out Text title,
+            out Text name,
+            out Text header,
+            out Text state,
+            out Text status,
+            out Image portrait,
+            out Text portraitFallback,
+            out RectTransform hpFill,
+            out RectTransform manaFill)
         {
             title = AddText("Title", panel, "", 18, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
-            name = AddText("Name", panel, "", 15, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
-            header = AddText("Header", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
-            state = AddText("State", panel, "", 10, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
-            status = AddText("Status", panel, "", 9, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            title.fontStyle = FontStyle.Bold;
+            RectTransform portraitFrame = AddPanel("Portrait Frame", panel, Hex("080b0d", 0.94f), Hex("3c4544", 0.72f));
+            portrait = AddImage("Portrait", portraitFrame, Color.white);
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            Stretch(portrait.rectTransform, 3f, 3f);
+            portraitFallback = AddText("Portrait Fallback", portraitFrame, "?", 22, Hex("b7aa90", 0.92f), TextAnchor.MiddleCenter);
+            portraitFallback.fontStyle = FontStyle.Bold;
+            portraitFallback.raycastTarget = false;
+            Stretch(portraitFallback.rectTransform, 3f, 3f);
+            name = AddText("Name", panel, "", 17, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
+            name.fontStyle = FontStyle.Bold;
+            name.resizeTextForBestFit = true;
+            name.resizeTextMinSize = 12;
+            name.resizeTextMaxSize = 17;
+            header = AddText("Header", panel, "", 11, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            header.resizeTextForBestFit = true;
+            header.resizeTextMinSize = 9;
+            header.resizeTextMaxSize = 11;
+            state = AddText("State", panel, "", 11, Hex("d7a84e", 1f), TextAnchor.UpperLeft);
+            state.resizeTextForBestFit = true;
+            state.resizeTextMinSize = 8;
+            state.resizeTextMaxSize = 11;
+            status = AddText("Status", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            status.resizeTextForBestFit = true;
+            status.resizeTextMinSize = 8;
+            status.resizeTextMaxSize = 10;
             RectTransform hpBg = AddImage("Hp Bg", panel, Hex("050708", 0.88f)).rectTransform;
             hpFill = AddImage("Hp Fill", hpBg, Hex("b94b56", 1f)).rectTransform;
-            Text hpValue = AddText("Value", hpBg, "", 9, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            Text hpValue = AddText("Value", hpBg, "", 10, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            hpValue.fontStyle = FontStyle.Bold;
             hpValue.raycastTarget = false;
             AddMeterLabelShadow(hpValue);
             Stretch(hpValue.rectTransform, 2f, 0f);
             RectTransform manaBg = AddImage("Mana Bg", panel, Hex("050708", 0.88f)).rectTransform;
             manaFill = AddImage("Mana Fill", manaBg, Hex("58b7a5", 1f)).rectTransform;
-            Text manaValue = AddText("Value", manaBg, "", 9, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            Text manaValue = AddText("Value", manaBg, "", 10, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            manaValue.fontStyle = FontStyle.Bold;
             manaValue.raycastTarget = false;
             AddMeterLabelShadow(manaValue);
             Stretch(manaValue.rectTransform, 2f, 0f);
@@ -1074,7 +1219,7 @@ namespace AshenHalls
             label.resizeTextForBestFit = true;
             label.resizeTextMinSize = 11;
             label.resizeTextMaxSize = 15;
-            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
             label.verticalOverflow = VerticalWrapMode.Truncate;
             label.raycastTarget = false;
 
@@ -1124,6 +1269,28 @@ namespace AshenHalls
             return new CommandRow(button.GetComponent<RectTransform>(), button, outline, label, hotkey, sub, iconWell, iconOutline, icon, iconFallback, hotkeyBackground, statePip, accentRail);
         }
 
+        private TurnChip CreateTurnChip(Transform parent, int index)
+        {
+            RectTransform root = AddPanel("Turn Chip " + index, parent, Hex("11171c", 0.92f), Hex("3c4544", 0.44f));
+            Image accent = AddImage("Accent", root, Hex("b7aa90", 0.66f));
+            Image portrait = AddImage("Portrait", root, Color.white);
+            portrait.preserveAspect = true;
+            portrait.raycastTarget = false;
+            Text fallback = AddText("Fallback", root, "?", 13, Hex("b7aa90", 0.94f), TextAnchor.MiddleCenter);
+            fallback.fontStyle = FontStyle.Bold;
+            fallback.raycastTarget = false;
+            Text name = AddText("Name", root, "", 10, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
+            name.fontStyle = FontStyle.Bold;
+            name.resizeTextForBestFit = true;
+            name.resizeTextMinSize = 8;
+            name.resizeTextMaxSize = 10;
+            name.raycastTarget = false;
+            Text round = AddText("Round", root, "", 8, Hex("d7a84e", 1f), TextAnchor.UpperRight);
+            round.fontStyle = FontStyle.Bold;
+            round.raycastTarget = false;
+            return new TurnChip(root, accent, portrait, fallback, name, round);
+        }
+
         private LogRow CreateLogRow(Transform parent, int index)
         {
             RectTransform root = AddPanel("Log Row " + index, parent, Hex("151b20", 0.82f), Hex("3c4544", 0.35f));
@@ -1154,10 +1321,18 @@ namespace AshenHalls
             float titleW = Mathf.Max(220f, statsX - titleX - 16f);
             SetLocalRect(titleText.rectTransform, new Rect(titleX, 6f, titleW * 0.36f, 27f));
             SetLocalRect(routeText.rectTransform, new Rect(titleX + 2f, 34f, titleW * 0.62f, 18f));
-            SetLocalRect(phaseText.rectTransform, new Rect(titleX + titleW * 0.42f, 16f, titleW * 0.56f, 22f));
-            SetLocalRect(roundStatText.rectTransform, new Rect(statsX, 8f, statW, 42f));
-            SetLocalRect(moveStatText.rectTransform, new Rect(statsX + statW + statGap, 8f, statW, 42f));
-            SetLocalRect(actionStatText.rectTransform, new Rect(statsX + (statW + statGap) * 2f, 8f, statW, 42f));
+            Rect phaseRect = new Rect(titleX + titleW * 0.40f, 8f, titleW * 0.58f, 42f);
+            Rect roundRect = new Rect(statsX, 8f, statW, 42f);
+            Rect moveRect = new Rect(statsX + statW + statGap, 8f, statW, 42f);
+            Rect actionRect = new Rect(statsX + (statW + statGap) * 2f, 8f, statW, 42f);
+            SetLocalRect(phaseBackplate, phaseRect);
+            SetLocalRect(phaseText.rectTransform, PadLocal(phaseRect, 6f, 3f));
+            SetLocalRect(roundStatBackplate, roundRect);
+            SetLocalRect(moveStatBackplate, moveRect);
+            SetLocalRect(actionStatBackplate, actionRect);
+            SetLocalRect(roundStatText.rectTransform, PadLocal(roundRect, 3f, 2f));
+            SetLocalRect(moveStatText.rectTransform, PadLocal(moveRect, 3f, 2f));
+            SetLocalRect(actionStatText.rectTransform, PadLocal(actionRect, 3f, 2f));
 
             CombatHudScreenLayout.SidePanels(geometry.Side, timelineExpanded, out Rect active, out Rect target, out Rect timeline);
             SetLocalRect(activePanel, active);
@@ -1167,26 +1342,50 @@ namespace AshenHalls
             LayoutUnitCard(targetPanel, target.width, target.height);
             SetLocalRect(timelineTitle.rectTransform, new Rect(12f, 8f, timeline.width - 100f, 24f));
             SetLocalRect(timelineButton.GetComponent<RectTransform>(), new Rect(timeline.width - 78f, 10f, 58f, 24f));
-            SetLocalRect(
-                turnQueueText.rectTransform,
-                new Rect(12f, timelineExpanded ? 38f : 34f, timeline.width - 24f, timelineExpanded ? 40f : 28f));
-            float logY = timelineExpanded ? 84f : 68f;
-            float availableLogHeight = Mathf.Max(timelineExpanded ? 26f : 0f, timeline.height - logY - 8f);
-            float logH = timelineExpanded
-                ? Mathf.Clamp((availableLogHeight - 24f) / 5f, 14f, 40f)
-                : availableLogHeight;
+            SetLocalRect(turnQueueText.rectTransform, new Rect(12f, 35f, timeline.width - 24f, 13f));
+            const int turnColumns = 3;
+            const float turnGap = 5f;
+            const float turnRowGap = 4f;
+            const float turnY = 50f;
+            const float turnH = 33f;
+            float turnW = (timeline.width - 24f - turnGap * (turnColumns - 1)) / turnColumns;
+            for (int i = 0; i < turnChips.Count; i++)
+            {
+                int column = i % turnColumns;
+                int row = i / turnColumns;
+                Rect chipRect = new Rect(12f + column * (turnW + turnGap), turnY + row * (turnH + turnRowGap), turnW, turnH);
+                TurnChip chip = turnChips[i];
+                SetLocalRect(chip.Root, chipRect);
+                SetLocalRect(chip.Accent.rectTransform, new Rect(0f, 0f, 3f, turnH));
+                SetLocalRect(chip.Portrait.rectTransform, new Rect(7f, 3f, 27f, 27f));
+                SetLocalRect(chip.Fallback.rectTransform, new Rect(7f, 3f, 27f, 27f));
+                SetLocalRect(chip.Name.rectTransform, new Rect(38f, 4f, Mathf.Max(24f, turnW - 44f), 25f));
+                SetLocalRect(chip.Round.rectTransform, new Rect(turnW - 20f, 1f, 16f, 12f));
+            }
+            SetLocalRect(tacticalPlanPanel, new Rect(10f, 124f, timeline.width - 20f, 30f));
+            SetLocalRect(tacticalPlanPanel.Find("Accent").GetComponent<RectTransform>(), new Rect(0f, 0f, 4f, 30f));
+            SetLocalRect(tacticalPlanText.rectTransform, new Rect(11f, 3f, timeline.width - 43f, 24f));
+            const float logY = 160f;
+            int layoutLogCount = timelineExpanded ? 5 : 2;
+            float availableLogHeight = Mathf.Max(20f, timeline.height - logY - 8f);
+            float logGap = timelineExpanded ? 4f : 5f;
+            float logH = Mathf.Clamp(
+                (availableLogHeight - logGap * (layoutLogCount - 1)) / layoutLogCount,
+                12f,
+                56f);
             for (int i = 0; i < logRows.Count; i++)
             {
-                Rect row = timelineExpanded
-                    ? new Rect(10f, logY + i * (logH + 6f), timeline.width - 20f, logH)
-                    : new Rect(10f, logY, timeline.width - 20f, logH);
+                Rect row = new Rect(10f, logY + i * (logH + logGap), timeline.width - 20f, logH);
                 SetLocalRect(logRows[i].Root, row);
                 SetLocalRect(logRows[i].Stripe.rectTransform, new Rect(0f, 0f, 4f, row.height));
                 SetLocalRect(logRows[i].Text.rectTransform, new Rect(10f, 5f, row.width - 16f, row.height - 10f));
             }
 
             Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, commandCount, promoteEndTurn);
-            SetLocalRect(commandPromptText.rectTransform, CombatHudScreenLayout.CommandPrompt(geometry.Command.width, showUndoMove, showCancelTarget));
+            Rect commandPrompt = CombatHudScreenLayout.CommandPrompt(geometry.Command.width, showUndoMove, showCancelTarget);
+            SetLocalRect(commandPromptBackplate, new Rect(commandPrompt.x - 8f, 3f, commandPrompt.width + 10f, 29f));
+            SetLocalRect(commandPromptRail, new Rect(0f, 0f, 4f, 29f));
+            SetLocalRect(commandPromptText.rectTransform, commandPrompt);
             SetLocalRect(undoMoveButton.GetComponent<RectTransform>(), CombatHudScreenLayout.UndoMoveButton(geometry.Command.width, showCancelTarget));
             SetLocalRect(cancelTargetButton.GetComponent<RectTransform>(), CombatHudScreenLayout.CancelTargetButton(geometry.Command.width));
             int groupBreakIndex = CombatHudScreenLayout.CommandGroupBreakIndex(buttons.Length);
@@ -1206,8 +1405,8 @@ namespace AshenHalls
                 SetLocalRect(commandRows[i].IconWell.rectTransform, new Rect(10f, iconY, iconSize, iconSize));
                 SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, new Rect(10f, 2f, 38f, 16f));
                 SetLocalRect(commandRows[i].StatePip.rectTransform, new Rect(10f + iconSize - 9f, iconY + 3f, 8f, 8f));
-                SetLocalRect(commandRows[i].Label.rectTransform, new Rect(textX, textY, Mathf.Max(36f, buttons[i].width - textX - 9f), 25f));
-                SetLocalRect(commandRows[i].SubLabel.rectTransform, new Rect(textX, textY + 26f, Mathf.Max(36f, buttons[i].width - textX - 9f), 21f));
+                SetLocalRect(commandRows[i].Label.rectTransform, new Rect(textX, textY - 2f, Mathf.Max(36f, buttons[i].width - textX - 9f), 28f));
+                SetLocalRect(commandRows[i].SubLabel.rectTransform, new Rect(textX, textY + 27f, Mathf.Max(36f, buttons[i].width - textX - 9f), 19f));
                 const float railHeight = 4f;
                 SetLocalRect(commandRows[i].AccentRail.rectTransform, new Rect(0f, buttons[i].height - railHeight, buttons[i].width, railHeight));
             }
@@ -1223,6 +1422,7 @@ namespace AshenHalls
         {
             CombatHudUnitCardGeometry geometry = CombatHudScreenLayout.UnitCard(width, height, showMana);
             SetLocalRect(panel.Find("Title").GetComponent<RectTransform>(), geometry.Title);
+            SetLocalRect(panel.Find("Portrait Frame").GetComponent<RectTransform>(), geometry.Portrait);
             SetLocalRect(panel.Find("Name").GetComponent<RectTransform>(), geometry.Name);
             SetLocalRect(panel.Find("Header").GetComponent<RectTransform>(), geometry.Header);
             SetLocalRect(panel.Find("State").GetComponent<RectTransform>(), geometry.State);
@@ -1231,7 +1431,18 @@ namespace AshenHalls
             SetLocalRect(panel.Find("Mana Bg").GetComponent<RectTransform>(), geometry.Mana);
         }
 
-        private void RefreshUnitCard(CombatHudUnitView unit, Text title, Text name, Text header, Text state, Text status, RectTransform hpFill, RectTransform manaFill, string fallbackTitle)
+        private void RefreshUnitCard(
+            CombatHudUnitView unit,
+            Text title,
+            Text name,
+            Text header,
+            Text state,
+            Text status,
+            Image portrait,
+            Text portraitFallback,
+            RectTransform hpFill,
+            RectTransform manaFill,
+            string fallbackTitle)
         {
             title.text = fallbackTitle;
             bool showMana = unit != null && unit.MaxMana > 0;
@@ -1241,19 +1452,38 @@ namespace AshenHalls
             Outline panelOutline = panel == null ? null : panel.GetComponent<Outline>();
             if (panelOutline != null)
             {
-                Color fallbackAccent = fallbackTitle == "Active Unit"
+                Color fallbackAccent = fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal)
                     ? Hex("58b7a5", 0.82f)
                     : Hex("b94b56", 0.82f);
                 panelOutline.effectColor = UnitAccent(unit?.AccentHex, fallbackAccent);
             }
+            Color unitAccent = UnitAccent(
+                unit?.AccentHex,
+                fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal)
+                    ? Hex("58b7a5", 0.82f)
+                    : Hex("b94b56", 0.82f));
+            title.color = unitAccent;
+            RectTransform portraitFrame = portrait == null ? null : portrait.rectTransform.parent as RectTransform;
+            Outline portraitOutline = portraitFrame == null ? null : portraitFrame.GetComponent<Outline>();
+            if (portraitOutline != null) portraitOutline.effectColor = unitAccent.WithAlpha(0.90f);
             if (panel != null) LayoutUnitCard(panel, panel.rect.width, panel.rect.height, showMana);
             if (unit == null)
             {
-                name.text = fallbackTitle == "Active Unit" ? "Waiting" : "Hover a unit";
-                header.text = fallbackTitle == "Active Unit" ? "No active combatant." : "Inspect targets from the board.";
+                name.text = fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal) ? "Waiting" : "Hover a unit";
+                header.text = fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal) ? "No active combatant." : "Inspect targets from the board.";
                 state.text = "";
                 state.color = StateToneColor(CombatHudStateTone.Neutral);
                 status.text = "";
+                if (portrait != null)
+                {
+                    portrait.sprite = null;
+                    portrait.enabled = false;
+                }
+                if (portraitFallback != null)
+                {
+                    portraitFallback.text = "?";
+                    portraitFallback.gameObject.SetActive(true);
+                }
                 SetFill(hpFill, 0, 1);
                 SetFill(manaFill, 0, 1);
                 SetMeterLabel(hpFill, "", 0, 0);
@@ -1266,10 +1496,84 @@ namespace AshenHalls
             state.text = unit.StateLine ?? "";
             state.color = StateToneColor(unit.StateTone);
             status.text = unit.StatusLine ?? "";
+            Sprite portraitSprite = UiRuntime.AtlasSprite(unit.PortraitTexture, unit.PortraitSource);
+            if (portrait != null)
+            {
+                portrait.sprite = portraitSprite;
+                portrait.enabled = portraitSprite != null;
+                portrait.color = Color.white;
+            }
+            if (portraitFallback != null)
+            {
+                portraitFallback.text = UnitInitials(unit.Name);
+                portraitFallback.color = unitAccent;
+                portraitFallback.gameObject.SetActive(portraitSprite == null);
+            }
+            Image hpImage = hpFill == null ? null : hpFill.GetComponent<Image>();
+            if (hpImage != null) hpImage.color = unitAccent;
             SetFill(hpFill, unit.Hp, unit.MaxHp);
             SetFill(manaFill, unit.Mana, unit.MaxMana);
             SetMeterLabel(hpFill, "HP", unit.Hp, unit.MaxHp);
             SetMeterLabel(manaFill, "MP", unit.Mana, unit.MaxMana);
+        }
+
+        private void RefreshTurnChips(IReadOnlyList<CombatHudTurnView> turns)
+        {
+            turns = turns ?? Array.Empty<CombatHudTurnView>();
+            for (int i = 0; i < turnChips.Count; i++)
+            {
+                TurnChip chip = turnChips[i];
+                bool visible = i < turns.Count && turns[i] != null;
+                chip.Root.gameObject.SetActive(visible);
+                if (!visible) continue;
+
+                CombatHudTurnView turn = turns[i];
+                Color accent = UnitAccent(turn.AccentHex, Hex("b7aa90", 0.82f));
+                Image fill = chip.Root.GetComponent<Image>();
+                if (fill != null)
+                {
+                    fill.color = turn.Active
+                        ? Color.Lerp(Hex("11171c", 0.98f), accent, 0.22f)
+                        : Hex("11171c", 0.92f);
+                }
+                Outline outline = chip.Root.GetComponent<Outline>();
+                if (outline != null) outline.effectColor = accent.WithAlpha(turn.Active ? 0.96f : 0.42f);
+                chip.Accent.color = accent.WithAlpha(turn.Active ? 1f : 0.68f);
+                Sprite sprite = UiRuntime.AtlasSprite(turn.PortraitTexture, turn.PortraitSource);
+                chip.Portrait.sprite = sprite;
+                chip.Portrait.enabled = sprite != null;
+                chip.Portrait.color = Color.white;
+                chip.Fallback.text = UnitInitials(turn.Name);
+                chip.Fallback.color = accent;
+                chip.Fallback.gameObject.SetActive(sprite == null);
+                chip.Name.text = turn.Name ?? "";
+                chip.Name.color = turn.Active ? Hex("f8efda", 1f) : Hex("d8d0bf", 1f);
+                chip.Round.text = turn.StartsNextRound ? "↻" : turn.Active ? "▶" : "";
+                chip.Round.color = turn.StartsNextRound ? Hex("d7a84e", 1f) : accent;
+            }
+        }
+
+        private static void RefreshStatBackplate(RectTransform backplate, Color accent, bool emphasized)
+        {
+            if (backplate == null) return;
+            Image fill = backplate.GetComponent<Image>();
+            if (fill != null)
+            {
+                fill.color = emphasized
+                    ? Color.Lerp(Hex("11171c", 0.96f), accent, 0.12f)
+                    : Hex("11171c", 0.86f);
+            }
+            Outline outline = backplate.GetComponent<Outline>();
+            if (outline != null) outline.effectColor = accent.WithAlpha(emphasized ? 0.72f : 0.30f);
+        }
+
+        private static string UnitInitials(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "?";
+            string[] parts = value.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return "?";
+            if (parts.Length == 1) return parts[0].Substring(0, 1).ToUpperInvariant();
+            return (parts[0].Substring(0, 1) + parts[parts.Length - 1].Substring(0, 1)).ToUpperInvariant();
         }
 
         private void ToggleUtility()
@@ -1301,18 +1605,6 @@ namespace AshenHalls
             if (row?.Root == null || !row.Root.gameObject.activeInHierarchy || row.Button == null) return;
             pointerOwnsCommandContext = true;
             hoveredCommandIndex = index;
-            selectingCommandFromPointer = true;
-            try
-            {
-                SetFocusedCommand(index);
-                EventSystem eventSystem = EventSystem.current;
-                if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
-                if (eventSystem != null) eventSystem.SetSelectedGameObject(row.Button.gameObject);
-            }
-            finally
-            {
-                selectingCommandFromPointer = false;
-            }
             CombatHudView view = bindings?.View?.Invoke();
             if (view != null) RefreshCommandPrompt(view);
         }
@@ -1328,11 +1620,8 @@ namespace AshenHalls
 
         private void SetFocusedCommand(int index)
         {
-            if (!selectingCommandFromPointer)
-            {
-                hoveredCommandIndex = -1;
-                pointerOwnsCommandContext = false;
-            }
+            hoveredCommandIndex = -1;
+            pointerOwnsCommandContext = false;
             focusedCommandIndex = index;
             Refresh();
         }
@@ -1378,6 +1667,24 @@ namespace AshenHalls
             }
             commandPromptText.text = prompt;
             commandPromptText.color = color;
+            if (commandPromptRail != null)
+            {
+                Image rail = commandPromptRail.GetComponent<Image>();
+                if (rail != null) rail.color = color.WithAlpha(0.94f);
+            }
+            if (commandPromptBackplate != null)
+            {
+                Image fill = commandPromptBackplate.GetComponent<Image>();
+                if (fill != null)
+                {
+                    fill.color = Color.Lerp(
+                        Hex("11191d", 0.92f),
+                        color,
+                        contextualIndex >= 0 ? 0.11f : 0.06f);
+                }
+                Outline outline = commandPromptBackplate.GetComponent<Outline>();
+                if (outline != null) outline.effectColor = color.WithAlpha(contextualIndex >= 0 ? 0.58f : 0.34f);
+            }
         }
 
         private int ContextualCommandIndex(int commandCount = int.MaxValue)
@@ -1407,7 +1714,6 @@ namespace AshenHalls
             hoveredCommandIndex = -1;
             focusedCommandIndex = -1;
             pointerOwnsCommandContext = false;
-            selectingCommandFromPointer = false;
         }
 
         private bool IsCanvasSelection(GameObject selected)
@@ -1592,6 +1898,15 @@ namespace AshenHalls
             rect.sizeDelta = new Vector2(area.width, area.height);
         }
 
+        private static Rect PadLocal(Rect rect, float horizontal, float vertical)
+        {
+            return new Rect(
+                rect.x + horizontal,
+                rect.y + vertical,
+                Mathf.Max(0f, rect.width - horizontal * 2f),
+                Mathf.Max(0f, rect.height - vertical * 2f));
+        }
+
         private static void Stretch(RectTransform rect, float insetX = 0f, float insetY = 0f)
         {
             rect.anchorMin = Vector2.zero;
@@ -1612,6 +1927,26 @@ namespace AshenHalls
         private static void EnsureEventSystem()
         {
             UiRuntime.EnsureEventSystemReady();
+        }
+
+        private sealed class TurnChip
+        {
+            public readonly RectTransform Root;
+            public readonly Image Accent;
+            public readonly Image Portrait;
+            public readonly Text Fallback;
+            public readonly Text Name;
+            public readonly Text Round;
+
+            public TurnChip(RectTransform root, Image accent, Image portrait, Text fallback, Text name, Text round)
+            {
+                Root = root;
+                Accent = accent;
+                Portrait = portrait;
+                Fallback = fallback;
+                Name = name;
+                Round = round;
+            }
         }
 
         private sealed class CommandRow

@@ -596,6 +596,7 @@ namespace AshenHalls
         public string Kind;
         public int Intensity;
         public int ReactionCount;
+        public bool StaticStamp;
         public float Start;
         public float ImpactAt;
         public float Duration;

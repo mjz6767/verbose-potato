@@ -205,9 +205,19 @@ namespace AshenHalls
                 bool isActive = active != null && active.Id == unit.Id;
                 DrawCombatStatusFrame(cellRect, unit, isActive, cell);
                 if (isActive) DrawActiveCursor(cellRect, cell);
-                Rect hp = new Rect(cellRect.x + cell * 0.15f, cellRect.yMax - cell * 0.14f, cell * 0.7f, cell * 0.07f);
-                DrawRect(hp, Hex("111619"));
-                DrawRect(new Rect(hp.x, hp.y, hp.width * Mathf.Clamp01((float)unit.Hp / unit.MaxHp), hp.height), unit.Side == UnitSide.Party ? ember : blood);
+                float hpHeight = Mathf.Clamp(cell * 0.095f, 6f, 10f);
+                Rect hp = new Rect(
+                    cellRect.x + cell * 0.10f,
+                    cellRect.yMax - hpHeight - cell * 0.055f,
+                    cell * 0.80f,
+                    hpHeight);
+                float hpRatio = unit.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)unit.Hp / unit.MaxHp);
+                Color hpColor = unit.Side == UnitSide.Party
+                    ? hpRatio <= 0.30f ? gold : Hex("58b7a5")
+                    : blood;
+                DrawRect(hp, Hex("050708", 0.94f));
+                DrawRect(new Rect(hp.x + 1f, hp.y + 1f, Mathf.Max(0f, (hp.width - 2f) * hpRatio), Mathf.Max(1f, hp.height - 2f)), hpColor);
+                DrawBorder(hp, unit.Side == UnitSide.Party ? Hex("58b7a5", 0.72f) : Hex("b94b56", 0.72f), 1);
                 DrawStatusPips(cellRect, unit, cell);
             }
 
@@ -2252,7 +2262,10 @@ namespace AshenHalls
                     }
                     Rect tile = new Rect(grid.x + x * cell, grid.y + y * cell, cell, cell);
                     Rect mark = new Rect(tile.x + 6f, tile.y + 6f, tile.width - 12f, tile.height - 12f);
-                    DrawRect(mark, accent.WithAlpha(legal ? 0.22f : 0.16f));
+                    float candidateAlpha = !legal
+                        ? 0.05f
+                        : selectedAction == ActionMode.Attack ? 0.12f : 0.07f;
+                    DrawRect(mark, accent.WithAlpha(candidateAlpha));
                 }
             }
         }
@@ -2904,9 +2917,29 @@ namespace AshenHalls
                     float tImpact = Mathf.Clamp01((now - echo.ImpactAt) / duration);
                     float fade = 1f - Mathf.SmoothStep(0f, 1f, tImpact);
                     CombatImpactArtPlan artPlan = CombatPowerVisualRules.ImpactArtPlan(echo.Kind, intensity, tImpact);
+                    if (echo.StaticStamp)
+                    {
+                        float stampSize = cell * 0.90f;
+                        Rect stamp = new Rect(
+                            center.x - stampSize * 0.5f,
+                            center.y - stampSize * 0.5f,
+                            stampSize,
+                            stampSize);
+                        bool stampDrawn = artPlan.HasPrimary
+                            && TryDrawSpellAnimationAtlasIcon(
+                                stamp,
+                                artPlan.PrimaryCell,
+                                Color.white.WithAlpha(fade * Mathf.Min(0.86f, artPlan.PrimaryOpacity)));
+                        if (!stampDrawn)
+                        {
+                            DrawImpactBrackets(stamp, accent.WithAlpha(fade * 0.88f), Mathf.Max(2f, cell * 0.04f));
+                        }
+                        continue;
+                    }
                     bool secondaryArtDrawn = false;
                     if (artPlan.HasSecondary)
                     {
+                        float secondaryFade = 1f - Mathf.SmoothStep(0f, 0.52f, tImpact);
                         float secondarySize = cell * artPlan.SecondaryScale;
                         Rect secondaryArt = new Rect(
                             center.x - secondarySize * 0.5f,
@@ -2916,7 +2949,7 @@ namespace AshenHalls
                         secondaryArtDrawn = TryDrawEpicSpellEffectsAtlasIcon(
                             secondaryArt,
                             artPlan.SecondaryCell,
-                            Color.white.WithAlpha(fade * artPlan.SecondaryOpacity));
+                            Color.white.WithAlpha(secondaryFade * artPlan.SecondaryOpacity));
                     }
 
                     bool primaryArtDrawn = false;
@@ -3745,12 +3778,27 @@ namespace AshenHalls
         private void DrawStatusPips(Rect cellRect, CombatUnit unit, float cell)
         {
             List<StatusMark> pips = StatusMarks(unit);
-            float size = Mathf.Clamp(cell * 0.075f, 5f, 8f);
+            float badgeH = Mathf.Clamp(cell * 0.17f, 10f, 14f);
+            float badgeW = badgeH * 1.58f;
+            float gap = Mathf.Max(2f, cell * 0.025f);
+            int columns = Mathf.Max(1, Mathf.Min(3, Mathf.FloorToInt((cell - cell * 0.08f + gap) / (badgeW + gap))));
             for (int i = 0; i < pips.Count && i < 6; i++)
             {
-                Rect pip = new Rect(cellRect.x + cell * 0.055f, cellRect.y + cell * 0.17f + i * (size + 2f), size, size);
-                DrawRect(pip, pips[i].Color);
-                DrawBorder(pip, Hex("030405", 0.74f), 1);
+                int column = i % columns;
+                int row = i / columns;
+                StatusMark mark = pips[i];
+                Rect badge = new Rect(
+                    cellRect.x + cell * 0.04f + column * (badgeW + gap),
+                    cellRect.y + cell * 0.035f + row * (badgeH + gap),
+                    badgeW,
+                    badgeH);
+                DrawRect(badge, Hex("050708", 0.90f));
+                DrawRect(new Rect(badge.x, badge.y, Mathf.Max(3f, badgeH * 0.28f), badge.height), mark.Color);
+                DrawBorder(badge, mark.Color.WithAlpha(0.82f), 1);
+                GUI.Label(
+                    new Rect(badge.x + badgeH * 0.24f, badge.y - 1f, badge.width - badgeH * 0.20f, badge.height + 2f),
+                    mark.Label + mark.Turns,
+                    CenterStyle(Mathf.RoundToInt(Mathf.Clamp(badgeH * 0.62f, 8f, 10f)), cursorWhite));
             }
         }
 
@@ -14583,10 +14631,29 @@ namespace AshenHalls
             string visualKind = "")
         {
             int reactionCount = ApplyCombatImpactAudioFeedback(profile, x, y);
-            if (state == null || state.ReducedMotion) return;
-
             int visualIntensity = CombatImpactRules.VisualIntensity(profile, reactionCount);
             string resolvedVisualKind = string.IsNullOrWhiteSpace(visualKind) ? profile.ImpactSfx : visualKind;
+            if (state == null) return;
+            if (state.ReducedMotion)
+            {
+                powerImpactEchoes.Add(new PowerImpactEcho
+                {
+                    X = x,
+                    Y = y,
+                    Color = color.ToHex(),
+                    Kind = resolvedVisualKind,
+                    Intensity = visualIntensity,
+                    ReactionCount = reactionCount,
+                    StaticStamp = true,
+                    Start = Time.time,
+                    ImpactAt = Time.time,
+                    Duration = 0.16f
+                });
+                if (powerImpactEchoes.Count > 12) powerImpactEchoes.RemoveRange(0, powerImpactEchoes.Count - 12);
+                MarkUiDirty();
+                return;
+            }
+
             CombatPowerVisualMotif motif = CombatPowerVisualRules.MotifFor(resolvedVisualKind);
             powerImpactEchoes.Add(new PowerImpactEcho
             {

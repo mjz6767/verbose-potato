@@ -4071,7 +4071,8 @@ namespace AshenHalls
             {
                 QueueSfx("impactlow", profile.ImpactDelay + 0.015f, CombatAudioMixRules.AuxiliaryLayerVolume(0.38f), impactPan * 0.48f, Mathf.Clamp(impactPitch * 0.82f, 0.90f, 1.02f));
             }
-            if (CombatAudioMixRules.ShouldLayerReaction(reactionCount))
+            if (CombatAudioMixRules.ShouldLayerReaction(reactionCount)
+                && !string.Equals(profile.AftershockSfx, "resonance", StringComparison.OrdinalIgnoreCase))
             {
                 QueueSfx("resonance", profile.ImpactDelay + 0.055f, CombatAudioMixRules.AuxiliaryLayerVolume(0.40f + Mathf.Min(2, reactionCount) * 0.06f), impactPan * 0.62f, Mathf.Clamp(impactPitch * 1.02f, 0.94f, 1.10f));
             }

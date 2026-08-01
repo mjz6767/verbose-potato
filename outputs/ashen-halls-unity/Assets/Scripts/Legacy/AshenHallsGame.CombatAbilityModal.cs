@@ -162,7 +162,7 @@ namespace AshenHalls
             string resource = spellbook && active != null
                 ? $"MP  {active.Mana} / {active.MaxMana}"
                 : demonArts && active != null
-                    ? $"FORM  {DisplayedDemonFormTurns(active)}  â€¢  MOVE  {state?.Combat?.MovePoints ?? 0}"
+                    ? $"FORM  {DisplayedDemonFormTurns(active)}  \u2022  MOVE  {state?.Combat?.MovePoints ?? 0}"
                     : state?.Combat == null ? "" : $"MOVE  {state.Combat.MovePoints}";
             string actionState = CombatAbilityBookActionState(active, playerTurn);
             string trait = spellbook
@@ -439,7 +439,7 @@ namespace AshenHalls
             }
             if (cls == "demon")
             {
-                return $"ABYSSAL FORM {DisplayedDemonFormTurns(active)}  â€¢  death attacks empowered  â€¢  incoming damage reduced";
+                return $"ABYSSAL FORM {DisplayedDemonFormTurns(active)}  \u2022  death attacks empowered  \u2022  incoming damage reduced";
             }
             return "";
         }

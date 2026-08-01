@@ -1644,7 +1644,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.0.0", VersionInfo.PackageVersion, "package version matches the v2.0 release");
+            AssertEqual("v2.1.0", VersionInfo.PackageVersion, "package version matches the v2.1 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
@@ -2782,7 +2782,8 @@ namespace AshenHalls.Editor
             {
                 CombatHudGeometry geometry = CombatHudScreenLayout.Calculate(size.x, size.y);
                 AssertEqual(true, geometry.Fits(size.x, size.y), $"combat HUD layout fits {size.x}x{size.y}");
-                AssertEqual(true, geometry.Command.height >= 120f, $"combat command deck has room for a responsive icon-first row at {size.x}x{size.y}");
+                AssertEqual(true, Mathf.Abs(geometry.Side.yMax - (size.y - 12f)) < 0.01f, $"combat side rail uses the full available frame height at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Command.height >= 128f, $"combat command deck has room for a responsive icon-first row at {size.x}x{size.y}");
                 AssertEqual(true, geometry.Side.width <= size.x * 0.28f, $"combat rail leaves the battlefield at least seventy-two percent of the frame at {size.x}x{size.y}");
                 AssertEqual(true, geometry.Command.width >= size.x * 0.60f, $"combat command deck retains a useful tactical width at {size.x}x{size.y}");
                 foreach (bool promoteEndTurn in new[] { false, true })
@@ -2799,6 +2800,7 @@ namespace AshenHalls.Editor
                     AssertEqual(true, buttons[3].xMin - buttons[2].xMax > buttons[2].xMin - buttons[1].xMax, $"targeted and instant command groups stay visually separated at {size.x}x{size.y}");
                     AssertEqual(promoteEndTurn, buttons[5].width > buttons[4].width, $"end turn width promotion is intentional at {size.x}x{size.y}");
                 }
+                float commandRowY = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, false)[0].yMin;
                 foreach (int commandCount in new[] { 0, 1, 4, 6 })
                 {
                     Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, commandCount, false);
@@ -2818,16 +2820,19 @@ namespace AshenHalls.Editor
                     Rect undo = CombatHudScreenLayout.UndoMoveButton(geometry.Command.width, showCancelTarget);
                     Rect cancel = CombatHudScreenLayout.CancelTargetButton(geometry.Command.width);
                     AssertEqual(true, prompt.xMin >= 0f && prompt.xMax <= geometry.Command.width && prompt.yMin >= 0f && prompt.yMax <= geometry.Command.height, $"combat prompt fits {size.x}x{size.y} undo={showUndoMove} cancel={showCancelTarget}");
+                    AssertEqual(true, prompt.yMax <= commandRowY, $"combat prompt clears the command-button row at {size.x}x{size.y} undo={showUndoMove} cancel={showCancelTarget}");
                     if (showUndoMove)
                     {
                         AssertEqual(true, undo.xMin >= 0f && undo.xMax <= geometry.Command.width && undo.yMin >= 0f && undo.yMax <= geometry.Command.height, $"undo control fits {size.x}x{size.y}");
                         AssertEqual(true, prompt.xMax <= undo.xMin, $"undo control does not overlap the combat prompt at {size.x}x{size.y}");
+                        AssertEqual(true, undo.yMax <= commandRowY, $"undo control clears the command-button row at {size.x}x{size.y}");
                     }
                     if (showCancelTarget)
                     {
                         AssertEqual(true, cancel.xMin >= 0f && cancel.xMax <= geometry.Command.width && cancel.yMin >= 0f && cancel.yMax <= geometry.Command.height, $"cancel control fits {size.x}x{size.y}");
                         Rect leftmost = showUndoMove ? undo : cancel;
                         AssertEqual(true, prompt.xMax <= leftmost.xMin, $"target cancel controls do not overlap the combat prompt at {size.x}x{size.y}");
+                        AssertEqual(true, cancel.yMax <= commandRowY, $"cancel control clears the command-button row at {size.x}x{size.y}");
                     }
                     if (showUndoMove && showCancelTarget)
                     {
@@ -2838,14 +2843,23 @@ namespace AshenHalls.Editor
                 CombatHudScreenLayout.SidePanels(geometry.Side, false, out Rect active, out Rect target, out Rect timeline);
                 AssertEqual(true, active.yMin >= 0f && target.yMin >= active.yMax && timeline.yMin >= target.yMax && timeline.yMax <= geometry.Side.height, $"combat side collapsed fits {size.x}x{size.y}");
                 float collapsedTimelineHeight = timeline.height;
-                AssertEqual(110f, collapsedTimelineHeight, $"collapsed combat timeline preserves one latest-event row at {size.x}x{size.y}");
+                AssertEqual(true, Mathf.Abs(timeline.yMax - geometry.Side.height) < 0.01f, $"collapsed active, target, and timeline panels fill the full side rail at {size.x}x{size.y}");
+                AssertEqual(true, collapsedTimelineHeight >= 190f, $"collapsed combat timeline keeps initiative chips, tactical read, and two event rows at {size.x}x{size.y}");
                 foreach (bool showMana in new[] { false, true })
                 {
-                    AssertEqual(true, CombatHudScreenLayout.UnitCard(active.width, active.height, showMana).Fits(active.width, active.height), $"active card rows do not overlap at {size.x}x{size.y} mana={showMana}");
-                    AssertEqual(true, CombatHudScreenLayout.UnitCard(target.width, target.height, showMana).Fits(target.width, target.height), $"target card rows do not overlap at {size.x}x{size.y} mana={showMana}");
+                    CombatHudUnitCardGeometry activeCard = CombatHudScreenLayout.UnitCard(active.width, active.height, showMana);
+                    CombatHudUnitCardGeometry targetCard = CombatHudScreenLayout.UnitCard(target.width, target.height, showMana);
+                    AssertEqual(true, activeCard.Fits(active.width, active.height), $"active card rows do not overlap at {size.x}x{size.y} mana={showMana}");
+                    AssertEqual(true, targetCard.Fits(target.width, target.height), $"target card rows do not overlap at {size.x}x{size.y} mana={showMana}");
+                    foreach (CombatHudUnitCardGeometry card in new[] { activeCard, targetCard })
+                    {
+                        AssertEqual(true, card.Portrait.width >= 36f && Mathf.Abs(card.Portrait.width - card.Portrait.height) < 0.01f, $"combat portrait remains square and readable at {size.x}x{size.y} mana={showMana}");
+                        AssertEqual(true, card.Portrait.xMax <= card.Name.xMin && card.Portrait.yMax <= card.Hp.yMin, $"combat portrait clears unit copy and meters at {size.x}x{size.y} mana={showMana}");
+                    }
                 }
                 CombatHudScreenLayout.SidePanels(geometry.Side, true, out active, out target, out timeline);
                 AssertEqual(true, active.yMin >= 0f && target.yMin >= active.yMax && timeline.yMin >= target.yMax && timeline.yMax <= geometry.Side.height, $"combat side expanded fits {size.x}x{size.y}");
+                AssertEqual(true, Mathf.Abs(timeline.yMax - geometry.Side.height) < 0.01f, $"expanded active, target, and timeline panels fill the full side rail at {size.x}x{size.y}");
                 AssertEqual(true, timeline.height >= 190f && timeline.height >= collapsedTimelineHeight + 60f, $"expanded combat timeline is materially larger at {size.x}x{size.y}");
                 foreach (bool showMana in new[] { false, true })
                 {
@@ -3731,6 +3745,24 @@ namespace AshenHalls.Editor
 
         private static void CombatImpactProfilesStageSignaturePowers()
         {
+            AssertEqual(true,
+                typeof(PowerImpactEcho).GetField("StaticStamp")?.FieldType == typeof(bool)
+                && typeof(PowerImpactEcho).GetField("ImpactAt")?.FieldType == typeof(float)
+                && typeof(PowerImpactEcho).GetField("Duration")?.FieldType == typeof(float),
+                "power impact echoes expose an explicit static-stamp timing contract for Reduced Motion");
+            PowerImpactEcho staticStamp = new PowerImpactEcho
+            {
+                Kind = "fireball",
+                StaticStamp = true,
+                Start = 2f,
+                ImpactAt = 2f,
+                Duration = 0.16f
+            };
+            AssertEqual(true,
+                staticStamp.StaticStamp
+                && staticStamp.ImpactAt == staticStamp.Start
+                && staticStamp.Duration > 0f,
+                "a static impact stamp is immediate, finite, and structurally distinct from an animated echo");
             CombatImpactProfile heal = CombatImpactRules.ForFormula(FormulaCatalog.All.First(formula => formula.Code == "OIC"));
             CombatImpactProfile tree = CombatImpactRules.ForFormula(FormulaCatalog.All.First(formula => formula.Code == "GBH"));
             CombatImpactProfile fireball = CombatImpactRules.ForFormula(FormulaCatalog.All.First(formula => formula.Code == "FBL"));
@@ -5016,6 +5048,15 @@ namespace AshenHalls.Editor
             AssertEqual(true, commandViewType.GetField("IconSource") != null, "combat command icon source contract");
             AssertEqual(true, typeof(CombatHudView).GetField("CommandPrompt") != null, "combat command prompt contract");
             AssertEqual(true, typeof(CombatHudView).GetField("TargetTitle") != null, "combat target card publishes its actual interaction title");
+            AssertEqual(true, typeof(CombatHudView).GetField("TargetSourceLabel")?.FieldType == typeof(string), "combat target card publishes hover, nearest, suggested, or intent provenance");
+            AssertEqual(true,
+                typeof(CombatHudUnitView).GetField("PortraitTexture")?.FieldType == typeof(Texture2D)
+                && typeof(CombatHudUnitView).GetField("PortraitSource")?.FieldType == typeof(Rect),
+                "combat unit cards expose authored portrait atlas geometry");
+            AssertEqual(true,
+                typeof(CombatHudTurnView).GetField("PortraitTexture")?.FieldType == typeof(Texture2D)
+                && typeof(CombatHudTurnView).GetField("PortraitSource")?.FieldType == typeof(Rect),
+                "combat initiative chips expose authored portrait atlas geometry");
 
             CombatUnit ranger = new CombatUnit { ClassKey = "ranger", Role = "bow" };
             List<CombatCommandEntry> rangerCommands = CombatCommandPresentationRules.PrimaryCommandsFor(ranger).ToList();

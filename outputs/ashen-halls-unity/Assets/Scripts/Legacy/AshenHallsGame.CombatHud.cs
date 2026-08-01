@@ -124,6 +124,7 @@ namespace AshenHalls
                     CanUndoMove = false,
                     CanCancelTarget = false,
                     CancelTargetLabel = "Cancel Target",
+                    TargetSourceLabel = "NONE",
                     ActiveUnit = null,
                     TargetUnit = null,
                     Commands = Array.Empty<CombatHudCommandView>(),
@@ -168,6 +169,7 @@ namespace AshenHalls
                 CanCancelTarget = playerTurn && CanCancelCombatTargeting(),
                 CancelTargetLabel = CombatTargetingRules.CancelLabel(selectedAction),
                 TargetTitle = CombatHudTargetTitle(active, target),
+                TargetSourceLabel = CombatHudTargetSourceLabel(active, target),
                 ActiveUnit = BuildCombatHudUnitView(active, true),
                 TargetUnit = BuildCombatHudUnitView(target, false),
                 Commands = BuildCombatHudCommandViews(active, playerTurn),
@@ -206,10 +208,13 @@ namespace AshenHalls
             {
                 CombatUnit unit = entry?.Unit;
                 if (unit == null) continue;
+                TryGetCombatHudUnitArt(unit, out Texture2D portraitTexture, out Rect portraitSource);
                 combatHudTurnBuffer.Add(new CombatHudTurnView
                 {
                     Name = unit.Name,
                     AccentHex = unit.Side == UnitSide.Party ? "58b7a5" : "b94b56",
+                    PortraitTexture = portraitTexture,
+                    PortraitSource = portraitSource,
                     Active = active != null && active.Id == unit.Id,
                     StartsNextRound = entry.StartsNextRound
                 });
@@ -413,10 +418,96 @@ namespace AshenHalls
             return false;
         }
 
+        private bool TryGetCombatHudUnitArt(CombatUnit unit, out Texture2D texture, out Rect source)
+        {
+            texture = null;
+            source = Rect.zero;
+            if (unit == null) return false;
+
+            int index = DemonSummonSpriteIndex(unit);
+            if (index >= 0 && IsDemonSummonAtlas())
+            {
+                texture = demonSummonAtlas;
+                source = DemonSummonAtlasCell(index);
+                return true;
+            }
+
+            if (unit.Side == UnitSide.Party)
+            {
+                index = CharacterCombatAtlasIndex(unit.ClassKey, unit.Race, unit.Role);
+                if (index >= 0 && IsCharacterCombatAtlas())
+                {
+                    texture = characterCombatAtlas;
+                    source = CharacterCombatAtlasCell(index);
+                    return true;
+                }
+            }
+            else
+            {
+                index = KoboldBossSpriteIndex(unit, true);
+                if (index >= 0 && IsKoboldBossAtlas())
+                {
+                    texture = koboldBossAtlas;
+                    source = KoboldBossAtlasCell(index);
+                    return true;
+                }
+                index = EnemySpriteIndex(unit.Role);
+                if (index >= 0 && IsEnemySpriteAtlas())
+                {
+                    texture = enemySpriteAtlas;
+                    source = EnemySpriteAtlasCell(index);
+                    return true;
+                }
+                index = MidgaardSewerEnemySpriteIndex(unit.Role);
+                if (index >= 0 && IsMidgaardSewerAtlas())
+                {
+                    texture = midgaardSewerAtlas;
+                    source = MidgaardSewerAtlasCell(index);
+                    return true;
+                }
+            }
+
+            index = CreatureSpriteIndex(unit);
+            if (index >= 0 && IsCreatureSpriteAtlas())
+            {
+                texture = creatureSpriteAtlas;
+                source = CreatureSpriteAtlasCell(index);
+                return true;
+            }
+
+            if (unit.Side == UnitSide.Enemy)
+            {
+                index = EnemyWorldEnemyIndex(unit.Role);
+                if (index >= 0 && IsEnemyWorldObjectAtlas())
+                {
+                    texture = enemyWorldObjectAtlas;
+                    source = EnemyWorldObjectAtlasCell(index);
+                    return true;
+                }
+                index = BossEnemyIndex(unit.Role);
+                if (index >= 0 && IsBossEnemyAtlas())
+                {
+                    texture = bossEnemyAtlas;
+                    source = BossEnemyAtlasCell(index);
+                    return true;
+                }
+            }
+
+            index = SpriteSheetIndexForRole(unit.Role, unit.Side);
+            if (combatSpriteSheet != null && index >= 0)
+            {
+                texture = combatSpriteSheet;
+                source = AtlasCell(combatSpriteSheet, index, 4, 4);
+                return true;
+            }
+            return false;
+        }
+
         private CombatHudUnitView BuildCombatHudUnitView(CombatUnit unit, bool activeCard)
         {
             if (unit == null) return null;
             string stateLine = CombatHudUnitState(unit, activeCard, out CombatHudStateTone stateTone);
+            TryGetCombatHudUnitArt(unit, out Texture2D portraitTexture, out Rect portraitSource);
             return new CombatHudUnitView
             {
                 Name = unit.Name,
@@ -425,6 +516,8 @@ namespace AshenHalls
                 StateTone = stateTone,
                 StatusLine = CombatHudStatusLine(unit),
                 AccentHex = unit.Side == UnitSide.Party ? "58b7a5" : "b94b56",
+                PortraitTexture = portraitTexture,
+                PortraitSource = portraitSource,
                 Hp = unit.Hp,
                 MaxHp = unit.MaxHp,
                 Mana = unit.Mana,
@@ -570,6 +663,16 @@ namespace AshenHalls
             return CombatHudTargetContextTitle(active, target, inspected);
         }
 
+        private string CombatHudTargetSourceLabel(CombatUnit active, CombatUnit target)
+        {
+            if (target == null) return "NONE";
+            CombatUnit hovered = CombatHudHoveredUnit();
+            if (hovered != null && hovered.Id == target.Id) return "HOVER";
+            if (active != null && active.Side == UnitSide.Enemy) return "INTENT";
+            if (!string.IsNullOrEmpty(pendingFormulaCode) || !string.IsNullOrEmpty(pendingAbilityId)) return "SUGGESTED";
+            return target.Side == UnitSide.Enemy ? "NEAREST" : "ALLY";
+        }
+
         private string CombatHudTargetContextTitle(CombatUnit active, CombatUnit target, bool inspected)
         {
             if (target == null) return "Inspect";
@@ -641,7 +744,7 @@ namespace AshenHalls
         {
             if (state?.Log == null) return Array.Empty<CombatHudLogView>();
             combatHudLogBuffer.Clear();
-            int count = Mathf.Min(combatTimelineExpanded ? 5 : 1, state.Log.Count);
+            int count = Mathf.Min(combatTimelineExpanded ? 5 : 2, state.Log.Count);
             for (int i = 0; i < count; i++)
             {
                 LogEntry entry = state.Log[i];

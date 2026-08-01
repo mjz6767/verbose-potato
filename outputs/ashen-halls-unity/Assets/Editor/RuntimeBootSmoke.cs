@@ -1194,6 +1194,16 @@ namespace AshenHalls.Editor
                 && hudView.ActionLabel == "ACTION\nREADY", "combat header exposes the live action state");
             Assert(!string.IsNullOrWhiteSpace(hudView.CommandPrompt), "production combat model exposes one canonical command prompt");
             Assert(hudView.PhaseLine.StartsWith("YOUR TURN", StringComparison.Ordinal), "player initiative is announced as the primary combat phase cue");
+            Assert(hudView.ActiveUnit != null
+                && hudView.ActiveUnit.PortraitTexture != null
+                && hudView.ActiveUnit.PortraitSource.width > 1f
+                && hudView.ActiveUnit.PortraitSource.height > 1f,
+                "active combatant view resolves authored portrait geometry");
+            Assert(hudView.TargetUnit != null
+                && hudView.TargetUnit.PortraitTexture != null
+                && hudView.TargetUnit.PortraitSource.width > 1f
+                && hudView.TargetUnit.PortraitSource.height > 1f,
+                "target combatant view resolves authored portrait geometry");
             Assert(hudView.ActiveUnit == null || hudView.ActiveUnit.StatusLine != "steady", "empty combat conditions use player-facing copy");
             Assert(hudView.ActiveUnit != null
                 && hudView.ActiveUnit.StateLine.Contains("MOVE")
@@ -1224,6 +1234,28 @@ namespace AshenHalls.Editor
                 && !pickerCommand.Armed,
                 "an unarmed power command uses its stable category art instead of an arbitrary learned power");
             Assert(!string.IsNullOrWhiteSpace(hudView.TargetTitle) && hudView.TargetTitle != "Target", "combat side card names inspection or targeting context");
+            Rect targetSourceBoardRect = GetPrivateField<Rect>(game, "boardRect");
+            Vector2Int? targetSourceSmokeHover = GetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell");
+            SetPrivateField(game, "boardRect", Rect.zero);
+            SetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell", null);
+            CombatHudView nearestTargetView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            CombatUnit nearestTarget = InvokePrivate<CombatUnit>(game, "CombatHudTarget", active);
+            Assert(nearestTarget != null
+                && nearestTargetView.TargetUnit != null
+                && nearestTargetView.TargetUnit.Name == nearestTarget.Name
+                && nearestTargetView.TargetSourceLabel == "NEAREST",
+                "combat target rail identifies its automatic nearest-enemy source");
+            SetPrivateField<Vector2Int?>(
+                game,
+                "visualSmokeCombatHoverCell",
+                new Vector2Int(nearestTarget.X, nearestTarget.Y));
+            CombatHudView hoveredTargetView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            Assert(hoveredTargetView.TargetUnit != null
+                && hoveredTargetView.TargetUnit.Name == nearestTarget.Name
+                && hoveredTargetView.TargetSourceLabel == "HOVER",
+                "combat target rail identifies direct board hover without changing the target model");
+            SetPrivateField(game, "boardRect", targetSourceBoardRect);
+            SetPrivateField(game, "visualSmokeCombatHoverCell", targetSourceSmokeHover);
             string originalEncounterStyle = combatState.Combat.EncounterStyle;
             int originalRound = combatState.Combat.Round;
             combatState.Combat.EncounterStyle = "sewer_broken_sluice";
@@ -1238,7 +1270,7 @@ namespace AshenHalls.Editor
             IReadOnlyList<ActionMode> fallbackModes = InvokePrivate<IReadOnlyList<ActionMode>>(game, "CombatHudFallbackModes", active);
             Assert(fallbackModes != null && fallbackModes.Count == 6, "production IMGUI action bar exposes six commands");
             Assert(fallbackModes[0] == ActionMode.Move && fallbackModes[1] == ActionMode.Attack && fallbackModes[5] == ActionMode.Wait, "action bar keeps Move/Attack/End Turn in stable positions");
-            Assert(hudView.Turns != null && hudView.Turns.Count > 1, "combat HUD publishes multiple upcoming turns");
+            Assert(hudView.Turns != null && hudView.Turns.Count == 6, "combat HUD publishes the next six initiative turns");
             Assert(hudView.Turns[0].Active, "combat Timeline begins with the active unit");
             hud.Refresh();
             Assert(hud.RoundNumberForTest == hudView.RoundNumber
@@ -1248,6 +1280,12 @@ namespace AshenHalls.Editor
             Assert(hud.RoundLabelForTest.StartsWith("ROUND", StringComparison.Ordinal)
                 && hud.MoveLabelForTest.StartsWith("MOVE", StringComparison.Ordinal)
                 && hud.ActionLabelForTest.StartsWith("ACTION", StringComparison.Ordinal), "rendered top stats contain only combat decision labels");
+            Assert(hud.ActivePortraitVisibleForTest
+                && hud.TargetPortraitVisibleForTest
+                && hud.ActiveCardTitleForTest == "ACTIVE UNIT"
+                && !string.IsNullOrWhiteSpace(hud.TargetCardTitleForTest),
+                "rendered combat rail loads active and target portraits with explicit source titles");
+            Assert(hud.VisibleTurnChipCountForTest == 6, "rendered initiative rail exposes six distinct turn chips");
             Assert(hud.CommandCapacityForTest == hudView.Commands.Count, "combat command rendering capacity follows the model count");
             Assert(hudView.Commands.All(command => hud.CommandInputSelectableForTest(command.Mode)),
                 "all combat commands remain focusable so unavailable reasons are keyboard/controller accessible");
@@ -1263,25 +1301,35 @@ namespace AshenHalls.Editor
                     && hud.CommandUsesBlockedStyleForTest(ActionMode.Attack),
                     "a selected Attack with no legal target stays visibly blocked while remaining focusable");
             }
-            Assert(hudView.TimelineExpanded || hud.VisibleLogCount == Math.Min(1, hudView.Logs.Count), "collapsed combat Timeline keeps the latest event visible");
+            Assert(hudView.TimelineExpanded || hudView.Logs.Count == 2 && hud.VisibleLogCount == 2, "collapsed combat Timeline keeps two recent event rows visible");
             EventSystem combatUiEventSystem = EventSystem.current
                 ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
             combatUiEventSystem?.SetSelectedGameObject(null);
+            hud.ClearCommandFocusForTest();
             ActionMode commandModeBeforePreview = GetPrivateField<ActionMode>(game, "selectedAction");
+            GameObject selectionBeforeCommandHover = combatUiEventSystem?.currentSelectedGameObject;
             hud.HoverCommandForTest(pickerCommand.Mode);
             Assert(hud.CommandPromptForTest.Contains(pickerCommand.Label)
                 && hud.CommandPromptForTest.Contains(pickerCommand.Tooltip)
                 && hud.HoveredCommandForTest == pickerCommand.Mode
-                && hud.FocusedCommandForTest == pickerCommand.Mode
+                && hud.FocusedCommandForTest == null
                 && hud.ContextCommandForTest == pickerCommand.Mode
-                && hud.PointerOwnsCommandContextForTest, "combat command pointer entry transfers focus and publishes one matching action context");
+                && hud.PointerOwnsCommandContextForTest
+                && combatUiEventSystem?.currentSelectedGameObject == selectionBeforeCommandHover,
+                "combat command pointer entry previews one action context without stealing semantic focus");
             Assert(GetPrivateField<ActionMode>(game, "selectedAction") == commandModeBeforePreview, "combat command hover never changes the armed gameplay mode");
+            bool combatHudOwnsHoveredControl = hud.OwnsSelection(combatUiEventSystem?.currentSelectedGameObject);
+            Assert(!combatHudOwnsHoveredControl
+                && CombatInputRoutingRules.ShouldRouteToWorld(combatHudOwnsHoveredControl, CombatHotkeyKind.Navigation)
+                && CombatInputRoutingRules.ShouldRouteToWorld(combatHudOwnsHoveredControl, CombatHotkeyKind.Submit),
+                "pointer-only command preview leaves board navigation and Submit routed to the world");
             hud.ClearCommandHoverForTest();
             Assert(hud.HoveredCommandForTest == null
-                && hud.FocusedCommandForTest == pickerCommand.Mode
-                && hud.ContextCommandForTest == pickerCommand.Mode
+                && hud.FocusedCommandForTest == null
+                && hud.ContextCommandForTest == null
                 && !hud.PointerOwnsCommandContextForTest
-                && hud.CommandPromptForTest.Contains(pickerCommand.Tooltip), "leaving a combat command keeps its real focused action and explanation");
+                && hud.CommandPromptForTest == hudView.CommandPrompt,
+                "leaving a pointer-only command preview restores the canonical combat prompt");
             hud.FocusCommand(pickerCommand.Mode);
             Assert(
                 hud.FocusedCommandForTest == pickerCommand.Mode,
@@ -1299,14 +1347,16 @@ namespace AshenHalls.Editor
             CombatHudCommandView alternateCommand = hudView.Commands.First(command =>
                 command.Mode != pickerCommand.Mode
                 && command.Enabled);
+            GameObject focusedSelectionBeforeHover = combatUiEventSystem?.currentSelectedGameObject;
             hud.HoverCommandForTest(alternateCommand.Mode);
             Assert(
-                hud.FocusedCommandForTest == alternateCommand.Mode
+                hud.FocusedCommandForTest == pickerCommand.Mode
                 && hud.HoveredCommandForTest == alternateCommand.Mode
                 && hud.ContextCommandForTest == alternateCommand.Mode
                 && hud.PointerOwnsCommandContextForTest
-                && hud.CommandPromptForTest.Contains(alternateCommand.Tooltip),
-                "pointer entry moves focus, prompt context, and Submit ownership together");
+                && hud.CommandPromptForTest.Contains(alternateCommand.Tooltip)
+                && combatUiEventSystem?.currentSelectedGameObject == focusedSelectionBeforeHover,
+                "pointer preview temporarily owns prompt context without moving controller focus or EventSystem selection");
             hud.FocusCommand(pickerCommand.Mode);
             Assert(
                 hud.FocusedCommandForTest == pickerCommand.Mode
@@ -1538,6 +1588,19 @@ namespace AshenHalls.Editor
                 && !listViewportMask.showMaskGraphic, "spellbook list viewport writes a hidden nontransparent stencil so card rows remain renderable");
             Assert(!Application.isPlaying
                 || EventSystem.current != null && !EventSystem.current.sendNavigationEvents, "spellbook owns controller navigation without a competing automatic uGUI route");
+            EventSystem modalEventSystem = EventSystem.current;
+            GameObject modalSelectionBeforeHide = modalEventSystem?.currentSelectedGameObject;
+            bool modalOwnedSelectionBeforeHide = modalSelectionBeforeHide != null
+                && modalSelectionBeforeHide.transform.IsChildOf(GameObject.Find("Combat Ability Modal Canvas").transform);
+            modal.SetVisible(false);
+            Assert(!modalOwnedSelectionBeforeHide
+                || modalEventSystem.currentSelectedGameObject == null,
+                "hiding the spellbook clears its selected row from EventSystem ownership");
+            modal.SetVisible(true);
+            modal.Refresh();
+            Assert(modal.IsVisible
+                && (!Application.isPlaying || modal.SelectedRowFocusedForTest),
+                "restoring the spellbook re-establishes one visible committed row after focus cleanup");
             Assert(modal.HasRenderableGeometry, "combat spellbook canvas is a renderable root overlay");
             Assert(InvokePrivate<bool>(game, "HasRenderableGameplayOverlay", UiOverlay.AbilityPicker), "IMGUI yields the frame to the visible spellbook modal");
             Assert(!InvokePrivate<bool>(game, "NeedsEmergencyCombatAbilityModalFallback"), "healthy spellbook does not draw its recovery picker");
@@ -1661,7 +1724,8 @@ namespace AshenHalls.Editor
             Assert(modal.PreviewedIdForTest == "AST"
                 && modal.DetailIdForTest == "AST"
                 && modal.SelectedId == "FBL"
-                && modal.SelectedRailCountForTest == 1
+                && modal.SelectedRailCountForTest == 2
+                && modal.SelectedRailUsesSelectionAccentForTest
                 && modal.VisibleTargetingRailCountForTest == 0
                 && modal.DetailBookStateForTest == CombatAbilityModalBookState.ReadyNow
                 && !modal.DetailActionInteractableForTest
@@ -1853,8 +1917,15 @@ namespace AshenHalls.Editor
                 && GetPrivateField<ActionMode>(game, "selectedAction") == ActionMode.Cast
                 && combatState.Combat.Phase == CombatPhase.ChooseTarget, "movement preserves an affordable armed spell and target phase");
             InvokePrivate(game, "LateUpdate");
+            Rect suggestedTargetBoardRect = GetPrivateField<Rect>(game, "boardRect");
+            Vector2Int? suggestedTargetSmokeHover = GetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell");
+            SetPrivateField(game, "boardRect", Rect.zero);
+            SetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell", null);
             CombatHudView targetingHudView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            SetPrivateField(game, "boardRect", suggestedTargetBoardRect);
+            SetPrivateField(game, "visualSmokeCombatHoverCell", suggestedTargetSmokeHover);
             Assert(targetingHudView.CanCancelTarget && targetingHudView.CancelTargetLabel == "Cancel Spell", "armed formula publishes explicit target cancellation");
+            Assert(targetingHudView.TargetSourceLabel == "SUGGESTED", "armed spell target rail labels its automatically suggested legal target");
             Assert(targetingHudView.Commands[2].Label == "Fireball"
                 && targetingHudView.Commands[2].SubLabel.StartsWith("ARMED", StringComparison.Ordinal)
                 && !targetingHudView.Commands[2].SubLabel.StartsWith("Choose", StringComparison.Ordinal), "armed spell command names the exact formula and publishes its current legal-target count");
@@ -2016,7 +2087,7 @@ namespace AshenHalls.Editor
             Assert(stagedPan < -0.10f && stagedPan >= -0.85f, "Fireball impact audio follows its left-side battlefield target");
             Assert(stagedPitch >= 0.95f && stagedPitch <= 1.05f, "Fireball impact pitch variation remains restrained");
             Assert(castAuras.Any(aura => aura.SourceX == active.X && aura.SourceY == active.Y && aura.TargetX == spellTarget.X && aura.TargetY == spellTarget.Y && aura.Focused), "focused Fireball stages a caster-to-target power aura");
-            Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Y == spellTarget.Y && echo.Intensity == 3 && echo.ReactionCount >= 1 && echo.ImpactAt > echo.Start), "gas ignition promotes Fireball into an epic reaction echo");
+            Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Y == spellTarget.Y && echo.Intensity == 3 && echo.ReactionCount >= 1 && !echo.StaticStamp && echo.ImpactAt > echo.Start), "gas ignition promotes Fireball into an animated epic reaction echo");
             CombatUnitPresentationBeat fireballTargetBeat = unitPresentationBeats
                 .LastOrDefault(beat => beat != null && beat.UnitId == spellTarget.Id);
             Assert(
@@ -2057,6 +2128,44 @@ namespace AshenHalls.Editor
             Assert(stagedBeams.Count == 0 && impactEchoes.Count == 0 && castAuras.Count == 0 && fieldParticles.Count == 0 && fieldGlyphs.Count == 0, "enabling Reduced Motion clears queued combat travel and animated spectacle immediately");
             Assert(fieldFlashes.Count == 1, "Reduced Motion preserves one compact target-local impact confirmation");
             Assert(Math.Abs(GetPrivateField<float>(game, "combatShakeMagnitude")) < 0.0001f, "Reduced Motion clears queued combat shake");
+            int reducedFlashCount = fieldFlashes.Count;
+            int expectedReducedReactionCount = GetPrivateField<List<string>>(game, "combatPowerReactions").Count;
+            Color reducedStampColor = new Color(0.92f, 0.31f, 0.18f, 1f);
+            InvokePrivate(
+                game,
+                "ApplyCombatImpactFeedback",
+                stagedFireballProfile,
+                spellTarget.X,
+                spellTarget.Y,
+                reducedStampColor,
+                "fireball");
+            Assert(impactEchoes.Count == 1, "a Reduced Motion impact stages one compact static echo");
+            PowerImpactEcho reducedStamp = impactEchoes[0];
+            Assert(reducedStamp.StaticStamp
+                && reducedStamp.X == spellTarget.X
+                && reducedStamp.Y == spellTarget.Y
+                && reducedStamp.Color == reducedStampColor.ToHex()
+                && reducedStamp.Kind == "fireball"
+                && reducedStamp.ReactionCount == expectedReducedReactionCount
+                && reducedStamp.Intensity == CombatImpactRules.VisualIntensity(stagedFireballProfile, reducedStamp.ReactionCount)
+                && Math.Abs(reducedStamp.ImpactAt - reducedStamp.Start) < 0.0001f
+                && Math.Abs(reducedStamp.Duration - 0.16f) < 0.0001f,
+                "Reduced Motion impact echo is immediate, finite, typed, and atlas-ready");
+            CombatImpactArtPlan reducedStampArt = CombatPowerVisualRules.ImpactArtPlan(
+                reducedStamp.Kind,
+                reducedStamp.Intensity,
+                0f);
+            Assert(reducedStampArt.HasPrimary, "Reduced Motion static impact resolves one authored primary atlas stamp");
+            Assert(stagedBeams.Count == 0
+                && castAuras.Count == 0
+                && fieldParticles.Count == 0
+                && fieldGlyphs.Count == 0
+                && fieldFlashes.Count == reducedFlashCount
+                && Math.Abs(GetPrivateField<float>(game, "combatShakeMagnitude")) < 0.0001f
+                && GetPrivateField<int>(game, "combatImpactFrameIntensity") == 0
+                && Math.Abs(GetPrivateField<float>(game, "pendingCombatPowerOutcomeDelay")) < 0.0001f,
+                "Reduced Motion static impact adds no travel, aura, particle, glyph, flash, shake, frame, or delayed outcome stack");
+            impactEchoes.Clear();
             combatState.ReducedMotion = false;
             int particlesBeforeField = fieldParticles.Count;
             int glyphsBeforeField = fieldGlyphs.Count;
@@ -2532,7 +2641,8 @@ namespace AshenHalls.Editor
             Assert(modal.DetailIdForTest == visibleSkillCards[alternateSkillIndex].Id
                 && modal.SelectedId == "aimedshot"
                 && GetPrivateField<string>(game, "abilitySelectedId") == "aimedshot"
-                && modal.SelectedRailCountForTest == 1
+                && modal.SelectedRailCountForTest == 2
+                && modal.SelectedRailUsesSelectionAccentForTest
                 && !modal.DetailActionInteractableForTest
                 && modal.DetailActionLabelForTest == "Preview Only"
                 && modal.DetailPromptForTest.Contains("Click or focus the card")
@@ -2651,7 +2761,13 @@ namespace AshenHalls.Editor
             combatState.Combat.Phase = CombatPhase.EnemyThinking;
             InvokePrivate(game, "ResetEnemyActionPresentation");
             CombatUnit intendedTarget = InvokePrivate<CombatUnit>(game, "EnemyIntentFocus", spellTarget);
+            Rect intentTargetBoardRect = GetPrivateField<Rect>(game, "boardRect");
+            Vector2Int? intentTargetSmokeHover = GetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell");
+            SetPrivateField(game, "boardRect", Rect.zero);
+            SetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell", null);
             CombatHudView enemyHudView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            SetPrivateField(game, "boardRect", intentTargetBoardRect);
+            SetPrivateField(game, "visualSmokeCombatHoverCell", intentTargetSmokeHover);
             CombatAttackForecast bossForecast = InvokePrivate<CombatAttackForecast>(game, "AttackForecast", spellTarget, active);
             Assert(intendedTarget == active, "enemy intent uses the production target scorer");
             Assert(enemyHudView.PhaseLine.StartsWith("ENEMY TURN", StringComparison.Ordinal), "enemy initiative is announced as the primary combat phase cue");
@@ -2660,6 +2776,7 @@ namespace AshenHalls.Editor
                 && !enemyHudView.ActiveUnit.StateLine.Contains("ACTION READY"), "enemy initiative uses one consistent non-player action state in the header and active card");
             Assert(enemyHudView.TargetUnit != null && enemyHudView.TargetUnit.Name == active.Name, "enemy HUD target matches its tactical intent");
             Assert(enemyHudView.CommandPrompt.StartsWith("INTENT:", StringComparison.Ordinal) && enemyHudView.CommandPrompt.Contains(active.Name), "enemy turn publishes a concise target-aware intent line");
+            Assert(enemyHudView.TargetSourceLabel == "INTENT", "enemy target rail labels the production AI intent source");
             Assert(enemyHudView.Commands.All(command => !command.Selected && !command.Armed && !command.Promoted),
                 "enemy initiative cannot retain a stale player intent rail");
             hud.Refresh();

@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.1.0 - Battle at a Glance
+
+- Rebuilt the combat side rail into illustrated active-unit and target dossiers using the approved party, enemy, boss, creature, and demon atlases. Larger names, thicker HP/MP meters, explicit `HOVER`, `NEAREST`, `SUGGESTED`, `ALLY`, and `INTENT` provenance, and stronger turn-color framing make the current actor and inspected target readable without covering the board.
+- Replaced the wrapped turn-order sentence and empty lower rail with six portrait initiative chips, a dedicated opening-plan card, and two useful recent-event rows in the collapsed view. The rail now fills the supported 1280x720 and 1920x1080 frames; expanding it exposes five event rows without changing combat state.
+- Enlarged and rebalanced the bottom command deck, top phase/stat plates, prompt band, keycaps, icons, and labels. Ordinary commands rely on their semantic icon and color, while selection, armed commitment, blocked state, mouse preview, and keyboard/controller focus remain visually and functionally separate.
+- Corrected combat-command input ownership. Pointer hover previews the command explanation without moving EventSystem or keyboard/controller focus, explicit navigation retains Submit ownership, leaving a hover restores the canonical prompt, and hiding a contextual control or power book clears stale hidden selection.
+- Quieted stacked target washes while preserving brackets and blocked crosses; widened battlefield HP rails; replaced tiny condition dots with compact letter-and-duration badges; and shortened secondary signature art so the next targeting decision is not obscured.
+- Kept impact feedback legible under Reduced Motion with one static authored stamp, removed a duplicate resonance layer, added a distinct power-book Preview rail without disturbing committed Selection or gold Targeting, and repaired two corrupted Demon Arts bullet glyphs. Combat math, costs, targets, progression, and save data are unchanged; save schema remains v25.
+
 ## v2.0.0 - The Abyss Answers
 
 - Turned Abyssal Ascendance into a complete temporary combat form. A transformed warlock now trades the normal Spellbook for a dedicated Demon Arts deck: Rift Pounce crosses terrain to land beside a target, Abyssal Whirl borrows Whirlwind's all-adjacent fury as death damage, Soul Rend converts half its actual damage into healing, and Dread Roar breaks nearby guards before testing their mind resistance against a hex.

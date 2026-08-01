@@ -942,6 +942,9 @@ namespace AshenHalls
 
         public bool SetVisible(bool visible)
         {
+            EventSystem eventSystem = EventSystem.current;
+            GameObject selectedBeforeChange = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            bool ownedSelection = IsCanvasSelection(selectedBeforeChange);
             if (visible) UiRuntime.EnsureEventSystemReady();
             if (visible) CaptureNavigationEvents();
             else ReleaseNavigationEvents();
@@ -971,8 +974,17 @@ namespace AshenHalls
                 hoveredId = "";
                 heldVerticalDirection = 0;
                 nextVerticalRepeatAt = 0f;
+                if (ownedSelection && eventSystem != null) eventSystem.SetSelectedGameObject(null);
             }
             return changed;
+        }
+
+        private bool IsCanvasSelection(GameObject selected)
+        {
+            if (selected == null || canvas == null) return false;
+            Transform selectedTransform = selected.transform;
+            Transform canvasTransform = canvas.transform;
+            return selectedTransform == canvasTransform || selectedTransform.IsChildOf(canvasTransform);
         }
 
         private void OnDisable()
@@ -1456,14 +1468,17 @@ namespace AshenHalls
                         ? Hex("303638", 0.72f)
                         : Hex("3c4544", 0.82f);
             row.Outline.effectDistance = selected || armed ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
-            row.SelectionRail.gameObject.SetActive(selected && !armed);
-            row.SelectionRail.color = selectionAccent;
+            bool showSelectionCue = selected && !armed || hovered && !selected && !armed;
+            row.SelectionRail.gameObject.SetActive(showSelectionCue);
+            row.SelectionRail.color = hovered && !selected ? previewAccent : selectionAccent;
             row.SelectionChevron.gameObject.SetActive(false);
             SetBookStateIcon(
                 row.SelectionIcon,
-                CombatIconCatalog.BookStateSelectionIndex,
-                selectionAccent,
-                selected && !armed);
+                hovered && !selected
+                    ? CombatIconCatalog.BookStatePreviewIndex
+                    : CombatIconCatalog.BookStateSelectionIndex,
+                hovered && !selected ? previewAccent : selectionAccent,
+                showSelectionCue);
             row.ArmedRail.gameObject.SetActive(armed);
             row.ArmedRail.color = armedAccent;
             row.IconFrame.GetComponent<Outline>().effectColor = cardAccent.WithAlpha(card.Locked ? 0.38f : 0.82f);
