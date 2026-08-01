@@ -25,6 +25,21 @@ namespace AshenHalls.Editor
             }
         }
 
+        public static void RunExplorationArtRules()
+        {
+            try
+            {
+                ExplorationArtRulesMapSemanticTilesAndScale();
+                Debug.Log(VersionInfo.ProductName + " exploration-art rule smoke tests passed.");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(VersionInfo.ProductName + " exploration-art rule smoke tests failed: " + ex);
+                EditorApplication.Exit(1);
+            }
+        }
+
         public static void RunOrThrow()
         {
             UiRuntimeDefaultFontResolves();
@@ -62,6 +77,7 @@ namespace AshenHalls.Editor
             CombatAbilityModalCardsExposeArtIdentity();
             CombatTargetHighlightsRequireAnArmedPower();
             AdvancedCasterProgressionPowersAreExplicit();
+            DemonFormPackageDefinesCohesiveProgression();
             LightningPowerRulesDefineTacticalStormLadder();
             CombatIconCatalogDefinesUniqueActiveSkillArt();
             SignatureSpellIconCatalogDefinesUniqueFormulaArt();
@@ -160,6 +176,8 @@ namespace AshenHalls.Editor
                 "castdeathburst", "deathburst", "castgreatersummon", "greatersummon",
                 "castascendance", "ascendance", "casttempest", "castveil", "veilstep", "castseal", "riftseal",
                 "castshimmer", "impactlow", "resonance",
+                "riftpounce", "riftpounceimpact", "abyssalwhirl", "abyssalwhirlimpact",
+                "soulrend", "soulrendimpact", "dreadroar", "dreadroarimpact",
                 "uiopen", "uiclose", "uiconfirm", "uitab", "itemequip", "itemtake", "elixir", "rest", "levelup",
                 "ambgrove", "ambfen", "ambglass", "ambruin", "ambcave", "ambcamp",
                 "footglass", "footmud", "footash", "footgravel"
@@ -302,17 +320,19 @@ namespace AshenHalls.Editor
 
         private static void CombatIconCatalogDefinesUniqueActiveSkillArt()
         {
-            List<string> abilityIds = new[] { "warrior", "rogue", "ranger" }
+            List<string> abilityIds = new[] { "warrior", "rogue", "ranger", "demon" }
                 .SelectMany(AbilityCatalog.IdsForClass)
                 .ToList();
             List<int> iconIndices = abilityIds.Select(CombatIconCatalog.AbilityIndex).ToList();
 
-            AssertEqual(18, abilityIds.Count, "active martial ability count");
+            AssertEqual(22, abilityIds.Count, "active martial and demon-form ability count");
             AssertEqual(true, iconIndices.All(index => index >= 0), "every active martial ability has icon art");
             AssertEqual(abilityIds.Count, iconIndices.Distinct().Count(), "active martial ability icons are unique");
             AssertEqual(19, CombatIconCatalog.AbilityIndex("smokebomb"), "expanded smoke bomb icon cell");
-            AssertEqual(5, CombatIconCatalog.AbilityAtlasRows(1024, 1280), "expanded ability atlas rows");
-            AssertEqual(true, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1280), "exact expanded ability atlas dimensions are accepted");
+            AssertEqual("20,21,22,23", string.Join(",", AbilityCatalog.IdsForClass("demon").Select(CombatIconCatalog.AbilityIndex)), "demon-form art occupies the appended atlas row");
+            AssertEqual(6, CombatIconCatalog.AbilityAtlasRows(1024, 1536), "expanded ability atlas rows");
+            AssertEqual(true, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1536), "exact expanded ability atlas dimensions are accepted");
+            AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1280), "pre-demon ability atlas dimensions are rejected");
             AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1448, 1086), "legacy irregular ability atlas dimensions are rejected");
             AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 512), "legacy 4x2 ability atlas dimensions are rejected");
 
@@ -369,7 +389,7 @@ namespace AshenHalls.Editor
         {
             string[] codes = FormulaCatalog.All.Select(formula => formula.Code).ToArray();
             List<int> indices = codes.Select(CombatIconCatalog.SignatureSpellIndex).ToList();
-            AssertEqual(49, codes.Length, "full prototype formula count");
+            AssertEqual(51, codes.Length, "full prototype formula count");
             AssertEqual(true, indices.All(index => index >= 0), "every spellbook formula has dedicated icon art");
             AssertEqual(codes.Length, indices.Distinct().Count(), "every spellbook formula icon is unique");
             AssertEqual(
@@ -377,7 +397,8 @@ namespace AshenHalls.Editor
                 string.Join(",", indices),
                 "formula catalog order is the stable row-major spell icon contract");
             AssertEqual(7, CombatIconCatalog.SignatureSpellAtlasColumns, "expanded spell icon atlas columns");
-            AssertEqual(7, CombatIconCatalog.SignatureSpellAtlasRows, "expanded spell icon atlas rows");
+            AssertEqual(8, CombatIconCatalog.SignatureSpellAtlasRows, "expanded spell icon atlas rows");
+            AssertEqual("49,50", string.Join(",", new[] { CombatIconCatalog.SignatureSpellIndex("RBT"), CombatIconCatalog.SignatureSpellIndex("VRS") }), "pact gap spells occupy appended signature cells");
             AssertEqual(-1, CombatIconCatalog.SignatureSpellIndex("UNKNOWN"), "unknown spell has no signature cell");
             string[] lightningCodes = { "RIG", "CLT", "RSG", "AST", "VST" };
             int[] lightningIndices = lightningCodes
@@ -409,8 +430,8 @@ namespace AshenHalls.Editor
                 magic = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MagicUiAtlas);
                 effects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.SpellAnimationAtlas);
                 epicEffects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.EpicSpellEffectsAtlas);
-                AssertEqual(new Vector2Int(1024, 1280), new Vector2Int(ability.width, ability.height), "approved ability atlas dimensions");
-                AssertEqual(new Vector2Int(1792, 1792), new Vector2Int(spell.width, spell.height), "approved signature spell atlas dimensions");
+                AssertEqual(new Vector2Int(1024, 1536), new Vector2Int(ability.width, ability.height), "approved ability atlas dimensions");
+                AssertEqual(new Vector2Int(1792, 2048), new Vector2Int(spell.width, spell.height), "approved signature spell atlas dimensions");
                 AssertEqual(new Vector2Int(1024, 512), new Vector2Int(lightning.width, lightning.height), "approved lightning spell atlas dimensions");
                 AssertEqual(
                     new Vector2Int(CombatIconCatalog.BookStateAtlasWidth, CombatIconCatalog.BookStateAtlasHeight),
@@ -423,7 +444,7 @@ namespace AshenHalls.Editor
                 AssertEqual(new Vector2Int(1024, 1024), new Vector2Int(magic.width, magic.height), "approved magic UI atlas dimensions");
                 AssertEqual(new Vector2Int(1276, 1276), new Vector2Int(effects.width, effects.height), "approved spell animation atlas dimensions");
                 AssertEqual(new Vector2Int(1254, 1254), new Vector2Int(epicEffects.width, epicEffects.height), "approved epic spell effects atlas dimensions");
-                AssertAtlasCellCoverage(ability, 4, 5, Enumerable.Range(0, 20), 0.10f, 0.90f, "approved ability icon");
+                AssertAtlasCellCoverage(ability, 4, 6, Enumerable.Range(0, 24), 0.10f, 0.90f, "approved ability icon");
                 AssertAtlasCellCoverage(
                     spell,
                     CombatIconCatalog.SignatureSpellAtlasColumns,
@@ -461,7 +482,7 @@ namespace AshenHalls.Editor
                     0.90f,
                     "approved combat command icon");
                 AssertAtlasCellCoverage(effects, 4, 4, Enumerable.Range(0, 16), 0.02f, 0.92f, "approved spell animation");
-                AssertAtlasCellSafeGutter(ability, 4, 5, Enumerable.Range(0, 20), 12, 8, 32, "approved ability icon");
+                AssertAtlasCellSafeGutter(ability, 4, 6, Enumerable.Range(0, 24), 12, 8, 32, "approved ability icon");
                 AssertAtlasCellSafeGutter(
                     spell,
                     CombatIconCatalog.SignatureSpellAtlasColumns,
@@ -1623,10 +1644,10 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v1.99.0", VersionInfo.PackageVersion, "package version matches the v1.99 release");
+            AssertEqual("v2.0.0", VersionInfo.PackageVersion, "package version matches the v2.0 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
-            AssertEqual("ability-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v1.97 ability atlas pin");
-            AssertEqual("signature-spell-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v1.97 signature spell atlas pin");
+            AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
+            AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
             AssertEqual("lightning-spell-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.LightningSpellIconAtlas, "approved v1.97 lightning spell atlas pin");
             AssertEqual("power-book-state-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.PowerBookStateIconAtlas, "approved v1.97 power-book state atlas pin");
             AssertEqual("combat-command-icon-atlas-runtime-v1.99.0.png", RuntimeArtManifest.CombatCommandIconAtlas, "approved v1.99 combat command atlas pin");
@@ -1658,16 +1679,17 @@ namespace AshenHalls.Editor
             AssertEqual("npc-portrait-atlas-runtime-v1.60.0.png", RuntimeArtManifest.NpcPortraitAtlas, "approved v1.60 NPC portrait atlas pin");
             AssertEqual("character-combat-atlas-runtime-v1.93.0.png", RuntimeArtManifest.CharacterCombatAtlas, "approved v1.93 character sprite atlas pin");
             AssertEqual("enemy-sprite-atlas-runtime-v1.77.0.png", RuntimeArtManifest.EnemySpriteAtlas, "approved v1.77 enemy sprite atlas pin");
+            AssertEqual("demon-summon-atlas-runtime-v1.4.0.png", RuntimeArtManifest.DemonSummonAtlas, "approved demon summon and transformation atlas pin");
             AssertEqual("midgaard-interior-prop-atlas-runtime-v1.61.0.png", RuntimeArtManifest.MidgaardInteriorPropAtlas, "approved v1.61 interior prop atlas pin");
             AssertEqual("midgaard-interior-tile-atlas-runtime-v1.61.0.png", RuntimeArtManifest.MidgaardInteriorTileAtlas, "approved v1.61 interior tile atlas pin");
             AssertEqual("ash-and-brimstone-title-card-runtime-v1.64.0.png", RuntimeArtManifest.TitleCard, "approved v1.64 title-card pin");
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v1.97.0.png|signature-spell-icon-atlas-runtime-v1.97.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(38, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(39, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -2516,6 +2538,23 @@ namespace AshenHalls.Editor
             AssertEqual(true, ExplorationArtRules.PartyRegionMarkerScale() >= 0.80f && ExplorationArtRules.PartyRegionMarkerScale() <= 0.84f, "region party marker remains legible at map scale");
             AssertEqual(true, ExplorationArtRules.PartyRegionMarkerMinimumPixels() >= 22f, "region party marker retains a readable small-window floor");
 
+            AssertEqual(true, ExplorationArtRules.IsMidgaardBuilding(ObjectType.Temple), "temple uses the dedicated city-building footprint");
+            AssertEqual(true, ExplorationArtRules.IsMidgaardBuilding(ObjectType.Armorer), "armorer shop no longer falls through to generic prop sizing");
+            AssertEqual(true, ExplorationArtRules.IsMidgaardBuilding(ObjectType.Provisions), "provisions shop no longer falls through to generic prop sizing");
+            AssertEqual(true, ExplorationArtRules.IsMidgaardBuilding(ObjectType.WeaponVendor), "weapon shop no longer falls through to generic prop sizing");
+            AssertEqual(true, ExplorationArtRules.IsMidgaardBuilding(ObjectType.Enchanter), "enchanter shop no longer falls through to generic prop sizing");
+            AssertEqual(false, ExplorationArtRules.IsMidgaardBuilding(ObjectType.Fountain), "plaza fixtures retain their compact footprint");
+            float buildingArtFill = 1f - 2f * ExplorationArtRules.MidgaardBuildingArtPadding();
+            float localBuildingFill = (1f - 2f * ExplorationArtRules.MidgaardBuildingPadding(false))
+                * buildingArtFill
+                * ExplorationArtRules.MidgaardBuildingSpriteScale(false);
+            float regionBuildingFill = (1f - 2f * ExplorationArtRules.MidgaardBuildingPadding(true))
+                * buildingArtFill
+                * ExplorationArtRules.MidgaardBuildingSpriteScale(true);
+            AssertEqual(true, localBuildingFill >= 1.22f && localBuildingFill <= 1.25f, "local Midgaard buildings rise beyond one cell for landmark readability");
+            AssertEqual(true, regionBuildingFill >= 0.92f && regionBuildingFill <= 0.95f, "region Midgaard buildings remain nearly cell-filling");
+            AssertEqual(true, ExplorationArtRules.MidgaardBuildingVerticalOffset(false) < ExplorationArtRules.MidgaardBuildingVerticalOffset(true), "local building growth favors the roofline over the street");
+
             AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(false, true) >= 0.76f && ExplorationArtRules.GateArtWidthInCells(false, true) <= 0.80f, "local side gate keeps a compact wall-aligned frame");
             AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(false, false) >= 1.98f && ExplorationArtRules.GateArtWidthInCells(false, false) <= 2.06f, "local sealed gate width is bounded");
             AssertEqual(true, ExplorationArtRules.GateArtHeightInCells(false, true) >= 1.66f && ExplorationArtRules.GateArtHeightInCells(false, true) <= 1.74f, "local side gate keeps its portrait height");
@@ -3294,6 +3333,99 @@ namespace AshenHalls.Editor
             AssertEqual(true, FormulaCatalog.All.All(formula => validEffects.Contains(formula.Effect ?? "")), "every formula effect passes the runtime catalog contract");
         }
 
+        private static void DemonFormPackageDefinesCohesiveProgression()
+        {
+            FormulaDef riftBolt = FormulaCatalog.All.Single(formula => formula.Code == "RBT");
+            FormulaDef riftStep = FormulaCatalog.All.Single(formula => formula.Code == "VRS");
+            AssertEqual(true,
+                riftBolt.Name == "Rift Bolt"
+                && FormulaCatalog.RequiredLevel(riftBolt) == 1
+                && riftBolt.School == "pact"
+                && riftBolt.Skill == "hex"
+                && riftBolt.Mana == 4
+                && riftBolt.Range == 5
+                && riftBolt.Target == "enemy"
+                && riftBolt.Effect == "damage"
+                && riftBolt.DamageType == "death"
+                && riftBolt.Power == 8,
+                "Rift Bolt fills the pact starter-damage gap");
+            AssertEqual(true,
+                riftStep.Name == "Rift Step"
+                && FormulaCatalog.RequiredLevel(riftStep) == 4
+                && riftStep.School == "pact"
+                && riftStep.Skill == "hex"
+                && riftStep.Mana == 6
+                && riftStep.Range == 5
+                && riftStep.Target == "tile"
+                && riftStep.Effect == "teleport"
+                && riftStep.DamageType == "death"
+                && riftStep.Arc,
+                "Rift Step fills the level-four pact mobility gap");
+            AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "RBT"), "Rift Bolt is available to the sewer-slice warlock");
+            AssertEqual(false, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "VRS"), "Rift Step remains a later progression power");
+            AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.FullPrototype, "VRS"), "Rift Step is available in the full prototype");
+            AssertEqual(CombatPowerFootprintKind.Single, CombatPowerTargetingRules.ForFormula(riftBolt).Kind, "Rift Bolt is a direct target spell");
+            AssertEqual("STEP|Teleport destination", CombatPowerTargetingRules.ForFormula(riftStep).BoardLabel + "|" + CombatPowerTargetingRules.ForFormula(riftStep).ModalLabel, "Rift Step previews its open destination");
+            AssertEqual(2, CombatPowerPresentationRules.FormulaIntensity(riftStep), "Rift Step receives a strong mobility presentation");
+            AssertEqual("castpact|veilstep|resonance", CombatImpactRules.ForFormula(riftStep).CastSfx + "|" + CombatImpactRules.ForFormula(riftStep).ImpactSfx + "|" + CombatImpactRules.ForFormula(riftStep).AftershockSfx, "Rift Step owns a pact-rift audio identity");
+
+            string[] demonIds = AbilityCatalog.IdsForClass("demon").ToArray();
+            AssertEqual("riftpounce,abyssalwhirl,soulrend,dreadroar", string.Join(",", demonIds), "demon form exposes four stable Demon Arts");
+            MartialAbility riftPounce = AbilityCatalog.For("riftpounce");
+            MartialAbility abyssalWhirl = AbilityCatalog.For("abyssalwhirl");
+            MartialAbility soulRend = AbilityCatalog.For("soulrend");
+            MartialAbility dreadRoar = AbilityCatalog.For("dreadroar");
+            AssertEqual(true, demonIds.Select(AbilityCatalog.For).All(ability => ability != null && ability.ClassKey == "demon" && ability.RequiredLevel == 1), "every Demon Art is derived from the active transformation rather than permanent class progression");
+            AssertEqual(true, riftPounce.Targeted && riftPounce.Range == 5, "Rift Pounce is the ranged landing art");
+            AssertEqual(true, !abyssalWhirl.Targeted && abyssalWhirl.Range == 1, "Abyssal Whirl is an adjacent self-area art");
+            AssertEqual(true, soulRend.Targeted && soulRend.Range == 1, "Soul Rend is an adjacent single-target art");
+            AssertEqual(true, !dreadRoar.Targeted && dreadRoar.Range == 1, "Dread Roar is an adjacent control art");
+            AssertEqual("RIFT|Rift + landing", CombatPowerTargetingRules.ForAbility(riftPounce).BoardLabel + "|" + CombatPowerTargetingRules.ForAbility(riftPounce).ModalLabel, "Rift Pounce previews its landing tile");
+            AssertEqual(CombatPowerFootprintKind.SelfArea, CombatPowerTargetingRules.ForAbility(abyssalWhirl).Kind, "Abyssal Whirl previews all adjacent foes");
+            AssertEqual(CombatPowerFootprintKind.Single, CombatPowerTargetingRules.ForAbility(soulRend).Kind, "Soul Rend previews one adjacent foe");
+            AssertEqual("DREAD|Adjacent enemies", CombatPowerTargetingRules.ForAbility(dreadRoar).BoardLabel + "|" + CombatPowerTargetingRules.ForAbility(dreadRoar).ModalLabel, "Dread Roar previews its adjacent control field");
+            AssertEqual(true, demonIds.All(id => CombatPowerPresentationRules.AbilityIntensity(id) == 3), "Demon Arts receive transformation-scale presentation");
+            AssertEqual("c6576d", CombatPowerPresentationRules.AbilityAccent("demon"), "Demon Arts own a distinct blood-rift accent");
+            AssertEqual(
+                "Rift,Slash,Void,Ascendance",
+                string.Join(",", demonIds.Select(id => CombatPowerVisualRules.MotifFor(id))),
+                "Demon Arts keep four readable visual motifs");
+            AssertEqual(
+                "13,8,15,9",
+                string.Join(",", demonIds.Select(CombatPowerVisualRules.EffectAtlasCell)),
+                "Demon Arts route to distinct primary effect cells");
+            AssertEqual(true, demonIds.All(CombatPowerVisualRules.UsesRitualCastPresentation), "Demon Arts receive a brief transformation-aware anticipation beat");
+            AssertEqual(true, demonIds.All(id =>
+            {
+                CombatImpactArtPlan plan = CombatPowerVisualRules.ImpactArtPlan(id, 3, 0.5f);
+                return plan.HasPrimary && plan.HasSecondary && plan.SecondaryScale > plan.PrimaryScale;
+            }), "every Demon Art layers bounded epic impact art around its primary silhouette");
+
+            CombatImpactProfile[] demonImpacts = demonIds
+                .Select(id => CombatImpactRules.ForAbility(AbilityCatalog.For(id)))
+                .ToArray();
+            AssertEqual(
+                "riftpounce|abyssalwhirl|soulrend|dreadroar",
+                string.Join("|", demonImpacts.Select(profile => profile.CastSfx)),
+                "each Demon Art owns its authored release cue");
+            AssertEqual(
+                "riftpounceimpact|abyssalwhirlimpact|soulrendimpact|dreadroarimpact",
+                string.Join("|", demonImpacts.Select(profile => profile.ImpactSfx)),
+                "each Demon Art owns its authored impact cue");
+            AssertEqual(true, demonImpacts.All(profile => profile.VisualTier == 3 && profile.BurstCount >= 26), "Demon Arts keep a bounded but emphatic impact profile");
+
+            CombatUnit warlock = new CombatUnit { Name = "Pact Tester", Role = "hex", ClassKey = "warlock", Spell = "hex|pact" };
+            IReadOnlyList<CombatCommandEntry> mortalCommands = CombatCommandPresentationRules.PrimaryCommandsFor(warlock);
+            AssertEqual(true, mortalCommands[2].Mode == ActionMode.Cast && mortalCommands[2].Label == "Spells", "mortal warlock keeps the Spellbook command");
+            warlock.DemonFormTurns = 4;
+            IReadOnlyList<CombatCommandEntry> demonCommands = CombatCommandPresentationRules.PrimaryCommandsFor(warlock);
+            AssertEqual(true, demonCommands[2].Mode == ActionMode.Ability && demonCommands[2].Label == "Demon Arts", "transformation replaces Spellbook with Demon Arts");
+            AssertEqual("demon", CreatureAudioRules.FactionFor(warlock), "transformed warlock adopts demon audio identity");
+            AssertEqual("demonattack", CreatureAudioRules.CueFor(warlock, "attack"), "transformed warlock routes demon attack voice");
+            warlock.DemonFormTurns = 0;
+            AssertEqual(true, CombatCommandPresentationRules.PrimaryCommandsFor(warlock)[2].Mode == ActionMode.Cast, "expiring the form restores the Spellbook command");
+        }
+
         private static void LightningPowerRulesDefineTacticalStormLadder()
         {
             FormulaDef arcSpark = FormulaCatalog.All.Single(formula => formula.Code == "RIG");
@@ -3837,13 +3969,13 @@ namespace AshenHalls.Editor
             AssertEqual(true, CombatImpactRules.CastAuraDuration(fireball) >= fireball.ImpactDelay + 0.20f, "cast aura survives through Fireball impact");
             AssertEqual(true, CombatImpactRules.PresentationBurstCount(fireball, 2) > fireball.BurstCount, "reaction crescendo adds bounded impact particles");
 
-            List<CombatImpactProfile> abilityProfiles = new[] { "warrior", "rogue", "ranger" }
+            List<CombatImpactProfile> abilityProfiles = new[] { "warrior", "rogue", "ranger", "demon" }
                 .SelectMany(AbilityCatalog.IdsForClass)
                 .Select(id => CombatImpactRules.ForAbility(AbilityCatalog.For(id)))
                 .ToList();
-            AssertEqual(18, abilityProfiles.Count, "all martial abilities enter the shared impact pipeline");
+            AssertEqual(22, abilityProfiles.Count, "all martial and demon-form abilities enter the shared impact pipeline");
             AssertEqual(true, abilityProfiles.All(profile => profile.CastSfx != "ui" && !string.IsNullOrWhiteSpace(profile.ImpactSfx)), "every martial ability has intentional cast and impact audio");
-            AssertEqual(18, abilityProfiles.Select(profile => profile.CastSfx + "|" + profile.ImpactSfx + "|" + profile.AftershockSfx).Distinct().Count(), "martial abilities keep distinct audiovisual signatures");
+            AssertEqual(22, abilityProfiles.Select(profile => profile.CastSfx + "|" + profile.ImpactSfx + "|" + profile.AftershockSfx).Distinct().Count(), "martial and demon-form abilities keep distinct audiovisual signatures");
 
             float leftPan = CombatAudioMixRules.StereoPanForColumn(0, 12);
             float centerPan = CombatAudioMixRules.StereoPanForColumn(5, 12);
@@ -5512,8 +5644,8 @@ namespace AshenHalls.Editor
 
         private static void SewerSliceContentSetDefinesCompleteFirstPlayPath()
         {
-            AssertEqual(15, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
-            AssertEqual(10, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice ability count");
+            AssertEqual(16, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
+            AssertEqual(14, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice permanent and derived ability count");
             AssertEqual(6, ContentSetCatalog.SewerSliceEnemyIds.Count, "sewer slice enemy count");
             AssertEqual(3, ContentSetCatalog.SewerSliceEncounters.Count, "sewer slice encounter count");
 
@@ -5526,6 +5658,8 @@ namespace AshenHalls.Editor
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.FullPrototype, "MTR"), "meteor shower available in prototype");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "RKW"), "warlock bind active in sewer slice");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "IBD"), "warlock summon imp active in sewer slice");
+            AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "RBT"), "warlock Rift Bolt active in sewer slice");
+            AssertEqual(false, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "VRS"), "later Rift Step remains outside the sewer slice");
             AssertEqual(
                 "RIG,RSG,CLT,VST,AST",
                 string.Join(",", ContentSetCatalog.SewerSliceFormulaCodes.Where(code => new[] { "RIG", "RSG", "CLT", "VST", "AST" }.Contains(code))),
@@ -5544,6 +5678,7 @@ namespace AshenHalls.Editor
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "shieldbash"), "Shield Bash tactical push active in sewer slice");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "smokebomb"), "Smoke Bomb sight-control field active in sewer slice");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "scoutmark"), "Scout Mark guard break active in sewer slice");
+            AssertEqual(true, AbilityCatalog.IdsForClass("demon").All(id => ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, id)), "derived Demon Arts remain available when a sewer-slice warlock transforms");
             MartialAbility smokeBomb = AbilityCatalog.For("smokebomb");
             AssertEqual(true, smokeBomb.Summary.Contains("sight-blocking")
                 && smokeBomb.Detail.Contains("does not block movement or poison units")
@@ -5716,15 +5851,16 @@ namespace AshenHalls.Editor
                 Hexed = 1
             };
 
-            AttackDamageProfile profile = AttackRules.BuildDamageProfile(attacker, target, 13, 2);
+            AttackDamageProfile profile = AttackRules.BuildDamageProfile(attacker, target, 13, 2, 4);
 
             AssertEqual("physical", profile.DamageType, "default damage type");
             AssertEqual(2, profile.SkillBonus, "skill bonus");
             AssertEqual(2, profile.HexShift, "hex shift");
             AssertEqual(2, profile.EnrageBonus, "physical enrage");
+            AssertEqual(4, profile.FlatPowerBonus, "flat transformation power");
             AssertEqual(3, profile.StealthBonus, "stealth bonus");
-            AssertEqual(10, profile.MinRawDamage, "minimum raw attack damage");
-            AssertEqual(13, profile.MaxRawDamage, "maximum raw attack damage");
+            AssertEqual(14, profile.MinRawDamage, "minimum raw attack damage");
+            AssertEqual(17, profile.MaxRawDamage, "maximum raw attack damage");
         }
 
         private static void NonPhysicalAttackDamageIgnoresWarriorEnrage()
@@ -5740,12 +5876,13 @@ namespace AshenHalls.Editor
                 Defense = 1
             };
 
-            AttackDamageProfile profile = AttackRules.BuildDamageProfile(attacker, target, 10, 8);
+            AttackDamageProfile profile = AttackRules.BuildDamageProfile(attacker, target, 10, 8, 4);
 
             AssertEqual("fire", profile.DamageType, "explicit damage type");
             AssertEqual(0, profile.EnrageBonus, "non-physical enrage");
-            AssertEqual(6, profile.MinRawDamage, "non-physical minimum raw damage");
-            AssertEqual(6, profile.MaxRawDamage, "non-physical maximum raw damage");
+            AssertEqual(4, profile.FlatPowerBonus, "non-physical attacks retain flat transformation power");
+            AssertEqual(10, profile.MinRawDamage, "non-physical minimum raw damage");
+            AssertEqual(10, profile.MaxRawDamage, "non-physical maximum raw damage");
         }
 
         private static void ReachableMoveCostsRespectBlockersAndTerrainCosts()

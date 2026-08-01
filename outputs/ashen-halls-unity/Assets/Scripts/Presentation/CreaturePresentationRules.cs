@@ -7,6 +7,7 @@ namespace AshenHalls
         public static string FactionFor(CombatUnit unit)
         {
             if (unit == null) return "";
+            if (unit.DemonFormTurns > 0) return "demon";
             return FactionForIdentity(
                 (unit.Name ?? "") + " "
                 + (unit.Role ?? "") + " "

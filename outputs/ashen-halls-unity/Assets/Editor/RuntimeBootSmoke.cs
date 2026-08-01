@@ -47,6 +47,59 @@ namespace AshenHalls.Editor
             }
         }
 
+        public static void RunShopkeepers()
+        {
+            try
+            {
+                RunShopkeepersOrThrow();
+                Debug.Log(VersionInfo.ProductName + " shopkeeper runtime smoke passed.");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(VersionInfo.ProductName + " shopkeeper runtime smoke failed: " + ex);
+                EditorApplication.Exit(1);
+            }
+        }
+
+        public static void RunShopkeepersOrThrow()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string sceneFullPath = Path.Combine(projectRoot, MainScenePath);
+            if (!File.Exists(sceneFullPath))
+            {
+                throw new InvalidOperationException("Main scene is missing: " + MainScenePath);
+            }
+
+            try
+            {
+                Scene scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
+                Assert(scene.IsValid() && scene.isLoaded, "Main scene loads");
+
+                AshenHallsGame game = UnityEngine.Object.FindFirstObjectByType<AshenHallsGame>();
+                Assert(game != null, "AshenHallsGame exists in Main scene");
+                InvokePrivate(game, "Awake");
+                InvokePrivate(game, "LateUpdate");
+                AssertNoLaunchError(game);
+
+                InvokePrivate(game, "StartNewGame");
+                InvokePrivate(game, "LateUpdate");
+                InvokePrivate(game, "QuickStart");
+                InvokePrivate(game, "LateUpdate");
+                AssertMode(game, GameMode.Explore, "shopkeeper smoke reaches Explore");
+
+                GameState state = GetPrivateField<GameState>(game, "state");
+                Assert(state != null, "shopkeeper smoke has a live game state");
+                AssertKateServiceConversation(game, state);
+                AssertExplicitServiceConversation(game, state, "VisitMidgaardArmorer", StoryFlags.MidgaardBasicArmorBought, 28, "Borin");
+                AssertExplicitServiceConversation(game, state, "VisitWeaponVendor", StoryFlags.MidgaardBasicWeaponBought, 32, "Tessa");
+            }
+            finally
+            {
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+        }
+
         public static void RunCombatUiOrThrow()
         {
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
@@ -208,6 +261,8 @@ namespace AshenHalls.Editor
                 "castveil", "veilstep", "casttempest", "tempest", "castascendance", "ascendance", "castseal", "riftseal",
                 "charge", "whirlwind", "execute", "ambush", "eviscerate",
                 "chargeimpact", "whirlwindimpact", "executeimpact", "ambushimpact", "eviscerateimpact", "sleep",
+                "riftpounce", "riftpounceimpact", "abyssalwhirl", "abyssalwhirlimpact",
+                "soulrend", "soulrendimpact", "dreadroar", "dreadroarimpact",
                 "stealth", "smoke", "rally", "aimedshot", "pinning", "volley", "scoutmark", "arrowrain", "mark",
                 "bladecontact", "thrustcontact", "heavycontact", "arrowcontact", "woodcontact", "stonecontact", "wayfind",
                 "footglass", "footmud", "footash", "footgravel",
@@ -221,14 +276,14 @@ namespace AshenHalls.Editor
             {
                 Assert(soundClips.ContainsKey(key) && soundClips[key] != null, "resolved audio bank contains " + key);
             }
-            foreach (string key in new[] { "ui", "uiopen", "itemequip", "elixir", "levelup", "footglass", "footmud", "heavycontact", "castember", "castfrost", "charge", "whirlwind", "aimedshot", "arrowrain" })
+            foreach (string key in new[] { "ui", "uiopen", "itemequip", "elixir", "levelup", "footglass", "footmud", "heavycontact", "castember", "castfrost", "charge", "whirlwind", "aimedshot", "arrowrain", "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" })
             {
                 Assert(soundClips[key].frequency >= 32000, key + " uses the v1.70 high-resolution audio path");
                 Assert(AudioClipHasHealthyHeadroom(soundClips[key]), key + " has audible body, finite samples, and clean output headroom");
             }
             HashSet<string> importedSfxKeys = GetPrivateField<HashSet<string>>(game, "importedSfxKeys");
             AudioClip[] importedSfx = Resources.LoadAll<AudioClip>("Audio/Sfx");
-            Assert(importedSfx.Length == 136, "authored SFX resource bank contains 55 curated and 81 original cues");
+            Assert(importedSfx.Length == 144, "authored SFX resource bank contains 55 curated and 89 original cues");
             Assert(importedSfxKeys.Count == importedSfx.Length, "every authored SFX resource replaces a known runtime cue");
             foreach (AudioClip clip in importedSfx)
             {
@@ -242,8 +297,12 @@ namespace AshenHalls.Editor
             Assert(importedSfxKeys.Contains("castember")
                 && importedSfxKeys.Contains("castfrost")
                 && importedSfxKeys.Contains("castpact")
-                && importedSfxKeys.Contains("riftseal"),
-                "core cast schools and signature magic use original masters");
+                && importedSfxKeys.Contains("riftseal")
+                && importedSfxKeys.Contains("riftpounce")
+                && importedSfxKeys.Contains("abyssalwhirl")
+                && importedSfxKeys.Contains("soulrend")
+                && importedSfxKeys.Contains("dreadroar"),
+                "core cast schools, signature magic, and Demon Arts use original masters");
             HashSet<string> importedMusicKeys = GetPrivateField<HashSet<string>>(game, "importedMusicKeys");
             Dictionary<string, AudioClip> importedMusicClips = GetPrivateField<Dictionary<string, AudioClip>>(game, "importedMusicClips");
             AudioClip[] importedMusic = Resources.LoadAll<AudioClip>("Audio/Music");
@@ -367,6 +426,8 @@ namespace AshenHalls.Editor
             Assert(AudioClipsDiffer(soundClips["aimedshot"], soundClips["volley"]), "aimed shot and volley use distinct ranger releases");
             Assert(AudioClipsDiffer(soundClips["rally"], soundClips["smoke"]), "rally and smoke bomb use distinct utility textures");
             Assert(AudioClipsDiffer(soundClips["whirlwindimpact"], soundClips["eviscerateimpact"]), "whirlwind and eviscerate use distinct martial waveforms");
+            Assert(AudioClipsDiffer(soundClips["riftpounce"], soundClips["abyssalwhirl"]), "rift pounce and abyssal whirl use distinct demon release waveforms");
+            Assert(AudioClipsDiffer(soundClips["soulrendimpact"], soundClips["dreadroarimpact"]), "soul rend and dread roar use distinct demon impact waveforms");
             Assert(AudioClipsDiffer(soundClips["bladecontact"], soundClips["heavycontact"]), "blade and heavy weapon contacts use distinct waveforms");
             Assert(AudioClipsDiffer(soundClips["thrustcontact"], soundClips["arrowcontact"]), "thrust and projectile contacts use distinct waveforms");
             Assert(AudioClipsDiffer(soundClips["woodcontact"], soundClips["stonecontact"]), "wood and stone cover contacts use distinct waveforms");
@@ -1087,6 +1148,7 @@ namespace AshenHalls.Editor
             Texture2D lightningSpellIcons = GetPrivateField<Texture2D>(game, "lightningSpellIconAtlas");
             Texture2D signatureSpellIcons = GetPrivateField<Texture2D>(game, "signatureSpellIconAtlas");
             Texture2D abilityIcons = GetPrivateField<Texture2D>(game, "abilityIconAtlas");
+            Texture2D demonSummonIcons = GetPrivateField<Texture2D>(game, "demonSummonAtlas");
             Texture2D powerBookStateIcons = GetPrivateField<Texture2D>(game, "powerBookStateIconAtlas");
             Texture2D combatCommandIcons = GetPrivateField<Texture2D>(game, "combatCommandIconAtlas");
             Assert(combatTerrain != null && InvokePrivate<bool>(game, "IsCombatTerrainAtlas"), "combat terrain atlas passes the production guard for authored hazards");
@@ -1095,6 +1157,14 @@ namespace AshenHalls.Editor
             Assert(lightningSpellIcons != null && InvokePrivate<bool>(game, "IsLightningSpellIconAtlas"), "dedicated lightning spell atlas passes its production guard");
             Assert(signatureSpellIcons != null && InvokePrivate<bool>(game, "IsSignatureSpellIconAtlas"), "complete signature spell atlas passes its production guard");
             Assert(abilityIcons != null && InvokePrivate<bool>(game, "IsAbilityIconAtlas"), "complete ability atlas passes its production guard");
+            Assert(demonSummonIcons != null && demonSummonIcons.width == 1254 && demonSummonIcons.height == 1254,
+                "pinned demon summon and transformation atlas loads at runtime");
+            Assert(signatureSpellIcons.width == CombatIconCatalog.SignatureSpellAtlasColumns * 256
+                && signatureSpellIcons.height == CombatIconCatalog.SignatureSpellAtlasRows * 256,
+                "runtime signature spell atlas exposes the expanded 7x8 grid");
+            Assert(abilityIcons.width == CombatIconCatalog.AbilityAtlasWidth
+                && abilityIcons.height == CombatIconCatalog.AbilityAtlasHeight,
+                "runtime ability atlas exposes the expanded 4x6 grid");
             Assert(powerBookStateIcons != null
                 && CombatIconCatalog.IsBookStateAtlasDimensions(powerBookStateIcons.width, powerBookStateIcons.height),
                 "power-book state atlas preserves the exact 4x3 microicon contract");
@@ -1869,6 +1939,8 @@ namespace AshenHalls.Editor
                 "footstone", "footearth", "footwood", "footwater", "dialogue", "door",
                 "dialogueopen", "dialoguepage", "dialogueclose", "gateopen", "gatebarred",
                 "servicecoin", "servicearmor", "serviceweapon", "serviceenchant",
+                "riftpounce", "riftpounceimpact", "abyssalwhirl", "abyssalwhirlimpact",
+                "soulrend", "soulrendimpact", "dreadroar", "dreadroarimpact",
                 "swing", "swingheavy", "thrust", "arrowrelease", "bladecontact", "thrustcontact", "heavycontact", "arrowcontact", "woodcontact", "stonecontact", "spellrelease", "wayfind"
             };
             Assert(newAudioCues.All(key => soundClips.ContainsKey(key) && soundClips[key] != null), "expanded spell, field, exploration, and dialogue audio clips build at runtime");
@@ -2174,6 +2246,24 @@ namespace AshenHalls.Editor
             combatState.Combat.InitiativeQueue.Remove(ritualSpawn.Id);
 
             InvokePrivate(game, "PromoteWarlockTester", active);
+            combatState.Combat.Obstacles.Clear();
+            active.X = 1;
+            active.Y = 1;
+            spellTarget.X = 4;
+            spellTarget.Y = 1;
+            spellTarget.Hp = spellTarget.MaxHp;
+            active.Mana = active.MaxMana;
+            stagedBeams.Clear();
+            int riftBoltHp = spellTarget.Hp;
+            Assert(InvokePrivate<bool>(game, "CastFormula", active, "RBT", spellTarget, spellTarget.X, spellTarget.Y), "Rift Bolt resolves through the production pact formula path");
+            Assert(spellTarget.Hp < riftBoltHp && stagedBeams.Any(value => value.Kind == "death"), "Rift Bolt deals direct death damage with a visible rift delivery");
+
+            active.Mana = active.MaxMana;
+            stagedBeams.Clear();
+            Assert(InvokePrivate<bool>(game, "CastFormula", active, "VRS", null, 2, 3), "Rift Step resolves through the production pact formula path");
+            Assert(active.X == 2 && active.Y == 3, "Rift Step moves the warlock to the chosen open tile");
+            Assert(stagedBeams.Any(value => value.Kind == "arc"), "Rift Step stages a visible rift-travel arc");
+
             combatState.Combat.ActionAvailable = true;
             combatState.Combat.Moved = false;
             combatState.Combat.MovePoints = Math.Max(3, active.Movement);
@@ -2188,20 +2278,178 @@ namespace AshenHalls.Editor
                 && ascendanceCard.Epic, "pact spellbook exposes the unlocked elder transformation as an immediate power");
             modal.SetFilterForTest(CombatAbilityModalFilter.All);
             InvokePrivate(game, "SelectCombatAbilityModalCard", "DFA");
+            bool ascendanceWasFocused = InvokePrivate<bool>(game, "IsFocusedCaster", active);
             int ascendanceManaBefore = active.Mana;
             modal.InvokeSelectedForTest();
             Assert(!modal.IsVisible
                 && active.Mana < ascendanceManaBefore
                 && !combatState.Combat.ActionAvailable, "Use Now resolves a self-only formula exactly once through the real Spellbook action");
-            Assert(active.DemonFormTurns >= 4 && active.Hp > woundedHp, "Abyssal Ascendance applies duration and immediate healing");
-            Assert(InvokePrivate<int>(game, "DemonFormAttackBonus", active) == 4, "demon form grants its physical power bonus");
+            FormulaDef ascendanceFormula = FormulaCatalog.All.Single(formula => formula.Code == "DFA");
+            int advertisedDemonTurns = ascendanceFormula.Duration + (ascendanceWasFocused ? 1 : 0);
+            Assert(active.DemonFormTurns == advertisedDemonTurns + 1 && active.Hp > woundedHp, "Abyssal Ascendance stores enough duration for every advertised future transformed action and heals immediately");
+            Assert(InvokePrivate<int>(game, "DemonFormAttackBonus", active) == 4, "demon form grants its flat claw power bonus");
             Assert(InvokePrivate<int>(game, "DemonFormDamageReduction", active) == 2, "demon form grants its damage reduction");
-            Assert(InvokePrivate<int>(game, "DemonSummonSpriteIndex", active) >= 8, "demon form swaps to a greater-demon combat sprite");
+            Assert(InvokePrivate<int>(game, "DemonSummonSpriteIndex", active) == 8, "healthy demon form swaps to the greater-demon combat sprite");
+            Assert(CreatureAudioRules.FactionFor(active) == "demon"
+                && CreatureAudioRules.CueFor(active, "attack") == "demonattack", "transformed warlock routes the demon voice set");
+
+            combatState.Combat.Units.RemoveAll(unit => unit == null || unit.Id != active.Id && unit.Id != spellTarget.Id);
+            combatState.Combat.Obstacles.Clear();
+            active.X = 1;
+            active.Y = 3;
+            spellTarget.X = 6;
+            spellTarget.Y = 3;
+            spellTarget.Hp = spellTarget.MaxHp;
+            spellTarget.Defense = 0;
+            spellTarget.ArmorBonus = 0;
+            spellTarget.Agility = 0;
+            spellTarget.Guarding = false;
+            spellTarget.GuardBonus = 0;
+            spellTarget.Shielded = 0;
+            spellTarget.Hexed = 0;
+            spellTarget.Resist = "";
+            spellTarget.Weakness = "";
+            int storedDemonTurns = active.DemonFormTurns;
+            active.Skills.Arms = active.Skills.Hex;
+            active.DemonFormTurns = 0;
+            Vector2Int mortalDeathAttack = InvokePrivate<Vector2Int>(game, "AttackDamagePreview", active, spellTarget);
+            active.DemonFormTurns = storedDemonTurns;
+            Vector2Int demonDeathAttack = InvokePrivate<Vector2Int>(game, "AttackDamagePreview", active, spellTarget);
+            Assert(demonDeathAttack.x == mortalDeathAttack.x + 4 && demonDeathAttack.y == mortalDeathAttack.y + 4,
+                "demon flat power reaches the warlock's nonphysical death attack without borrowing warrior enrage");
+            Assert(InvokePrivate<string>(game, "ActiveWeaponLabel", active) == "abyssal claws"
+                && InvokePrivate<int>(game, "BaseAttackRange", active) == 1
+                && InvokePrivate<string>(game, "AttackSkillName", active, spellTarget) == "hex",
+                "demon form presents a melee claw attack driven by Hex skill");
+
             InvokePrivate(game, "CancelCombatResolutionBeat", true);
             combatState.Combat.ActiveId = active.Id;
             combatState.Combat.ActionAvailable = true;
             combatState.Combat.Acted = false;
             combatState.Combat.Phase = CombatPhase.ChooseAction;
+
+            CombatHudView demonHudView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            CombatHudCommandView demonArtsCommand = demonHudView.Commands[2];
+            Assert(demonArtsCommand.Mode == ActionMode.Ability
+                && demonArtsCommand.Label == "Demon Arts"
+                && ReferenceEquals(demonArtsCommand.IconTexture, combatCommandIcons)
+                && demonArtsCommand.IconSource == InvokePrivate<Rect>(game, "CombatCommandIconAtlasCell", CombatIconCatalog.CombatCommandSkillsIndex),
+                "transformation replaces the bottom Spellbook command with a stable Demon Arts command");
+
+            InvokePrivate(game, "SelectOrRunAction", ActionMode.Ability, active);
+            InvokePrivate(game, "LateUpdate");
+            CombatAbilityModalView demonArtsView = InvokePrivate<CombatAbilityModalView>(game, "BuildCombatAbilityModalView");
+            string[] demonArtIds = { "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" };
+            Assert(modal.IsVisible
+                && !demonArtsView.Spellbook
+                && demonArtsView.Title == "Demon Arts"
+                && demonArtsView.Resource.Contains("FORM")
+                && demonArtsView.Trait.Contains("ABYSSAL FORM")
+                && demonArtsView.Cards.Select(card => card.Id).SequenceEqual(demonArtIds),
+                "transformed warlock opens a four-card Demon Arts book with live form context");
+            foreach (string demonArtId in demonArtIds)
+            {
+                CombatAbilityModalCardView card = demonArtsView.Cards.Single(value => value.Id == demonArtId);
+                int iconIndex = CombatIconCatalog.AbilityIndex(demonArtId);
+                Assert(!card.Locked
+                    && card.IconTexture == abilityIcons
+                    && card.IconSource == InvokePrivate<Rect>(game, "AbilityIconAtlasCell", iconIndex),
+                    demonArtId + " resolves its appended Demon Arts icon cell");
+            }
+            Assert(demonArtsView.Cards.Single(card => card.Id == "riftpounce").TargetCountKnown
+                && demonArtsView.Cards.Single(card => card.Id == "riftpounce").ValidTargetCount > 0,
+                "Demon Arts book computes a legal rift landing before arming Rift Pounce");
+            InvokePrivate(game, "CloseCombatAbilityModal");
+
+            stagedFloats.Clear();
+            stagedBeams.Clear();
+            impactEchoes.Clear();
+            castAuras.Clear();
+            combatState.Combat.Obstacles.Add(new Point(2, 3, "stone"));
+            combatState.Combat.Obstacles.Add(new Point(3, 3, "stone"));
+            combatState.Combat.Obstacles.Add(new Point(4, 3, "stone"));
+            int pounceTargetHp = spellTarget.Hp;
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "riftpounce", spellTarget, spellTarget.X, spellTarget.Y), "Rift Pounce resolves through the shared targeted ability path");
+            Assert(spellTarget.Hp < pounceTargetHp
+                && Math.Abs(active.X - spellTarget.X) + Math.Abs(active.Y - spellTarget.Y) == 1
+                && stagedBeams.Any(value => value.Kind == "arc"),
+                "Rift Pounce crosses blocked intervening tiles, lands beside its target, and deals death damage");
+
+            combatState.Combat.Obstacles.Clear();
+            active.X = 5;
+            active.Y = 3;
+            spellTarget.X = 6;
+            spellTarget.Y = 3;
+            spellTarget.Hp = spellTarget.MaxHp;
+            CombatUnit demonSecond = MakeRuntimeEnemy("demon-art-second", 5, 4);
+            combatState.Combat.Units.Add(demonSecond);
+            int whirlPrimaryHp = spellTarget.Hp;
+            int whirlSecondHp = demonSecond.Hp;
+            Assert(InvokePrivate<bool>(game, "UseInstantAbility", active, "abyssalwhirl"), "Abyssal Whirl resolves through the shared instant ability path");
+            Assert(spellTarget.Hp < whirlPrimaryHp && demonSecond.Hp < whirlSecondHp, "Abyssal Whirl deals death damage to every adjacent enemy");
+
+            spellTarget.Hp = spellTarget.MaxHp;
+            active.Hp = Math.Max(1, active.MaxHp - 24);
+            int soulRendCasterHp = active.Hp;
+            int soulRendTargetHp = spellTarget.Hp;
+            SetPrivateField(game, "rng", new System.Random(1));
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "soulrend", spellTarget, spellTarget.X, spellTarget.Y), "Soul Rend resolves through the shared targeted ability path");
+            Assert(spellTarget.Hp < soulRendTargetHp && active.Hp > soulRendCasterHp, "Soul Rend deals death damage and heals from actual damage dealt");
+
+            spellTarget.Hp = spellTarget.MaxHp;
+            demonSecond.Hp = demonSecond.MaxHp;
+            spellTarget.Guarding = true;
+            spellTarget.GuardBonus = 4;
+            spellTarget.Hexed = 0;
+            spellTarget.MagicResist = -10;
+            demonSecond.Guarding = true;
+            demonSecond.GuardBonus = 3;
+            demonSecond.Hexed = 0;
+            demonSecond.MagicResist = -10;
+            int roarPrimaryHp = spellTarget.Hp;
+            int roarSecondHp = demonSecond.Hp;
+            Assert(InvokePrivate<bool>(game, "UseInstantAbility", active, "dreadroar"), "Dread Roar resolves through the shared instant ability path");
+            Assert(!spellTarget.Guarding && spellTarget.GuardBonus == 0 && spellTarget.Hexed >= 3
+                && !demonSecond.Guarding && demonSecond.GuardBonus == 0 && demonSecond.Hexed >= 3,
+                "Dread Roar strips adjacent guards and applies its mind-resisted hex");
+            Assert(spellTarget.Hp == roarPrimaryHp && demonSecond.Hp == roarSecondHp, "Dread Roar remains a control art and deals no hidden damage");
+
+            active.Poisoned = 0;
+            active.Bleeding = 0;
+            active.Stunned = 0;
+            active.Sleeping = 0;
+            active.Webbed = 0;
+            active.Hexed = 0;
+            active.Regenerating = 0;
+            active.Shielded = 0;
+            combatState.Combat.Obstacles.Clear();
+            SetPrivateField(game, "pendingAbilityId", "soulrend");
+            for (int futureTurn = 1; futureTurn <= advertisedDemonTurns; futureTurn++)
+            {
+                InvokePrivate<bool>(game, "ApplyStartTurnEffects", active);
+                Assert(active.DemonFormTurns > 0, "Abyssal Ascendance remains active for future transformed turn " + futureTurn);
+            }
+            InvokePrivate<bool>(game, "ApplyStartTurnEffects", active);
+            Assert(active.DemonFormTurns == 0 && string.IsNullOrEmpty(GetPrivateField<string>(game, "pendingAbilityId")),
+                "Abyssal Ascendance expires immediately after its advertised future actions and clears stale Demon Arts targeting");
+            CombatHudView restoredWarlockHud = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            Assert(restoredWarlockHud.Commands[2].Mode == ActionMode.Cast && restoredWarlockHud.Commands[2].Label == "Spells",
+                "expiring demon form restores the bottom Spellbook command");
+            combatState.Combat.ActionAvailable = true;
+            combatState.Combat.Acted = false;
+            combatState.Combat.Phase = CombatPhase.ChooseAction;
+            InvokePrivate(game, "SelectOrRunAction", ActionMode.Cast, active);
+            InvokePrivate(game, "LateUpdate");
+            CombatAbilityModalView restoredSpellbook = InvokePrivate<CombatAbilityModalView>(game, "BuildCombatAbilityModalView");
+            Assert(modal.IsVisible
+                && restoredSpellbook.Spellbook
+                && restoredSpellbook.Title.EndsWith("Spellbook", StringComparison.Ordinal)
+                && restoredSpellbook.Cards.Any(card => card.Id == "RBT")
+                && restoredSpellbook.Cards.Any(card => card.Id == "VRS")
+                && !restoredSpellbook.Cards.Any(card => demonArtIds.Contains(card.Id)),
+                "expiring demon form restores the pact Spellbook without leaking Demon Arts cards");
+            InvokePrivate(game, "CloseCombatAbilityModal");
+            combatState.Combat.Units.Remove(demonSecond);
 
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
             stagedFloats.Clear();
@@ -2238,7 +2486,7 @@ namespace AshenHalls.Editor
             CombatAbilityModalView skillbookView = InvokePrivate<CombatAbilityModalView>(game, "BuildCombatAbilityModalView");
             CombatAbilityModalCardView aimedShotCard = skillbookView.Cards.First(card => card.Id == "aimedshot");
             Assert(skillbookView.StateIconTexture == powerBookStateIcons, "skillbook view carries the authored state microicon atlas");
-            foreach (string classKey in new[] { "warrior", "rogue", "ranger" })
+            foreach (string classKey in new[] { "warrior", "rogue", "ranger", "demon" })
             {
                 foreach (string abilityId in AbilityCatalog.IdsForClass(classKey))
                 {
@@ -2881,10 +3129,22 @@ namespace AshenHalls.Editor
             };
             Action<string> choose = id => selectedChoice = id;
             InvokePrivate(game, "ShowDialogueChoices", "Gate Captain", "Brann", "What do you need?", ObjectType.GateCaptain, Color.gray, choices, choose);
+            int ordinaryChoiceHash = InvokePrivate<int>(game, "DialogueChoiceRefreshHash");
+            choices[0].Primary = true;
+            int primaryChoiceHash = InvokePrivate<int>(game, "DialogueChoiceRefreshHash");
+            Assert(primaryChoiceHash != ordinaryChoiceHash, "dialogue refresh notices when a choice becomes the primary action");
             InvokePrivate(game, "LateUpdate");
             dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
             Assert(dialogue != null && dialogue.IsInteractiveAndVisible, "choice conversation owns the modal layer");
             Assert(dialogue.VisibleChoiceCountForTest == 3, "choice conversation renders each response button");
+            Assert(dialogue.ChoiceFontStyleForTest(0) == FontStyle.Bold
+                && dialogue.ChoiceOutlineAlphaForTest(0) >= 0.90f,
+                "primary dialogue choice renders with emphasized text and outline");
+            choices[0].Primary = false;
+            InvokePrivate(game, "LateUpdate");
+            Assert(dialogue.ChoiceFontStyleForTest(0) == FontStyle.Normal
+                && dialogue.ChoiceOutlineAlphaForTest(0) < 0.90f,
+                "ordinary dialogue choice clears the primary styling on refresh");
             dialogue.InvokeChoiceForTest(1);
             InvokePrivate(game, "LateUpdate");
             Assert(selectedChoice == "roads", "dialogue choice click resolves the selected response id");
@@ -3052,7 +3312,26 @@ namespace AshenHalls.Editor
 
             dialogue.InvokeChoiceForTest(0);
             InvokePrivate(game, "LateUpdate");
-            Assert(state.Gold == goldBefore - 12, "Kate spends the advertised price only after confirmation");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            Assert(state.Gold == goldBefore && state.Supplies == suppliesBefore, "Kate's order review never spends gold");
+            Assert(dialogue.VisibleChoiceCountForTest == 2
+                && choices.Length == 2
+                && choices[0].Id == "confirm_purchase"
+                && choices[0].Primary,
+                "Kate presents a clear primary confirmation and a way back");
+            Assert(GetPrivateField<string>(game, "dialogueBody").IndexOf("leave with 68", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Kate's order review shows the exact remaining balance");
+
+            dialogue.InvokeChoiceForTest(1);
+            InvokePrivate(game, "LateUpdate");
+            Assert(dialogue.VisibleChoiceCountForTest == 4 && state.Gold == goldBefore,
+                "Kate's order review returns to browsing without a charge");
+
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            Assert(state.Gold == goldBefore - 12, "Kate spends the advertised price only after the explicit order confirmation");
             Assert(state.Supplies == suppliesBefore + 4, "Kate grants the advertised provision bundle");
             Assert(state.StoryFlags.Contains(StoryFlags.MidgaardKateBundleBought)
                 && state.StoryFlags.Contains(StoryFlags.MidgaardProvisionBundleBought), "Kate and Lute share one introductory bundle state");
@@ -3267,8 +3546,40 @@ namespace AshenHalls.Editor
 
             dialogue.InvokeChoiceForTest(0);
             InvokePrivate(game, "LateUpdate");
-            Assert(state.Gold == goldBefore - price, label + " spends the exact advertised price only after confirmation");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            InventoryItem quotedWeapon = label == "Tessa"
+                ? GetPrivateField<InventoryItem>(game, "tessaQuotedWeapon")
+                : null;
+            PartyMember quotedLead = label == "Tessa" && state.Party != null && state.Party.Count > 0
+                ? state.Party[0]
+                : null;
+            Assert(state.Gold == goldBefore, label + " order review does not spend gold");
+            Assert(dialogue.VisibleChoiceCountForTest == 2
+                && choices.Length == 2
+                && choices[0].Id == "confirm_purchase"
+                && choices[0].Primary,
+                label + " order review presents one clear primary confirmation and a way back");
+            Assert(GetPrivateField<string>(game, "dialogueBody").IndexOf((goldBefore - price).ToString(), StringComparison.Ordinal) >= 0,
+                label + " order review states the remaining balance");
+
+            dialogue.InvokeChoiceForTest(1);
+            InvokePrivate(game, "LateUpdate");
+            Assert(dialogue.VisibleChoiceCountForTest == 3 && state.Gold == goldBefore,
+                label + " order review returns to browsing without a charge");
+
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            Assert(state.Gold == goldBefore - price, label + " spends the exact advertised price only after explicit confirmation");
             Assert(state.StoryFlags != null && state.StoryFlags.Contains(completionFlag), label + " records its one-time completion flag");
+            if (quotedWeapon != null)
+            {
+                Assert(state.Inventory != null && state.Inventory.Contains(quotedWeapon),
+                    "Tessa delivers the exact weapon shown in her order review");
+                Assert(quotedLead != null && string.Equals(quotedWeapon.EquippedById, quotedLead.Id, StringComparison.Ordinal),
+                    "Tessa equips the reviewed weapon on the lead adventurer named in the offer");
+            }
 
             if (InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Dialogue)
             {

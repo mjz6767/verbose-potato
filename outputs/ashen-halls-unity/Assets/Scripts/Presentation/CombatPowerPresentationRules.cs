@@ -72,6 +72,7 @@ namespace AshenHalls
                 case "RSG":
                 case "CLT":
                 case "VST": return 2;
+                case "VRS": return 2;
                 case "AST": return 3;
             }
             if (formula.Code == "FBL" || formula.Code == "MTR" || formula.Code == "RLM" || formula.Code == "IBG" || formula.Code == "DFA") return 3;
@@ -86,6 +87,10 @@ namespace AshenHalls
                 case "whirlwind":
                 case "volley":
                 case "eviscerate":
+                case "riftpounce":
+                case "abyssalwhirl":
+                case "soulrend":
+                case "dreadroar":
                     return 3;
                 case "charge":
                 case "execute":
@@ -121,6 +126,7 @@ namespace AshenHalls
                 case "warrior": return "d7a84e";
                 case "rogue": return "9d74c9";
                 case "ranger": return "58b7a5";
+                case "demon": return "c6576d";
                 default: return "b7aa90";
             }
         }

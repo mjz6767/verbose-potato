@@ -155,6 +155,8 @@ namespace AshenHalls
                     return Profile("castgreatersummon", "greatersummon", "encounter", 0.62f, 1.16f, 0.62f, 0.28f, 0.42f, 30, 1.86f, 7f, 0.38f, 0.60f);
                 case "VST":
                     return Profile("castshock", "veilstep", "resonance", 0.60f, 1.04f, 0.48f, CombatPowerVisualRules.BeamDuration("arc"), 0.44f, 22, 1.62f, 3f, 0.24f, 0.50f, 2);
+                case "VRS":
+                    return Profile("castpact", "veilstep", "resonance", 0.62f, 1.08f, 0.50f, CombatPowerVisualRules.BeamDuration("arc"), 0.45f, 24, 1.66f, 3f, 0.25f, 0.52f, 2);
                 case "AST":
                     return Profile("casttempest", "tempest", "resonance", 0.68f, 1.20f, 0.74f, 0.34f, 0.46f, 32, 2.04f, 8f, 0.40f, 0.60f, 3);
                 case "DFA":
@@ -218,6 +220,14 @@ namespace AshenHalls
                     return Profile("bow", "blade", "", 0.58f, 0.92f, 0f, 0.20f, 0.27f, 14, 1.24f, 2f, 0.18f, 0.36f);
                 case "disruptingshot":
                     return Profile("aimedshot", "counter", "shock", 0.62f, 0.94f, 0.30f, 0.20f, 0.30f, 16, 1.30f, 3f, 0.22f, 0.36f);
+                case "riftpounce":
+                    return Profile("riftpounce", "riftpounceimpact", "resonance", 0.74f, 1.16f, 0.52f, 0.22f, 0.36f, 28, 1.82f, 6f, 0.34f, 0.58f, 3);
+                case "abyssalwhirl":
+                    return Profile("abyssalwhirl", "abyssalwhirlimpact", "resonance", 0.78f, 1.14f, 0.48f, 0.10f, 0.30f, 32, 1.92f, 6f, 0.36f, 0.58f, 3);
+                case "soulrend":
+                    return Profile("soulrend", "soulrendimpact", "resonance", 0.72f, 1.18f, 0.52f, 0.18f, 0.34f, 26, 1.72f, 6f, 0.34f, 0.56f, 3);
+                case "dreadroar":
+                    return Profile("dreadroar", "dreadroarimpact", "resonance", 0.80f, 1.16f, 0.56f, 0.08f, 0.30f, 30, 1.88f, 7f, 0.38f, 0.60f, 3);
                 default:
                     return AbilityProfile(AbilityCastSfx(ability.Id), AbilityImpactSfx(ability.Id), "", intensity, BaseResolution(intensity));
             }

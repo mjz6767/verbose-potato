@@ -9,7 +9,8 @@ namespace AshenHalls
         {
             ["warrior"] = new[] { "charge", "execute", "shieldbash", "rally", "cleave", "whirlwind" },
             ["rogue"] = new[] { "stealth", "ambush", "throwknife", "smokebomb", "hamstring", "eviscerate" },
-            ["ranger"] = new[] { "aimedshot", "pinningshot", "volley", "scoutmark", "broadheadshot", "disruptingshot" }
+            ["ranger"] = new[] { "aimedshot", "pinningshot", "volley", "scoutmark", "broadheadshot", "disruptingshot" },
+            ["demon"] = new[] { "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" }
         };
 
         public static IEnumerable<string> IdsForClass(string classKey)
@@ -45,6 +46,10 @@ namespace AshenHalls
                 case "scoutmark": return new MartialAbility { Id = "scoutmark", Name = "Scout Mark", Short = "MRK", ClassKey = "ranger", RequiredLevel = 2, Range = 7, Targeted = true, Summary = "Break guard and mark one enemy for 2 turns.", Detail = "Scout Mark cancels guarding, strips one turn of ward, and exposes the target so the whole party can punish it." };
                 case "broadheadshot": return new MartialAbility { Id = "broadheadshot", Name = "Broadhead Shot", Short = "BRD", ClassKey = "ranger", RequiredLevel = 3, Range = 6, Targeted = true, Summary = "Arrow strike that causes bleeding.", Detail = "Broadhead Shot rewards clear sight lines and sets up physical pressure from warriors and rogues." };
                 case "disruptingshot": return new MartialAbility { Id = "disruptingshot", Name = "Disrupting Shot", Short = "DIS", ClassKey = "ranger", RequiredLevel = 4, Range = 6, Targeted = true, Summary = "Interrupt a dangerous enemy.", Detail = "Disrupting Shot deals modest damage but can stun a target. It is especially useful against casters and bosses' support turns." };
+                case "riftpounce": return new MartialAbility { Id = "riftpounce", Name = "Rift Pounce", Short = "RPT", ClassKey = "demon", RequiredLevel = 1, Range = 5, Targeted = true, Summary = "Tear through the rift, land beside an enemy, and strike.", Detail = "Rift Pounce ignores intervening terrain and units, but still needs one open tile beside the target. It trades Charge's stun for unrestricted rift travel and death damage." };
+                case "abyssalwhirl": return new MartialAbility { Id = "abyssalwhirl", Name = "Abyssal Whirl", Short = "AWH", ClassKey = "demon", RequiredLevel = 1, Range = 1, Targeted = false, Summary = "Borrow Whirlwind's fury and rake every adjacent enemy.", Detail = "Abyssal Whirl is the demon form's brutal answer to being surrounded. It deals sequenced death damage to every adjacent enemy." };
+                case "soulrend": return new MartialAbility { Id = "soulrend", Name = "Soul Rend", Short = "SRD", ClassKey = "demon", RequiredLevel = 1, Range = 1, Targeted = true, Summary = "Rip life from an adjacent enemy and feed on the wound.", Detail = "Soul Rend deals a heavy death strike and heals the transformed warlock for half the actual damage dealt." };
+                case "dreadroar": return new MartialAbility { Id = "dreadroar", Name = "Dread Roar", Short = "DRR", ClassKey = "demon", RequiredLevel = 1, Range = 1, Targeted = false, Summary = "Break nearby guards and hex adjacent enemies.", Detail = "Dread Roar strips guarding from every adjacent enemy, then tests each target's mind resistance against a three-turn hex. It deals no damage." };
                 default: return null;
             }
         }

@@ -11,6 +11,7 @@ namespace AshenHalls
         public string Label;
         public string Hint;
         public bool Enabled = true;
+        public bool Primary;
     }
 
     public sealed class DialogueScreenView
@@ -287,7 +288,17 @@ namespace AshenHalls
                 Text choiceLabel = choiceButtons[i].GetComponentInChildren<Text>();
                 if (choiceLabel != null)
                 {
-                    choiceLabel.color = choices[i].Enabled ? Hex("f3ead7", 1f) : Hex("81796c", 1f);
+                    choiceLabel.color = choices[i].Enabled
+                        ? choices[i].Primary ? titleAccent : Hex("f3ead7", 1f)
+                        : Hex("81796c", 1f);
+                    choiceLabel.fontStyle = choices[i].Primary ? FontStyle.Bold : FontStyle.Normal;
+                }
+                Outline choiceOutline = choiceButtons[i].GetComponent<Outline>();
+                if (choiceOutline != null)
+                {
+                    choiceOutline.effectColor = choices[i].Enabled && choices[i].Primary
+                        ? WithAlpha(accent, 0.92f)
+                        : Hex("56636a", 0.62f);
                 }
             }
             EnsureChoiceSelection();
@@ -438,6 +449,20 @@ namespace AshenHalls
         }
 
         public int SelectedChoiceIndexForTest => selectedChoiceIndex;
+        public FontStyle ChoiceFontStyleForTest(int index)
+        {
+            if (index < 0 || index >= choiceButtons.Length || choiceButtons[index] == null) return FontStyle.Normal;
+            Text label = choiceButtons[index].GetComponentInChildren<Text>();
+            return label == null ? FontStyle.Normal : label.fontStyle;
+        }
+
+        public float ChoiceOutlineAlphaForTest(int index)
+        {
+            if (index < 0 || index >= choiceButtons.Length || choiceButtons[index] == null) return 0f;
+            Outline outline = choiceButtons[index].GetComponent<Outline>();
+            return outline == null ? 0f : outline.effectColor.a;
+        }
+
         public string BodyFontNameForTest => bodyText != null && bodyText.font != null ? bodyText.font.name : "";
         public int BodyFontSizeForTest => bodyText == null ? 0 : bodyText.fontSize;
         public FontStyle BodyFontStyleForTest => bodyText == null ? FontStyle.Normal : bodyText.fontStyle;

@@ -1696,7 +1696,7 @@ namespace AshenHalls
         private void ValidateAbilityCatalog(List<string> warnings)
         {
             HashSet<string> seenIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            string[] classes = { "warrior", "rogue", "ranger" };
+            string[] classes = { "warrior", "rogue", "ranger", "demon" };
             foreach (string classKey in classes)
             {
                 foreach (string id in AbilityIdsForClass(classKey))

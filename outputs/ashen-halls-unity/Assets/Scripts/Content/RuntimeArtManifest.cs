@@ -2,8 +2,8 @@ namespace AshenHalls
 {
     public static class RuntimeArtManifest
     {
-        public const string AbilityIconAtlas = "ability-icon-atlas-runtime-v1.97.0.png";
-        public const string SignatureSpellIconAtlas = "signature-spell-icon-atlas-runtime-v1.97.0.png";
+        public const string AbilityIconAtlas = "ability-icon-atlas-runtime-v2.0.0.png";
+        public const string SignatureSpellIconAtlas = "signature-spell-icon-atlas-runtime-v2.0.0.png";
         public const string LightningSpellIconAtlas = "lightning-spell-icon-atlas-runtime-v1.97.0.png";
         public const string PowerBookStateIconAtlas = "power-book-state-icon-atlas-runtime-v1.97.0.png";
         public const string CombatCommandIconAtlas = "combat-command-icon-atlas-runtime-v1.99.0.png";
@@ -35,6 +35,7 @@ namespace AshenHalls
         public const string NpcPortraitAtlas = "npc-portrait-atlas-runtime-v1.60.0.png";
         public const string CharacterCombatAtlas = "character-combat-atlas-runtime-v1.93.0.png";
         public const string EnemySpriteAtlas = "enemy-sprite-atlas-runtime-v1.77.0.png";
+        public const string DemonSummonAtlas = "demon-summon-atlas-runtime-v1.4.0.png";
         public const string MidgaardInteriorPropAtlas = "midgaard-interior-prop-atlas-runtime-v1.61.0.png";
         public const string MidgaardInteriorTileAtlas = "midgaard-interior-tile-atlas-runtime-v1.61.0.png";
         public const string TitleCard = "ash-and-brimstone-title-card-runtime-v1.64.0.png";
@@ -76,6 +77,7 @@ namespace AshenHalls
             NpcPortraitAtlas,
             CharacterCombatAtlas,
             EnemySpriteAtlas,
+            DemonSummonAtlas,
             MidgaardInteriorPropAtlas,
             MidgaardInteriorTileAtlas,
             TitleCard,

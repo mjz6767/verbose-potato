@@ -110,6 +110,7 @@ namespace AshenHalls
                 hash = unchecked(hash * 31 + (choice?.Id ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (choice?.Label ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (choice != null && choice.Enabled ? 1 : 0));
+                hash = unchecked(hash * 31 + (choice != null && choice.Primary ? 1 : 0));
             }
             return hash;
         }

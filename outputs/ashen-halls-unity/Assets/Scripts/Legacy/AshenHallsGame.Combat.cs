@@ -2026,6 +2026,7 @@ namespace AshenHalls
         private string ActiveWeaponLabel(CombatUnit active)
         {
             if (active == null) return "";
+            if (active.DemonFormTurns > 0) return "abyssal claws";
             if (!string.IsNullOrEmpty(active.WeaponName)) return active.WeaponName;
             if (active.Role == "bow") return "ashwood bow";
             if (active.Role == "pike") return "long spear";
@@ -2057,6 +2058,7 @@ namespace AshenHalls
         private int BaseAttackRange(CombatUnit unit)
         {
             if (unit == null) return 1;
+            if (unit.DemonFormTurns > 0) return 1;
             int range = Mathf.Max(1, unit.Range);
             string role = (unit.Role ?? "").ToLowerInvariant();
             string cls = (unit.ClassKey ?? "").ToLowerInvariant();
@@ -2113,6 +2115,7 @@ namespace AshenHalls
 
         private string AttackSkillNameAt(CombatUnit attacker, CombatUnit target, int attackerX, int attackerY)
         {
+            if (attacker != null && attacker.DemonFormTurns > 0) return "hex";
             return attacker != null && target != null && UsesRangedAttackAt(attacker, attackerX, attackerY, target.X, target.Y)
                 ? "missile"
                 : "arms";
@@ -2121,6 +2124,7 @@ namespace AshenHalls
         private string AttackModeLabel(CombatUnit active)
         {
             if (active == null) return "Attack";
+            if (active.DemonFormTurns > 0) return "Claw";
             if (!IsRangedAttackProfile(active)) return "Attack";
             return IsEngagedByHostile(active) ? "Melee" : "Shoot";
         }
@@ -3783,7 +3787,7 @@ namespace AshenHalls
             if (unit.Regenerating > 0) marks.Add(new StatusMark("+", Hex("97dbc2"), unit.Regenerating));
             if (unit.Hexed > 0) marks.Add(new StatusMark("H", violet, unit.Hexed));
             if (unit.Stealthed > 0) marks.Add(new StatusMark("T", Hex("7bd3c3"), unit.Stealthed));
-            if (unit.DemonFormTurns > 0) marks.Add(new StatusMark("D", Hex("b94b56"), unit.DemonFormTurns));
+            if (unit.DemonFormTurns > 0) marks.Add(new StatusMark("D", Hex("b94b56"), DisplayedDemonFormTurns(unit)));
             return marks;
         }
 
@@ -3897,7 +3901,18 @@ namespace AshenHalls
 
         private string MartialClassKey(CombatUnit unit)
         {
-            return (unit?.ClassKey ?? ClassForRole(unit?.Role)).ToLowerInvariant();
+            string classKey = (unit?.ClassKey ?? ClassForRole(unit?.Role)).ToLowerInvariant();
+            return classKey == "warlock" && unit?.DemonFormTurns > 0 ? "demon" : classKey;
+        }
+
+        private int DisplayedDemonFormTurns(CombatUnit unit)
+        {
+            if (unit == null || unit.DemonFormTurns <= 0) return 0;
+            // The stored counter includes one bookkeeping tick so the cast does
+            // not consume the first promised turn. Keep that internal tick out
+            // of player-facing status copy.
+            int advertisedDuration = 4 + (IsFocusedCaster(unit) ? 1 : 0);
+            return Mathf.Min(unit.DemonFormTurns, advertisedDuration);
         }
 
         private string AbilityHeaderLine(CombatUnit active)
@@ -3911,6 +3926,8 @@ namespace AshenHalls
                     ? "Enrage triggers under half HP."
                     : cls == "ranger"
                         ? "Ranger skills reward sight lines and marked targets."
+                        : cls == "demon"
+                            ? $"Abyssal form: {DisplayedDemonFormTurns(active)} turn{(DisplayedDemonFormTurns(active) == 1 ? "" : "s")} remain. Demon Arts deal death damage."
                         : active.Stealthed > 0
                             ? $"Stealthed {active.Stealthed}: enemies are less likely to focus this rogue."
                             : "Rogue skills reward stealth and bleeding targets.";
@@ -4017,6 +4034,7 @@ namespace AshenHalls
             if (ability == null) return "skill";
             if (!ability.Targeted) return "instant";
             if (ability.Id == "charge") return "rush";
+            if (ability.Id == "riftpounce") return "rift";
             if (ability.Id == "volley") return "arc";
             if (IsRangerAbility(ability.Id)) return "sight";
             return "adjacent";
@@ -4048,6 +4066,11 @@ namespace AshenHalls
                 return false;
             }
             if (ability.Id == "whirlwind" && !AdjacentEnemies(active).Any())
+            {
+                reason = "No adjacent foes";
+                return false;
+            }
+            if ((ability.Id == "abyssalwhirl" || ability.Id == "dreadroar") && !AdjacentEnemies(active).Any())
             {
                 reason = "No adjacent foes";
                 return false;
@@ -4096,6 +4119,14 @@ namespace AshenHalls
                     return $"{BroadheadShotRawDamage(active)} raw physical damage{AbilityStatNote(active, ability.Id)} and bleed 3.";
                 case "disruptingshot":
                     return $"{DisruptingShotRawDamage(active)} raw physical damage{AbilityStatNote(active, ability.Id)} and stun 1; more accurate against casters.";
+                case "riftpounce":
+                    return $"{RiftPounceRawDamage(active)} raw death damage; ignores intervening terrain and lands beside the target.";
+                case "abyssalwhirl":
+                    return $"{AbyssalWhirlRawDamage(active)} raw death damage to every adjacent enemy.";
+                case "soulrend":
+                    return $"{SoulRendRawDamage(active)} raw death damage; heal for half the actual damage dealt.";
+                case "dreadroar":
+                    return "Strip Guard from every adjacent enemy and attempt a 3-turn mind-resisted hex.";
                 default:
                     return ability.Summary ?? "Combat skill.";
             }
@@ -4108,7 +4139,7 @@ namespace AshenHalls
                 case ActionMode.Move: return "Move";
                 case ActionMode.Attack: return AttackModeLabel(active);
                 case ActionMode.Cast: return "Spells";
-                case ActionMode.Ability: return "Skills";
+                case ActionMode.Ability: return MartialClassKey(active) == "demon" ? "Demon Arts" : "Skills";
                 case ActionMode.Guard: return "Guard";
                 case ActionMode.Elixir: return "Elixir";
                 case ActionMode.Wait: return "End Turn";
@@ -6084,12 +6115,14 @@ namespace AshenHalls
             PlaySfx("ui", 0.54f);
         }
 
-        private void ShowNessaConversation()
+        private void ShowNessaConversation(string greeting = null)
         {
             ShowDialogueChoices(
                 "Market Ledger",
                 "Nessa",
-                "New to Midgaard? I can point you toward a safe street, an honest shop, or the rumor everyone is whispering over breakfast.",
+                string.IsNullOrWhiteSpace(greeting)
+                    ? "You're new. I'd remember you. Need the safe way across town, the honest shops, or today's rumor?"
+                    : greeting,
                 ObjectType.MarketClerk,
                 gold,
                 new[]
@@ -6106,15 +6139,15 @@ namespace AshenHalls
             switch (choice)
             {
                 case "vendors":
-                    ShowDialogueResponse("Market Ledger", "Nessa", "Borin is the armorer west of the square. Tessa sells sound weapons nearby, and Maud works the rune anvil if you can afford her. Buy food from Kate or Lute before you spend your last coin on steel; the cisterns are a poor place to discover an empty pack.", ObjectType.MarketClerk, gold, ShowNessaConversation);
+                    ShowDialogueResponse("Market Ledger", "Nessa", "Borin works armor west of the square. Tessa keeps the weapon rack nearby, and Maud has the rune anvil. All three know their work. Just see Kate or Lute before you spend your last coin on steel. An empty pack makes poor company in the cisterns.", ObjectType.MarketClerk, gold, () => ShowNessaConversation("What else? The ledger can wait a moment."));
                     break;
                 case "rumors":
                     ShowDialogueResponse("Market Ledger", "Nessa", MidgaardRatPeltsReady()
-                        ? "Word of your cistern work reached the market before you did. Now the wagoners are talking about kobold drums east of the wall and strange lights along Green Shrine Road."
-                        : "The watch has named three bad chambers below us: Broken Sluice, Foul Runoff, and the Cistern Den. The last has a plague caster guarded by brutes. That part of the rumor has come from too many mouths to ignore.", ObjectType.MarketClerk, gold, ShowNessaConversation);
+                        ? "Your cistern work reached the market before you did. Now the wagoners have moved on to kobold drums east of the wall and odd lights along Green Shrine Road. Cheerful lot, wagoners."
+                        : "Three names keep coming back: Broken Sluice, Foul Runoff, and the Cistern Den. They say the last one holds a plague caster behind a wall of brutes. I'd call it tavern fog, but too many sober people tell the same story.", ObjectType.MarketClerk, gold, () => ShowNessaConversation("That's the rumor. Was there something else?"));
                     break;
                 default:
-                    ShowDialogueResponse("Market Ledger", "Nessa", "Follow the pale paving from the market to Temple Square. The lamps south lead to Kate's Diner and Orren's tavern. That whole loop is walked by the watch. If the paving ends or the houses go dark, turn back; you have wandered beyond their regular round.", ObjectType.MarketClerk, gold, ShowNessaConversation);
+                    ShowDialogueResponse("Market Ledger", "Nessa", "Take the pale paving to Temple Square, then follow the south lamps to Kate's and Orren's tavern. The watch walks that whole loop. If the paving runs out or the houses go dark, you've gone too far. Turn back.", ObjectType.MarketClerk, gold, () => ShowNessaConversation("Got the route? Good. Anything else?"));
                     break;
             }
         }
@@ -6304,7 +6337,7 @@ namespace AshenHalls
                 PushLog("Mira steadies the party and points them back toward the sewer contract.", Tone.Good);
                 ShowBanner("Mira of Midgaard");
                 AddBurst(state.PlayerX, state.PlayerY, teal);
-                ShowMiraConversation("Your wounds are bound. If you are going below the city, ask what you need before you leave the square.");
+                ShowMiraConversation("Hold still... there. You're fit to walk. If you're still going below, ask me what you need before you leave the square.");
                 PlaySfx("heal", 0.72f);
                 return;
             }
@@ -6335,8 +6368,8 @@ namespace AshenHalls
             }
             AddBurst(state.PlayerX, state.PlayerY, teal);
             ShowMiraConversation(HasStoryFlag(StoryFlags.MidgaardLampRoundComplete)
-                ? "The lamp round is finished, and you know where to find help after dark. What else do you need before you travel?"
-                : "You look steadier. Ask what you need, and I will tell you plainly.");
+                ? "You found the lamps and found your way back. Good. What do you need before you travel?"
+                : "Better. Now, before the pain comes back—what do you need to know?");
             PlaySfx("heal", 0.72f);
         }
 
@@ -6363,22 +6396,22 @@ namespace AshenHalls
 
         private void ResolveMiraDialogueChoice(string choice)
         {
-            Action returnToMira = () => ShowMiraConversation("Ask whatever remains. Better a question here than a regret below.");
+            Action returnToMira = () => ShowMiraConversation("Anything else? Better to ask me here than wonder about it below.");
             switch (choice)
             {
                 case "healing":
-                    ShowDialogueResponse("Temple Square", "Mira", "Do not wait until someone is falling. Keep your healer behind cover, tend the wound that will endanger the whole group next, and place a Hallowed Circle where your companions can actually remain. Healing works best when it is part of the plan, not an apology after it fails.", ObjectType.TempleHealer, teal, returnToMira);
+                    ShowDialogueResponse("Temple Square", "Mira", "Don't wait for someone to fall. Keep your healer behind cover and tend the wound most likely to put everyone else in danger. Set a Hallowed Circle where your people can hold their ground. A blessing works better as part of the plan than as an apology afterward.", ObjectType.TempleHealer, teal, returnToMira);
                     break;
                 case "cistern":
-                    ShowDialogueResponse("Temple Square", "Mira", "The ratfolk below are organized. Their brutes hold you in place while a plague mage poisons your people and spreads gas across the floor. Keep a cure ready, leave the cloud before tending the wound, and do not let the brute hurry you into a worse position.", ObjectType.TempleHealer, teal, returnToMira);
+                    ShowDialogueResponse("Temple Square", "Mira", "The ratfolk below work together. Their brutes pin you while a plague mage poisons your people and fills the floor with gas. Keep a cure ready, but move out of the cloud before you use it. And don't let the brute rush you somewhere worse.", ObjectType.TempleHealer, teal, returnToMira);
                     break;
                 case "lamp":
                     ShowDialogueResponse("Temple Square", "Mira", HasStoryFlag(StoryFlags.MidgaardLampRoundComplete)
-                        ? "You completed the round: market, diner, tavern, and back to the temple. Keep that route in mind. When you return hurt or after dark, you will know exactly where to find light, food, and help."
-                        : "You still need to " + LampRoundStatusLine() + ". Walk the market, Kate's Diner, and Orren's tavern, then come back to me. I care less about the signatures than about you learning the way.", ObjectType.TempleHealer, teal, returnToMira);
+                        ? "Market, diner, tavern, temple—you know the round now. If you come home hurt or after dark, your feet will remember where the light, food, and help are."
+                        : "You still need to " + LampRoundStatusLine() + ". Go by the market, Kate's, and Orren's, then come back. The signatures are only proof. I care that you can find help in the dark.", ObjectType.TempleHealer, teal, returnToMira);
                     break;
                 default:
-                    ShowDialogueResponse("Temple Square", "Mira", "When you reach Temple Square, I can bind wounds and restore a little strength to anyone still living. I cannot make a reckless fight safe, so come back before the last of you has to be carried.", ObjectType.TempleHealer, teal, returnToMira);
+                    ShowDialogueResponse("Temple Square", "Mira", "Bring anyone still on their feet to Temple Square and I'll bind what I can. But don't make me your whole plan. Come back before the last of you has to carry the others.", ObjectType.TempleHealer, teal, returnToMira);
                     break;
             }
         }
@@ -6466,12 +6499,14 @@ namespace AshenHalls
             return true;
         }
 
-        private void ShowOrrenConversation()
+        private void ShowOrrenConversation(string greeting = null)
         {
             ShowDialogueChoices(
                 "Tavern Keeper",
                 "Orren",
-                "I hear three kinds of talk in this room: what people packed, what they met, and what they wish they had done sooner. Which one do you need?",
+                string.IsNullOrWhiteSpace(greeting)
+                    ? "Heading out? I can tell by the boots. Want packing advice, cistern gossip, or the latest from the roads?"
+                    : greeting,
                 ObjectType.TavernKeeper,
                 Hex("d98b6a"),
                 new[]
@@ -6488,13 +6523,13 @@ namespace AshenHalls
             switch (choice)
             {
                 case "cistern":
-                    ShowDialogueResponse("Tavern Keeper", "Orren", "A mason named Harl came back last week with half a shield and no eyebrows. He said the brute kept them busy while a plague caster poisoned every safe patch of floor. His advice was simple: make the caster move first, then deal with the muscle.", ObjectType.TavernKeeper, Hex("d98b6a"), ShowOrrenConversation);
+                    ShowDialogueResponse("Tavern Keeper", "Orren", "Harl the mason came back last week with half a shield and no eyebrows. A brute kept his crew busy while a plague caster spoiled every safe patch of floor. His exact words? 'Move the caster. Then mind the big one.'", ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("Harl survived, if you're wondering. What else?"));
                     break;
                 case "roads":
-                    ShowDialogueResponse("Tavern Keeper", "Orren", "Westbound travelers bring in shrine moss and quarry dust. The eastern carts bring broken spokes, sling stones, and stories about kobold fires. Ask Brann which gate has the fresher report. My news is good, but it usually arrives thirsty.", ObjectType.TavernKeeper, Hex("d98b6a"), ShowOrrenConversation);
+                    ShowDialogueResponse("Tavern Keeper", "Orren", "Westbound travelers come in wearing shrine moss and quarry dust. The eastern carts bring broken spokes, sling stones, and stories of kobold fires. Brann will have the fresher report. Mine usually arrives thirsty.", ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("That's what I've heard. Need anything else?"));
                     break;
                 default:
-                    ShowDialogueResponse("Tavern Keeper", "Orren", "Take food for the walk out and the walk back, then add one ration for delay. Carry an elixir you are actually willing to drink. If you use half your supplies before reaching the job, turn around. The road will still be there after supper.", ObjectType.TavernKeeper, Hex("d98b6a"), ShowOrrenConversation);
+                    ShowDialogueResponse("Tavern Keeper", "Orren", "Food for the walk out, food for the walk home, and one ration for bad luck. Take an elixir you'll actually drink, too. If half the pack is gone before you reach the job, turn around. The road will still be there after supper.", ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("That's my sermon. Shorter than most. What else?"));
                     break;
             }
         }
@@ -6523,7 +6558,7 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Roadside Warning",
                 "Edda",
-                "We went into the cisterns as five. I came back alone. Ask what the ratfolk did, what we did wrong, or how I got out.",
+                "Five of us went into the cisterns. I'm the one who came back. If you're going anyway, ask me what they did—or what we did wrong.",
                 ObjectType.WoundedTraveler,
                 blood,
                 new[]
@@ -6763,9 +6798,9 @@ namespace AshenHalls
         private void VisitDockWorker()
         {
             const string warning =
-                "The river landing is shut while the south gate and cistern works are sealed. "
-                + "I am hauling rope for the crews instead. If you go below, keep off any stone "
-                + "that shines wet and never trust a handrail until you have put your weight on it.";
+                "River landing's shut until they trust the south gate and cistern works again, "
+                + "so I'm hauling rope instead of cargo. Going below? Keep off any stone that "
+                + "shines wet, and test a handrail before you give it your weight. Half of them are only pretending.";
             PushLog("A dock worker coils a tarred line beside the south-quarter works and points out the slick approach.", Tone.Normal);
             ShowBanner("South-Quarter Worker");
             ShowDialogue("South-Quarter Works", "Dock Worker", warning, ObjectType.DockWorker, stone);
@@ -6775,11 +6810,11 @@ namespace AshenHalls
         private void VisitMidgaardScholar()
         {
             const string note =
-                "Midgaard's old records call the cisterns a second road beneath the city. "
-                + "The masons marked safe junctions with paired cuts in the stone. Ratfolk marks "
-                + "are newer, rougher, and often point toward an ambush rather than an exit. "
-                + "Formula scribes copied those paired cuts into warding diagrams: the same measured "
-                + "rhythm gives lightning a safe channel instead of a path through the caster.";
+                "Look here. The old records call the cisterns a second road beneath Midgaard. "
+                + "Masons marked safe junctions with two neat cuts. The ratfolk marks are rougher, "
+                + "and just as likely to lead you into an ambush as toward an exit. Formula scribes "
+                + "borrowed the paired cuts for warding diagrams. Same measured rhythm: give lightning "
+                + "a safe channel, or it finds one through the caster.";
             PushLog("A city scholar compares a water-stained cistern plan with the paving around the keep.", Tone.Normal);
             ShowBanner("Midgaard Scholar");
             ShowDialogue("Keep Records", "Midgaard Scholar", note, ObjectType.Scholar, frost);
@@ -6818,8 +6853,8 @@ namespace AshenHalls
                 speaker,
                 string.IsNullOrWhiteSpace(greeting)
                     ? provisionStall
-                        ? $"Three sealed provisions cost ten gold. I have weighed them, wrapped them, and counted twice. You carry {state.Gold}."
-                        : $"Sit down, love. Four provisions cost twelve gold, but you can eat something warm before deciding. You carry {state.Gold}."
+                        ? $"Three sealed portions, ten gold. Dry, weighed, and counted twice. You've got {state.Gold}; want them?"
+                        : $"Sit down, love. The stove's warm. If you're stocking the road, four portions are twelve gold. You've got {state.Gold}."
                     : greeting,
                 focus,
                 Hex("d98b6a"),
@@ -6837,19 +6872,22 @@ namespace AshenHalls
         {
             string speaker = provisionStall ? "Lute" : "Kate";
             ObjectType focus = KateConversationFocus(provisionStall, interactionFocus);
-            Action returnToKate = () => ShowKateConversation(provisionStall, null, focus);
+            Action returnToKate = () => ShowKateConversation(
+                provisionStall,
+                provisionStall ? "Anything else? I can talk while I pack." : "While you're here, love—anything else?",
+                focus);
             switch (choice)
             {
                 case "buy":
-                    PurchaseKateStarterBundle(provisionStall, focus);
+                    ShowKatePurchaseReview(provisionStall, focus);
                     break;
                 case "safe":
                     ShowDialogueResponse(
                         provisionStall ? "Provision Stall" : "Kate's Diner",
                         speaker,
                         provisionStall
-                            ? "Temple Square has healers and clean water. Kate keeps her stove lit late, and Orren rarely closes his common room. Mark those three places before you leave the city. A safe stop is one you can find when you are tired."
-                            : "If you come back hurt, go first to Mira in Temple Square. If you only need food, warmth, and someone to see that you arrived, my door and Orren's are open. Learn the walk between us while your legs are sound.",
+                            ? "Temple Square has healers and clean water. Kate keeps her stove lit late, and Orren hardly ever closes the common room. Learn those three doors now. Tired feet are poor mapmakers."
+                            : "Come back hurt, go straight to Mira in Temple Square. If you only need food, warmth, and someone to notice you made it home, try me or Orren. Learn the walk now, while your legs are sound.",
                         focus,
                         Hex("d98b6a"),
                         returnToKate);
@@ -6859,8 +6897,8 @@ namespace AshenHalls
                         provisionStall ? "Provision Stall" : "Kate's Diner",
                         speaker,
                         provisionStall
-                            ? "Take hard bread, smoked meat, and waxed wrapping. Keep every portion above the damp and open only what you will finish. Eat before the Cistern Den; food carried back unopened did no work for you."
-                            : "Bread, smoked meat, and apples will keep if you wrap them well. Eat before the last chamber, not after it. I have watched too many people save a meal for later and come home too sick to touch it.",
+                            ? "Hard bread, smoked meat, waxed wrapping. Keep it above the damp and open only what you'll finish. Eat before the Cistern Den. Food carried home unopened helped no one."
+                            : "Bread, smoked meat, apples—wrap them well and they'll keep. Eat before the last chamber, not after it. I've seen too many people save supper until they were too sick to touch it.",
                         focus,
                         Hex("d98b6a"),
                         returnToKate);
@@ -6870,8 +6908,8 @@ namespace AshenHalls
                         provisionStall ? "Provision Stall" : "Kate's Diner",
                         speaker,
                         provisionStall
-                            ? "Count the journey out, the journey back, and one delay. Water goes on top, not under the armor. When you reach the portion marked for your return, turn around. That is why I marked it."
-                            : "Pack a meal for the way there, another for the way home, and one more in case the road keeps you. Keep water where everyone can reach it. When only the homeward meal remains, come home.",
+                            ? "One portion out, one back, one for delay. Water goes on top, not under the armor. When you reach the bundle marked for home, go home. That's why I marked it."
+                            : "A meal going out, another coming home, and one more for bad luck. Keep the water where everyone can reach it. When only the homeward meal remains, come home.",
                         focus,
                         Hex("d98b6a"),
                         returnToKate);
@@ -6901,8 +6939,8 @@ namespace AshenHalls
             SetStoryFlag(StoryFlags.MidgaardProvisionBundleBought);
             string speaker = provisionStall ? "Lute" : "Kate";
             string greeting = provisionStall
-                ? $"Three provisions, ten gold. The seals are dry and the weight is written on the cord. You have {state.Gold} gold left."
-                : $"There you are: four provisions for twelve gold. Eat them before hunger makes the plan for you. You have {state.Gold} gold left.";
+                ? $"There. Three dry portions, and the weight's on the cord. You've got {state.Gold} gold left."
+                : $"There you are—four portions. Eat before hunger starts making decisions for you. You've got {state.Gold} gold left.";
             PushLog($"{speaker} packs {bundle} provisions for {cost} gold.", Tone.Good);
             ShowBanner("Provisions Packed");
             PlaySfx("servicecoin", 0.48f);
@@ -6951,7 +6989,7 @@ namespace AshenHalls
                 string.IsNullOrWhiteSpace(greeting)
                     ? bought
                         ? "The rings are settling well. Bring it back if a strap bites or a rivet lifts."
-                        : $"This hauberk is plain iron, soundly riveted, and twenty-eight gold fitted. You carry {state.Gold}."
+                        : $"Plain iron, good rings, fitted to the wearer—twenty-eight gold. You've got {state.Gold}."
                     : greeting,
                 ObjectType.Armorer,
                 stone,
@@ -6966,20 +7004,21 @@ namespace AshenHalls
 
         private void ResolveBorinDialogueChoice(string choice)
         {
+            Action returnToBorin = () => ShowBorinConversation("Anything else? I've a few minutes before the forge is hot again.");
             switch (choice)
             {
                 case "buy":
-                    PurchaseBorinHauberk();
+                    ShowBorinPurchaseReview();
                     break;
                 case "pelts":
                     ShowDialogueResponse("Midgaard Armorer", "Borin", HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)
-                        ? "The sewer-hide coat is holding. It flexes in places where city mail would catch. Keep the seams dry when you can, and bring it back if the shoulder starts to pull."
+                        ? "The sewer-hide coat is holding. It gives where city mail would catch. Keep the seams dry when you can, and bring it back if the shoulder starts to pull."
                         : MidgaardRatPeltsReady()
-                            ? "You have enough clean hide for the sewer pattern. Bring it to the rat-pelt bench and I can cut a lighter coat than this city mail."
-                            : "Bring me clean hide from each contracted cistern chamber. Rat hide is unpleasant work, but it is tough, flexible, and already suited to damp tunnels.", ObjectType.Armorer, stone, () => ShowBorinConversation());
+                            ? "That's enough clean hide for the sewer pattern. Take it to the rat-pelt bench and I'll cut you a coat lighter than city mail."
+                            : "Bring me clean hide from each contracted cistern chamber. Miserable stuff to work, but tough, flexible, and made for damp tunnels.", ObjectType.Armorer, stone, returnToBorin);
                     break;
                 default:
-                    ShowDialogueResponse("Midgaard Armorer", "Borin", "If you know a blow is coming, guard before it lands. Keep the shield toward the danger and make the enemy cross the ground to reach you. Mail spreads a strike; it does not excuse bad footing or an exposed back.", ObjectType.Armorer, stone, () => ShowBorinConversation());
+                    ShowDialogueResponse("Midgaard Armorer", "Borin", "Mail buys you a heartbeat, not a miracle. Set your feet before the blow, keep the shield toward it, and make the enemy come through your reach. Good rings won't mend bad footing—or an exposed back.", ObjectType.Armorer, stone, returnToBorin);
                     break;
             }
         }
@@ -7023,7 +7062,7 @@ namespace AshenHalls
             PlaySfx("ui", 0.56f);
         }
 
-        private void ShowTessaConversation()
+        private void ShowTessaConversation(string greeting = null)
         {
             bool bought = HasStoryFlag(StoryFlags.MidgaardBasicWeaponBought);
             bool canBuy = !bought && state.Gold >= 32;
@@ -7036,9 +7075,11 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Weapon Vendor",
                 "Tessa",
-                bought
-                    ? "That weapon is still sound. Use it long enough to learn what you want from the next one."
-                    : $"Thirty-two gold buys a sound weapon matched to your lead fighter. Tell me how they move, and I will choose the balance. You carry {state.Gold}.",
+                string.IsNullOrWhiteSpace(greeting)
+                    ? bought
+                        ? "Still sound. Use it long enough and it'll tell you what the next weapon should do better."
+                        : $"I can match a sound weapon to your lead fighter for thirty-two gold. Tell me how they move; I'll choose the balance. You've got {state.Gold}."
+                    : greeting,
                 ObjectType.WeaponVendor,
                 gold,
                 new[]
@@ -7055,13 +7096,13 @@ namespace AshenHalls
             switch (choice)
             {
                 case "buy":
-                    PurchaseTessaWeapon();
+                    ShowTessaPurchaseReview();
                     break;
                 case "forms":
-                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Daggers and epees are quick and precise. Axes and heavy blades hit harder but ask for room to swing. Spears keep danger one step farther away. Bows need distance, and a staff belongs in the hands of someone who can use it as a focus. Start with the wielder, not the rack.", ObjectType.WeaponVendor, gold, ShowTessaConversation);
+                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Quick hands like daggers and epees. Strong shoulders can make room for an axe or heavy blade. Spears buy you a step; bows need a lane; a staff should earn its keep as a focus. Look at the wielder first. The rack comes second.", ObjectType.WeaponVendor, gold, () => ShowTessaConversation("That's the shape of it. Need another answer?"));
                     break;
                 default:
-                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Keep shooting while you still have a clear lane. Once an enemy reaches arm's length, draw a sidearm; a bow cannot block a blade. Spears follow the same rule in reverse: use the reach while you have it, then change your grip or step back when the gap closes.", ObjectType.WeaponVendor, gold, ShowTessaConversation);
+                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Shoot while the lane is clear. The moment an enemy can touch the bow, draw steel; string won't stop a blade. Spears are the same lesson backward: enjoy the reach, then shorten your grip or give ground when the gap closes.", ObjectType.WeaponVendor, gold, () => ShowTessaConversation("Need another answer, or a weapon?"));
                     break;
             }
         }
@@ -7074,11 +7115,20 @@ namespace AshenHalls
                 return;
             }
             state.Gold -= 32;
-            string role = state.Party != null && state.Party.Count > 0 ? state.Party[0].Role : "shield";
+            PartyMember quotedLead = state.Party != null && state.Party.Count > 0 ? state.Party[0] : null;
+            string role = quotedLead?.Role ?? "shield";
             EnsureInventoryList();
-            InventoryItem item = MakeTownWeapon(role);
+            InventoryItem item = TakeTessaWeaponQuote(role);
             state.Inventory.Add(item);
-            string equipNote = AutoEquipItem(item);
+            string equipNote;
+            if (quotedLead != null && EquipInventoryItemToMember(item, quotedLead, out string quotedEquipNote))
+            {
+                equipNote = quotedEquipNote;
+            }
+            else
+            {
+                equipNote = AutoEquipItem(item);
+            }
             SetStoryFlag(StoryFlags.MidgaardBasicWeaponBought);
             ShowDialogueThenLoot(
                 "Weapon Vendor",
@@ -7120,8 +7170,8 @@ namespace AshenHalls
                 "Weapon Enchanter",
                 "Maud",
                 hasWeapon
-                    ? $"A quick temper lasts for the next {WeaponEnchantmentRules.TemporaryVictories} victories. A true binding stays with the weapon, even when it changes hands. You carry {state.Gold} gold."
-                    : "Bring me a weapon with a name and an edge—or a focus with a memory—and I will show you what the runes can hold.",
+                    ? $"Two sorts of work: a quick temper for the next {WeaponEnchantmentRules.TemporaryVictories} victories, or a true binding that stays with the weapon. You have {state.Gold} gold."
+                    : "Bring me a weapon with a name and an edge, or a focus with a memory. Then we'll see what the runes are willing to hold.",
                 ObjectType.Enchanter,
                 violet,
                 new[]
@@ -7163,7 +7213,7 @@ namespace AshenHalls
                     ShowDialogueResponse(
                         "Weapon Enchanter",
                         "Maud",
-                        "Fire wakes webbing and gas. Ice answers creatures that fear cold. Storm bites through wards and may stun when the weapon lands cleanly. Radiance is steady against things born of graves and rifts. The active rune changes the weapon's damage affinity; choose for the road ahead.",
+                        "Fire catches webbing and gas. Ice punishes anything that fears the cold. Storm worries at wards and may stun on a clean strike. Radiance is the sure choice against things from graves and rifts. The mark changes what kind of harm the weapon deals, so choose for the road ahead.",
                         ObjectType.Enchanter,
                         violet,
                         ShowMaudConversation);
@@ -7198,8 +7248,8 @@ namespace AshenHalls
                 "Weapon Enchanter",
                 "Maud",
                 permanent
-                    ? $"Which weapon receives the permanent binding? The work costs {price} gold."
-                    : $"Which weapon receives the temporary temper? The work costs {price} gold and lasts {WeaponEnchantmentRules.TemporaryVictories} victories.",
+                    ? $"Which weapon am I binding? The work is permanent and costs {price} gold."
+                    : $"Which weapon gets the quick temper? {price} gold, and it holds for {WeaponEnchantmentRules.TemporaryVictories} victories.",
                 ObjectType.Enchanter,
                 violet,
                 choices.ToArray(),
@@ -7246,7 +7296,7 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Weapon Enchanter",
                 "Maud",
-                $"Choose the mark for {target.Name}'s {TrimGearName(target.WeaponName)}. This {(maudPermanentEnchantment ? "binding is permanent" : $"temper lasts {WeaponEnchantmentRules.TemporaryVictories} victories")}.",
+                $"For {target.Name}'s {TrimGearName(target.WeaponName)}—which mark? The {(maudPermanentEnchantment ? "binding is permanent" : $"temper holds for {WeaponEnchantmentRules.TemporaryVictories} victories")}.",
                 ObjectType.Enchanter,
                 violet,
                 choices,
@@ -7296,7 +7346,7 @@ namespace AshenHalls
             ShowDialogue(
                 "Weapon Enchanter",
                 "Maud",
-                $"{definition.ResultLine} {target.Name}'s weapon now reads '{item.DisplayName}'. {duration}",
+                $"Done. {definition.ResultLine} {target.Name}'s weapon is now {item.DisplayName}. {duration}",
                 ObjectType.Enchanter,
                 violet);
             PlaySfx("servicecoin", 0.48f);
@@ -7586,10 +7636,10 @@ namespace AshenHalls
                 "King's Hall",
                 "King Halvard",
                 !contractAccepted
-                    ? "Midgaard has dangerous work below its streets. I will not mistake your arrival for consent. Hear the terms, then decide whether you will take the writ."
+                    ? "The writ stays sealed until you have heard it whole. Ask what you need, then decide whether the work is yours."
                     : MidgaardRatPeltsReady()
-                        ? "You cleared the contracted chambers and returned with proof. Midgaard records the work. Ask what follows."
-                        : "The cistern writ remains your first duty. Ask what you need before you descend.",
+                        ? "Three chambers cleared, and proof brought home. Good. Ask what comes next."
+                        : "The cistern writ is still open. If any part of it is unclear, ask before you descend.",
                 ObjectType.KingHalvard,
                 gold,
                 contractAccepted
@@ -7621,22 +7671,22 @@ namespace AshenHalls
                         ShowBanner("Royal Writ Accepted");
                         PlaySfx("thronechime", 0.62f);
                     }
-                    ShowDialogueResponse("King's Hall", "King Halvard", "The writ is yours. Clear Broken Sluice, Foul Runoff, and the Cistern Den. Bring proof from all three to Borin, who will make the agreed armor. Return with your people alive, and we will discuss the Old Road.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
+                    ShowDialogueResponse("King's Hall", "King Halvard", "Then take the writ. Clear Broken Sluice, Foul Runoff, and the Cistern Den. Bring proof from all three to Borin; he will make the armor named as payment. Bring your people home as well. Then we will speak of the Old Road.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
                     break;
                 case "decline":
-                    ShowDialogueResponse("King's Hall", "King Halvard", "Then the writ remains sealed. Speak with the watch, visit the temple, and make whatever preparations you require. Return when you are ready to answer for the work.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
+                    ShowDialogueResponse("King's Hall", "King Halvard", "Then leave it sealed. Speak with the watch, visit the temple, and prepare properly. The work will still be here when you are ready to answer for it.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
                     break;
                 case "city":
-                    ShowDialogueResponse("King's Hall", "King Halvard", "Those cisterns once carried clean water beneath the south quarter. Now ratfolk use them to reach our stores and foundations. If we abandon the tunnels, we do not merely lose old stone; we give an organized enemy a road under our walls.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
+                    ShowDialogueResponse("King's Hall", "King Halvard", "Those cisterns once carried clean water beneath the south quarter. Now ratfolk use them to reach our stores and foundations. Leave the tunnels to them and we have not lost old stone—we have handed an enemy a road beneath our walls.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
                     break;
                 case "road":
                     ShowDialogueResponse("King's Hall", "King Halvard", HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)
-                        ? "The Old Road runs beyond the cistern stair toward Green Shrine Road, the old quarry, and places that no longer answer to Midgaard. Yara can mark the first western routes. Beyond that, reports are incomplete."
-                        : "First complete the cistern writ. The stair below it opens toward roads we cannot patrol or quickly reinforce. I will not send an untested group there on the strength of curiosity alone.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
+                        ? "The Old Road runs beyond the cistern stair toward Green Shrine Road, the old quarry, and country that no longer answers to Midgaard. Yara can mark the first western routes. Beyond them, even my reports grow thin."
+                        : "Finish the cistern writ first. The stair below it opens onto roads we cannot patrol or quickly reinforce. Curiosity is not enough reason to send an untested company there.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
                     break;
                 default:
                     ShowDialogueResponse("King's Hall", "King Halvard", !HasStoryFlag(StoryFlags.MidgaardRatQuestGiven)
-                        ? "Three chambers block the old cistern route: Broken Sluice, Foul Runoff, and the Cistern Den. Clear each one and bring proof to Borin. He will craft your payment in armor. The work is dangerous, and the choice remains yours."
+                        ? "Three chambers block the old cistern route: Broken Sluice, Foul Runoff, and the Cistern Den. Clear them and bring proof to Borin. He will make your payment in armor. Dangerous work, plainly stated—and still your choice."
                         : HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)
                             ? "Your proof is accepted and Borin's payment is complete. The next route begins at the stair below the Salt Cisterns. Locate it, confirm what lies beyond, and return before committing to a deeper expedition."
                             : MidgaardRatPeltsReady()
@@ -9643,6 +9693,10 @@ namespace AshenHalls
                 }
                 else
                 {
+                    MartialAbility pendingDemonAbility = AbilityDef(pendingAbilityId);
+                    if (pendingDemonAbility != null && pendingDemonAbility.ClassKey == "demon") ClearAbilityEntry();
+                    MartialAbility selectedDemonAbility = AbilityDef(abilitySelectedId);
+                    if (selectedDemonAbility != null && selectedDemonAbility.ClassKey == "demon") abilitySelectedId = "";
                     AddFloat(active.X, active.Y, "mortal", muted);
                     AddBurst(active.X, active.Y, violet);
                     PushLog($"{active.Name}'s abyssal shape burns away.", Tone.Warn);
@@ -10963,7 +11017,9 @@ namespace AshenHalls
                 success = ability.Id == "stealth" ? UseStealth(active)
                     : ability.Id == "rally" ? UseRally(active)
                     : ability.Id == "smokebomb" ? UseSmokeBomb(active)
-                    : ability.Id == "whirlwind" && UseWhirlwind(active);
+                    : ability.Id == "whirlwind" ? UseWhirlwind(active)
+                    : ability.Id == "abyssalwhirl" ? UseAbyssalWhirl(active)
+                    : ability.Id == "dreadroar" && UseDreadRoar(active);
             }
             finally
             {
@@ -11017,7 +11073,9 @@ namespace AshenHalls
                     : ability.Id == "volley" ? UseVolley(active, target)
                     : ability.Id == "scoutmark" ? UseScoutMark(active, target)
                     : ability.Id == "broadheadshot" ? UseBroadheadShot(active, target)
-                    : ability.Id == "disruptingshot" && UseDisruptingShot(active, target);
+                    : ability.Id == "disruptingshot" ? UseDisruptingShot(active, target)
+                    : ability.Id == "riftpounce" ? UseRiftPounce(active, target)
+                    : ability.Id == "soulrend" && UseSoulRend(active, target);
             }
             finally
             {
@@ -11065,6 +11123,15 @@ namespace AshenHalls
                 if (BestChargeLanding(active, target) == null)
                 {
                     reason = "No open charge lane";
+                    return false;
+                }
+                return true;
+            }
+            if (ability.Id == "riftpounce")
+            {
+                if (BestRiftPounceLanding(active, target) == null)
+                {
+                    reason = "No open rift landing";
                     return false;
                 }
                 return true;
@@ -11186,6 +11253,111 @@ namespace AshenHalls
                 }
             }
             ImproveSkill(active, "arms", 2);
+            return true;
+        }
+
+        private bool UseRiftPounce(CombatUnit active, CombatUnit target)
+        {
+            Point landing = BestRiftPounceLanding(active, target);
+            if (landing == null)
+            {
+                PushLog("No open tile beside that enemy can receive the rift.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return false;
+            }
+
+            Vector2 from = new Vector2(active.X, active.Y);
+            int fromX = active.X;
+            int fromY = active.Y;
+            active.X = landing.X;
+            active.Y = landing.Y;
+            CombatLifecycle().ApplyMovementBudgetResult(true, 0, 0);
+            AddTween(active.Id, from, new Vector2(active.X, active.Y), TweenKind.Move);
+            AddBeam(fromX, fromY, active.X, active.Y, violet, "arc");
+            int damage = DealDamage(target, RiftPounceRawDamage(active), "death", violet);
+            AddFloat(target.X, target.Y, "RIFT POUNCE", violet);
+            ImproveSkill(active, "hex", 2);
+            PushLog($"{active.Name} tears through the rift and pounces on {target.Name} for {damage} death damage.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
+            if (target.Hp <= 0) ReportUnitDown(target);
+            return true;
+        }
+
+        private bool UseAbyssalWhirl(CombatUnit active)
+        {
+            List<CombatUnit> enemies = AdjacentEnemies(active).ToList();
+            if (enemies.Count == 0)
+            {
+                PushLog("No adjacent enemies.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return false;
+            }
+
+            int raw = AbyssalWhirlRawDamage(active);
+            AddTween(active.Id, new Vector2(active.X, active.Y), new Vector2(active.X + 0.18f, active.Y), TweenKind.Lunge);
+            CombatImpactProfile profile = CombatImpactRules.ForAbility(AbilityDef("abyssalwhirl"));
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                CombatUnit enemy = enemies[i];
+                float previousDelay = combatVfxImpactDelay;
+                combatVfxImpactDelay = Mathf.Max(previousDelay, CombatImpactRules.SequenceImpactDelay(profile, i));
+                try
+                {
+                    int damage = DealDamage(enemy, raw, "death", violet);
+                    AddFloat(enemy.X, enemy.Y, "abyssal cut", violet);
+                    PushLog($"{active.Name}'s abyssal whirl rends {enemy.Name} for {damage} death damage.", enemy.Hp <= 0 ? Tone.Good : Tone.Normal);
+                    if (enemy.Hp <= 0) ReportUnitDown(enemy);
+                }
+                finally
+                {
+                    combatVfxImpactDelay = previousDelay;
+                }
+            }
+            ImproveSkill(active, "hex", 3);
+            return true;
+        }
+
+        private bool UseSoulRend(CombatUnit active, CombatUnit target)
+        {
+            if (!RollMartialHit(active, target, 14, "soul rend", "hex")) return true;
+            int damage = DealDamage(target, SoulRendRawDamage(active), "death", violet);
+            int missing = Mathf.Max(0, active.MaxHp - active.Hp);
+            int healed = Mathf.Min(missing, Mathf.Max(1, damage / 2));
+            active.Hp += healed;
+            AddBeam(target.X, target.Y, active.X, active.Y, violet, "death");
+            AddFloat(target.X, target.Y, "SOUL REND", violet);
+            if (healed > 0) AddFloat(active.X, active.Y, "+" + healed, teal);
+            ImproveSkill(active, "hex", 3);
+            PushLog($"{active.Name} rends {target.Name}'s soul for {damage} death damage and recovers {healed} HP.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
+            if (target.Hp <= 0) ReportUnitDown(target);
+            return true;
+        }
+
+        private bool UseDreadRoar(CombatUnit active)
+        {
+            List<CombatUnit> enemies = AdjacentEnemies(active).ToList();
+            if (enemies.Count == 0)
+            {
+                PushLog("No adjacent enemies.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return false;
+            }
+
+            int stripped = 0;
+            int hexed = 0;
+            foreach (CombatUnit enemy in enemies)
+            {
+                if (enemy.Guarding || enemy.GuardBonus > 0)
+                {
+                    enemy.Guarding = false;
+                    enemy.GuardBonus = 0;
+                    stripped++;
+                }
+                if (TryApplyStatus(enemy, "hex", 3, active, 0.78f, true)) hexed++;
+                AddFloat(enemy.X, enemy.Y, enemy.Hexed > 0 ? "DREAD" : "RESIST", violet);
+            }
+            RecordCombatPowerReaction("Dread roar");
+            ImproveSkill(active, "hex", 2 + (hexed > 1 ? 1 : 0));
+            PushLog($"{active.Name}'s dread roar breaks {stripped} guard{(stripped == 1 ? "" : "s")} and hexes {hexed} foe{(hexed == 1 ? "" : "s")}.", hexed > 0 ? Tone.Good : Tone.Normal);
             return true;
         }
 
@@ -11556,6 +11728,26 @@ namespace AshenHalls
                 .FirstOrDefault();
         }
 
+        private Point BestRiftPounceLanding(CombatUnit active, CombatUnit target)
+        {
+            if (active == null || target == null) return null;
+            if (Distance(active.X, active.Y, target.X, target.Y) <= 1) return new Point(active.X, active.Y, "riftlanding");
+            Point[] candidates =
+            {
+                new Point(target.X + 1, target.Y, "riftlanding"),
+                new Point(target.X - 1, target.Y, "riftlanding"),
+                new Point(target.X, target.Y + 1, "riftlanding"),
+                new Point(target.X, target.Y - 1, "riftlanding")
+            };
+            return candidates
+                .Where(p => p.X >= 0 && p.X < CombatW && p.Y >= 0 && p.Y < CombatH)
+                .Where(p => CanStandAt(p.X, p.Y))
+                .OrderBy(p => Distance(active.X, active.Y, p.X, p.Y))
+                .ThenBy(p => p.Y)
+                .ThenBy(p => p.X)
+                .FirstOrDefault();
+        }
+
         private bool CanExecuteTarget(CombatUnit target)
         {
             return target != null && target.MaxHp > 0 && target.Hp <= Mathf.CeilToInt(target.MaxHp * 0.35f);
@@ -11594,6 +11786,10 @@ namespace AshenHalls
             {
                 return Mathf.Max(0, (UnitAgilityScore(active) - 10) / 7);
             }
+            if (id == "riftpounce" || id == "abyssalwhirl" || id == "soulrend")
+            {
+                return Mathf.Max(0, (Mathf.Max(UnitIntelligenceScore(active), UnitStrengthScore(active)) - 10) / 7);
+            }
             return 0;
         }
 
@@ -11606,6 +11802,8 @@ namespace AshenHalls
                 ? "AGI"
                 : id == "ambush" || id == "eviscerate" || id == "hamstring"
                     ? "finesse"
+                    : id == "riftpounce" || id == "abyssalwhirl" || id == "soulrend"
+                        ? "demon"
                     : "STR";
             return $" / {stat} +{bonus}";
         }
@@ -11654,6 +11852,21 @@ namespace AshenHalls
         private int WhirlwindRawDamage(CombatUnit active)
         {
             return Mathf.Max(2, active.DamageMax + SkillValue(active.Skills, "arms") / 4 - 1 + WarriorEnrageBonus(active) + AbilityStatDamageBonus(active, "whirlwind"));
+        }
+
+        private int RiftPounceRawDamage(CombatUnit active)
+        {
+            return Mathf.Max(5, active.DamageMax + active.Power / 2 + SkillValue(active.Skills, "hex") / 4 + active.Level + AbilityStatDamageBonus(active, "riftpounce"));
+        }
+
+        private int AbyssalWhirlRawDamage(CombatUnit active)
+        {
+            return Mathf.Max(4, active.DamageMax + active.Power / 3 + SkillValue(active.Skills, "hex") / 4 + active.Level / 2 + AbilityStatDamageBonus(active, "abyssalwhirl"));
+        }
+
+        private int SoulRendRawDamage(CombatUnit active)
+        {
+            return Mathf.Max(6, active.DamageMax + active.Power + SkillValue(active.Skills, "hex") / 3 + active.Level + AbilityStatDamageBonus(active, "soulrend"));
         }
 
         private int AimedShotRawDamage(CombatUnit active, CombatUnit target)
@@ -11813,7 +12026,7 @@ namespace AshenHalls
                 }
                 return true;
             }
-            AttackDamageProfile damageProfile = AttackRules.BuildDamageProfile(attacker, target, skillValue, WarriorEnrageBonus(attacker) + DemonFormAttackBonus(attacker));
+            AttackDamageProfile damageProfile = AttackRules.BuildDamageProfile(attacker, target, skillValue, WarriorEnrageBonus(attacker), DemonFormAttackBonus(attacker));
             string damageType = damageProfile.DamageType;
             int enrageBonus = damageProfile.EnrageBonus;
             bool stealthStrike = attacker.Stealthed > 0;
@@ -12183,10 +12396,16 @@ namespace AshenHalls
                 AddEpicBurst(x, y, Color.Lerp(color, frost, 0.42f), 22, 1.55f);
                 AddFlash(x, y, color);
                 int shocked = formula.Code == "VST" ? ResolveThunderStepArrival(formula, caster) : 0;
-                AddFloat(x, y, formula.Code == "VST" ? "THUNDER STEP" : "veil step", color);
+                AddFloat(
+                    x,
+                    y,
+                    formula.Code == "VST" ? "THUNDER STEP" : formula.Code == "VRS" ? "RIFT STEP" : "veil step",
+                    color);
                 PushLog(
                     formula.Code == "VST"
                         ? $"{caster.Name} rides the lightning {Distance(fromX, fromY, x, y)} tiles and shocks {shocked} nearby {(shocked == 1 ? "enemy" : "enemies")}."
+                        : formula.Code == "VRS"
+                            ? $"{caster.Name} crosses the rift and reappears {Distance(fromX, fromY, x, y)} tiles away."
                         : $"{caster.Name} folds the veil and reappears {Distance(fromX, fromY, x, y)} tiles away.",
                     Tone.Good);
                 return true;
@@ -12212,7 +12431,9 @@ namespace AshenHalls
                 if (target == null || target.Id != caster.Id) return false;
                 int turns = Mathf.Max(1, formula.Duration + (IsFocusedCaster(caster) ? 1 : 0));
                 int heal = 6 + Mathf.Max(0, UnitIntelligenceScore(caster) - 10) / 3;
-                caster.DemonFormTurns = Mathf.Max(caster.DemonFormTurns, turns);
+                // Status durations tick at the next turn start. Preserve the advertised
+                // number of complete demon-form actions after the casting turn.
+                caster.DemonFormTurns = Mathf.Max(caster.DemonFormTurns, turns + 1);
                 caster.Shielded = Mathf.Max(caster.Shielded, 3);
                 caster.Regenerating = Mathf.Max(caster.Regenerating, 3);
                 caster.Hp = Mathf.Min(caster.MaxHp, caster.Hp + heal);
@@ -15683,6 +15904,17 @@ namespace AshenHalls
                 int damage = PreviewDamageAfterTraits(target, DisruptingShotRawDamage(active), "physical");
                 return $"Disrupting Shot: {damage} physical{AbilityStatNote(active, ability.Id)} / stun 1\nstronger hit chance against casters";
             }
+            if (ability.Id == "riftpounce")
+            {
+                int damage = PreviewDamageAfterTraits(target, RiftPounceRawDamage(active), "death");
+                Point landing = BestRiftPounceLanding(active, target);
+                return $"Rift Pounce: {damage} death{AbilityStatNote(active, ability.Id)}\n{(landing == null ? "no open landing" : "lands beside target / ignores intervening terrain")}";
+            }
+            if (ability.Id == "soulrend")
+            {
+                int damage = PreviewDamageAfterTraits(target, SoulRendRawDamage(active), "death");
+                return $"Soul Rend: {damage} death{AbilityStatNote(active, ability.Id)}\nheal up to {Mathf.Max(1, damage / 2)} HP from actual damage";
+            }
             return ability.Name;
         }
 
@@ -15806,7 +16038,7 @@ namespace AshenHalls
         {
             if (attacker == null || target == null) return new Vector2Int(0, 0);
             string skill = AttackSkillNameAt(attacker, target, attackerX, attackerY);
-            AttackDamageProfile damageProfile = AttackRules.BuildDamageProfile(attacker, target, SkillValue(attacker.Skills, skill), WarriorEnrageBonus(attacker) + DemonFormAttackBonus(attacker));
+            AttackDamageProfile damageProfile = AttackRules.BuildDamageProfile(attacker, target, SkillValue(attacker.Skills, skill), WarriorEnrageBonus(attacker), DemonFormAttackBonus(attacker));
             return new Vector2Int(
                 PreviewDamageAfterTraits(target, damageProfile.MinRawDamage, damageProfile.DamageType),
                 PreviewDamageAfterTraits(target, damageProfile.MaxRawDamage, damageProfile.DamageType));

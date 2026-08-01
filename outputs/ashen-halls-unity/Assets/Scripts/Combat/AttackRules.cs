@@ -9,6 +9,7 @@ namespace AshenHalls
         public readonly int SkillBonus;
         public readonly int HexShift;
         public readonly int EnrageBonus;
+        public readonly int FlatPowerBonus;
         public readonly int StealthBonus;
         public readonly int TargetDefense;
         public readonly int TargetArmorBonus;
@@ -20,6 +21,7 @@ namespace AshenHalls
             int skillBonus,
             int hexShift,
             int enrageBonus,
+            int flatPowerBonus,
             int stealthBonus,
             int targetDefense,
             int targetArmorBonus,
@@ -30,6 +32,7 @@ namespace AshenHalls
             SkillBonus = skillBonus;
             HexShift = hexShift;
             EnrageBonus = Mathf.Max(0, enrageBonus);
+            FlatPowerBonus = Mathf.Max(0, flatPowerBonus);
             StealthBonus = Mathf.Max(0, stealthBonus);
             TargetDefense = Mathf.Max(0, targetDefense);
             TargetArmorBonus = Mathf.Max(0, targetArmorBonus);
@@ -41,17 +44,17 @@ namespace AshenHalls
 
         public int RawDamageForBaseRoll(int baseRoll)
         {
-            return Mathf.Max(1, baseRoll + SkillBonus + HexShift + EnrageBonus + StealthBonus - TargetDefense - TargetArmorBonus);
+            return Mathf.Max(1, baseRoll + SkillBonus + HexShift + EnrageBonus + FlatPowerBonus + StealthBonus - TargetDefense - TargetArmorBonus);
         }
     }
 
     public static class AttackRules
     {
-        public static AttackDamageProfile BuildDamageProfile(CombatUnit attacker, CombatUnit target, int skillValue, int warriorEnrageBonus)
+        public static AttackDamageProfile BuildDamageProfile(CombatUnit attacker, CombatUnit target, int skillValue, int warriorEnrageBonus, int flatPowerBonus = 0)
         {
             if (attacker == null)
             {
-                return new AttackDamageProfile(1, 1, 0, 0, 0, 0, 0, 0, "physical");
+                return new AttackDamageProfile(1, 1, 0, 0, 0, 0, 0, 0, 0, "physical");
             }
 
             int minDamage = attacker.DamageMin > 0 ? attacker.DamageMin : Mathf.Max(1, attacker.Power - 2);
@@ -67,6 +70,7 @@ namespace AshenHalls
                 Mathf.Max(0, skillValue) / 5,
                 hexShift,
                 enrageBonus,
+                flatPowerBonus,
                 stealthBonus,
                 target?.Defense ?? 0,
                 target?.ArmorBonus ?? 0,

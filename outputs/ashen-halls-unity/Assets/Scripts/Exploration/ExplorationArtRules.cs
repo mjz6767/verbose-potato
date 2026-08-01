@@ -60,6 +60,54 @@ namespace AshenHalls
             return 22f;
         }
 
+        public static bool IsMidgaardBuilding(ObjectType type)
+        {
+            switch (type)
+            {
+                case ObjectType.Market:
+                case ObjectType.Temple:
+                case ObjectType.Diner:
+                case ObjectType.Tavern:
+                case ObjectType.Armorer:
+                case ObjectType.Provisions:
+                case ObjectType.WeaponVendor:
+                case ObjectType.Enchanter:
+                case ObjectType.KingHall:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        public static float MidgaardBuildingPadding(bool wideView)
+        {
+            // Buildings carry district identity at both zoom levels. The former
+            // generic-object padding made shop sprites notably smaller than the
+            // tavern and temple even though they share the same authored atlas.
+            return wideView ? 0.08f : 0f;
+        }
+
+        public static float MidgaardBuildingSpriteScale(bool wideView)
+        {
+            // Region view still needs an almost cell-filling silhouette; local view
+            // can let roofs and awnings rise beyond the cell without changing the
+            // deterministic interaction footprint beneath them.
+            return wideView ? 1.14f : 1.26f;
+        }
+
+        public static float MidgaardBuildingArtPadding()
+        {
+            return 0.01f;
+        }
+
+        public static float MidgaardBuildingVerticalOffset(bool wideView)
+        {
+            // Scaling from the destination centre would grow just as far into the
+            // street as toward the roofline. Shift upward to keep doorsteps and
+            // market counters visually tied to their map cell.
+            return wideView ? -0.03f : -0.08f;
+        }
+
         public static string PartyTokenRole(int partyCount, string leadRole)
         {
             if (partyCount != 1) return "party";

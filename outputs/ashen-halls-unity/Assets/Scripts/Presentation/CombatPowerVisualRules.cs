@@ -57,6 +57,10 @@ namespace AshenHalls
         public static CombatPowerVisualMotif MotifFor(string kind)
         {
             string key = Normalize(kind);
+            if (IsAbilityVisualKey(key, "riftpounce")) return CombatPowerVisualMotif.Rift;
+            if (IsAbilityVisualKey(key, "abyssalwhirl")) return CombatPowerVisualMotif.Slash;
+            if (IsAbilityVisualKey(key, "soulrend")) return CombatPowerVisualMotif.Void;
+            if (IsAbilityVisualKey(key, "dreadroar")) return CombatPowerVisualMotif.Ascendance;
             if (ContainsAny(key, "seal")) return CombatPowerVisualMotif.Holy;
             if (ContainsAny(key, "ascendance", "transform")) return CombatPowerVisualMotif.Ascendance;
             if (ContainsAny(key, "greatersummon", "castgreatersummon", "castpact", "rift", "encounter")) return CombatPowerVisualMotif.Rift;
@@ -136,6 +140,10 @@ namespace AshenHalls
         public static float AbilityDeliveryDuration(string abilityId)
         {
             string key = Normalize(abilityId);
+            if (key == "riftpounce") return 0.22f;
+            if (key == "abyssalwhirl") return 0.10f;
+            if (key == "soulrend") return 0.18f;
+            if (key == "dreadroar") return 0.08f;
             if (ContainsAny(key, "volley")) return BeamDuration("arc");
             if (ContainsAny(key, "aimedshot", "pinningshot", "broadheadshot", "disruptingshot", "scoutmark", "throwknife")) return BeamDuration("shot");
             if (ContainsAny(key, "charge", "execute", "ambush", "eviscerate", "cleave", "shieldbash", "hamstring")) return 0.18f;
@@ -167,6 +175,10 @@ namespace AshenHalls
         public static int EffectAtlasCell(string kind)
         {
             string key = Normalize(kind);
+            if (IsAbilityVisualKey(key, "riftpounce")) return 13;
+            if (IsAbilityVisualKey(key, "abyssalwhirl")) return 8;
+            if (IsAbilityVisualKey(key, "soulrend")) return 15;
+            if (IsAbilityVisualKey(key, "dreadroar")) return 9;
             if (ContainsAny(key, "seal")) return 14;
             if (ContainsAny(key, "meteor")) return key.Contains("crater") ? 7 : 6;
             if (ContainsAny(key, "fireball")) return 2;
@@ -234,14 +246,19 @@ namespace AshenHalls
 
         public static CombatImpactArtPlan ImpactArtPlan(string kind, int intensity, float progress)
         {
+            string key = Normalize(kind);
             CombatPowerVisualMotif motif = MotifFor(kind);
             int tier = Math.Max(1, Math.Min(3, intensity));
             float t = Clamp01(progress);
             int primaryCell = ImpactAtlasCell(kind, t);
             float primaryScale = ImpactArtScale(kind, tier, t);
             float primaryOpacity = EffectOpacity(motif);
-            bool layered = UsesLayeredImpactArt(motif, tier);
-            int secondaryCell = layered ? LayeredImpactAtlasCell(motif, t) : -1;
+            bool demonAbility = IsDemonAbilityVisualKey(key);
+            bool layered = demonAbility ? tier >= 3 : UsesLayeredImpactArt(motif, tier);
+            int secondaryCell = layered
+                ? demonAbility ? DemonAbilityLayeredImpactAtlasCell(key, t) : LayeredImpactAtlasCell(motif, t)
+                : -1;
+            layered = secondaryCell >= 0;
             float secondaryScale = layered
                 ? Clamp(1.54f + tier * 0.12f + (float)Math.Sin(t * Math.PI) * 0.24f, 1.54f, 2.18f)
                 : 0f;
@@ -269,6 +286,7 @@ namespace AshenHalls
                 case CombatPowerVisualMotif.Void:
                 case CombatPowerVisualMotif.Rift: return 10;
                 case CombatPowerVisualMotif.Ascendance: return 11;
+                case CombatPowerVisualMotif.Slash: return 14;
                 case CombatPowerVisualMotif.Guard: return 9;
                 case CombatPowerVisualMotif.Volley: return 15;
                 case CombatPowerVisualMotif.Shadow:
@@ -319,7 +337,8 @@ namespace AshenHalls
         public static bool UsesRitualCastPresentation(string castKind)
         {
             string key = Normalize(castKind);
-            return key.StartsWith("cast", StringComparison.Ordinal)
+            return IsDemonAbilityVisualKey(key)
+                || key.StartsWith("cast", StringComparison.Ordinal)
                 || key == "formula"
                 || key == "spell";
         }
@@ -430,6 +449,28 @@ namespace AshenHalls
                 if (value.IndexOf(fragment, StringComparison.Ordinal) >= 0) return true;
             }
             return false;
+        }
+
+        private static bool IsDemonAbilityVisualKey(string key)
+        {
+            return IsAbilityVisualKey(key, "riftpounce")
+                || IsAbilityVisualKey(key, "abyssalwhirl")
+                || IsAbilityVisualKey(key, "soulrend")
+                || IsAbilityVisualKey(key, "dreadroar");
+        }
+
+        private static bool IsAbilityVisualKey(string key, string abilityId)
+        {
+            return key == abilityId || key == abilityId + "impact";
+        }
+
+        private static int DemonAbilityLayeredImpactAtlasCell(string key, float progress)
+        {
+            if (IsAbilityVisualKey(key, "riftpounce")) return 11;
+            if (IsAbilityVisualKey(key, "abyssalwhirl")) return 14;
+            if (IsAbilityVisualKey(key, "soulrend")) return 10;
+            if (IsAbilityVisualKey(key, "dreadroar")) return progress < 0.58f ? 11 : 14;
+            return -1;
         }
     }
 }

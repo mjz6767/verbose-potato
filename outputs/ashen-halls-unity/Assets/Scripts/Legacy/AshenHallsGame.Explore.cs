@@ -1601,8 +1601,8 @@ namespace AshenHalls
             if (type == ObjectType.CityWall) return 0.06f;
             if (type == ObjectType.EastGate || type == ObjectType.WestGate || type == ObjectType.NorthGate || type == ObjectType.SouthGate) return exploreWideView ? 0.10f : 0.02f;
             if (type == ObjectType.TownGuard) return exploreWideView ? 0.18f : 0.10f;
+            if (ExplorationArtRules.IsMidgaardBuilding(type)) return ExplorationArtRules.MidgaardBuildingPadding(exploreWideView);
             if (type == ObjectType.Fountain || type == ObjectType.RecallCircle) return exploreWideView ? 0.18f : 0.10f;
-            if (type == ObjectType.Market || type == ObjectType.Temple || type == ObjectType.Diner || type == ObjectType.Tavern || type == ObjectType.KingHall) return exploreWideView ? 0.14f : 0.04f;
             if (type == ObjectType.Cache || type == ObjectType.Shrine || type == ObjectType.Encounter || type == ObjectType.Stairs || type == ObjectType.Camp || type == ObjectType.Cave) return exploreWideView ? 0.17f : 0.08f;
             return exploreWideView ? 0.19f : 0.11f;
         }
@@ -1999,7 +1999,7 @@ namespace AshenHalls
         {
             if (type == ObjectType.CityWall) return 0.00f;
             if (type == ObjectType.NorthGate || type == ObjectType.SouthGate || type == ObjectType.EastGate || type == ObjectType.WestGate) return 0.00f;
-            if (type == ObjectType.Market || type == ObjectType.Temple || type == ObjectType.Diner || type == ObjectType.Tavern || type == ObjectType.KingHall) return 0.02f;
+            if (ExplorationArtRules.IsMidgaardBuilding(type)) return ExplorationArtRules.MidgaardBuildingArtPadding();
             if (type == ObjectType.InteriorDoor || IsMidgaardInteriorDecoration(type)) return 0.02f;
             if (quiet) return 0.03f;
             return 0.03f;

@@ -6,12 +6,12 @@ namespace AshenHalls
     public static class CombatIconCatalog
     {
         public const int AbilityAtlasColumns = 4;
-        public const int ExpandedAbilityAtlasRows = 5;
+        public const int ExpandedAbilityAtlasRows = 6;
         public const int AbilityAtlasCellSize = 256;
         public const int AbilityAtlasWidth = AbilityAtlasColumns * AbilityAtlasCellSize;
         public const int AbilityAtlasHeight = ExpandedAbilityAtlasRows * AbilityAtlasCellSize;
         public const int SignatureSpellAtlasColumns = 7;
-        public const int SignatureSpellAtlasRows = 7;
+        public const int SignatureSpellAtlasRows = 8;
         public const int CombatCommandAtlasColumns = 5;
         public const int CombatCommandAtlasRows = 4;
         public const int CombatCommandAtlasCellSize = 256;
@@ -65,7 +65,11 @@ namespace AshenHalls
             ["disruptingshot"] = 16,
             ["enrage"] = 17,
             ["hunterfocus"] = 18,
-            ["smokebomb"] = 19
+            ["smokebomb"] = 19,
+            ["riftpounce"] = 20,
+            ["abyssalwhirl"] = 21,
+            ["soulrend"] = 22,
+            ["dreadroar"] = 23
         };
 
         private static readonly Dictionary<string, int> signatureSpellIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -118,7 +122,9 @@ namespace AshenHalls
             ["IBF"] = 45,
             ["PBR"] = 46,
             ["IBG"] = 47,
-            ["DFA"] = 48
+            ["DFA"] = 48,
+            ["RBT"] = 49,
+            ["VRS"] = 50
         };
 
         public static int AbilityIndex(string abilityId)

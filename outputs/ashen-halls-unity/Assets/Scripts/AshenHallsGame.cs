@@ -331,7 +331,9 @@ namespace AshenHalls
         public static IReadOnlyList<CombatCommandEntry> PrimaryCommandsFor(CombatUnit active)
         {
             ActionMode abilityMode = HasMartialAbilities(active) ? ActionMode.Ability : ActionMode.Cast;
-            string abilityLabel = abilityMode == ActionMode.Ability ? "Skills" : "Spells";
+            string abilityLabel = active != null && active.DemonFormTurns > 0
+                ? "Demon Arts"
+                : abilityMode == ActionMode.Ability ? "Skills" : "Spells";
             return new[]
             {
                 new CombatCommandEntry(ActionMode.Move, "Move", "WASD"),
@@ -355,7 +357,7 @@ namespace AshenHalls
             if (unit == null || unit.Summoned) return false;
             string cls = (unit.ClassKey ?? "").ToLowerInvariant();
             if (string.IsNullOrEmpty(cls)) cls = ClassForRole(unit.Role);
-            return cls == "warrior" || cls == "rogue" || cls == "ranger";
+            return cls == "warrior" || cls == "rogue" || cls == "ranger" || cls == "warlock" && unit.DemonFormTurns > 0;
         }
 
         private static string ClassForRole(string role)

@@ -58,12 +58,17 @@ namespace AshenHalls
             {
                 case "charge":
                     return new CombatPowerTargetingProfile(CombatPowerFootprintKind.ChargeLanding, "LAND", "Rush + landing");
+                case "riftpounce":
+                    return new CombatPowerTargetingProfile(CombatPowerFootprintKind.ChargeLanding, "RIFT", "Rift + landing");
                 case "cleave":
                     return new CombatPowerTargetingProfile(CombatPowerFootprintKind.SecondaryStrike, "2ND", "Primary + secondary");
                 case "volley":
                     return new CombatPowerTargetingProfile(CombatPowerFootprintKind.CrossArea, "AREA", "Cross area");
                 case "whirlwind":
+                case "abyssalwhirl":
                     return new CombatPowerTargetingProfile(CombatPowerFootprintKind.SelfArea, "ALL", "Adjacent enemies");
+                case "dreadroar":
+                    return new CombatPowerTargetingProfile(CombatPowerFootprintKind.SelfArea, "DREAD", "Adjacent enemies");
                 case "rally":
                     return new CombatPowerTargetingProfile(CombatPowerFootprintKind.SelfArea, "AURA", "Self + adjacent allies");
                 case "smokebomb":

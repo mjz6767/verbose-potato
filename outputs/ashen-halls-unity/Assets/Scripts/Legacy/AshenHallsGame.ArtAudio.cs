@@ -415,6 +415,14 @@ namespace AshenHalls
             soundClips["castshimmer"] = MakeSound("castshimmer", 760f, 1320f, 0.16f, 0.20f, "chime");
             soundClips["impactlow"] = MakeSound("impactlow", 88f, 46f, 0.22f, 0.34f, "boom");
             soundClips["resonance"] = MakeSound("resonance", 460f, 170f, 0.24f, 0.26f, "sine");
+            soundClips["riftpounce"] = MakeSkillSound("riftpounce", "charge", 118f, 940f, 0.30f, 0.32f);
+            soundClips["riftpounceimpact"] = MakeSkillSound("riftpounceimpact", "charge-impact", 136f, 42f, 0.40f, 0.40f);
+            soundClips["abyssalwhirl"] = MakeSkillSound("abyssalwhirl", "whirlwind", 430f, 116f, 0.42f, 0.31f);
+            soundClips["abyssalwhirlimpact"] = MakeSkillSound("abyssalwhirlimpact", "whirlwind-impact", 780f, 68f, 0.46f, 0.39f);
+            soundClips["soulrend"] = MakeSkillSound("soulrend", "eviscerate", 760f, 110f, 0.32f, 0.32f);
+            soundClips["soulrendimpact"] = MakeSkillSound("soulrendimpact", "eviscerate-impact", 920f, 44f, 0.44f, 0.41f);
+            soundClips["dreadroar"] = MakeSpellSound("dreadroar", "rift", 62f, 420f, 0.54f, 0.34f);
+            soundClips["dreadroarimpact"] = MakeSpellSound("dreadroarimpact", "death", 188f, 38f, 0.58f, 0.42f);
             soundClips["footstone"] = MakeSound("footstone", 126f, 72f, 0.075f, 0.24f, "thud");
             soundClips["footearth"] = MakeSound("footearth", 92f, 58f, 0.085f, 0.22f, "rustle");
             soundClips["footwood"] = MakeSound("footwood", 172f, 104f, 0.075f, 0.22f, "thud");
@@ -2841,7 +2849,8 @@ namespace AshenHalls
             characterCombatAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.CharacterCombatAtlas, 0.20f, "character combat sprites", 0.08f)
                 ?? LoadLatestExternalPngWithAlpha("character-combat-atlas-runtime-", "", 0.20f, "character combat sprites", 0.08f);
             creatureSpriteAtlas = LoadLatestExternalPng("combat-sprite-atlas-runtime-", "") ?? LoadLatestExternalPng("creature-sprite-atlas-runtime-", "creature-sprite-atlas-runtime-v0.50.png");
-            demonSummonAtlas = LoadLatestExternalPngWithAlpha("demon-summon-atlas-runtime-", "", 0.20f, "demon summon sprites");
+            demonSummonAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.DemonSummonAtlas, 0.20f, "demon summon sprites")
+                ?? LoadLatestExternalPngWithAlpha("demon-summon-atlas-runtime-", "", 0.20f, "demon summon sprites");
             combatTerrainAtlas = LoadLatestExternalPng("combat-terrain-atlas-runtime-", "combat-terrain-atlas-runtime-v0.50.1.png");
             koboldCombatTerrainAtlas = LoadLatestExternalPng("kobold-combat-terrain-atlas-runtime-", "");
             koboldRouteAtlas = LoadExternalPng(RuntimeArtManifest.KoboldRouteAtlas);
@@ -3647,16 +3656,19 @@ namespace AshenHalls
                 return new WorldMapArtSpec(exploreWideView ? 0.94f : 1.04f, new Vector2(0.5f, 1f), new Vector2(0f, 0.02f), false);
             }
 
+            if (ExplorationArtRules.IsMidgaardBuilding(type))
+            {
+                return new WorldMapArtSpec(
+                    ExplorationArtRules.MidgaardBuildingSpriteScale(exploreWideView),
+                    new Vector2(0.5f, 1f),
+                    new Vector2(0f, ExplorationArtRules.MidgaardBuildingVerticalOffset(exploreWideView)),
+                    true);
+            }
+
             switch (type)
             {
                 case ObjectType.CityWall:
                     return new WorldMapArtSpec(1.00f, new Vector2(0.5f, 1f), Vector2.zero, false);
-                case ObjectType.Market:
-                case ObjectType.Temple:
-                case ObjectType.Diner:
-                case ObjectType.Tavern:
-                case ObjectType.KingHall:
-                    return new WorldMapArtSpec(exploreWideView ? 1.04f : 1.14f, new Vector2(0.5f, 1f), new Vector2(0f, 0.01f), true);
                 case ObjectType.Fountain:
                 case ObjectType.RecallCircle:
                     return new WorldMapArtSpec(0.86f, new Vector2(0.5f, 0.62f), Vector2.zero, false);

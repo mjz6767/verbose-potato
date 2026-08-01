@@ -600,6 +600,14 @@ SFX: tuple[SfxSpec, ...] = (
     SfxSpec("castshimmer", "magic", 0.34, "A quiet high release shimmer for epic formula casts."),
     SfxSpec("impactlow", "magic", 0.46, "Short low-frequency reinforcement beneath major physical impacts."),
     SfxSpec("resonance", "magic", 0.52, "A compact harmonic echo for battlefield reactions."),
+    SfxSpec("riftpounce", "magic", 0.54, "A compressed rift intake accelerating into a predatory leap."),
+    SfxSpec("riftpounceimpact", "magic", 0.72, "A low landing blow split by a sharp spatial rupture."),
+    SfxSpec("abyssalwhirl", "magic", 0.68, "A rotating abyssal wind with a dark cyclic blade contour."),
+    SfxSpec("abyssalwhirlimpact", "magic", 0.82, "Three circling cuts collapse into a restrained infernal impact."),
+    SfxSpec("soulrend", "magic", 0.62, "An inward spectral pull tightening toward a tearing release."),
+    SfxSpec("soulrendimpact", "magic", 0.86, "Layered spirit fibers tear downward over a hollow body hit."),
+    SfxSpec("dreadroar", "magic", 0.78, "A synthetic demonic throat rises through breath and rift harmonics."),
+    SfxSpec("dreadroarimpact", "magic", 0.96, "A broad concussive roar wave with a deep controlled resonance."),
     SfxSpec("wayfind", "world", 0.54, "Two-note navigation discovery chime."),
     SfxSpec("shrine", "world", 0.92, "Weathered shrine resonance with a long, sparse tail."),
     SfxSpec("encounter", "world", 0.62, "Low warning drum and rising tension scrape."),
@@ -1266,7 +1274,110 @@ def one_shot_reverb(mono: np.ndarray, sample_rate: int, wet: float = 0.16) -> np
     return dry * (1.0 - wet) + result * wet
 
 
+DEMON_ABILITY_SFX = frozenset(
+    {
+        "riftpounce",
+        "riftpounceimpact",
+        "abyssalwhirl",
+        "abyssalwhirlimpact",
+        "soulrend",
+        "soulrendimpact",
+        "dreadroar",
+        "dreadroarimpact",
+    }
+)
+
+
+def demon_ability_sfx(spec: SfxSpec, rng: np.random.Generator) -> np.ndarray:
+    """Synthesize distinct, mix-safe movement and impact identities for demon form."""
+    frames = int(spec.duration * SFX_SAMPLE_RATE)
+    t = np.arange(frames, dtype=np.float64) / SFX_SAMPLE_RATE
+    progress = np.arange(frames, dtype=np.float64) / max(1, frames - 1)
+    phase = rng.uniform(0.0, 2.0 * math.pi)
+    noise = colored_noise(frames, rng, 0.24)
+    low_noise = lowpass(noise, 31)
+    edge_noise = noise - lowpass(noise, 7)
+    signal = np.zeros(frames, dtype=np.float64)
+    cue = spec.cue
+
+    if cue == "riftpounce":
+        travel = np.power(np.sin(progress * math.pi), 0.44)
+        signal += chirp(74.0, 1180.0, spec.duration, SFX_SAMPLE_RATE, 1.65, phase) * travel * 0.31
+        signal += chirp(920.0, 146.0, spec.duration, SFX_SAMPLE_RATE, 0.58, phase * 0.63) * travel * 0.14
+        signal += edge_noise * travel * (0.12 + progress * 0.22)
+        signal += oscillator(46.0, frames, SFX_SAMPLE_RATE, "sine", phase * 0.31) * np.exp(-t * 9.0) * 0.24
+        mix_linear(signal, click(0.12, SFX_SAMPLE_RATE, rng, bright=True), int(spec.duration * 0.72 * SFX_SAMPLE_RATE), 0.24)
+    elif cue == "riftpounceimpact":
+        body = np.exp(-t * 5.2)
+        signal += chirp(710.0, 38.0, spec.duration, SFX_SAMPLE_RATE, 0.54, phase) * body * 0.28
+        signal += low_noise * np.exp(-t * 4.0) * 0.22
+        signal += drum(49.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.94) * 0.78
+        mix_linear(signal, click(0.16, SFX_SAMPLE_RATE, rng, bright=True), int(0.028 * SFX_SAMPLE_RATE), 0.34)
+        mix_linear(signal, bell(116.5, spec.duration - 0.12, SFX_SAMPLE_RATE, rng), int(0.12 * SFX_SAMPLE_RATE), 0.12)
+    elif cue == "abyssalwhirl":
+        rotation = 0.48 + 0.52 * np.power(np.sin(progress * math.pi * 5.0), 2.0)
+        broad = np.power(np.sin(progress * math.pi), 0.42)
+        signal += chirp(430.0, 116.0, spec.duration, SFX_SAMPLE_RATE, 0.88, phase) * broad * rotation * 0.24
+        signal += edge_noise * broad * rotation * 0.34
+        signal += oscillator(58.0, frames, SFX_SAMPLE_RATE, "softsaw", phase * 0.42, 0.11, 5.0) * broad * 0.18
+        signal += chirp(1380.0, 320.0, spec.duration, SFX_SAMPLE_RATE, 1.1, phase * 0.77) * broad * 0.08
+    elif cue == "abyssalwhirlimpact":
+        broad = np.power(1.0 - progress, 0.46)
+        signal += edge_noise * broad * 0.23
+        signal += oscillator(52.0, frames, SFX_SAMPLE_RATE, "softsaw", phase * 0.36) * np.exp(-t * 5.0) * 0.19
+        for index, offset in enumerate((0.00, 0.17, 0.34)):
+            duration = spec.duration - offset
+            cut = chirp(1320.0 - index * 150.0, 76.0 - index * 9.0, duration, SFX_SAMPLE_RATE, 0.62, phase + index)
+            cut *= np.exp(-np.arange(cut.size, dtype=np.float64) / SFX_SAMPLE_RATE * 8.6)
+            mix_linear(signal, cut, int(offset * SFX_SAMPLE_RATE), 0.25 - index * 0.025)
+        mix_linear(signal, drum(46.0, spec.duration - 0.28, SFX_SAMPLE_RATE, rng, 0.86), int(0.28 * SFX_SAMPLE_RATE), 0.58)
+    elif cue == "soulrend":
+        gather = np.power(np.sin(progress * math.pi * 0.78), 0.64)
+        tightening = np.clip(progress / 0.78, 0.0, 1.0)
+        signal += chirp(62.0, 1040.0, spec.duration, SFX_SAMPLE_RATE, 1.82, phase) * gather * 0.25
+        signal += chirp(460.0, 92.0, spec.duration, SFX_SAMPLE_RATE, 0.72, phase * 0.58) * gather * 0.16
+        signal += edge_noise * gather * (0.08 + tightening * 0.27)
+        signal += oscillator(43.0, frames, SFX_SAMPLE_RATE, "sine", phase * 0.27) * gather * (1.0 - progress) * 0.18
+        mix_linear(signal, click(0.10, SFX_SAMPLE_RATE, rng, bright=False), int(spec.duration * 0.79 * SFX_SAMPLE_RATE), 0.19)
+    elif cue == "soulrendimpact":
+        dying = np.exp(-t * 3.6)
+        signal += chirp(1020.0, 42.0, spec.duration, SFX_SAMPLE_RATE, 0.72, phase) * dying * 0.26
+        signal += chirp(630.0, 27.0, spec.duration, SFX_SAMPLE_RATE, 0.48, phase * 0.69) * dying * 0.17
+        tear_gate = np.minimum(1.0, t / 0.018) * np.exp(-t * 6.8)
+        signal += edge_noise * tear_gate * 0.38 + low_noise * dying * 0.15
+        signal += drum(57.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.62) * 0.48
+        mix_linear(signal, bell(174.6, spec.duration - 0.16, SFX_SAMPLE_RATE, rng), int(0.16 * SFX_SAMPLE_RATE), 0.10)
+    elif cue == "dreadroar":
+        rise = np.power(np.sin(progress * math.pi * 0.72), 0.68)
+        throat = oscillator(61.0, frames, SFX_SAMPLE_RATE, "softsaw", phase, 0.19, 27.0)
+        formant_a = oscillator(97.0, frames, SFX_SAMPLE_RATE, "sine", phase * 0.47, 0.08, 9.0)
+        formant_b = oscillator(151.0, frames, SFX_SAMPLE_RATE, "sine", phase * 0.73, 0.05, 13.0)
+        breath = low_noise * 0.24 + edge_noise * 0.12
+        signal += (throat * 0.31 + formant_a * 0.18 + formant_b * 0.10 + breath) * rise
+        signal += chirp(48.0, 88.0, spec.duration, SFX_SAMPLE_RATE, 1.25, phase * 0.22) * rise * 0.17
+    elif cue == "dreadroarimpact":
+        shock = np.exp(-t * 3.5)
+        throat = oscillator(52.0, frames, SFX_SAMPLE_RATE, "softsaw", phase, 0.15, 22.0)
+        formants = (
+            oscillator(79.0, frames, SFX_SAMPLE_RATE, "sine", phase * 0.51) * 0.18
+            + oscillator(121.0, frames, SFX_SAMPLE_RATE, "sine", phase * 0.83) * 0.11
+        )
+        signal += (throat * 0.31 + formants + low_noise * 0.25 + edge_noise * 0.13) * shock
+        signal += chirp(240.0, 34.0, spec.duration, SFX_SAMPLE_RATE, 0.68, phase * 0.39) * shock * 0.22
+        signal += drum(42.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.92) * 0.68
+        mix_linear(signal, bell(73.4, spec.duration - 0.20, SFX_SAMPLE_RATE, rng), int(0.20 * SFX_SAMPLE_RATE), 0.13)
+    else:
+        raise ValueError(f"Unhandled demon ability cue: {cue}")
+
+    attack = 0.012 if cue in {"riftpounce", "abyssalwhirl", "soulrend", "dreadroar"} else 0.002
+    shaped = signal * envelope(frames, SFX_SAMPLE_RATE, attack, min(0.24, spec.duration * 0.30), sustain=0.78)
+    return one_shot_reverb(shaped, SFX_SAMPLE_RATE, 0.17 if cue.endswith("impact") else 0.13)
+
+
 def magical_sfx(spec: SfxSpec, rng: np.random.Generator) -> np.ndarray:
+    if spec.cue in DEMON_ABILITY_SFX:
+        return demon_ability_sfx(spec, rng)
+
     frames = int(spec.duration * SFX_SAMPLE_RATE)
     t = np.arange(frames, dtype=np.float64) / SFX_SAMPLE_RATE
     profiles = {

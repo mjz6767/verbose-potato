@@ -2,6 +2,16 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.0.0 - The Abyss Answers
+
+- Turned Abyssal Ascendance into a complete temporary combat form. A transformed warlock now trades the normal Spellbook for a dedicated Demon Arts deck: Rift Pounce crosses terrain to land beside a target, Abyssal Whirl borrows Whirlwind's all-adjacent fury as death damage, Soul Rend converts half its actual damage into healing, and Dread Roar breaks nearby guards before testing their mind resistance against a hex.
+- Gave the form its own combat identity instead of a sprite-only stat buff. Basic attacks become melee abyssal-claw strikes driven by Hex skill, the promised flat death-attack bonus now works independently of physical-only Enrage, demon mitigation remains active, creature audio changes to the demon family, and the advertised duration now supplies four complete future actions before the normal Spellbook returns.
+- Filled two Pact progression gaps. Rift Bolt is an economical level-1 direct death attack available in the sewer slice; Rift Step is a level-4 short-range teleport with its own rift travel feedback.
+- Expanded the Skills atlas from 4 by 5 to 4 by 6 and the signature Spellbook atlas from 7 by 7 to 7 by 8 without moving or repainting any existing cell. The six new symbols use distinct horn, claw, soul, roar, bolt, and portal silhouettes authored for real card and combat-command sizes; unused signature cells remain transparent expansion space.
+- Added tier-3 staged visuals for every Demon Art, including distinct Rift, Slash, Void, and Ascendance motifs, ritual anticipation, layered impact art, movement delivery, and sequenced area hits. Eight original deterministic sound effects give all four powers separate cast and impact identities while preserving mix headroom.
+- Made the combat command and book transition explicit: the warlock's bottom command reads `Demon Arts` only while transformed, the book exposes form duration and death-power traits, stale demon selections are cleared on expiry, and normal pact casting is restored automatically.
+- Integrated the parallel Midgaard world/NPC pass into the same release. Major civic and shop buildings now use dedicated scale, padding, and vertical placement at both map zooms, while Kate, Borin, and Tessa present a clear order review with the exact price and remaining gold before an explicit confirmation can spend currency. Tessa delivers the exact weapon shown in the review.
+
 ## v1.99.0 - Commanding Presence
 
 - Rebuilt the bottom combat-command art as an exact transparent 5 by 4, 1280 by 1024 atlas with 256-pixel cells and safe gutters. Move, Attack, Cast, Guard, Elixir, End Turn, and Skills now use bold unframed emblems designed to remain distinct at actual HUD size; the remaining cells preserve a documented semantic expansion set.

@@ -57,7 +57,9 @@ namespace AshenHalls
             new FormulaDef { Code = "IBF", Name = "Summon Lesser Demon", Hint = "call a tougher clawed ally", School = "pact", Skill = "hex", Mana = 12, Range = 3, Target = "tile", Effect = "summon", SummonRole = "lesserdemon", DamageType = "death", Power = 10, Duration = 5, Arc = true },
             new FormulaDef { Code = "PBR", Name = "Pact Brand", Hint = "brand nearby enemies", School = "pact", Skill = "hex", Mana = 9, Range = 5, Target = "enemy", Effect = "status", Status = "hex", DamageType = "death", Duration = 3, Splash = true, Arc = true },
             new FormulaDef { Code = "IBG", Name = "Summon Greater Demon", Hint = "call a brutal elder demon", School = "pact", Skill = "hex", Mana = 17, Range = 3, Target = "tile", Effect = "summon", SummonRole = "greaterdemon", DamageType = "death", Power = 15, Duration = 4, Arc = true },
-            new FormulaDef { Code = "DFA", Name = "Abyssal Ascendance", Hint = "take a greater demon's shape for a few brutal turns", School = "pact", Skill = "hex", Mana = 15, Range = 0, Target = "self", Effect = "transform", DamageType = "death", Power = 4, Duration = 4, Arc = true }
+            new FormulaDef { Code = "DFA", Name = "Abyssal Ascendance", Hint = "take a greater demon's shape for a few brutal turns", School = "pact", Skill = "hex", Mana = 15, Range = 0, Target = "self", Effect = "transform", DamageType = "death", Power = 4, Duration = 4, Arc = true },
+            new FormulaDef { Code = "RBT", Name = "Rift Bolt", Hint = "tear a compact death bolt through the rift", School = "pact", Skill = "hex", Mana = 4, Range = 5, Target = "enemy", Effect = "damage", DamageType = "death", Power = 8 },
+            new FormulaDef { Code = "VRS", Name = "Rift Step", Hint = "cross between two linked rifts", School = "pact", Skill = "hex", Mana = 6, Range = 5, Target = "tile", Effect = "teleport", DamageType = "death", Arc = true }
         };
 
         public static int RequiredLevel(FormulaDef formula)
@@ -76,6 +78,7 @@ namespace AshenHalls
                 case "WBK":
                 case "RKW":
                 case "IBD":
+                case "RBT":
                     return 1;
                 case "GBX":
                 case "SGW":
@@ -101,6 +104,7 @@ namespace AshenHalls
                 case "CLT":
                     return 3;
                 case "VST":
+                case "VRS":
                     return 4;
                 case "IBG":
                     return 5;

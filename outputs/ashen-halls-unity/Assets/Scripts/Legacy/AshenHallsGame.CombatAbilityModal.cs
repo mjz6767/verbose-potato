@@ -98,6 +98,7 @@ namespace AshenHalls
                 hash = unchecked(hash * 31 + active.Stunned);
                 hash = unchecked(hash * 31 + active.Sleeping);
                 hash = unchecked(hash * 31 + active.Webbed);
+                hash = unchecked(hash * 31 + active.DemonFormTurns);
                 hash = unchecked(hash * 31 + (active.ClassKey ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (active.Spell ?? "").GetHashCode());
             }
@@ -151,15 +152,18 @@ namespace AshenHalls
             if (spellbook) spellbookSelectedCode = selection;
             else abilitySelectedId = selection;
 
+            bool demonArts = !spellbook && MartialClassKey(active) == "demon";
             string discipline = spellbook
                 ? BookTitleCase(SpellCraftLabel(active?.Spell))
-                : DisplayClass(active?.ClassKey);
+                : demonArts ? "Demon Form" : DisplayClass(active?.ClassKey);
             string actor = active == null
                 ? "No active combatant"
                 : $"{active.Name}  •  L{active.Level}";
             string resource = spellbook && active != null
                 ? $"MP  {active.Mana} / {active.MaxMana}"
-                : state?.Combat == null ? "" : $"MOVE  {state.Combat.MovePoints}";
+                : demonArts && active != null
+                    ? $"FORM  {DisplayedDemonFormTurns(active)}  â€¢  MOVE  {state?.Combat?.MovePoints ?? 0}"
+                    : state?.Combat == null ? "" : $"MOVE  {state.Combat.MovePoints}";
             string actionState = CombatAbilityBookActionState(active, playerTurn);
             string trait = spellbook
                 ? SpellbookTraitLine(active)
@@ -169,7 +173,7 @@ namespace AshenHalls
             {
                 Visible = state != null && state.Mode == GameMode.Combat && CurrentUiOverlay() == UiOverlay.AbilityPicker,
                 Spellbook = spellbook,
-                Title = spellbook ? $"{discipline} Spellbook" : $"{discipline} Skillbook",
+                Title = spellbook ? $"{discipline} Spellbook" : demonArts ? "Demon Arts" : $"{discipline} Skillbook",
                 Header = spellbook ? SpellbookModalHeader(active, playerTurn) : AbilityHeaderLine(active),
                 Actor = actor,
                 Resource = resource,
@@ -433,6 +437,10 @@ namespace AshenHalls
                     ? $"STEALTH {active.Stealthed}  •  opening attacks empowered"
                     : "";
             }
+            if (cls == "demon")
+            {
+                return $"ABYSSAL FORM {DisplayedDemonFormTurns(active)}  â€¢  death attacks empowered  â€¢  incoming damage reduced";
+            }
             return "";
         }
 
@@ -515,6 +523,7 @@ namespace AshenHalls
             if (ability == null) return "No legal target is available.";
             if (ability.Id == "execute") return "No enemy at 35% HP or lower is currently within reach.";
             if (ability.Id == "charge") return "No enemy currently has an open charge lane.";
+            if (ability.Id == "riftpounce") return "No enemy currently has an open rift-landing tile.";
             if (IsSightLineAbility(ability.Id)) return "No enemy is currently in range with a clear sight line.";
             return "No adjacent enemy is available. Reposition before using this skill.";
         }
@@ -580,6 +589,7 @@ namespace AshenHalls
                 case "warrior": view.AccentHex = "d7a84e"; break;
                 case "rogue": view.AccentHex = "9d74c9"; break;
                 case "ranger": view.AccentHex = "58b7a5"; break;
+                case "demon": view.AccentHex = "c6576d"; break;
                 default: view.AccentHex = "b7aa90"; break;
             }
 
