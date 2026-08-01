@@ -12,6 +12,11 @@ namespace AshenHalls
         public const int AbilityAtlasHeight = ExpandedAbilityAtlasRows * AbilityAtlasCellSize;
         public const int SignatureSpellAtlasColumns = 7;
         public const int SignatureSpellAtlasRows = 7;
+        public const int CombatCommandAtlasColumns = 5;
+        public const int CombatCommandAtlasRows = 4;
+        public const int CombatCommandAtlasCellSize = 256;
+        public const int CombatCommandAtlasWidth = CombatCommandAtlasColumns * CombatCommandAtlasCellSize;
+        public const int CombatCommandAtlasHeight = CombatCommandAtlasRows * CombatCommandAtlasCellSize;
         public const int BookStateAtlasColumns = 4;
         public const int BookStateAtlasRows = 3;
         public const int BookStateAtlasCellSize = 64;
@@ -30,6 +35,14 @@ namespace AshenHalls
         public const int BookStateReachIndex = 9;
         public const int BookStateTargetIndex = 10;
         public const int BookStatePreviewIndex = 11;
+
+        public const int CombatCommandMoveIndex = 0;
+        public const int CombatCommandAttackIndex = 1;
+        public const int CombatCommandCastIndex = 2;
+        public const int CombatCommandGuardIndex = 3;
+        public const int CombatCommandElixirIndex = 4;
+        public const int CombatCommandEndTurnIndex = 5;
+        public const int CombatCommandSkillsIndex = 7;
 
         private static readonly Dictionary<string, int> abilityIndices = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
         {
@@ -131,6 +144,11 @@ namespace AshenHalls
         public static bool IsBookStateAtlasDimensions(int width, int height)
         {
             return width == BookStateAtlasWidth && height == BookStateAtlasHeight;
+        }
+
+        public static bool IsCombatCommandAtlasDimensions(int width, int height)
+        {
+            return width == CombatCommandAtlasWidth && height == CombatCommandAtlasHeight;
         }
     }
 }

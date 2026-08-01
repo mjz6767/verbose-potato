@@ -2827,7 +2827,12 @@ namespace AshenHalls
                 ?? LoadLatestExternalPng("splash-title-reference-", "splash-title-reference-v0.27.png");
             tavernUiAtlas = LoadLatestExternalPng("tavern-ui-atlas-runtime-", "tavern-ui-atlas-runtime-v0.49.png");
             inventoryConsumableAtlas = LoadLatestExternalPng("inventory-consumable-atlas-runtime-", "inventory-consumable-atlas-runtime-v0.50.png");
-            combatCommandIconAtlas = LoadLatestExternalPng("combat-command-icon-atlas-runtime-", "combat-command-icon-atlas-runtime-v0.50.png");
+            combatCommandIconAtlas = LoadApprovedExternalPngWithAlpha(
+                    RuntimeArtManifest.CombatCommandIconAtlas,
+                    0.08f,
+                    "combat command icons",
+                    0.08f)
+                ?? LoadExternalPng("combat-command-icon-atlas-runtime-v0.61.png");
             abilityIconAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.AbilityIconAtlas, 0.20f, "ability icons", 0.10f)
                 ?? LoadLatestExternalPngWithAlpha("ability-icon-atlas-runtime-", "", 0.20f, "ability icons", 0.10f);
             rangerAbilityEffectAtlas = LoadLatestExternalPng("ranger-ability-effect-atlas-runtime-", "");

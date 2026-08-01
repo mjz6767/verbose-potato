@@ -18,6 +18,19 @@ Ash & Brimstone uses AI vision only as an optional development-time second revie
 
 The script does not call a model, use the network, or make a model opinion part of its exit status.
 
+## v1.99 Commanding-Presence Advisory Review
+
+The source candidate has six disposable development-player captures under `QA/v1.99.0-command-art-dev`: combat overview at 1280x720 and 1920x1080, legal Attack at 1280x720, armed Fireball at 1280x720, Spellbook targeting at 1280x720, and ordinary Skillbook selection at 1920x1080. All six player processes exit successfully, their logs contain no error or exception marker, and local visual inspection confirms:
+
+- the rebuilt command emblems remain distinct at both supported review resolutions;
+- keycaps clear the icon frames and labels remain untruncated;
+- no-target Attack stays muted while legal Attack receives committed gold;
+- the armed Cast tile names Fireball and uses Fireball art;
+- ordinary book selection is teal while targeting alone uses strong gold; and
+- the larger detail hero, terrain-art scaling, stat chips, notes, and primary action fit without clipping.
+
+This set is advisory because it uses a disposable player with the freshly compiled candidate assembly. It is not a substitute for Unity RuleSmoke, RuntimeBoot, the focused combat-UI suite, the Windows build/package, clean-extracted boot, or an equivalent packaged-player capture matrix; those v1.99 gates remain blocked until the local Unity Editor license is restored.
+
 ## v1.98 One-Intent Power-Book Matrix
 
 The v1.98 packet lives under `QA/v1.98.0-one-intent` and binds direct packaged-player captures to the typed state emitted by `-ashen-book-state`. The required set covers committed Selection, passive Preview, and armed Targeting in both books, then distributes Locked, Low Resource, No Target, Action Used, Disabled, and Blocked across the Spellbook and Skillbook at 1280x720 and 1920x1080.

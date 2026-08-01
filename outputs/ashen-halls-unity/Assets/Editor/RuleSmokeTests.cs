@@ -316,6 +316,28 @@ namespace AshenHalls.Editor
             AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1448, 1086), "legacy irregular ability atlas dimensions are rejected");
             AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 512), "legacy 4x2 ability atlas dimensions are rejected");
 
+            AssertEqual(5, CombatIconCatalog.CombatCommandAtlasColumns, "combat command atlas columns");
+            AssertEqual(4, CombatIconCatalog.CombatCommandAtlasRows, "combat command atlas rows");
+            AssertEqual(256, CombatIconCatalog.CombatCommandAtlasCellSize, "combat command atlas cell size");
+            AssertEqual(1280, CombatIconCatalog.CombatCommandAtlasWidth, "combat command atlas width");
+            AssertEqual(1024, CombatIconCatalog.CombatCommandAtlasHeight, "combat command atlas height");
+            AssertEqual(true, CombatIconCatalog.IsCombatCommandAtlasDimensions(1280, 1024), "exact combat command atlas dimensions are accepted");
+            AssertEqual(false, CombatIconCatalog.IsCombatCommandAtlasDimensions(1448, 1086), "irregular v0.73 combat command atlas dimensions are rejected");
+            AssertEqual(false, CombatIconCatalog.IsCombatCommandAtlasDimensions(1024, 1280), "transposed combat command atlas dimensions are rejected");
+            AssertEqual(
+                "0,1,2,7,3,4,5",
+                string.Join(",", new[]
+                {
+                    CombatIconCatalog.CombatCommandMoveIndex,
+                    CombatIconCatalog.CombatCommandAttackIndex,
+                    CombatIconCatalog.CombatCommandCastIndex,
+                    CombatIconCatalog.CombatCommandSkillsIndex,
+                    CombatIconCatalog.CombatCommandGuardIndex,
+                    CombatIconCatalog.CombatCommandElixirIndex,
+                    CombatIconCatalog.CombatCommandEndTurnIndex
+                }),
+                "combat command semantics preserve the live row-major contract");
+
             AssertEqual(4, CombatIconCatalog.BookStateAtlasColumns, "power-book state atlas columns");
             AssertEqual(3, CombatIconCatalog.BookStateAtlasRows, "power-book state atlas rows");
             AssertEqual(64, CombatIconCatalog.BookStateAtlasCellSize, "power-book state atlas cell size");
@@ -373,6 +395,7 @@ namespace AshenHalls.Editor
             Texture2D spell = null;
             Texture2D lightning = null;
             Texture2D powerBookState = null;
+            Texture2D combatCommand = null;
             Texture2D magic = null;
             Texture2D effects = null;
             Texture2D epicEffects = null;
@@ -382,6 +405,7 @@ namespace AshenHalls.Editor
                 spell = LoadApprovedRuntimeAtlas(RuntimeArtManifest.SignatureSpellIconAtlas);
                 lightning = LoadApprovedRuntimeAtlas(RuntimeArtManifest.LightningSpellIconAtlas);
                 powerBookState = LoadApprovedRuntimeAtlas(RuntimeArtManifest.PowerBookStateIconAtlas);
+                combatCommand = LoadApprovedRuntimeAtlas(RuntimeArtManifest.CombatCommandIconAtlas);
                 magic = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MagicUiAtlas);
                 effects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.SpellAnimationAtlas);
                 epicEffects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.EpicSpellEffectsAtlas);
@@ -392,6 +416,10 @@ namespace AshenHalls.Editor
                     new Vector2Int(CombatIconCatalog.BookStateAtlasWidth, CombatIconCatalog.BookStateAtlasHeight),
                     new Vector2Int(powerBookState.width, powerBookState.height),
                     "approved power-book state atlas dimensions");
+                AssertEqual(
+                    new Vector2Int(CombatIconCatalog.CombatCommandAtlasWidth, CombatIconCatalog.CombatCommandAtlasHeight),
+                    new Vector2Int(combatCommand.width, combatCommand.height),
+                    "approved combat command atlas dimensions");
                 AssertEqual(new Vector2Int(1024, 1024), new Vector2Int(magic.width, magic.height), "approved magic UI atlas dimensions");
                 AssertEqual(new Vector2Int(1276, 1276), new Vector2Int(effects.width, effects.height), "approved spell animation atlas dimensions");
                 AssertEqual(new Vector2Int(1254, 1254), new Vector2Int(epicEffects.width, epicEffects.height), "approved epic spell effects atlas dimensions");
@@ -414,6 +442,24 @@ namespace AshenHalls.Editor
                     0.90f,
                     "approved power-book state icon");
                 AssertAtlasCellCoverage(magic, 4, 4, Enumerable.Range(0, 16), 0.10f, 0.90f, "approved magic UI icon");
+                int[] commandCells =
+                {
+                    CombatIconCatalog.CombatCommandMoveIndex,
+                    CombatIconCatalog.CombatCommandAttackIndex,
+                    CombatIconCatalog.CombatCommandCastIndex,
+                    CombatIconCatalog.CombatCommandGuardIndex,
+                    CombatIconCatalog.CombatCommandElixirIndex,
+                    CombatIconCatalog.CombatCommandEndTurnIndex,
+                    CombatIconCatalog.CombatCommandSkillsIndex
+                };
+                AssertAtlasCellCoverage(
+                    combatCommand,
+                    CombatIconCatalog.CombatCommandAtlasColumns,
+                    CombatIconCatalog.CombatCommandAtlasRows,
+                    commandCells,
+                    0.08f,
+                    0.90f,
+                    "approved combat command icon");
                 AssertAtlasCellCoverage(effects, 4, 4, Enumerable.Range(0, 16), 0.02f, 0.92f, "approved spell animation");
                 AssertAtlasCellSafeGutter(ability, 4, 5, Enumerable.Range(0, 20), 12, 8, 32, "approved ability icon");
                 AssertAtlasCellSafeGutter(
@@ -436,6 +482,15 @@ namespace AshenHalls.Editor
                     0,
                     "approved power-book state icon");
                 AssertAtlasCellSafeGutter(magic, 4, 4, Enumerable.Range(0, 16), 12, 8, 32, "approved magic UI icon");
+                AssertAtlasCellSafeGutter(
+                    combatCommand,
+                    CombatIconCatalog.CombatCommandAtlasColumns,
+                    CombatIconCatalog.CombatCommandAtlasRows,
+                    commandCells,
+                    12,
+                    8,
+                    32,
+                    "approved combat command icon");
             }
             finally
             {
@@ -443,6 +498,7 @@ namespace AshenHalls.Editor
                 if (spell != null) UnityEngine.Object.DestroyImmediate(spell);
                 if (lightning != null) UnityEngine.Object.DestroyImmediate(lightning);
                 if (powerBookState != null) UnityEngine.Object.DestroyImmediate(powerBookState);
+                if (combatCommand != null) UnityEngine.Object.DestroyImmediate(combatCommand);
                 if (magic != null) UnityEngine.Object.DestroyImmediate(magic);
                 if (effects != null) UnityEngine.Object.DestroyImmediate(effects);
                 if (epicEffects != null) UnityEngine.Object.DestroyImmediate(epicEffects);
@@ -1567,12 +1623,13 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v1.98.0", VersionInfo.PackageVersion, "package version matches the v1.98 release");
+            AssertEqual("v1.99.0", VersionInfo.PackageVersion, "package version matches the v1.99 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v1.97 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v1.97 signature spell atlas pin");
             AssertEqual("lightning-spell-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.LightningSpellIconAtlas, "approved v1.97 lightning spell atlas pin");
             AssertEqual("power-book-state-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.PowerBookStateIconAtlas, "approved v1.97 power-book state atlas pin");
+            AssertEqual("combat-command-icon-atlas-runtime-v1.99.0.png", RuntimeArtManifest.CombatCommandIconAtlas, "approved v1.99 combat command atlas pin");
             AssertEqual("magic-ui-atlas-runtime-v1.31.0.png", RuntimeArtManifest.MagicUiAtlas, "approved v1.31 magic UI atlas pin");
             AssertEqual("spell-animation-atlas-runtime-v1.49.0.png", RuntimeArtManifest.SpellAnimationAtlas, "approved v1.49 spell animation atlas pin");
             AssertEqual("combat-spell-effects-atlas-runtime-v0.73.png", RuntimeArtManifest.EpicSpellEffectsAtlas, "approved epic spell effects atlas pin");
@@ -1607,10 +1664,10 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v1.97.0.png|signature-spell-icon-atlas-runtime-v1.97.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v1.97.0.png|signature-spell-icon-atlas-runtime-v1.97.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(37, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(38, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -2686,23 +2743,26 @@ namespace AshenHalls.Editor
             {
                 CombatHudGeometry geometry = CombatHudScreenLayout.Calculate(size.x, size.y);
                 AssertEqual(true, geometry.Fits(size.x, size.y), $"combat HUD layout fits {size.x}x{size.y}");
-                AssertEqual(true, geometry.Command.height >= 100f, $"combat command deck has room for prompt and icon row at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Command.height >= 120f, $"combat command deck has room for a responsive icon-first row at {size.x}x{size.y}");
                 AssertEqual(true, geometry.Side.width <= size.x * 0.28f, $"combat rail leaves the battlefield at least seventy-two percent of the frame at {size.x}x{size.y}");
                 AssertEqual(true, geometry.Command.width >= size.x * 0.60f, $"combat command deck retains a useful tactical width at {size.x}x{size.y}");
                 foreach (bool promoteEndTurn in new[] { false, true })
                 {
-                    Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, promoteEndTurn);
+                    Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, promoteEndTurn);
                     AssertEqual(6, buttons.Length, "combat HUD keeps all six combat commands visible");
                     foreach (Rect button in buttons)
                     {
                         AssertEqual(true, button.xMin >= 0f && button.yMin >= 0f && button.xMax <= geometry.Command.width && button.yMax <= geometry.Command.height, $"combat command button fits {size.x}x{size.y} promoted={promoteEndTurn}");
+                        float iconSize = Mathf.Clamp(button.height - 24f, 56f, 72f);
+                        AssertEqual(true, iconSize >= 56f, $"combat command art remains readable at {size.x}x{size.y}");
+                        AssertEqual(true, 20f + iconSize <= button.height - 4f, $"combat command art clears its keycap band and state rail at {size.x}x{size.y}");
                     }
                     AssertEqual(true, buttons[3].xMin - buttons[2].xMax > buttons[2].xMin - buttons[1].xMax, $"targeted and instant command groups stay visually separated at {size.x}x{size.y}");
                     AssertEqual(promoteEndTurn, buttons[5].width > buttons[4].width, $"end turn width promotion is intentional at {size.x}x{size.y}");
                 }
                 foreach (int commandCount in new[] { 0, 1, 4, 6 })
                 {
-                    Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, commandCount, false);
+                    Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, commandCount, false);
                     AssertEqual(commandCount, buttons.Length, $"combat command geometry follows the rendered model count ({commandCount})");
                     foreach (Rect button in buttons)
                     {

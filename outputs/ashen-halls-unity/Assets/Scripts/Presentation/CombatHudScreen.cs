@@ -39,6 +39,8 @@ namespace AshenHalls
         public Rect IconSource;
         public bool Enabled;
         public bool Selected;
+        public bool Armed;
+        public bool Blocked;
         public bool Promoted;
     }
 
@@ -124,7 +126,7 @@ namespace AshenHalls
                 && FitsRect(Command, width, height)
                 && Top.yMax <= Side.yMin
                 && Side.yMax <= height - 8f
-                && Command.yMin >= height - 124f;
+                && Command.yMin >= height - 158f;
         }
 
         private static bool FitsRect(Rect rect, float width, float height)
@@ -192,16 +194,32 @@ namespace AshenHalls
             float sideW = SideRailWidth(width);
             Rect top = new Rect(12f, 10f, width - 24f, 58f);
             Rect side = new Rect(width - sideW - 12f, 78f, sideW, Mathf.Max(280f, height - 90f));
-            Rect command = new Rect(12f, height - 116f, side.x - 24f, 104f);
+            float commandHeight = CommandPanelHeight(height);
+            Rect command = new Rect(12f, height - commandHeight - 12f, side.x - 24f, commandHeight);
             return new CombatHudGeometry(top, side, command);
+        }
+
+        public static float CommandPanelHeight(float screenHeight)
+        {
+            return Mathf.Clamp(screenHeight * 0.13f, 120f, 142f);
         }
 
         public static Rect[] CommandButtons(float width, bool promoteEndTurn)
         {
-            return CommandButtons(width, 6, promoteEndTurn);
+            return CommandButtons(width, 104f, 6, promoteEndTurn);
         }
 
         public static Rect[] CommandButtons(float width, int commandCount, bool promoteEndTurn)
+        {
+            return CommandButtons(width, 104f, commandCount, promoteEndTurn);
+        }
+
+        public static Rect[] CommandButtons(float width, float panelHeight, bool promoteEndTurn)
+        {
+            return CommandButtons(width, panelHeight, 6, promoteEndTurn);
+        }
+
+        public static Rect[] CommandButtons(float width, float panelHeight, int commandCount, bool promoteEndTurn)
         {
             const float padding = 8f;
             const float gap = 7f;
@@ -214,8 +232,8 @@ namespace AshenHalls
             int ordinaryGaps = commandCount - 1 - (groupBreakIndex >= 0 ? 1 : 0);
             float gapsWidth = gap * ordinaryGaps + (groupBreakIndex >= 0 ? groupGap : 0f);
             float buttonW = Mathf.Max(72f, (width - padding * 2f - endTurnBonus - gapsWidth) / commandCount);
-            float buttonY = 28f;
-            float buttonH = 66f;
+            float buttonY = 30f;
+            float buttonH = Mathf.Max(66f, panelHeight - buttonY - 10f);
             Rect[] rects = new Rect[commandCount];
             float x = padding;
             for (int i = 0; i < commandCount; i++)
@@ -571,6 +589,56 @@ namespace AshenHalls
         public bool ActionReadyForTest => displayedActionReady;
         public int CommandCapacityForTest => commandRows.Count;
 
+        public bool CommandInputSelectableForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null
+                && candidate.Mode == mode
+                && candidate.Root != null
+                && candidate.Root.gameObject.activeInHierarchy);
+            return row?.Button != null && row.Button.interactable;
+        }
+
+        public Color CommandSelectedMultiplierForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            return row?.Button == null ? Color.clear : row.Button.colors.selectedColor;
+        }
+
+        public float CommandIconSizeForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            return row?.IconWell == null ? 0f : Mathf.Min(row.IconWell.rectTransform.rect.width, row.IconWell.rectTransform.rect.height);
+        }
+
+        public Texture2D CommandSpriteTextureForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            return row?.Icon?.sprite == null ? null : row.Icon.sprite.texture;
+        }
+
+        public string CommandLabelForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            return row?.Label == null ? "" : row.Label.text;
+        }
+
+        public string CommandSubLabelForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            return row?.SubLabel == null ? "" : row.SubLabel.text;
+        }
+
+        public bool CommandUsesBlockedStyleForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            Image fill = row?.Button?.targetGraphic as Image;
+            return row != null
+                && fill != null
+                && fill.color == Hex("151b20", 0.96f)
+                && row.Label.color == Hex("9aa0a1", 0.88f)
+                && row.SubLabel.color == Hex("e39a82", 1f);
+        }
+
         public ActionMode? FocusedCommandForTest
         {
             get
@@ -694,6 +762,40 @@ namespace AshenHalls
             IReadOnlyList<CombatHudCommandView> commands = view.Commands ?? Array.Empty<CombatHudCommandView>();
             EnsureCommandRowCount(commands.Count);
             expectedCommandCount = commands.Count;
+            bool commandContextAvailable = view.PlayerTurn;
+            if (commandContextAvailable)
+            {
+                commandContextAvailable = false;
+                for (int i = 0; i < commands.Count; i++)
+                {
+                    if (commands[i] != null && commands[i].Enabled)
+                    {
+                        commandContextAvailable = true;
+                        break;
+                    }
+                }
+            }
+            if (!commandContextAvailable)
+            {
+                focusedCommandIndex = -1;
+                hoveredCommandIndex = -1;
+                pointerOwnsCommandContext = false;
+                GameObject selectedObject = EventSystem.current == null
+                    ? null
+                    : EventSystem.current.currentSelectedGameObject;
+                if (selectedObject != null)
+                {
+                    for (int i = 0; i < commandRows.Count; i++)
+                    {
+                        if (commandRows[i]?.Button != null
+                            && commandRows[i].Button.gameObject == selectedObject)
+                        {
+                            EventSystem.current.SetSelectedGameObject(null);
+                            break;
+                        }
+                    }
+                }
+            }
             bool promoteEndTurn = false;
             for (int i = 0; i < commands.Count; i++)
             {
@@ -762,7 +864,10 @@ namespace AshenHalls
                 if (!visible) continue;
                 CombatHudCommandView command = commands[i];
                 commandRows[i].Mode = command.Mode;
-                commandRows[i].Button.interactable = command.Enabled;
+                // Disabled commands remain focusable so keyboard/controller players can
+                // inspect the exact reason and submit them for the same blocked feedback
+                // used by mouse input. The gameplay binding remains the authority.
+                commandRows[i].Button.interactable = true;
                 commandRows[i].Label.text = command.Promoted ? (command.Label ?? "").ToUpperInvariant() : command.Label ?? "";
                 commandRows[i].Hotkey.text = command.Hotkey ?? "";
                 commandRows[i].SubLabel.text = command.Promoted
@@ -773,26 +878,59 @@ namespace AshenHalls
                 commandRows[i].Icon.enabled = icon != null;
                 commandRows[i].IconFallback.gameObject.SetActive(icon == null);
                 commandRows[i].IconFallback.text = CommandFallbackGlyph(command.Mode);
-                commandRows[i].Icon.color = Color.white.WithAlpha(command.Enabled ? 0.98f : 0.34f);
-                commandRows[i].IconWell.color = command.Promoted ? Hex("181107", 0.98f) : command.Selected ? Hex("0b1718", 0.98f) : Hex("080b0d", 0.96f);
-                commandRows[i].IconOutline.effectColor = command.Promoted ? Hex("d7a84e", 0.92f) : command.Selected ? Hex("58b7a5", 0.88f) : Hex("3c4544", command.Enabled ? 0.72f : 0.34f);
-                commandRows[i].HotkeyBackground.color = command.Promoted ? Hex("d7a84e", 0.92f) : command.Selected ? Hex("58b7a5", 0.86f) : Hex("263035", command.Enabled ? 0.92f : 0.48f);
-                commandRows[i].Hotkey.color = command.Promoted || command.Selected ? Hex("080b0d", 1f) : command.Enabled ? Hex("f3ead7", 1f) : Hex("777c7c", 0.82f);
-                commandRows[i].Label.color = command.Enabled ? Hex("f3ead7", 1f) : Hex("777c7c", 0.74f);
-                commandRows[i].SubLabel.color = command.Enabled ? command.Promoted ? Hex("d7a84e", 1f) : Hex("b7aa90", 1f) : Hex("777c7c", 0.72f);
-                commandRows[i].AccentRail.gameObject.SetActive(command.Promoted || command.Selected);
-                commandRows[i].AccentRail.color = command.Promoted ? Hex("d7a84e", 1f) : Hex("58b7a5", 1f);
+                bool available = command.Enabled && !command.Blocked;
+                commandRows[i].Icon.color = Color.white.WithAlpha(available ? 0.98f : 0.34f);
+                bool focused = focusedCommandIndex == i;
+                Color accent = command.Promoted || command.Armed
+                    ? Hex("d7a84e", 1f)
+                    : CommandAccent(command.Mode);
+                commandRows[i].IconWell.color = command.Promoted || command.Armed
+                    ? Hex("211809", 0.98f)
+                    : command.Selected && available
+                        ? Color.Lerp(Hex("080b0d", 0.98f), accent, 0.18f)
+                        : Color.Lerp(Hex("080b0d", 0.96f), accent, available ? 0.08f : 0.02f);
+                commandRows[i].IconOutline.effectColor = accent.WithAlpha(
+                    command.Promoted || command.Armed || command.Selected && available ? 0.95f : focused ? 0.82f : available ? 0.56f : 0.22f);
+                commandRows[i].HotkeyBackground.color = command.Promoted || command.Armed || command.Selected && available
+                    ? accent.WithAlpha(0.94f)
+                    : Hex("263035", available ? 0.92f : 0.48f);
+                commandRows[i].Hotkey.color = command.Promoted || command.Armed || command.Selected && available
+                    ? Hex("080b0d", 1f)
+                    : available ? Hex("f3ead7", 1f) : Hex("777c7c", 0.82f);
+                commandRows[i].Label.color = available ? Hex("f3ead7", 1f) : Hex("9aa0a1", 0.88f);
+                commandRows[i].SubLabel.color = command.Blocked
+                    ? Hex("e39a82", 1f)
+                    : available ? command.Promoted ? Hex("d7a84e", 1f) : Hex("c7baa2", 1f) : Hex("8d9495", 0.82f);
+                commandRows[i].StatePip.color = command.Blocked
+                    ? Hex("b94b56", 0.78f)
+                    : available
+                    ? accent.WithAlpha(command.Promoted || command.Armed || command.Selected ? 1f : 0.72f)
+                    : Hex("777c7c", 0.42f);
+                commandRows[i].AccentRail.gameObject.SetActive(true);
+                commandRows[i].AccentRail.color = accent.WithAlpha(
+                    command.Promoted || command.Armed || command.Selected && available ? 1f : available ? 0.44f : 0.16f);
                 Image image = commandRows[i].Button.targetGraphic as Image;
-                Color fill = command.Promoted ? Hex("352316", 0.98f) : command.Selected ? Hex("243033", 0.98f) : Hex("151b20", 0.96f);
+                Color fill = command.Promoted || command.Armed
+                    ? Hex("352316", 0.98f)
+                    : command.Selected && available
+                        ? Color.Lerp(Hex("151b20", 0.98f), accent, 0.14f)
+                        : Hex("151b20", 0.96f);
                 if (image != null) image.color = fill;
                 ColorBlock buttonColors = commandRows[i].Button.colors;
-                buttonColors.normalColor = fill;
-                buttonColors.highlightedColor = command.Promoted ? Hex("4a321b", 1f) : command.Selected ? Hex("2e3c40", 1f) : Hex("232a31", 1f);
-                buttonColors.pressedColor = Hex("080b0d", 1f);
-                buttonColors.disabledColor = Hex("0b0f12", 0.78f);
+                // Button colors are multipliers. Keep semantic fill on the Image so
+                // selection/focus cannot multiply it into a muddy or stale color.
+                buttonColors.normalColor = Color.white;
+                buttonColors.highlightedColor = Color.white;
+                buttonColors.selectedColor = Color.white;
+                buttonColors.pressedColor = new Color(0.82f, 0.82f, 0.82f, 1f);
+                buttonColors.disabledColor = Color.white;
                 commandRows[i].Button.colors = buttonColors;
-                commandRows[i].Outline.effectColor = command.Promoted ? Hex("d7a84e", 0.95f) : command.Selected ? Hex("58b7a5", 0.92f) : command.Enabled ? Hex("3c4544", 0.86f) : Hex("3c4544", 0.42f);
-                float outlineSize = command.Promoted || command.Selected ? 2f : 1f;
+                commandRows[i].Outline.effectColor = focused
+                    ? Hex("f3ead7", 0.98f)
+                    : command.Promoted || command.Armed || command.Selected && available
+                        ? accent.WithAlpha(0.95f)
+                        : available ? Hex("3c4544", 0.86f) : Hex("3c4544", 0.42f);
+                float outlineSize = focused ? 3f : command.Promoted || command.Armed || command.Selected && available ? 2f : 1f;
                 commandRows[i].Outline.effectDistance = new Vector2(outlineSize, -outlineSize);
             }
             RefreshCommandPrompt(view);
@@ -932,10 +1070,12 @@ namespace AshenHalls
             Outline outline = button.GetComponent<Outline>();
             Text label = button.GetComponentInChildren<Text>();
             label.alignment = TextAnchor.MiddleLeft;
-            label.fontSize = 13;
+            label.fontSize = 15;
             label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = 10;
-            label.resizeTextMaxSize = 13;
+            label.resizeTextMinSize = 11;
+            label.resizeTextMaxSize = 15;
+            label.horizontalOverflow = HorizontalWrapMode.Overflow;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
             label.raycastTarget = false;
 
             Image iconWell = AddImage("Icon Well", button.transform, Hex("080b0d", 0.96f));
@@ -951,21 +1091,26 @@ namespace AshenHalls
             iconFallback.fontStyle = FontStyle.Bold;
             iconFallback.raycastTarget = false;
             Stretch(iconFallback.rectTransform, 2f, 2f);
+            Image statePip = AddImage("State Pip", button.transform, Hex("58b7a5", 0.72f));
+            statePip.raycastTarget = false;
+            Outline statePipOutline = statePip.gameObject.AddComponent<Outline>();
+            statePipOutline.effectColor = Hex("050708", 0.95f);
+            statePipOutline.effectDistance = new Vector2(1f, -1f);
 
             Image hotkeyBackground = AddImage("Hotkey Keycap", button.transform, Hex("263035", 0.92f));
             hotkeyBackground.raycastTarget = false;
             Outline keyOutline = hotkeyBackground.gameObject.AddComponent<Outline>();
             keyOutline.effectColor = Hex("080b0d", 0.92f);
             keyOutline.effectDistance = new Vector2(1f, -1f);
-            Text hotkey = AddText("Hotkey", hotkeyBackground.transform, "", 8, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            Text hotkey = AddText("Hotkey", hotkeyBackground.transform, "", 9, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             hotkey.fontStyle = FontStyle.Bold;
             hotkey.raycastTarget = false;
             Stretch(hotkey.rectTransform, 1f, 1f);
 
-            Text sub = AddText("Sub", button.transform, "", 9, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            Text sub = AddText("Sub", button.transform, "", 11, Hex("c7baa2", 1f), TextAnchor.MiddleLeft);
             sub.resizeTextForBestFit = true;
-            sub.resizeTextMinSize = 8;
-            sub.resizeTextMaxSize = 9;
+            sub.resizeTextMinSize = 10;
+            sub.resizeTextMaxSize = 12;
             sub.raycastTarget = false;
             Image accentRail = AddImage("Accent Rail", button.transform, Hex("58b7a5", 1f));
             accentRail.raycastTarget = false;
@@ -976,7 +1121,7 @@ namespace AshenHalls
             relay.Exit = () => ClearHoveredCommand(index);
             relay.Select = () => SetFocusedCommand(index);
             relay.Deselect = () => ClearFocusedCommand(index);
-            return new CommandRow(button.GetComponent<RectTransform>(), button, outline, label, hotkey, sub, iconWell, iconOutline, icon, iconFallback, hotkeyBackground, accentRail);
+            return new CommandRow(button.GetComponent<RectTransform>(), button, outline, label, hotkey, sub, iconWell, iconOutline, icon, iconFallback, hotkeyBackground, statePip, accentRail);
         }
 
         private LogRow CreateLogRow(Transform parent, int index)
@@ -1040,7 +1185,7 @@ namespace AshenHalls
                 SetLocalRect(logRows[i].Text.rectTransform, new Rect(10f, 5f, row.width - 16f, row.height - 10f));
             }
 
-            Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, commandCount, promoteEndTurn);
+            Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, commandCount, promoteEndTurn);
             SetLocalRect(commandPromptText.rectTransform, CombatHudScreenLayout.CommandPrompt(geometry.Command.width, showUndoMove, showCancelTarget));
             SetLocalRect(undoMoveButton.GetComponent<RectTransform>(), CombatHudScreenLayout.UndoMoveButton(geometry.Command.width, showCancelTarget));
             SetLocalRect(cancelTargetButton.GetComponent<RectTransform>(), CombatHudScreenLayout.CancelTargetButton(geometry.Command.width));
@@ -1049,18 +1194,22 @@ namespace AshenHalls
             if (groupBreakIndex >= 0)
             {
                 float dividerX = (buttons[groupBreakIndex].xMax + buttons[groupBreakIndex + 1].xMin) * 0.5f - 1f;
-                SetLocalRect(commandDivider, new Rect(dividerX, 33f, 2f, 56f));
+                SetLocalRect(commandDivider, new Rect(dividerX, buttons[0].yMin + 8f, 2f, Mathf.Max(24f, buttons[0].height - 16f)));
             }
             for (int i = 0; i < commandRows.Count && i < buttons.Length; i++)
             {
                 SetLocalRect(commandRows[i].Root, buttons[i]);
-                float iconSize = Mathf.Clamp(buttons[i].height - 20f, 40f, 48f);
-                float textX = 10f + iconSize + 9f;
-                SetLocalRect(commandRows[i].IconWell.rectTransform, new Rect(9f, 10f, iconSize, iconSize));
-                SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, new Rect(4f, 3f, 38f, 18f));
-                SetLocalRect(commandRows[i].Label.rectTransform, new Rect(textX, 9f, Mathf.Max(36f, buttons[i].width - textX - 8f), 23f));
-                SetLocalRect(commandRows[i].SubLabel.rectTransform, new Rect(textX, 34f, Mathf.Max(36f, buttons[i].width - textX - 8f), 23f));
-                SetLocalRect(commandRows[i].AccentRail.rectTransform, new Rect(0f, buttons[i].height - 4f, buttons[i].width, 4f));
+                float iconSize = Mathf.Clamp(buttons[i].height - 24f, 56f, 72f);
+                float textX = 10f + iconSize + 11f;
+                const float iconY = 20f;
+                float textY = Mathf.Max(12f, (buttons[i].height - 48f) * 0.5f);
+                SetLocalRect(commandRows[i].IconWell.rectTransform, new Rect(10f, iconY, iconSize, iconSize));
+                SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, new Rect(10f, 2f, 38f, 16f));
+                SetLocalRect(commandRows[i].StatePip.rectTransform, new Rect(10f + iconSize - 9f, iconY + 3f, 8f, 8f));
+                SetLocalRect(commandRows[i].Label.rectTransform, new Rect(textX, textY, Mathf.Max(36f, buttons[i].width - textX - 9f), 25f));
+                SetLocalRect(commandRows[i].SubLabel.rectTransform, new Rect(textX, textY + 26f, Mathf.Max(36f, buttons[i].width - textX - 9f), 21f));
+                const float railHeight = 4f;
+                SetLocalRect(commandRows[i].AccentRail.rectTransform, new Rect(0f, buttons[i].height - railHeight, buttons[i].width, railHeight));
             }
         }
 
@@ -1185,16 +1334,14 @@ namespace AshenHalls
                 pointerOwnsCommandContext = false;
             }
             focusedCommandIndex = index;
-            CombatHudView view = bindings?.View?.Invoke();
-            if (view != null) RefreshCommandPrompt(view);
+            Refresh();
         }
 
         private void ClearFocusedCommand(int index)
         {
             if (focusedCommandIndex != index) return;
             focusedCommandIndex = -1;
-            CombatHudView view = bindings?.View?.Invoke();
-            if (view != null) RefreshCommandPrompt(view);
+            Refresh();
         }
 
         private void RefreshCommandPrompt(CombatHudView view)
@@ -1207,9 +1354,16 @@ namespace AshenHalls
             if (contextualIndex >= 0)
             {
                 CombatHudCommandView command = commands[contextualIndex];
-                string detail = command.Enabled ? command.Tooltip : command.DisabledReason;
+                string blockedDetail = !string.IsNullOrWhiteSpace(command.DisabledReason)
+                    ? command.DisabledReason
+                    : !string.IsNullOrWhiteSpace(command.SubLabel) ? command.SubLabel : command.Tooltip;
+                string detail = command.Blocked
+                    ? blockedDetail
+                    : command.Enabled ? command.Tooltip : command.DisabledReason;
                 prompt = $"{command.Label} [{command.Hotkey}]  {detail}";
-                color = command.Promoted ? Hex("d7a84e", 1f) : command.Enabled ? Hex("f3ead7", 1f) : Hex("b94b56", 1f);
+                color = command.Promoted
+                    ? Hex("d7a84e", 1f)
+                    : command.Blocked ? Hex("b94b56", 1f) : command.Enabled ? Hex("f3ead7", 1f) : Hex("b94b56", 1f);
             }
             else
             {
@@ -1283,6 +1437,21 @@ namespace AshenHalls
                 case ActionMode.Elixir: return "H";
                 case ActionMode.Wait: return ">";
                 default: return "?";
+            }
+        }
+
+        private static Color CommandAccent(ActionMode mode)
+        {
+            switch (mode)
+            {
+                case ActionMode.Move: return Hex("58b7a5", 1f);
+                case ActionMode.Attack: return Hex("c65c3b", 1f);
+                case ActionMode.Cast: return Hex("a77ae8", 1f);
+                case ActionMode.Ability: return Hex("d7a84e", 1f);
+                case ActionMode.Guard: return Hex("8ecbd7", 1f);
+                case ActionMode.Elixir: return Hex("b94b56", 1f);
+                case ActionMode.Wait: return Hex("d7a84e", 1f);
+                default: return Hex("b7aa90", 1f);
             }
         }
 
@@ -1458,10 +1627,11 @@ namespace AshenHalls
             public readonly Image Icon;
             public readonly Text IconFallback;
             public readonly Image HotkeyBackground;
+            public readonly Image StatePip;
             public readonly Image AccentRail;
             public ActionMode Mode;
 
-            public CommandRow(RectTransform root, Button button, Outline outline, Text label, Text hotkey, Text subLabel, Image iconWell, Outline iconOutline, Image icon, Text iconFallback, Image hotkeyBackground, Image accentRail)
+            public CommandRow(RectTransform root, Button button, Outline outline, Text label, Text hotkey, Text subLabel, Image iconWell, Outline iconOutline, Image icon, Text iconFallback, Image hotkeyBackground, Image statePip, Image accentRail)
             {
                 Root = root;
                 Button = button;
@@ -1474,6 +1644,7 @@ namespace AshenHalls
                 Icon = icon;
                 IconFallback = iconFallback;
                 HotkeyBackground = hotkeyBackground;
+                StatePip = statePip;
                 AccentRail = accentRail;
             }
         }

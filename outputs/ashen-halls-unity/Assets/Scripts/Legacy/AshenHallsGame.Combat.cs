@@ -4253,9 +4253,27 @@ namespace AshenHalls
             DrawRect(icon, Hex("050708", selected ? 0.76f : 0.54f));
             DrawBorder(icon, color.WithAlpha(selected ? 0.95f : 0.70f), 1);
             Rect inner = Pad(icon, Mathf.Max(2f, iconSize * 0.07f));
-            if (mode == ActionMode.Ability)
+            if (mode == ActionMode.Cast
+                && selectedAction == ActionMode.Cast
+                && !string.IsNullOrEmpty(pendingFormulaCode))
             {
-                int abilityIcon = AbilityIconIndex(string.IsNullOrEmpty(pendingAbilityId) ? "whirlwind" : pendingAbilityId);
+                FormulaDef formula = GetFormula(pendingFormulaCode);
+                if (formula != null
+                    && TryGetFormulaPowerArt(formula, out Texture2D formulaTexture, out Rect formulaSource)
+                    && DrawTextureRegionTint(
+                        formulaTexture,
+                        Pad(icon, -2f),
+                        formulaSource,
+                        Color.white.WithAlpha(enabled ? 0.94f : 0.36f)))
+                {
+                    return;
+                }
+            }
+            if (mode == ActionMode.Ability
+                && selectedAction == ActionMode.Ability
+                && !string.IsNullOrEmpty(pendingAbilityId))
+            {
+                int abilityIcon = AbilityIconIndex(pendingAbilityId);
                 if (abilityIcon >= 0 && TryDrawAbilityIconAtlasIcon(Pad(icon, -2f), abilityIcon, Color.white.WithAlpha(enabled ? 0.94f : 0.36f)))
                 {
                     return;
@@ -4352,13 +4370,13 @@ namespace AshenHalls
         {
             switch (mode)
             {
-                case ActionMode.Move: return 0;
-                case ActionMode.Attack: return 1;
-                case ActionMode.Cast: return 2;
-                case ActionMode.Ability: return 7;
-                case ActionMode.Guard: return 3;
-                case ActionMode.Elixir: return 4;
-                case ActionMode.Wait: return 5;
+                case ActionMode.Move: return CombatIconCatalog.CombatCommandMoveIndex;
+                case ActionMode.Attack: return CombatIconCatalog.CombatCommandAttackIndex;
+                case ActionMode.Cast: return CombatIconCatalog.CombatCommandCastIndex;
+                case ActionMode.Ability: return CombatIconCatalog.CombatCommandSkillsIndex;
+                case ActionMode.Guard: return CombatIconCatalog.CombatCommandGuardIndex;
+                case ActionMode.Elixir: return CombatIconCatalog.CombatCommandElixirIndex;
+                case ActionMode.Wait: return CombatIconCatalog.CombatCommandEndTurnIndex;
                 default: return -1;
             }
         }
@@ -14150,9 +14168,9 @@ namespace AshenHalls
             bool chrome = state != null && (state.Mode == GameMode.Explore || state.Mode == GameMode.Combat || state.Mode == GameMode.Defeat || state.Mode == GameMode.Victory);
             float top = chrome ? 78f : 12f;
             float bottom = state != null && state.Mode == GameMode.Combat
-                ? 124f
+                ? Screen.height - CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Command.yMin + 6f
                 : state != null && state.Mode == GameMode.Explore ? 112f : 28f;
-            return new Rect(12, top, Screen.width - sideW - 36, Mathf.Max(320f, Screen.height - top - bottom));
+            return new Rect(12f, top, Screen.width - sideW - 36f, Mathf.Max(320f, Screen.height - top - bottom));
         }
 
         private Rect SidePanelRect()

@@ -227,22 +227,52 @@ namespace AshenHalls
                 bool enabled = playerTurn && CombatCommandEnabled(command.Mode, active);
                 bool reviewOnly = enabled && !actionable && CanInspectCombatPowerBook(command.Mode, active);
                 bool promoted = command.Mode == ActionMode.Wait && promoteEndTurn;
-                bool selected = selectedAction == command.Mode;
+                int legalAttackTargets = command.Mode == ActionMode.Attack
+                    ? CountLegalAttackTargets(active)
+                    : -1;
+                bool blocked = !enabled || command.Mode == ActionMode.Attack && legalAttackTargets <= 0;
+                bool selected = actionable && !promoted && selectedAction == command.Mode;
+                bool armed = selected && (
+                    (command.Mode == ActionMode.Attack && legalAttackTargets > 0)
+                    || (command.Mode == ActionMode.Cast && !string.IsNullOrEmpty(pendingFormulaCode))
+                    || (command.Mode == ActionMode.Ability && !string.IsNullOrEmpty(pendingAbilityId)));
                 TryGetCombatHudCommandArt(command.Mode, out Texture2D iconTexture, out Rect iconSource);
+                string label = command.Mode == ActionMode.Wait ? "End Turn" : ActionName(command.Mode, active);
+                string subLabel = reviewOnly
+                    ? "Review book"
+                    : selected && enabled ? SelectedActionButtonSubLabel(command.Mode, active) : ActionButtonSubLabel(command.Mode, active);
+                if (armed && command.Mode == ActionMode.Cast)
+                {
+                    FormulaDef formula = GetFormula(pendingFormulaCode);
+                    if (formula != null)
+                    {
+                        label = formula.Name;
+                        subLabel = "ARMED \u00b7 " + CountLegalFormulaTargets(formula, active);
+                    }
+                }
+                else if (armed && command.Mode == ActionMode.Ability)
+                {
+                    MartialAbility ability = AbilityDef(pendingAbilityId);
+                    if (ability != null)
+                    {
+                        label = ability.Name;
+                        subLabel = "ARMED \u00b7 " + CountLegalAbilityTargets(ability, active);
+                    }
+                }
                 combatHudCommandBuffer.Add(new CombatHudCommandView
                 {
                     Mode = command.Mode,
-                    Label = command.Mode == ActionMode.Wait ? "End Turn" : ActionName(command.Mode, active),
+                    Label = label,
                     Hotkey = command.Hotkey,
-                    SubLabel = reviewOnly
-                        ? "Review book"
-                        : selected && enabled ? SelectedActionButtonSubLabel(command.Mode, active) : ActionButtonSubLabel(command.Mode, active),
+                    SubLabel = subLabel,
                     Tooltip = ActionTooltipLine(command.Mode, active),
                     DisabledReason = enabled ? "" : DisabledActionReason(command.Mode, active, playerTurn),
                     IconTexture = iconTexture,
                     IconSource = iconSource,
                     Enabled = enabled,
                     Selected = selected,
+                    Armed = armed,
+                    Blocked = blocked,
                     Promoted = promoted
                 });
             }
@@ -308,9 +338,22 @@ namespace AshenHalls
         {
             texture = null;
             source = Rect.zero;
-            if (mode == ActionMode.Ability && IsAbilityIconAtlas())
+            if (mode == ActionMode.Cast
+                && selectedAction == ActionMode.Cast
+                && !string.IsNullOrEmpty(pendingFormulaCode))
             {
-                int abilityIcon = AbilityIconIndex(string.IsNullOrEmpty(pendingAbilityId) ? "whirlwind" : pendingAbilityId);
+                FormulaDef formula = GetFormula(pendingFormulaCode);
+                if (formula != null && TryGetFormulaPowerArt(formula, out texture, out source))
+                {
+                    return true;
+                }
+            }
+            if (mode == ActionMode.Ability
+                && selectedAction == ActionMode.Ability
+                && !string.IsNullOrEmpty(pendingAbilityId)
+                && IsAbilityIconAtlas())
+            {
+                int abilityIcon = AbilityIconIndex(pendingAbilityId);
                 if (abilityIcon >= 0)
                 {
                     texture = abilityIconAtlas;
@@ -684,7 +727,7 @@ namespace AshenHalls
 
             IReadOnlyList<ActionMode> modes = CombatHudFallbackModes(active);
             bool promoteEndTurn = playerTurn && ShouldPromoteEndTurn(active);
-            Rect[] localButtons = CombatHudScreenLayout.CommandButtons(bar.width, modes.Count, promoteEndTurn);
+            Rect[] localButtons = CombatHudScreenLayout.CommandButtons(bar.width, bar.height, modes.Count, promoteEndTurn);
             string prompt = view.CommandPrompt ?? "Combat HUD recovering...";
             for (int i = 0; i < localButtons.Length && i < view.Commands.Count; i++)
             {
@@ -719,7 +762,9 @@ namespace AshenHalls
             if (groupBreakIndex >= 0)
             {
                 float dividerX = bar.x + (localButtons[groupBreakIndex].xMax + localButtons[groupBreakIndex + 1].xMin) * 0.5f;
-                DrawRect(new Rect(dividerX - 1f, bar.y + 33f, 2f, 56f), gold.WithAlpha(0.42f));
+                float dividerY = bar.y + localButtons[0].yMin + 8f;
+                float dividerH = Mathf.Max(24f, localButtons[0].height - 16f);
+                DrawRect(new Rect(dividerX - 1f, dividerY, 2f, dividerH), gold.WithAlpha(0.42f));
             }
 
             for (int i = 0; i < modes.Count; i++)
@@ -728,25 +773,33 @@ namespace AshenHalls
                 Rect button = OffsetLocalRect(localButtons[i], bar);
                 CombatHudCommandView command = i < view.Commands.Count ? view.Commands[i] : null;
                 bool enabled = command?.Enabled ?? (playerTurn && CombatCommandEnabled(mode, active));
-                bool selected = selectedAction == mode;
+                bool blocked = command?.Blocked ?? !enabled;
+                bool visuallyAvailable = enabled && !blocked;
+                bool selected = command?.Selected ?? (playerTurn && selectedAction == mode);
                 bool promoted = mode == ActionMode.Wait && promoteEndTurn;
-                DrawRect(button, promoted ? Hex("352316", 0.98f) : selected ? Hex("243033", 0.98f) : Hex("151b20", 0.98f));
-                DrawBorder(button, promoted ? gold : selected ? teal : line, promoted || selected ? 2 : 1);
-                float iconSize = Mathf.Clamp(button.height - 20f, 40f, 48f);
-                Rect icon = new Rect(button.x + 9f, button.y + 10f, iconSize, iconSize);
-                DrawActionButtonGlyph(icon, mode, enabled, selected);
-                Rect keycap = new Rect(button.x + 4f, button.y + 3f, 38f, 18f);
-                DrawRect(keycap, promoted ? gold : selected ? teal : Hex("263035"));
-                GUI.Label(keycap, command?.Hotkey ?? "", CenterStyle(8, promoted || selected ? retroBlack : ink));
-                float textX = icon.xMax + 9f;
+                bool armed = command?.Armed ?? false;
+                bool emphasized = promoted || armed || selected && visuallyAvailable;
+                DrawRect(button, promoted || armed ? Hex("352316", 0.98f) : selected && visuallyAvailable ? Hex("243033", 0.98f) : Hex("151b20", 0.98f));
+                DrawBorder(button, promoted || armed ? gold : selected && visuallyAvailable ? teal : line, emphasized ? 2 : 1);
+                float iconSize = Mathf.Clamp(button.height - 24f, 56f, 72f);
+                const float iconY = 20f;
+                Rect icon = new Rect(button.x + 10f, button.y + iconY, iconSize, iconSize);
+                DrawActionButtonGlyph(icon, mode, visuallyAvailable, armed);
+                Rect keycap = new Rect(button.x + 10f, button.y + 2f, 38f, 16f);
+                DrawRect(keycap, emphasized ? (promoted || armed ? gold : CommandModeAccent(mode)) : Hex("263035"));
+                GUI.Label(keycap, command?.Hotkey ?? "", CenterStyle(8, emphasized ? retroBlack : ink));
+                float textX = icon.xMax + 11f;
                 float textW = Mathf.Max(36f, button.xMax - textX - 8f);
+                float textY = button.y + Mathf.Max(12f, (button.height - 48f) * 0.5f);
                 string label = command?.Label ?? ActionName(mode, active);
                 if (promoted) label = label.ToUpperInvariant();
                 string subLabel = promoted ? "Next combatant" : enabled ? command?.SubLabel ?? ActionButtonSubLabel(mode, active) : command?.DisabledReason ?? DisabledActionReason(mode, active, playerTurn);
-                GUI.Label(new Rect(textX, button.y + 9f, textW, 23f), FitText(label, textW, CenterLeftStyle(12, enabled ? ink : muted)), CenterLeftStyle(12, enabled ? ink : muted));
-                GUI.Label(new Rect(textX, button.y + 34f, textW, 23f), FitText(subLabel, textW, CenterLeftStyle(9, enabled ? promoted ? gold : muted : muted)), CenterLeftStyle(9, enabled ? promoted ? gold : muted : muted));
-                if (promoted || selected) DrawRect(new Rect(button.x, button.yMax - 4f, button.width, 4f), promoted ? gold : teal);
-                if (enabled && GUI.Button(button, GUIContent.none, GUIStyle.none)) RunCombatHudCommand(mode);
+                Color labelColor = visuallyAvailable ? ink : Hex("9aa0a1", 0.88f);
+                Color subColor = blocked ? Hex("e39a82") : visuallyAvailable ? promoted ? gold : Hex("c7baa2") : muted;
+                GUI.Label(new Rect(textX, textY, textW, 25f), FitText(label, textW, CenterLeftStyle(14, labelColor)), CenterLeftStyle(14, labelColor));
+                GUI.Label(new Rect(textX, textY + 26f, textW, 21f), FitText(subLabel, textW, CenterLeftStyle(11, subColor)), CenterLeftStyle(11, subColor));
+                DrawRect(new Rect(button.x, button.yMax - (emphasized ? 5f : 3f), button.width, emphasized ? 5f : 3f), (promoted || armed ? gold : CommandModeAccent(mode)).WithAlpha(emphasized ? 1f : visuallyAvailable ? 0.46f : 0.16f));
+                if (GUI.Button(button, GUIContent.none, GUIStyle.none)) RunCombatHudCommand(mode);
             }
             GUI.enabled = previousGuiEnabled;
         }
@@ -762,6 +815,21 @@ namespace AshenHalls
                 ActionMode.Elixir,
                 ActionMode.Wait
             };
+        }
+
+        private Color CommandModeAccent(ActionMode mode)
+        {
+            switch (mode)
+            {
+                case ActionMode.Move: return Hex("58b7a5");
+                case ActionMode.Attack: return Hex("c65c3b");
+                case ActionMode.Cast: return Hex("a77ae8");
+                case ActionMode.Ability: return Hex("d7a84e");
+                case ActionMode.Guard: return Hex("8ecbd7");
+                case ActionMode.Elixir: return Hex("b94b56");
+                case ActionMode.Wait: return Hex("d7a84e");
+                default: return Hex("b7aa90");
+            }
         }
 
         private void DrawCombatFallbackChrome(Rect rect, CombatHudView view)

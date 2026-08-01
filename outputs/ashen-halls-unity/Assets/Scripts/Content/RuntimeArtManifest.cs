@@ -6,6 +6,7 @@ namespace AshenHalls
         public const string SignatureSpellIconAtlas = "signature-spell-icon-atlas-runtime-v1.97.0.png";
         public const string LightningSpellIconAtlas = "lightning-spell-icon-atlas-runtime-v1.97.0.png";
         public const string PowerBookStateIconAtlas = "power-book-state-icon-atlas-runtime-v1.97.0.png";
+        public const string CombatCommandIconAtlas = "combat-command-icon-atlas-runtime-v1.99.0.png";
         public const string MagicUiAtlas = "magic-ui-atlas-runtime-v1.31.0.png";
         public const string SpellAnimationAtlas = "spell-animation-atlas-runtime-v1.49.0.png";
         public const string EpicSpellEffectsAtlas = "combat-spell-effects-atlas-runtime-v0.73.png";
@@ -46,6 +47,7 @@ namespace AshenHalls
             SignatureSpellIconAtlas,
             LightningSpellIconAtlas,
             PowerBookStateIconAtlas,
+            CombatCommandIconAtlas,
             MagicUiAtlas,
             SpellAnimationAtlas,
             EpicSpellEffectsAtlas,

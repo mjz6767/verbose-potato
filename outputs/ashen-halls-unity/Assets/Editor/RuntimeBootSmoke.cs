@@ -1088,6 +1088,7 @@ namespace AshenHalls.Editor
             Texture2D signatureSpellIcons = GetPrivateField<Texture2D>(game, "signatureSpellIconAtlas");
             Texture2D abilityIcons = GetPrivateField<Texture2D>(game, "abilityIconAtlas");
             Texture2D powerBookStateIcons = GetPrivateField<Texture2D>(game, "powerBookStateIconAtlas");
+            Texture2D combatCommandIcons = GetPrivateField<Texture2D>(game, "combatCommandIconAtlas");
             Assert(combatTerrain != null && InvokePrivate<bool>(game, "IsCombatTerrainAtlas"), "combat terrain atlas passes the production guard for authored hazards");
             Assert(koboldCombatTerrain != null && InvokePrivate<bool>(game, "IsKoboldCombatTerrainAtlas"), "semantic field atlas passes the production guard for gas, wards, and rituals");
             Assert(biomeProps != null && InvokePrivate<bool>(game, "IsWorldMapBiomePropAtlas"), "transparent biome prop atlas passes the production guard for combat cover");
@@ -1097,6 +1098,9 @@ namespace AshenHalls.Editor
             Assert(powerBookStateIcons != null
                 && CombatIconCatalog.IsBookStateAtlasDimensions(powerBookStateIcons.width, powerBookStateIcons.height),
                 "power-book state atlas preserves the exact 4x3 microicon contract");
+            Assert(combatCommandIcons != null
+                && CombatIconCatalog.IsCombatCommandAtlasDimensions(combatCommandIcons.width, combatCommandIcons.height),
+                "combat command atlas preserves the exact 5x4 integer-cell contract");
             Assert(InvokePrivate<int>(game, "CombatCoverBiomePropIndex", "tree") == 0, "combat tree cover resolves transparent authored world art");
             Assert(InvokePrivate<int>(game, "CombatCoverBiomePropIndex", "stone") == 8, "combat stone cover resolves transparent authored rock art");
             Point gasProbe = new Point(0, 0, "gas", 3);
@@ -1142,6 +1146,13 @@ namespace AshenHalls.Editor
             Assert(
                 pickerCommand.Label == (pickerCommand.Mode == ActionMode.Ability ? "Skills" : "Spells"),
                 "third combat command names its actual Skills or Spells panel");
+            int pickerCommandIndex = pickerCommand.Mode == ActionMode.Ability
+                ? CombatIconCatalog.CombatCommandSkillsIndex
+                : CombatIconCatalog.CombatCommandCastIndex;
+            Assert(ReferenceEquals(pickerCommand.IconTexture, combatCommandIcons)
+                && pickerCommand.IconSource == InvokePrivate<Rect>(game, "CombatCommandIconAtlasCell", pickerCommandIndex)
+                && !pickerCommand.Armed,
+                "an unarmed power command uses its stable category art instead of an arbitrary learned power");
             Assert(!string.IsNullOrWhiteSpace(hudView.TargetTitle) && hudView.TargetTitle != "Target", "combat side card names inspection or targeting context");
             string originalEncounterStyle = combatState.Combat.EncounterStyle;
             int originalRound = combatState.Combat.Round;
@@ -1168,6 +1179,20 @@ namespace AshenHalls.Editor
                 && hud.MoveLabelForTest.StartsWith("MOVE", StringComparison.Ordinal)
                 && hud.ActionLabelForTest.StartsWith("ACTION", StringComparison.Ordinal), "rendered top stats contain only combat decision labels");
             Assert(hud.CommandCapacityForTest == hudView.Commands.Count, "combat command rendering capacity follows the model count");
+            Assert(hudView.Commands.All(command => hud.CommandInputSelectableForTest(command.Mode)),
+                "all combat commands remain focusable so unavailable reasons are keyboard/controller accessible");
+            Assert(hudView.Commands.All(command => hud.CommandSelectedMultiplierForTest(command.Mode) == Color.white),
+                "combat focus never multiplies or darkens the semantic command fill");
+            Assert(hudView.Commands.All(command => hud.CommandIconSizeForTest(command.Mode) >= 56f),
+                "rendered combat command emblems keep their minimum readable size");
+            CombatHudCommandView initialAttackCommand = hudView.Commands.First(command => command.Mode == ActionMode.Attack);
+            if (InvokePrivate<int>(game, "CountLegalAttackTargets", active) <= 0)
+            {
+                Assert(initialAttackCommand.Blocked
+                    && initialAttackCommand.SubLabel.Contains("No target")
+                    && hud.CommandUsesBlockedStyleForTest(ActionMode.Attack),
+                    "a selected Attack with no legal target stays visibly blocked while remaining focusable");
+            }
             Assert(hudView.TimelineExpanded || hud.VisibleLogCount == Math.Min(1, hudView.Logs.Count), "collapsed combat Timeline keeps the latest event visible");
             EventSystem combatUiEventSystem = EventSystem.current
                 ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
@@ -1498,6 +1523,9 @@ namespace AshenHalls.Editor
                 && modal.VisibleStateIconCountForTest >= 1
                 && modal.VisibleTargetingRailCountForTest == 0,
                 "spellbook uses authored state microicons with one selector and no redundant right targeting rail");
+            Assert(modal.SelectedRailUsesSelectionAccentForTest
+                && modal.DetailUsesSelectionChromeForTest,
+                "ordinary Spellbook selection uses teal selection chrome rather than armed gold");
             Assert(string.IsNullOrEmpty(modal.DetailContextForTest), "ordinary selected Spellbook detail does not spend space restating selection");
             Assert(modal.DetailTargetLabelForTest.Contains("legal")
                 && modal.DetailTargetLabelForTest.Contains("enem"), "Spellbook target chip names the legal target type");
@@ -1505,6 +1533,14 @@ namespace AshenHalls.Editor
                 && modal.FooterHintForTest.Contains("Use")
                 && modal.FooterHintForTest.Contains("Filter")
                 && modal.FooterHintForTest.Contains("Back"), "Spellbook footer keeps a compact complete control legend");
+            InvokePrivate(game, "SelectCombatAbilityModalCard", "WBF");
+            InvokePrivate(game, "LateUpdate");
+            Assert(modal.DetailIconScaleForTest >= 1.15f,
+                "flat field spell art receives detail-only safe-area normalization");
+            InvokePrivate(game, "SelectCombatAbilityModalCard", "FBL");
+            InvokePrivate(game, "LateUpdate");
+            Assert(Mathf.Approximately(modal.DetailIconScaleForTest, 1f),
+                "non-field spell art keeps its authored detail scale");
 
             int browseMana = active.Mana;
             int browseMovePoints = combatState.Combat.MovePoints;
@@ -1612,13 +1648,14 @@ namespace AshenHalls.Editor
                 && armedFireball.Selected
                 && modal.SelectedBookStateForTest == CombatAbilityModalBookState.Targeting
                 && modal.SelectedBookStateIconIndexForTest == CombatIconCatalog.BookStateTargetingIndex
-                && modal.SelectedRailCountForTest == 1
+                && modal.SelectedRailCountForTest == 0
                 && modal.TargetingBadgeCountForTest == 1
                 && modal.VisibleStatusBadgeCountForTest >= modal.TargetingBadgeCountForTest
                 && modal.VisibleStateIconCountForTest >= 2
                 && modal.VisibleTargetingRailCountForTest == 1
                 && !modal.DetailStatusVisibleForTest
                 && modal.DetailContextForTest == "TARGETING ARMED"
+                && modal.DetailUsesArmedChromeForTest
                 && modal.DetailActionLabelForTest == "Resume Targeting", "reopening an armed spell shows one distinct targeting state and one resume action");
             InvokePrivate(game, "SelectCombatAbilityModalCard", "VST");
             armedSpellbookView = InvokePrivate<CombatAbilityModalView>(game, "BuildCombatAbilityModalView");
@@ -1748,9 +1785,15 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             CombatHudView targetingHudView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
             Assert(targetingHudView.CanCancelTarget && targetingHudView.CancelTargetLabel == "Cancel Spell", "armed formula publishes explicit target cancellation");
-            Assert(targetingHudView.Commands[2].Label == "Spells"
-                && targetingHudView.Commands[2].SubLabel.Contains("target")
-                && !targetingHudView.Commands[2].SubLabel.StartsWith("Choose", StringComparison.Ordinal), "armed spell command publishes its current legal-target count");
+            Assert(targetingHudView.Commands[2].Label == "Fireball"
+                && targetingHudView.Commands[2].SubLabel.StartsWith("ARMED", StringComparison.Ordinal)
+                && !targetingHudView.Commands[2].SubLabel.StartsWith("Choose", StringComparison.Ordinal), "armed spell command names the exact formula and publishes its current legal-target count");
+            CombatHudCommandView armedSpellCommand = targetingHudView.Commands.First(command => command.Mode == ActionMode.Cast);
+            Assert(armedSpellCommand.Selected
+                && armedSpellCommand.Armed
+                && ReferenceEquals(armedSpellCommand.IconTexture, signatureSpellIcons)
+                && armedSpellCommand.IconSource == InvokePrivate<Rect>(game, "SignatureSpellIconAtlasCell", CombatIconCatalog.SignatureSpellIndex("FBL")),
+                "armed spell command returns Fireball art to the deck with an explicit targeting state");
             string spellTargetState = InvokePrivate<string>(game, "CombatHudUnitStateLine", forecastTarget, false);
             Assert(spellTargetState.Contains("Fireball")
                 && spellTargetState.Contains("fire")
@@ -2227,7 +2270,10 @@ namespace AshenHalls.Editor
                 && !CombatAbilityModalPresentationRules.DetailNotes(aimedShotCard).Contains("CURRENT EFFECT"), "skillbook detail adds profile and tactics without repeating its live outcome");
             InvokePrivate(game, "SelectCombatAbilityModalCard", "aimedshot");
             Assert(modal.DetailTargetLabelForTest.Contains("legal")
-                && modal.DetailTargetLabelForTest.Contains("enem"), "Skillbook target chip names Aimed Shot's legal enemies");
+                && modal.DetailTargetLabelForTest.Contains("enem")
+                && modal.SelectedRailUsesSelectionAccentForTest
+                && modal.DetailUsesSelectionChromeForTest,
+                "ordinary Skillbook selection uses teal chrome and names Aimed Shot's legal enemies");
             List<CombatAbilityModalCardView> visibleSkillCards = skillbookView.Cards
                 .Where(card => CombatAbilityModalPresentationRules.MatchesFilter(card, modal.ActiveFilter))
                 .ToList();
@@ -2307,9 +2353,24 @@ namespace AshenHalls.Editor
             Assert(spellTarget.Hp == skillbookHp
                 && combatState.Combat.MovePoints == skillbookMovePoints
                 && combatState.Combat.ActionAvailable, "arming a skill through the book spends nothing before target confirmation");
+            CombatHudCommandView armedSkillCommand = InvokePrivate<CombatHudView>(game, "BuildCombatHudView")
+                .Commands.First(command => command.Mode == ActionMode.Ability);
+            Assert(armedSkillCommand.Selected
+                && armedSkillCommand.Armed
+                && armedSkillCommand.Label == "Aimed Shot"
+                && armedSkillCommand.SubLabel.StartsWith("ARMED", StringComparison.Ordinal)
+                && ReferenceEquals(armedSkillCommand.IconTexture, abilityIcons)
+                && armedSkillCommand.IconSource == InvokePrivate<Rect>(game, "AbilityIconAtlasCell", CombatIconCatalog.AbilityIndex("aimedshot")),
+                "armed skill command returns Aimed Shot art to the deck with the same targeting contract as spells");
             Assert(InvokePrivate<bool>(game, "CancelCombatTargeting"), "skill targeting can be canceled without spending the action");
             Assert(string.IsNullOrEmpty(GetPrivateField<string>(game, "pendingAbilityId"))
                 && combatState.Combat.ActionAvailable, "canceling a skill returns to an action-ready state");
+            CombatHudCommandView resetSkillCommand = InvokePrivate<CombatHudView>(game, "BuildCombatHudView")
+                .Commands.First(command => command.Mode == ActionMode.Ability);
+            Assert(!resetSkillCommand.Armed
+                && ReferenceEquals(resetSkillCommand.IconTexture, combatCommandIcons)
+                && resetSkillCommand.IconSource == InvokePrivate<Rect>(game, "CombatCommandIconAtlasCell", CombatIconCatalog.CombatCommandSkillsIndex),
+                "canceling skill targeting restores the stable Skills category icon");
 
             SetPrivateField(game, "pendingFormulaCode", "FBL");
             SetPrivateField(game, "pendingAbilityId", "aimedshot");
@@ -2351,6 +2412,13 @@ namespace AshenHalls.Editor
                 && !enemyHudView.ActiveUnit.StateLine.Contains("ACTION READY"), "enemy initiative uses one consistent non-player action state in the header and active card");
             Assert(enemyHudView.TargetUnit != null && enemyHudView.TargetUnit.Name == active.Name, "enemy HUD target matches its tactical intent");
             Assert(enemyHudView.CommandPrompt.StartsWith("INTENT:", StringComparison.Ordinal) && enemyHudView.CommandPrompt.Contains(active.Name), "enemy turn publishes a concise target-aware intent line");
+            Assert(enemyHudView.Commands.All(command => !command.Selected && !command.Armed && !command.Promoted),
+                "enemy initiative cannot retain a stale player intent rail");
+            hud.Refresh();
+            Assert(hud.FocusedCommandForTest == null
+                && hud.ContextCommandForTest == null
+                && hud.CommandPromptForTest.StartsWith("INTENT:", StringComparison.Ordinal),
+                "enemy initiative clears stale command focus and renders the canonical enemy intent prompt");
             Assert(bossForecast.Legal, "boss basic attack has a valid threat forecast in the smoke lane");
             Assert(enemyHudView.CommandPrompt.Contains(bossForecast.HitChance + "%") && enemyHudView.CommandPrompt.Contains(bossForecast.MinDamage + "-" + bossForecast.MaxDamage), "enemy intent publishes shared hit and damage estimates");
             Assert(enemyHudView.TargetUnit.StateLine.Contains(bossForecast.HitChance + "%"), "enemy target card shares the same forecast");
@@ -2559,11 +2627,19 @@ namespace AshenHalls.Editor
                 Assert(resolvingHud.Commands.Count > 0
                     && resolvingHud.Commands.All(command => command != null && !command.Enabled),
                     "round transition disables every command, including review-only spell and skill books");
-                InvokePrivate(game, "RunCombatHudCommand", ActionMode.Cast);
+                Assert(resolvingHud.Commands.All(command => !command.Selected && !command.Armed && !command.Promoted),
+                    "round resolution renders no stale player intent or promotion");
+                CombatHudScreen roundHud = GetPrivateField<CombatHudScreen>(game, "combatHudScreen");
+                Assert(roundHud != null && roundHud.IsReady, "round transition retains the production combat HUD");
+                roundHud.Refresh();
+                Assert(roundHud.FocusedCommandForTest == null
+                    && roundHud.ContextCommandForTest == null,
+                    "round resolution clears rendered command focus before input can be submitted");
+                roundHud.InvokeCommandForTest(ActionMode.Cast);
                 Assert(roundState.Combat.Phase == CombatPhase.Resolving
                     && GetPrivateField<bool>(game, "combatAdvancePending")
                     && !GetPrivateField<bool>(game, "showSpellbook"),
-                    "combat command dispatch cannot break the round gate or open a review book");
+                    "focusable disabled-command submission cannot break the round gate or open a review book");
                 CombatController roundController = InvokePrivate<CombatController>(game, "CombatLifecycle");
                 float reservedAdvanceAt = GetPrivateField<float>(game, "combatAdvanceAt");
                 string reservedActiveId = roundState.Combat.ActiveId;

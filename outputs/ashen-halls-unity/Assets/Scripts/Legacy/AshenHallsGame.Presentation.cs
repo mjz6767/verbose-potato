@@ -1582,12 +1582,19 @@ namespace AshenHalls
 
         private bool IsCombatCommandIconAtlas()
         {
-            return combatCommandIconAtlas != null && combatCommandIconAtlas.width >= 768 && combatCommandIconAtlas.height >= 600;
+            return combatCommandIconAtlas != null
+                && CombatIconCatalog.IsCombatCommandAtlasDimensions(
+                    combatCommandIconAtlas.width,
+                    combatCommandIconAtlas.height);
         }
 
         private Rect CombatCommandIconAtlasCell(int index)
         {
-            return AtlasCell(combatCommandIconAtlas, index, 5, 4);
+            return AtlasCell(
+                combatCommandIconAtlas,
+                index,
+                CombatIconCatalog.CombatCommandAtlasColumns,
+                CombatIconCatalog.CombatCommandAtlasRows);
         }
 
         private bool TryDrawCombatCommandIconAtlasIcon(Rect rect, int index, Color tint)

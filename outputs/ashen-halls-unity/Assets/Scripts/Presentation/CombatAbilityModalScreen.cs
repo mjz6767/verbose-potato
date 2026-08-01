@@ -763,6 +763,7 @@ namespace AshenHalls
         private Scrollbar listScrollbar;
         private Text listScrollHint;
         private RectTransform detailPanel;
+        private RectTransform detailArtBackdrop;
         private RectTransform detailIconFrame;
         private Image detailIcon;
         private Text detailSigil;
@@ -837,6 +838,17 @@ namespace AshenHalls
         public string DetailIdForTest => DetailId();
         public string DetailActionLabelForTest => detailActionLabel == null ? "" : detailActionLabel.text;
         public bool DetailActionInteractableForTest => detailActionButton != null && detailActionButton.interactable;
+        public float DetailIconScaleForTest => detailIcon == null ? 0f : detailIcon.rectTransform.localScale.x;
+        public bool DetailUsesSelectionChromeForTest =>
+            detailPanel != null
+            && ColorsMatch(detailPanel.GetComponent<Outline>().effectColor, Hex("58b7a5", 0.82f))
+            && detailActionButton != null
+            && ColorsMatch((detailActionButton.targetGraphic as Image)?.color ?? Color.clear, Hex("285d56", 1f));
+        public bool DetailUsesArmedChromeForTest =>
+            detailPanel != null
+            && ColorsMatch(detailPanel.GetComponent<Outline>().effectColor, Hex("d7a84e", 0.94f))
+            && detailActionButton != null
+            && ColorsMatch((detailActionButton.targetGraphic as Image)?.color ?? Color.clear, Hex("d7a84e", 1f));
         public bool DetailStatusVisibleForTest => detailStatus != null && detailStatus.gameObject.activeSelf;
         public string DetailContextForTest => detailContext == null ? "" : detailContext.text;
         public string DetailPromptForTest => detailPrompt == null ? "" : detailPrompt.text;
@@ -878,6 +890,10 @@ namespace AshenHalls
             }
         }
         public int SelectedRailCountForTest => CountVisibleRows(row => row.SelectionRail != null && row.SelectionRail.gameObject.activeSelf);
+        public bool SelectedRailUsesSelectionAccentForTest => CountVisibleRows(
+            row => row.SelectionRail != null
+                && row.SelectionRail.gameObject.activeSelf
+                && ColorsMatch(row.SelectionRail.color, Hex("58b7a5", 1f))) == 1;
         public int VisibleStatusBadgeCountForTest => CountVisibleRows(
             row => row.StatusBadge != null && row.StatusBadge.gameObject.activeSelf);
         public int TargetingBadgeCountForTest => CountVisibleRows(
@@ -1419,6 +1435,8 @@ namespace AshenHalls
                 currentView?.ActionState);
             Color cardAccent = CardAccent(card, accent);
             Color previewAccent = Hex("8ecbd7", 1f);
+            Color selectionAccent = Hex("58b7a5", 1f);
+            Color armedAccent = Hex("d7a84e", 1f);
             Color fill = selected
                 ? card.Locked
                     ? Hex("10181c", 0.98f)
@@ -1428,24 +1446,26 @@ namespace AshenHalls
                     : Hex("12181d", 0.98f);
             row.Button.interactable = true;
             row.Background.color = fill;
-            row.Outline.effectColor = selected
-                ? cardAccent.WithAlpha(0.96f)
+            row.Outline.effectColor = armed
+                ? armedAccent.WithAlpha(0.98f)
+                : selected
+                ? selectionAccent.WithAlpha(0.96f)
                 : hovered
                     ? previewAccent.WithAlpha(0.46f)
                     : card.Locked
                         ? Hex("303638", 0.72f)
                         : Hex("3c4544", 0.82f);
-            row.Outline.effectDistance = selected ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
-            row.SelectionRail.gameObject.SetActive(selected);
-            row.SelectionRail.color = cardAccent;
+            row.Outline.effectDistance = selected || armed ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
+            row.SelectionRail.gameObject.SetActive(selected && !armed);
+            row.SelectionRail.color = selectionAccent;
             row.SelectionChevron.gameObject.SetActive(false);
             SetBookStateIcon(
                 row.SelectionIcon,
                 CombatIconCatalog.BookStateSelectionIndex,
-                cardAccent,
-                selected);
+                selectionAccent,
+                selected && !armed);
             row.ArmedRail.gameObject.SetActive(armed);
-            row.ArmedRail.color = Hex("d7a84e", 1f);
+            row.ArmedRail.color = armedAccent;
             row.IconFrame.GetComponent<Outline>().effectColor = cardAccent.WithAlpha(card.Locked ? 0.38f : 0.82f);
             RefreshIcon(row.Icon, row.Sigil, card, cardAccent);
             row.Name.text = card.Name ?? "";
@@ -1478,7 +1498,23 @@ namespace AshenHalls
         {
             if (card == null)
             {
+                if (detailPanel != null)
+                {
+                    detailPanel.GetComponent<Image>().color = Hex("080b0d", 0.98f);
+                    detailPanel.GetComponent<Outline>().effectColor = Hex("3c4544", 0.42f);
+                }
+                if (detailArtBackdrop != null)
+                {
+                    detailArtBackdrop.GetComponent<Image>().color = Hex("0b1013", 0.98f);
+                    detailArtBackdrop.GetComponent<Outline>().effectColor = Hex("3c4544", 0.42f);
+                }
+                if (detailIconFrame != null)
+                {
+                    detailIconFrame.GetComponent<Outline>().effectColor = Hex("3c4544", 0.42f);
+                }
                 RefreshIcon(detailIcon, detailSigil, null, accent);
+                detailIcon.rectTransform.localScale = Vector3.one;
+                detailSigil.rectTransform.localScale = Vector3.one;
                 detailTitle.text = "No selection";
                 detailStatus.text = "";
                 detailStatus.gameObject.SetActive(false);
@@ -1525,12 +1561,25 @@ namespace AshenHalls
             Color cardAccent = CardAccent(card, accent);
             bool canActivate = CombatAbilityModalPresentationRules.CanActivate(card);
             bool previewing = IsPointerPreview(card);
-            detailPanel.GetComponent<Image>().color = Color.Lerp(Hex("080b0d", 0.98f), cardAccent.WithAlpha(0.98f), 0.10f);
+            bool armed = card.Ready && canActivate;
+            Color selectionAccent = Hex("58b7a5", 1f);
+            Color armedAccent = Hex("d7a84e", 1f);
+            detailPanel.GetComponent<Image>().color = Color.Lerp(Hex("080b0d", 0.98f), cardAccent.WithAlpha(0.98f), 0.06f);
             detailPanel.GetComponent<Outline>().effectColor = previewing
                 ? Hex("8ecbd7", 0.46f)
-                : cardAccent.WithAlpha(0.76f);
+                : armed
+                    ? armedAccent.WithAlpha(0.94f)
+                    : selectionAccent.WithAlpha(0.82f);
+            detailArtBackdrop.GetComponent<Image>().color = Color.Lerp(
+                Hex("080b0d", 0.98f),
+                cardAccent.WithAlpha(0.98f),
+                previewing ? 0.10f : 0.20f);
+            detailArtBackdrop.GetComponent<Outline>().effectColor = cardAccent.WithAlpha(previewing ? 0.34f : 0.58f);
             detailIconFrame.GetComponent<Outline>().effectColor = cardAccent.WithAlpha(previewing ? 0.58f : 0.88f);
             RefreshIcon(detailIcon, detailSigil, card, cardAccent);
+            float heroScale = card.Path?.IndexOf("field", StringComparison.OrdinalIgnoreCase) >= 0 ? 1.16f : 1f;
+            detailIcon.rectTransform.localScale = Vector3.one * heroScale;
+            detailSigil.rectTransform.localScale = Vector3.one * heroScale;
             detailTitle.text = card.Name ?? "";
             detailStatus.text = CombatAbilityModalPresentationRules.AvailabilityLabel(card);
             detailStatus.color = AvailabilityTextColor(card);
@@ -1582,7 +1631,7 @@ namespace AshenHalls
                 : CombatAbilityModalPresentationRules.CardActionLabel(card);
             bool detailActionAvailable = !previewing && canActivate;
             Color actionFill = detailActionAvailable
-                ? card.Ready ? Hex("4b3516", 1f) : cardAccent.WithAlpha(0.92f)
+                ? armed ? armedAccent : Hex("285d56", 1f)
                 : Hex("101417", 0.96f);
             ColorBlock actionColors = detailActionButton.colors;
             actionColors.normalColor = Color.white;
@@ -1660,6 +1709,7 @@ namespace AshenHalls
             listScrollHint.raycastTarget = false;
 
             detailPanel = AddPanel("Power Detail", panel, Hex("080b0d", 0.98f), Hex("a77ae8", 0.72f));
+            detailArtBackdrop = AddPanel("Detail Art Backdrop", detailPanel, Hex("0b1013", 0.98f), Hex("a77ae8", 0.42f));
             detailIconFrame = AddPanel("Detail Icon Frame", detailPanel, Hex("050708", 0.98f), Hex("a77ae8", 0.88f));
             detailIcon = AddImage("Detail Icon", detailIconFrame, Color.white);
             detailIcon.preserveAspect = true;
@@ -1765,21 +1815,26 @@ namespace AshenHalls
             SetLocalRect(detailPanel, geometry.Detail);
             float detailW = geometry.Detail.width;
             float detailH = geometry.Detail.height;
-            SetLocalRect(detailIconFrame, new Rect(16f, 16f, 78f, 78f));
+            float detailArtSize = Mathf.Clamp(78f * uiScale, 86f, 104f);
+            SetLocalRect(detailArtBackdrop, new Rect(10f, 10f, detailArtSize + 12f, detailArtSize + 12f));
+            SetLocalRect(detailIconFrame, new Rect(16f, 16f, detailArtSize, detailArtSize));
             Stretch(detailIcon.rectTransform, 5f, 5f);
             Stretch(detailSigil.rectTransform, 5f, 5f);
-            SetLocalRect(detailTitle.rectTransform, new Rect(108f, 15f, detailW - 124f, 28f));
-            SetLocalRect(detailStatusIcon.rectTransform, new Rect(108f, 54f, 18f, 18f));
-            SetLocalRect(detailStatus.rectTransform, new Rect(132f, 52f, detailW - 148f, 24f));
-            SetLocalRect(detailContextIcon.rectTransform, new Rect(108f, 78f, 16f, 16f));
-            SetLocalRect(detailContext.rectTransform, new Rect(130f, 78f, detailW - 146f, 18f));
+            float detailHeaderX = 30f + detailArtSize;
+            SetLocalRect(detailTitle.rectTransform, new Rect(detailHeaderX, 15f, detailW - detailHeaderX - 16f, 28f));
+            SetLocalRect(detailStatusIcon.rectTransform, new Rect(detailHeaderX, 54f, 18f, 18f));
+            SetLocalRect(detailStatus.rectTransform, new Rect(detailHeaderX + 24f, 52f, detailW - detailHeaderX - 40f, 24f));
+            SetLocalRect(detailContextIcon.rectTransform, new Rect(detailHeaderX, 78f, 16f, 16f));
+            SetLocalRect(detailContext.rectTransform, new Rect(detailHeaderX + 22f, 78f, detailW - detailHeaderX - 38f, 18f));
 
+            float summaryY = Mathf.Max(112f, detailArtSize + 28f);
+            float statY = summaryY + 74f;
             float chipGap = 8f;
             float chipWidth = (detailW - 32f - chipGap * 2f) / 3f;
-            SetLocalRect(detailSummary.rectTransform, new Rect(16f, 112f, detailW - 32f, 66f));
-            LayoutStatChip(statChips[0], new Rect(16f, 186f, chipWidth, 44f));
-            LayoutStatChip(statChips[1], new Rect(16f + chipWidth + chipGap, 186f, chipWidth, 44f));
-            LayoutStatChip(statChips[2], new Rect(16f + (chipWidth + chipGap) * 2f, 186f, chipWidth, 44f));
+            SetLocalRect(detailSummary.rectTransform, new Rect(16f, summaryY, detailW - 32f, 66f));
+            LayoutStatChip(statChips[0], new Rect(16f, statY, chipWidth, 44f));
+            LayoutStatChip(statChips[1], new Rect(16f + chipWidth + chipGap, statY, chipWidth, 44f));
+            LayoutStatChip(statChips[2], new Rect(16f + (chipWidth + chipGap) * 2f, statY, chipWidth, 44f));
 
             float actionY = detailH - 60f;
             SetLocalRect(detailActionButton.GetComponent<RectTransform>(), new Rect(16f, actionY, detailW - 32f, 44f));
@@ -1807,7 +1862,13 @@ namespace AshenHalls
             float detailW = Mathf.Max(1f, detailPanel.rect.width);
             float detailH = Mathf.Max(1f, detailPanel.rect.height);
             float actionY = detailH - 60f;
-            float metaY = 238f;
+            float detailArtSize = Mathf.Clamp(
+                78f * CombatAbilityModalListRules.UiScale(Screen.height),
+                86f,
+                104f);
+            float summaryY = Mathf.Max(112f, detailArtSize + 28f);
+            float statY = summaryY + 74f;
+            float metaY = statY + 52f;
             float metaH = 30f;
             float narrativeY = metaY + metaH + 6f;
             float narrativeBottom = actionY - 12f;
@@ -2894,6 +2955,14 @@ namespace AshenHalls
         {
             float luminance = 0.2126f * background.r + 0.7152f * background.g + 0.0722f * background.b;
             return luminance > 0.42f ? Hex("050708", 1f) : Hex("f5f1df", 1f);
+        }
+
+        private static bool ColorsMatch(Color left, Color right)
+        {
+            return Mathf.Abs(left.r - right.r) <= 0.001f
+                && Mathf.Abs(left.g - right.g) <= 0.001f
+                && Mathf.Abs(left.b - right.b) <= 0.001f
+                && Mathf.Abs(left.a - right.a) <= 0.001f;
         }
 
         private static void SetScreenRect(RectTransform rect, Rect area)

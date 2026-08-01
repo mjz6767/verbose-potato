@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v1.99.0 - Commanding Presence
+
+- Rebuilt the bottom combat-command art as an exact transparent 5 by 4, 1280 by 1024 atlas with 256-pixel cells and safe gutters. Move, Attack, Cast, Guard, Elixir, End Turn, and Skills now use bold unframed emblems designed to remain distinct at actual HUD size; the remaining cells preserve a documented semantic expansion set.
+- Enlarged and rebalanced the command deck across supported window sizes. Buttons, icon wells, labels, prompts, and keycaps scale together, while every command remains keyboard/controller focusable even when it is unavailable so the existing prompt can explain why it cannot fire.
+- Separated command meaning from interaction state. Each command keeps its own semantic color; only a genuinely armed action receives the gold commitment rail, while keyboard/controller focus uses an independent ivory outline. The button transition no longer multiplies the semantic fill a second time, and Attack cannot appear armed when it has no legal target.
+- Made Cast and Skills hand off to the actual armed formula or ability art. Their stable category emblems remain visible while browsing or unavailable, eliminating the misleading default Whirlwind icon and keeping the command deck truthful after a power is canceled.
+- Strengthened Spellbook and Skillbook detail art with a larger responsive hero emblem and a restrained category-colored halo. Existing Preview, Selection, Targeting, availability, input ownership, costs, ranges, effects, and targeting rules remain unchanged.
+- Added exact command-atlas dimension, mapping, coverage, gutter, loading, responsive-layout, focusability, blocked-state, focus-cleanup, and armed-art checks. The current source, player, and editor assemblies compile directly from Unity's generated response files. Six advisory development-player captures at 1280x720 and 1920x1080 exit cleanly and visually confirm blocked and legal Attack, armed Fireball, Spellbook targeting, Skillbook selection, keycap clearance, and responsive command spacing. Unity RuleSmoke, RuntimeBoot, Windows build, and packaging have not passed for this candidate because the local Unity Editor session currently reports no valid license before those suites start. Save schema remains v25.
+
 ## v1.98.0 - One Intent, One Highlight
 
 - Rebuilt power-book input ownership around one truthful cursor. Pointer hover is now a quiet, transient Preview; committed Selection keeps the only strong left rail and fill; armed Targeting keeps its distinct gold state. Moving from mouse to keyboard or controller clears stale pointer context instead of leaving two competing highlights.

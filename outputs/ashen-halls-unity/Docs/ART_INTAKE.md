@@ -115,6 +115,7 @@ Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-r
 - `roaming-threat-atlas-runtime-*` is a transparent 5 by 4 grid. The v1.62.0 contract reserves cells 0-19 for rat, ratfolk, kobold, demon, drow, undead, elite, boss-escort, and encounter-marker silhouettes; keep each figure centered with a common foot baseline and clear gutters.
 - `world-map-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by exploration/map command buttons.
 - `tavern-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by the tavern/title menu buttons.
+- `combat-command-icon-atlas-runtime-v1.99.0.png` is the active exact 5 by 4, 1280 by 1024 transparent command contract. Every cell is 256 by 256 with at least 18 pixels of transparent gutter; the live Move, Attack, Cast, Guard, Elixir, End Turn, and Skills mappings remain at cells 0, 1, 2, 3, 4, 5, and 7. The large unframed silhouettes are authored for 56-72 pixel HUD presentation, so do not bake button frames, text, keycaps, or interaction-state rails into replacement art.
 - Current active world/Midgaard/combat terrain sheets: `world-map-material-atlas-runtime-v1.92.0.png`, `world-map-exploration-tile-atlas-runtime-v1.68.0.png`, `world-map-overlay-atlas-runtime-v0.80.png`, `world-map-progression-overlay-atlas-runtime-v0.63.png`, `combat-terrain-atlas-runtime-v1.5.8.png`, `midgaard-tile-atlas-runtime-v1.6.3.png`, `midgaard-city-prop-atlas-runtime-v1.29.0.png`, `midgaard-gate-atlas-runtime-v1.93.0.png`, and `midgaard-wall-atlas-runtime-v1.91.0.png`.
 - `midgaard-gate-atlas-runtime-v1.93.0.png` is the active exact 5 by 4, 1280 by 1024 gate contract. Cells 0 and 1 preserve the approved front-view sealed/open variants; cells 6 and 7 are a compact wall-aligned West/East pair with two low bastions above and below an open horizontal passage. Runtime maps sealed north and south to cell 0, West to cell 6, and East to cell 7. Side-gate cells must keep local bounds near 62 by 224 pixels, at least 16 pixels of gutter, a fully transparent local-y 104-151 road band, an exact horizontal visible-RGB/alpha mirror, and the authored town-side mass bias that distinguishes West from East. Do not replace them with a front-elevation facade or horizontal wall wings.
 - `midgaard-wall-atlas-runtime-v1.91.0.png` is the active exact 5 by 4, 1280 by 1024 wall contract. Cells 0-3 are north, south, west, and east straight runs; cells 4-7 are the four inward-facing corners; cells 8 and 9 are horizontal and vertical structural accents. Continuous foundations and gate joins are renderer-owned: horizontal foundations are 0.56 cells in Local Map and 0.52 in Region Map, while vertical foundations are 0.36 / 0.34 to fit the narrower authored masonry. Open east/west gates inherit the narrow vertical join only above and below the travel lane; their underlying straight-wall tile is suppressed and no sill may cross the road. Replacement art must preserve these connection directions and avoid opaque square-cell backgrounds.
@@ -123,7 +124,7 @@ Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-r
 - `world-map-exploration-tile-atlas-runtime-v1.68.0.png` is the active exact 5 by 8, 1280 by 2048 blocked/fallback terrain contract. Cells 0-19 preserve the repaired v1.24.2 bank and cells 20-39 add blocked-terrain variants. This is a deliberate two-bank expansion, not the older irregular 5 by 7 experiment.
 - `unique-item-atlas-runtime-*` is read as a 5 by 4 grid and is checked before generic equipment art.
 - `combat-ui-panel-atlas-runtime-*` is read as a 5 by 4 grid and used as subtle panel chrome/backdrop art.
-- Current active tavern/combat/UI/ability/effect sheets include `tavern-ui-atlas-runtime-v1.5.9.png`, `world-map-ui-atlas-runtime-v1.6.0.png`, `combat-ui-panel-atlas-runtime-v0.72.png`, `ability-icon-atlas-runtime-v1.97.0.png`, `signature-spell-icon-atlas-runtime-v1.97.0.png`, `lightning-spell-icon-atlas-runtime-v1.97.0.png`, `power-book-state-icon-atlas-runtime-v1.97.0.png`, `magic-ui-atlas-runtime-v1.31.0.png`, `spellbook-combat-ui-atlas-runtime-v1.24.0.png`, `combat-spell-effects-atlas-runtime-v0.73.png`, `spell-animation-atlas-runtime-v1.49.0.png`, `combat-command-icon-atlas-runtime-v0.73.png`, `combat-hud-ui-atlas-runtime-v0.73.png`, `combat-spell-float-atlas-runtime-v0.73.png`, and `ranger-ability-effect-atlas-runtime-v0.73.png`.
+- Current active tavern/combat/UI/ability/effect sheets include `tavern-ui-atlas-runtime-v1.5.9.png`, `world-map-ui-atlas-runtime-v1.6.0.png`, `combat-ui-panel-atlas-runtime-v0.72.png`, `ability-icon-atlas-runtime-v1.97.0.png`, `signature-spell-icon-atlas-runtime-v1.97.0.png`, `lightning-spell-icon-atlas-runtime-v1.97.0.png`, `power-book-state-icon-atlas-runtime-v1.97.0.png`, `magic-ui-atlas-runtime-v1.31.0.png`, `spellbook-combat-ui-atlas-runtime-v1.24.0.png`, `combat-spell-effects-atlas-runtime-v0.73.png`, `spell-animation-atlas-runtime-v1.49.0.png`, `combat-command-icon-atlas-runtime-v1.99.0.png`, `combat-hud-ui-atlas-runtime-v0.73.png`, `combat-spell-float-atlas-runtime-v0.73.png`, and `ranger-ability-effect-atlas-runtime-v0.73.png`.
 - Midgaard town, tile, NPC, and sewer atlases are read as 5 by 4 grids.
 - `npc-portrait-atlas-runtime-*` is read as a transparent 5 by 4 grid.
 - `route-scaffold-atlas-runtime-*`, `faction-banner-atlas-runtime-*`, and `service-scaffold-atlas-runtime-*` are read as 5 by 4 grids.
@@ -325,7 +326,7 @@ Preview is transient and noncommitting; Selection identifies the retained browse
 
 ## Combat Command Icon Atlas Cells
 
-`combat-command-icon-atlas-runtime-v0.xx.png` is the main combat command bar icon sheet. It is read as a 5 by 4 grid.
+`combat-command-icon-atlas-runtime-v0.xx.png` is the main combat command bar icon sheet. The active `combat-command-icon-atlas-runtime-v1.99.0.png` is an exact transparent 5 by 4, 1280 by 1024 sheet with 256-pixel cells and at least 18 pixels of empty gutter around every silhouette.
 
 - Cell 0: Move / step movement.
 - Cell 1: Attack.
@@ -333,11 +334,22 @@ Preview is transient and noncommitting; Selection identifies the retained browse
 - Cell 3: Guard.
 - Cell 4: Elixir.
 - Cell 5: End Turn / wait.
-- Cell 6: Skill fallback or martial action.
-- Cell 7: Targeting reticle.
-- Cell 8: Blocked / invalid action.
-- Cell 9: Alternate wait/end marker.
-- Remaining cells are reserved for later command-state art.
+- Cell 6: Ranged attack.
+- Cell 7: Skills / martial action.
+- Cell 8: Targeting reticle.
+- Cell 9: Blocked / unavailable.
+- Cell 10: Fire / impact.
+- Cell 11: Multi-impact.
+- Cell 12: Heal / support.
+- Cell 13: Stealth.
+- Cell 14: Dash.
+- Cell 15: Volley.
+- Cell 16: Break / obstructed.
+- Cell 17: Inspect.
+- Cell 18: Selected / confirmed.
+- Cell 19: Danger / hostile confirm.
+
+The command art expresses semantic identity only. Runtime presentation owns disabled treatment, the ivory keyboard/controller focus outline, and the gold armed-action rail. Cast and Skills may replace their category emblem with the exact pending formula or ability art only while that power is genuinely armed; unarmed or canceled commands return to cells 2 and 7.
 
 ## Spell Animation Atlas Cells
 
