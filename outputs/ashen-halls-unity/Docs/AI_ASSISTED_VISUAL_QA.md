@@ -29,7 +29,7 @@ The source candidate has six disposable development-player captures under `QA/v1
 - ordinary book selection is teal while targeting alone uses strong gold; and
 - the larger detail hero, terrain-art scaling, stat chips, notes, and primary action fit without clipping.
 
-This set is advisory because it uses a disposable player with the freshly compiled candidate assembly. It is not a substitute for Unity RuleSmoke, RuntimeBoot, the focused combat-UI suite, the Windows build/package, clean-extracted boot, or an equivalent packaged-player capture matrix; those v1.99 gates remain blocked until the local Unity Editor license is restored.
+This set uses a disposable player with the freshly compiled candidate assembly. Unity RuleSmoke, focused combat-UI runtime smoke, full RuntimeBoot, Windows build/package, and clean-extracted packaged boot now pass independently. An equivalent packaged-player combat/book capture matrix and physical-input review remain the outstanding visual evidence.
 
 ## v1.98 One-Intent Power-Book Matrix
 
