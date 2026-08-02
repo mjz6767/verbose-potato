@@ -5,8 +5,27 @@ using UnityEngine;
 
 namespace AshenHalls
 {
+    public readonly struct GrandHearthPatronPlacement
+    {
+        public int OffsetX { get; }
+        public int OffsetY { get; }
+        public AmbientCitizenProfession Profession { get; }
+
+        public GrandHearthPatronPlacement(
+            int offsetX,
+            int offsetY,
+            AmbientCitizenProfession profession)
+        {
+            OffsetX = offsetX;
+            OffsetY = offsetY;
+            Profession = profession;
+        }
+    }
+
     public static class MidgaardInteriorRules
     {
+        public const string GrandHearthZoneId = "midgaard-grand-hearth";
+        public const string GrandHearthDisplayName = "Town Hall / Grand Hearth";
         public const string KingHallDoorId = "midgaard-king-hall-door";
         public const string ThroneRoomExitId = "midgaard-throne-room-exit";
         public const string GrandHearthDoorId = "midgaard-grand-hearth-door";
@@ -25,6 +44,18 @@ namespace AshenHalls
 
         private static readonly int[] ArrivalX = { 0, 0, -1, 1 };
         private static readonly int[] ArrivalY = { -1, 1, 0, 0 };
+        private static readonly IReadOnlyList<GrandHearthPatronPlacement> GrandHearthPatronLayout =
+            Array.AsReadOnly(new[]
+        {
+            new GrandHearthPatronPlacement(1, 1, AmbientCitizenProfession.Tailor),
+            new GrandHearthPatronPlacement(6, 1, AmbientCitizenProfession.Mason),
+            new GrandHearthPatronPlacement(8, 2, AmbientCitizenProfession.Lamplighter),
+            new GrandHearthPatronPlacement(1, 5, AmbientCitizenProfession.CaravanGuide),
+            new GrandHearthPatronPlacement(6, 6, AmbientCitizenProfession.RoadPilgrim),
+            new GrandHearthPatronPlacement(2, 7, AmbientCitizenProfession.Fishmonger)
+        });
+
+        public static IReadOnlyList<GrandHearthPatronPlacement> GrandHearthPatrons => GrandHearthPatronLayout;
 
         public static RectInt ThroneRoomBounds(MapData map)
         {
@@ -40,19 +71,56 @@ namespace AshenHalls
         public static RectInt GrandHearthBounds(MapData map)
         {
             int height = map?.Height ?? WorldMapGenerationRules.Height;
-            return new RectInt(2, Mathf.Max(1, height - 10), 9, 8);
+            // Grow only into the southwest map-edge buffer. The inward reservation
+            // edge stays where it was, clear of Ash Fen and every supported map's
+            // regional sites, while the old 9x8 room remains wholly contained.
+            return new RectInt(1, Mathf.Max(1, height - 10), 10, 9);
+        }
+
+        public static int GrandHearthAisleY(MapData map)
+        {
+            RectInt room = GrandHearthBounds(map);
+            return room.yMin + 4;
         }
 
         public static Point GrandHearthSpawn(MapData map)
         {
             RectInt room = GrandHearthBounds(map);
-            return new Point(room.xMin + 4, room.yMin + room.height / 2);
+            // Keep the established company mark stable across the safe expansion.
+            return new Point(room.xMin + 5, GrandHearthAisleY(map));
         }
 
         public static Point GrandHearthExit(MapData map)
         {
             RectInt room = GrandHearthBounds(map);
-            return new Point(room.xMax - 1, room.yMin + room.height / 2);
+            return new Point(room.xMax - 1, GrandHearthAisleY(map));
+        }
+
+        public static bool IsGrandHearthCompanyRunner(MapData map, int x, int y)
+        {
+            RectInt room = GrandHearthBounds(map);
+            return y == GrandHearthAisleY(map)
+                && x >= room.xMin + 3
+                && x <= room.xMax - 2;
+        }
+
+        public static bool TryGrandHearthPatron(
+            MapData map,
+            int x,
+            int y,
+            out AmbientCitizenProfession profession)
+        {
+            profession = AmbientCitizenProfession.Unknown;
+            if (map == null || map.Depth != 1) return false;
+            RectInt room = GrandHearthBounds(map);
+            for (int i = 0; i < GrandHearthPatronLayout.Count; i++)
+            {
+                GrandHearthPatronPlacement placement = GrandHearthPatronLayout[i];
+                if (x != room.xMin + placement.OffsetX || y != room.yMin + placement.OffsetY) continue;
+                profession = placement.Profession;
+                return true;
+            }
+            return false;
         }
 
         public static bool IsInteriorCell(MapData map, int x, int y)

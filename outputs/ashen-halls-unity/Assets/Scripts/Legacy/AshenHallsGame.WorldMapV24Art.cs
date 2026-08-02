@@ -216,6 +216,8 @@ namespace AshenHalls
             int tile,
             HashSet<int> guidanceCells)
         {
+            if (TryDrawGrandHearthPatron(cell, x, y, tile, guidanceCells)) return true;
+
             if (state?.Map == null
                 || tile != 1
                 || !IsWorldNpcCitizenAtlas()
@@ -271,6 +273,46 @@ namespace AshenHalls
             {
                 AmbientCitizenProfession profession = ExplorationCharacterArtCatalog.CitizenProfessionAt(index);
                 DrawExploreArtDebugOverlay(cell, citizenRect, "Ambient: " + profession);
+            }
+            return drawn;
+        }
+
+        private bool TryDrawGrandHearthPatron(
+            Rect cell,
+            int x,
+            int y,
+            int tile,
+            HashSet<int> guidanceCells)
+        {
+            if (state?.Map == null
+                || state.Depth != 1
+                || tile != 1
+                || !IsWorldNpcCitizenAtlas()
+                || x == state.PlayerX && y == state.PlayerY
+                || ObjectAt(state.Map, x, y) != null
+                || IsExploreGuidanceCell(x, y, guidanceCells)
+                || !MidgaardInteriorRules.TryGrandHearthPatron(state.Map, x, y, out AmbientCitizenProfession profession))
+            {
+                return false;
+            }
+
+            int index = ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession);
+            if (index < 0) return false;
+            Rect patronRect = Pad(cell, cell.width * (exploreWideView ? 0.18f : 0.05f));
+            float alpha = exploreWideView ? 0.76f : 0.94f;
+            WorldMapArtSpec spec = new WorldMapArtSpec(
+                0.98f,
+                new Vector2(0.5f, 1f),
+                new Vector2(0f, 0.01f),
+                true);
+            bool drawn = TryDrawWorldNpcCitizenAtlasIcon(
+                patronRect,
+                index,
+                Color.white.WithAlpha(alpha),
+                spec);
+            if (drawn && showExploreArtDebug)
+            {
+                DrawExploreArtDebugOverlay(cell, patronRect, "Town Hall patron: " + profession);
             }
             return drawn;
         }

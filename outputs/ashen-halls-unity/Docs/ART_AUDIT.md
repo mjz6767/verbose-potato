@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-Last updated for the verified v2.4.0 family-playtest candidate. Automated release gates pass; older release sections are retained below as historical records.
+Last updated for the v2.6.0 Town Hall development candidate. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the current Windows build, and direct Local/Region visual review at 1280 by 720 and 1920 by 1080 pass; final packaging and clean-extracted packaged boot remain open. Older release sections are retained below as historical records.
 
 ## Active Runtime Art
 
@@ -8,11 +8,17 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 
 - Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI.
 - Party/enemies: character combat atlas, enemy sprite atlas, creature/combat sprite fallback atlas, enemy roster, boss enemy fallback, Kobold King boss atlas.
-- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, non-interactive citizens, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
+- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
 - Kobold route: route markers, cave props, dedicated kobold combat terrain, boss route art.
 - Combat UI/effects: combat UI, combat UI panel, combat HUD, combat command icons, ability icons, spellbook UI, combat spellbook UI, spellbook open art, magic UI, ember/epic/combat spell effects, spell animation, combat floating text art.
 - Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.
 - Journal/scaffold: story cards, NPC portraits, route/dungeon/service/faction scaffold hooks when matching files are present.
+
+## Newly Connected In v2.6.0 - Automated and Visual Gates Passed
+
+- Town Hall's expanded Grand Hearth reuses six distinct approved cells from `world-npc-citizen-atlas-runtime-v2.4.0.png`: tailor, mason, lamplighter, caravan guide, road pilgrim, and fishmonger. No new runtime image, manifest pin, packaged-art entry, atlas geometry, or v2.4 provenance file is introduced.
+- These are authored interior presentation placements, not procedural exterior ambient citizens. They remain deterministic, walk-through, and off the tutorial company runner, with no `MapObject`, collision, hover response, Talk prompt, dialogue, named-NPC substitution, portrait identity, or saved identity. Procedural placement remains exterior-only and still excludes every room.
+- RuleSmoke verifies the exact six-cell mapping, distinct professions, clear runner, and stable Town Hall contracts. Focused sprite-art runtime smoke resolves every patron through the approved atlas, full RuntimeBoot verifies the live first-spawn room and portal flow, and the current Windows build passes. Four direct built-player captures under `QA/v2.6.0-town-hall` cover Local and Region at 1280 by 720 and 1920 by 1080; all report `complete=True`, `failure=None` and visually confirm the six figures, clear route, and unobstructed exit. Final packaging and clean-extracted packaged boot remain pending.
 
 ## Newly Connected In v2.4.0 - Automated Gates Passed
 

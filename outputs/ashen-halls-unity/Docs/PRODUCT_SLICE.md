@@ -1,6 +1,6 @@
 # Ash & Brimstone Playable Slice
 
-Ash & Brimstone's first playable loop is a four-person tactical dungeon RPG slice: muster a party, begin inside the Grand Hearth, walk through its storm doors into Midgaard, accept the sewer contract, clear three authored sewer encounters, make one recovery-room gear choice, return proof, earn a visible equipment reward, then follow the opened Old Road from Sluice Steps through Dusk Market and the bounded kobold Chapter II rooms.
+Ash & Brimstone's first playable loop is a four-person tactical dungeon RPG slice: muster a party, begin inside Town Hall's expanded Grand Hearth gathering chamber, cross its broad floor among six patrons, leave through the storm doors to begin the journey into Midgaard, accept the sewer contract, clear three authored sewer encounters, make one recovery-room gear choice, return proof, earn a visible equipment reward, then follow the opened Old Road from Sluice Steps through Dusk Market and the bounded kobold Chapter II rooms.
 
 ## Normal First-Play Content
 
@@ -11,6 +11,9 @@ Ash & Brimstone's first playable loop is a four-person tactical dungeon RPG slic
 - Enemies: Sewer Rat, Giant Rat, Ratfolk Scrapper, Ratfolk Cutthroat, Ratfolk Plague Mage, Ratfolk Brute.
 - Encounters: Broken Sluice, Foul Runoff, Cistern Den.
 - World: fresh 58x46 maps with eight deterministic room-sized regional sites, one in each outer territory, connected to the named road circuit.
+- Opening chamber: Town Hall's Grand Hearth is a 10 by 9 room with one continuous 8 by 7 gathering floor. It preserves the original first-spawn cell, outbound storm doors, clear company runner, stable IDs, cartography table, blue company road chest, and portal flow.
+- Gathering patrons: six authored, deterministic figures reuse approved v2.4 citizen-atlas cells inside Town Hall. They are a separate presentation layer from procedural exterior ambient citizens: walk-through, off the runner, and without a `MapObject`, hover response, Talk prompt, dialogue, collision, or saved identity.
+- First journey step: fresh-game objective and NEXT guidance remain on the Town Hall storm doors until the party leaves; only then does the campaign route advance to King Halvard.
 - Chapter II route: Sluice Steps descent, Dusk Market kobold ambush, Smoke Cave, and the Kobold King rooms after the sewer reward.
 - Recovery choice: +2 Sluicekeeper Blade or +2 Stormglass Focus after Foul Runoff.
 - Recovery valve: retreat from a campaign fight for one supply, abandon its loot, and regroup at Temple Square.
@@ -20,4 +23,4 @@ Ash & Brimstone's first playable loop is a four-person tactical dungeon RPG slic
 - Party growth: the v2.5 Armory adds a fifth `I > Growth` tab. It stages earned attribute points and only class-relevant talents, previews the resulting party values before commitment, applies or resets the complete draft explicitly, checkpoints immediately after Apply, and remains review-only during combat. Unconfirmed choices are discarded when the Armory closes.
 - Progress protection: quiet checkpoints before each room and after each permanent reward.
 
-The bounded kobold Chapter II route is normal playable content. Other prototype classes, encounters, formulas, services, factions, dungeons, and generic route scaffolds remain gated behind the full prototype content set. Existing saves retain their serialized map dimensions, biome layout, party stats, talents, and unspent growth points; save schema remains v25. Party Growth v2.5.0 is the verified family-playtest candidate after RuleSmoke, focused runtime, full RuntimeBoot, Windows build/package, clean-extracted boot, and the three-resolution packaged-player Growth matrix pass from the settled source.
+The bounded kobold Chapter II route is normal playable content. Other prototype classes, encounters, formulas, services, factions, dungeons, and generic route scaffolds remain gated behind the full prototype content set. Existing saves retain their serialized map dimensions, biome layout, party stats, talents, and unspent growth points; save schema remains v25. Town Hall Gathering v2.6.0 is the current development candidate after RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the Windows build, and direct Local/Region visual review at 1280 by 720 and 1920 by 1080 pass; final packaging, clean-extracted boot, controller, and human-playthrough gates remain open. The packaged v2.5.0 candidate remains the verified rollback baseline.

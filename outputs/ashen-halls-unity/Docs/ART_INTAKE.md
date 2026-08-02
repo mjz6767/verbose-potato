@@ -3,6 +3,14 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.6.0 Town Hall patron reuse contract
+
+Town Hall's expanded Grand Hearth authors six fixed gathering patrons from the already approved `world-npc-citizen-atlas-runtime-v2.4.0.png`: Dusk-elf tailor, Stoneborn mason, Human lamplighter, Dusk-elf caravan guide, Human road pilgrim, and Ashling fishmonger. This is a new placement/presentation contract, not a new art asset or identity system. No v2.4 handoff file, atlas geometry, cell order, package pin, or provenance record changes.
+
+Town Hall patrons are deterministic interior presentation figures, separate from the procedural exterior ambient-citizen system described below. They remain on six authored open-floor cells and off the tutorial company runner; the player can walk through them. They have no `MapObject`, collision, hover response, Talk prompt, dialogue, or saved identity and must never be substituted for a named NPC or portrait. The exterior generator remains prohibited from rooms, including Town Hall, so it cannot add or remove these six authored figures.
+
+RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, and the current Windows build pass for this reuse contract. Four direct built-player Local/Region captures at 1280 by 720 and 1920 by 1080 report `complete=True`, `failure=None`; visual inspection confirms all six distinct figures render cleanly without blocking the company runner. Final packaging and clean-extracted packaged boot remain release gates; do not describe the v2.6 art reuse as package-verified until those gates finish.
+
 ## Active v2.4.0 world-map companion contracts
 
 `world-threat-habitat-atlas-runtime-v2.4.0.png` is the approved exact transparent habitat atlas. Its stable row-major cells are Rat Warren, Plague-Bell Midden, Kobold Ambush Camp, Kobold Shaman Totem Yard, Drow Moon-Silk Watchpost, Undead Ossuary, Demon Breach, and Ruined Road Waystation. Runtime presentation anchors one stationary illustration at each threat's existing `HomeX`/`HomeY`, beneath its independently moving token, and suppresses habitat art on certified safe roads. Active threats use their faction/archetype habitat; inactive threats use the neutral ruined-waystation aftermath cell. The layer does not create encounters, move a home, or alter save data.

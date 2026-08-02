@@ -3709,7 +3709,7 @@ namespace AshenHalls
                 // procedural silhouette, never a clamped generic atlas cell.
                 return TryDrawMidgaardNpcAtlasIcon(rect, midgaardNpcIndex, tint, spec);
             }
-            int midgaardTownIndex = MidgaardTownObjectIconIndex(type);
+            int midgaardTownIndex = MidgaardTownObjectIconIndexFor(type, obj);
             if (midgaardTownIndex >= 0 && TryDrawMidgaardTownAtlasIcon(rect, midgaardTownIndex, tint, spec)) return true;
             int regionalLandmarkIndex = WorldMapRegionLandmarkIconIndex(type, obj);
             if (regionalLandmarkIndex >= 0 && TryDrawWorldMapRegionLandmarkAtlasIcon(rect, regionalLandmarkIndex, tint, spec)) return true;
@@ -3841,6 +3841,19 @@ namespace AshenHalls
                 case ObjectType.MerchantCounter: return 13;
                 default: return -1;
             }
+        }
+
+        private int MidgaardTownObjectIconIndexFor(ObjectType type, MapObject obj)
+        {
+            // The exterior portal remains semantically a Tavern for established
+            // quest routing, but its stable identity now presents Town Hall with
+            // the approved civic-hall silhouette.
+            if (obj != null
+                && string.Equals(obj.Id, MidgaardInteriorRules.GrandHearthDoorId, StringComparison.Ordinal))
+            {
+                return MidgaardTownObjectIconIndex(ObjectType.KingHall);
+            }
+            return MidgaardTownObjectIconIndex(type);
         }
 
         private int MidgaardSewerObjectIconIndex(ObjectType type)

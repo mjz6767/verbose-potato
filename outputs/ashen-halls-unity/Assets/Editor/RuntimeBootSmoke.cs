@@ -216,8 +216,12 @@ namespace AshenHalls.Editor
                 Assert(explorationHud.HasExpandedResourceLabelsForTest, "exploration chrome keeps full Gold, Supplies, and Elixirs labels");
                 Assert(explorationHud.NumericPartyVitalRowsForTest == 4, "all four exploration party rows publish numeric HP and MP");
                 ExplorationHudView firstPlayView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
-                Assert(firstPlayView.ObjectiveSummary.IndexOf("King Halvard", StringComparison.OrdinalIgnoreCase) >= 0, "fresh-game objective names King Halvard");
-                Assert(firstPlayView.WaypointLine.IndexOf("Storm", StringComparison.OrdinalIgnoreCase) >= 0, "fresh-game waypoint first points to the Grand Hearth storm doors");
+                Assert(firstPlayView.ObjectiveSummary.IndexOf("Leave Town Hall", StringComparison.OrdinalIgnoreCase) >= 0
+                    && firstPlayView.ObjectiveSummary.IndexOf("begin the journey", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "fresh-game objective makes leaving Town Hall the first journey step");
+                Assert(firstPlayView.WaypointLine.IndexOf("Storm", StringComparison.OrdinalIgnoreCase) >= 0
+                    && firstPlayView.WaypointLine.IndexOf("Town Hall", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "fresh-game waypoint first points to the Town Hall storm doors");
                 Assert((firstPlayView.WaypointLine.StartsWith("W / Up | ", StringComparison.Ordinal)
                         || firstPlayView.WaypointLine.StartsWith("S / Down | ", StringComparison.Ordinal)
                         || firstPlayView.WaypointLine.StartsWith("A / Left | ", StringComparison.Ordinal)
@@ -230,7 +234,7 @@ namespace AshenHalls.Editor
                 string firstPlayGuidanceTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName");
                 Assert(firstPlayGuidancePath.Count > 1
                     && firstPlayGuidanceTarget.IndexOf("Storm", StringComparison.OrdinalIgnoreCase) >= 0,
-                    "fresh-game HUD and map share one reachable Grand Hearth exit plan");
+                    "fresh-game HUD and map share one reachable Town Hall exit plan");
                 Assert(InvokePrivate<bool>(game, "CurrentExploreGuidanceIsInteriorExit"),
                     "fresh-game Golden Thread identifies the Grand Hearth storm doors as an interior exit");
                 GameState firstPlayState = GetPrivateField<GameState>(game, "state");
@@ -1075,7 +1079,11 @@ namespace AshenHalls.Editor
             Assert(state.PlayerX == grandHearthSpawn.X && state.PlayerY == grandHearthSpawn.Y, "fresh party starts at the authored Grand Hearth company mark");
             WorldZone startingZone = InvokePrivate<WorldZone>(game, "ZoneFor", state.PlayerX, state.PlayerY, state.Map, state.Depth);
             Assert(startingZone != null && startingZone.Id == "midgaard-grand-hearth", "fresh party starts inside the dedicated Grand Hearth zone");
+            Assert(startingZone != null && startingZone.Name == MidgaardInteriorRules.GrandHearthDisplayName,
+                "fresh party sees the Grand Hearth framed as Town Hall");
             Assert(state.StoryFlags.Contains(StoryFlags.MidgaardGrandHearthEntered), "fresh party records its Grand Hearth arrival");
+            Assert(!state.StoryFlags.Contains(StoryFlags.MidgaardGrandHearthDeparted),
+                "the journey remains unstarted until the party leaves Town Hall");
             PartyMember defeatedProbe = state.Party[0];
             int defeatedProbeHp = defeatedProbe.Hp;
             defeatedProbe.Hp = 0;
@@ -1092,6 +1100,8 @@ namespace AshenHalls.Editor
             Assert(state.StoryFlags.Contains(StoryFlags.MidgaardGrandHearthDeparted), "first departure from the Grand Hearth is recorded");
             ExplorationHudView cityArrivalView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
             Assert(cityArrivalView.WaypointLine.IndexOf("King", StringComparison.OrdinalIgnoreCase) >= 0, "Golden Thread retargets King's Hall after leaving the Grand Hearth");
+            Assert(cityArrivalView.ObjectiveSummary.IndexOf("King Halvard", StringComparison.OrdinalIgnoreCase) >= 0,
+                "after leaving Town Hall the journey objective advances to King Halvard");
             AssertMidgaardGateTraversal(game, state);
             AssertExplorationMovementProbe(game, state);
 
@@ -4823,6 +4833,16 @@ namespace AshenHalls.Editor
             RectInt throneBounds = MidgaardInteriorRules.ThroneRoomBounds(state.Map);
             RectInt merchantBounds = MidgaardInteriorRules.MerchantHallBounds(state.Map);
             RectInt grandHearthBounds = MidgaardInteriorRules.GrandHearthBounds(state.Map);
+            Assert(grandHearthBounds.width == 10 && grandHearthBounds.height == 9,
+                "Town Hall uses the safe expanded 10x9 southwest reservation");
+            int grandHearthOpenFloor = 0;
+            for (int y = grandHearthBounds.yMin + 1; y < grandHearthBounds.yMax - 1; y++)
+            for (int x = grandHearthBounds.xMin + 1; x < grandHearthBounds.xMax - 1; x++)
+            {
+                if (state.Map.Tiles[y * state.Map.Width + x] == 1) grandHearthOpenFloor++;
+            }
+            Assert(grandHearthOpenFloor == 56,
+                "Town Hall exposes one continuous broad 8x7 gathering floor");
             for (int y = 0; y < state.Map.Height; y++)
             for (int x = 0; x < state.Map.Width; x++)
             {
@@ -4860,6 +4880,8 @@ namespace AshenHalls.Editor
                 && grandHearthDoor.TargetId == grandHearthExit.Id
                 && grandHearthExit.TargetId == grandHearthDoor.Id,
                 "Grand Hearth storm doors form a permanent two-way portal pair");
+            Assert(InvokePrivate<int>(game, "MidgaardTownObjectIconIndexFor", ObjectType.Tavern, grandHearthDoor) == 11,
+                "Town Hall exterior keeps Tavern behavior while using the civic-hall silhouette");
             Assert(grandHearthFire != null && grandHearthBounds.Contains(new Vector2Int(grandHearthFire.X, grandHearthFire.Y)), "Grand Hearth fireplace remains inside the authored room");
             Assert(grandHearthMapTable != null && grandHearthBounds.Contains(new Vector2Int(grandHearthMapTable.X, grandHearthMapTable.Y)), "Grand Hearth keeps an Old Road map table off the tutorial lane");
             Assert(grandHearthRoadChest != null && grandHearthBounds.Contains(new Vector2Int(grandHearthRoadChest.X, grandHearthRoadChest.Y)), "Grand Hearth keeps a company road chest off the tutorial lane");
@@ -4869,6 +4891,38 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<int>(game, "MidgaardInteriorPropIconIndex", ObjectType.RoyalLectern, grandHearthMapTable) == 7, "Grand Hearth map table uses the authored cartography desk");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorPropIconIndex", ObjectType.ProvisionShelf, grandHearthRoadChest) == 17, "Grand Hearth road chest uses the authored blue company chest");
             Assert(InvokePrivate<string>(game, "ExploreGroundName", grandHearthSpawn.X, grandHearthSpawn.Y) == "Company runner", "Grand Hearth HUD names the starting floor as the company runner");
+
+            Assert(MidgaardInteriorRules.GrandHearthPatrons.Count == 6,
+                "Town Hall gathering space authors six ambient patrons");
+            HashSet<string> patronCells = new HashSet<string>(StringComparer.Ordinal);
+            foreach (GrandHearthPatronPlacement placement in MidgaardInteriorRules.GrandHearthPatrons)
+            {
+                int patronX = grandHearthBounds.xMin + placement.OffsetX;
+                int patronY = grandHearthBounds.yMin + placement.OffsetY;
+                Assert(grandHearthBounds.Contains(new Vector2Int(patronX, patronY)),
+                    $"Town Hall patron {placement.Profession} remains inside the gathering chamber");
+                Assert(state.Map.Tiles[patronY * state.Map.Width + patronX] == 1,
+                    $"Town Hall patron {placement.Profession} stands on open floor");
+                Assert(!MidgaardInteriorRules.IsGrandHearthCompanyRunner(state.Map, patronX, patronY),
+                    $"Town Hall patron {placement.Profession} keeps the first-step runner clear");
+                Assert(state.Map.FindObjectAt(patronX, patronY) == null,
+                    $"Town Hall patron {placement.Profession} cannot impersonate an interactable");
+                Assert(ExplorationCharacterArtCatalog.CitizenAtlasIndex(placement.Profession) >= 0,
+                    $"Town Hall patron {placement.Profession} resolves approved citizen art");
+                Assert(MidgaardInteriorRules.TryGrandHearthPatron(
+                        state.Map,
+                        patronX,
+                        patronY,
+                        out AmbientCitizenProfession resolvedProfession)
+                    && resolvedProfession == placement.Profession,
+                    $"Town Hall patron {placement.Profession} resolves deterministically");
+                Assert(patronCells.Add(patronX + "," + patronY),
+                    $"Town Hall patron cell {patronX},{patronY} is unique");
+            }
+            Assert(state.Map.Objects.Count(obj => obj != null
+                    && obj.Type == ObjectType.InteriorDoor
+                    && grandHearthBounds.Contains(new Vector2Int(obj.X, obj.Y))) == 1,
+                "Town Hall has exactly one outbound journey door");
 
             foreach (ObjectType type in new[]
             {

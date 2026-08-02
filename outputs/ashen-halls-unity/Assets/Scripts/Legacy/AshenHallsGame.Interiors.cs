@@ -62,7 +62,7 @@ namespace AshenHalls
             Vector2Int point = new Vector2Int(x, y);
             if (ThroneRoomBounds(map).Contains(point)) return "midgaard-throne-room";
             if (MerchantHallBounds(map).Contains(point)) return "midgaard-merchant-hall";
-            if (GrandHearthBounds(map).Contains(point)) return "midgaard-grand-hearth";
+            if (GrandHearthBounds(map).Contains(point)) return MidgaardInteriorRules.GrandHearthZoneId;
             return "";
         }
 
@@ -82,7 +82,7 @@ namespace AshenHalls
 
             RectInt room = interiorId == "midgaard-throne-room"
                 ? ThroneRoomBounds(map)
-                : interiorId == "midgaard-grand-hearth"
+                : interiorId == MidgaardInteriorRules.GrandHearthZoneId
                     ? GrandHearthBounds(map)
                     : MerchantHallBounds(map);
             bool left = x == room.xMin;
@@ -101,10 +101,9 @@ namespace AshenHalls
 
             if (tile == 0) return interiorId == "midgaard-throne-room" ? 9 : 14;
 
-            if (interiorId == "midgaard-grand-hearth")
+            if (interiorId == MidgaardInteriorRules.GrandHearthZoneId)
             {
-                int companyAisleY = room.yMin + room.height / 2;
-                bool companyRunner = y == companyAisleY && x >= room.xMin + 2 && x <= room.xMax - 2;
+                bool companyRunner = MidgaardInteriorRules.IsGrandHearthCompanyRunner(map, x, y);
                 return companyRunner ? 1 : 4;
             }
 
@@ -212,17 +211,17 @@ namespace AshenHalls
                 ObjectType.InteriorDoor,
                 MidgaardInteriorRules.GrandHearthExitId,
                 MidgaardInteriorRules.GrandHearthDoorId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 1, grandHearth.yMin + 2, ObjectType.Tavern, MidgaardInteriorRules.GrandHearthFireId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 2, grandHearth.yMin + 2, ObjectType.TavernKeeper, GrandHearthKeeperId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 3, grandHearth.yMin + 1, ObjectType.RoyalLectern, GrandHearthRegisterId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 2, grandHearth.yMin, ObjectType.RoyalBanner, "midgaard-grand-hearth-banner");
+            UpsertNamedMapObject(map, grandHearth.xMin + 2, grandHearth.yMin + 2, ObjectType.Tavern, MidgaardInteriorRules.GrandHearthFireId);
+            UpsertNamedMapObject(map, grandHearth.xMin + 3, grandHearth.yMin + 2, ObjectType.TavernKeeper, GrandHearthKeeperId);
+            UpsertNamedMapObject(map, grandHearth.xMin + 4, grandHearth.yMin + 1, ObjectType.RoyalLectern, GrandHearthRegisterId);
+            UpsertNamedMapObject(map, grandHearth.xMin + 3, grandHearth.yMin, ObjectType.RoyalBanner, "midgaard-grand-hearth-banner");
             UpsertNamedMapObject(map, grandHearth.xMax - 3, grandHearth.yMin, ObjectType.RoyalBanner, MidgaardInteriorRules.GrandHearthWindowId);
             UpsertNamedMapObject(map, grandHearth.xMax - 3, grandHearth.yMin + 1, ObjectType.Scholar, GrandHearthScholarId);
             UpsertNamedMapObject(map, grandHearth.xMax - 2, grandHearth.yMin + 1, ObjectType.ProvisionShelf, "midgaard-grand-hearth-shelves");
-            UpsertNamedMapObject(map, grandHearth.xMax - 3, grandHearth.yMax - 3, ObjectType.OldRoadScout, GrandHearthScoutId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 1, grandHearth.yMax - 3, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthCargoId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 3, grandHearth.yMax - 2, ObjectType.RoyalLectern, MidgaardInteriorRules.GrandHearthMapTableId);
-            UpsertNamedMapObject(map, grandHearth.xMax - 2, grandHearth.yMax - 2, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthRoadChestId);
+            UpsertNamedMapObject(map, grandHearth.xMax - 3, grandHearth.yMin + 5, ObjectType.OldRoadScout, GrandHearthScoutId);
+            UpsertNamedMapObject(map, grandHearth.xMin + 2, grandHearth.yMin + 5, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthCargoId);
+            UpsertNamedMapObject(map, grandHearth.xMin + 4, grandHearth.yMin + 6, ObjectType.RoyalLectern, MidgaardInteriorRules.GrandHearthMapTableId);
+            UpsertNamedMapObject(map, grandHearth.xMax - 2, grandHearth.yMin + 6, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthRoadChestId);
 
             UpsertNamedMapObject(
                 map,
@@ -399,14 +398,14 @@ namespace AshenHalls
             }
 
             string zoneId = MidgaardInteriorIdAt(arrival.X, arrival.Y, state.Map, state.Depth);
-            bool enteringGrandHearth = zoneId == "midgaard-grand-hearth";
+            bool enteringGrandHearth = zoneId == MidgaardInteriorRules.GrandHearthZoneId;
             bool enteringThrone = zoneId == "midgaard-throne-room";
             bool enteringMerchants = zoneId == "midgaard-merchant-hall";
             if (enteringGrandHearth)
             {
                 SetStoryFlag(StoryFlags.MidgaardGrandHearthEntered);
-                PushLog("The storm doors close behind the company. Firelight catches wet cloaks, old maps, and the long runner home.", Tone.Good);
-                ShowBanner("Grand Hearth");
+                PushLog("The Town Hall storm doors close behind the company. The Grand Hearth lights a broad gathering floor of road patrons, old maps, and wet cloaks.", Tone.Good);
+                ShowBanner(MidgaardInteriorRules.GrandHearthDisplayName);
                 PlaySfx("doorwood", 0.72f);
                 PlaySfx("fire", 0.26f);
             }
@@ -431,10 +430,10 @@ namespace AshenHalls
                 bool firstDeparture = !HasStoryFlag(StoryFlags.MidgaardGrandHearthDeparted);
                 SetStoryFlag(StoryFlags.MidgaardGrandHearthDeparted);
                 DiscoverCurrentZone(true);
-                PushLog("The company leaves the Grand Hearth for Midgaard's rain-bright streets. King's Hall waits beyond the market lamps.", Tone.Good);
-                ShowBanner("Midgaard / First Steps");
+                PushLog("The company leaves Town Hall's Grand Hearth for Midgaard's rain-bright streets. The journey has begun; King's Hall waits beyond the market lamps.", Tone.Good);
+                ShowBanner("Midgaard / Journey Begins");
                 PlaySfx("doorwood", 0.72f);
-                if (firstDeparture) AutosaveCheckpoint("party leaves the Grand Hearth");
+                if (firstDeparture) AutosaveCheckpoint("party leaves Town Hall");
             }
             else
             {
@@ -448,8 +447,8 @@ namespace AshenHalls
         private string InteriorObjectName(MapObject obj)
         {
             if (obj == null) return "";
-            if (obj.Id == MidgaardInteriorRules.GrandHearthDoorId) return "Grand Hearth storm doors";
-            if (obj.Id == MidgaardInteriorRules.GrandHearthExitId) return "Storm doors to Midgaard";
+            if (obj.Id == MidgaardInteriorRules.GrandHearthDoorId) return "Town Hall storm doors";
+            if (obj.Id == MidgaardInteriorRules.GrandHearthExitId) return "Town Hall storm doors to Midgaard";
             if (obj.Id == MidgaardInteriorRules.GrandHearthFireId) return "Grand Hearth";
             if (obj.Id == MidgaardInteriorRules.GrandHearthCargoId) return "Road-company stores";
             if (obj.Id == MidgaardInteriorRules.GrandHearthWindowId) return "Rain-blue window";
@@ -485,8 +484,8 @@ namespace AshenHalls
         private string InteriorObjectHint(MapObject obj)
         {
             if (obj == null) return "";
-            if (obj.Id == MidgaardInteriorRules.GrandHearthDoorId) return "enter the Grand Hearth";
-            if (obj.Id == MidgaardInteriorRules.GrandHearthExitId) return "step into Midgaard's rain";
+            if (obj.Id == MidgaardInteriorRules.GrandHearthDoorId) return "enter Town Hall's Grand Hearth";
+            if (obj.Id == MidgaardInteriorRules.GrandHearthExitId) return "leave Town Hall and begin the journey";
             if (obj.Id == MidgaardInteriorRules.GrandHearthFireId) return "rest, hear road rumors, and gather the company";
             if (obj.Id == MidgaardInteriorRules.GrandHearthCargoId) return "packs, barrels, and provisions for the Old Road";
             if (obj.Id == MidgaardInteriorRules.GrandHearthWindowId) return "stormlight over Midgaard's gate";

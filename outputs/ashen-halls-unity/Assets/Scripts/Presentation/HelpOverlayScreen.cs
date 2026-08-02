@@ -105,7 +105,7 @@ namespace AshenHalls
                         "Q: Location Details. Tab: toggle Local/Region Map.",
                         "I: Armory. Its Growth tab previews and spends earned points. J: Journal. C: spell reference.",
                         "P or Esc: Menu for save, load, settings, return, or new game.",
-                        "The Grand Hearth is the first room: follow NEXT to its storm doors, then follow gold through Midgaard to King Halvard.",
+                        "You begin among the patrons in Town Hall's Grand Hearth: follow NEXT to leave through its storm doors and begin the journey.",
                         "Midgaard begins the sewer contract: speak with the king, gather supplies, then clear the rat den.",
                         "East and west gates are pass-through roads. North and south gates are sealed for now.",
                         "If a path feels blocked, bump the object or use Space/E beside it."
@@ -161,7 +161,7 @@ namespace AshenHalls
             string[] normal =
             {
                 "Continue appears when a campaign save exists.",
-                "Begin the Old Road opens the four-person muster before the Grand Hearth.",
+                "Begin the Old Road opens the four-person muster before Town Hall's Grand Hearth.",
                 "Quick Start accepts the default company; Begin uses the current muster choices.",
                 "Settings controls audio volume and reduced motion.",
                 "F5 saves and F9 loads during gameplay. Esc opens the gameplay menu."

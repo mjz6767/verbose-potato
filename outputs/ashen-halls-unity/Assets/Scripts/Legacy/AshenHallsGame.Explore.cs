@@ -1537,9 +1537,9 @@ namespace AshenHalls
                 DrawMidgaardPavingDecal(c, x, y, tile, tileKind);
                 DrawExploreTileEdges(c, x, y, tile);
                 DrawExploreDistanceShade(c, vx, vy, viewW, viewH);
-                // Ambient citizens are presentation-only occupants of otherwise
-                // quiet exterior cells. When one is selected it replaces the
-                // procedural prop for that cell, so silhouettes stay readable.
+                // Authored Town Hall patrons and ambient exterior citizens are
+                // presentation-only. A selected silhouette replaces the
+                // procedural prop for its cell so it stays readable.
                 if (!TryDrawWorldAmbientCitizen(c, x, y, tile, guidanceCells))
                 {
                     DrawMidgaardAmbientProp(c, x, y, tile, tileKind);
@@ -1724,7 +1724,12 @@ namespace AshenHalls
                 cell.y + cell.height * (exploreWideView ? 0.48f : 0.42f),
                 width,
                 height);
-            Color accent = MidgaardBuildingDistrictAccent(obj.Type);
+            Color accent = string.Equals(
+                    obj.Id,
+                    MidgaardInteriorRules.GrandHearthDoorId,
+                    StringComparison.Ordinal)
+                ? Color.Lerp(gold, frost, 0.38f)
+                : MidgaardBuildingDistrictAccent(obj.Type);
             DrawRect(foundation, Hex("030506", exploreWideView ? 0.34f : 0.42f));
             DrawRect(
                 new Rect(foundation.x, foundation.yMax - Mathf.Max(2f, foundation.height * 0.12f), foundation.width, Mathf.Max(2f, foundation.height * 0.12f)),
@@ -2639,7 +2644,8 @@ namespace AshenHalls
             bool centerEmphasis = exploreHudCollapsed && !string.IsNullOrEmpty(exploreHoverLookLine)
                 || !string.IsNullOrEmpty(nearbyAction)
                 || !string.IsNullOrEmpty(nearbyThreat);
-            int regionSize = ExplorationHudScreenLayout.FontSize(16, Screen.width, Screen.height);
+            int regionBaseSize = region.Length > 20 ? 14 : 16;
+            int regionSize = ExplorationHudScreenLayout.FontSize(regionBaseSize, Screen.width, Screen.height);
             int bodySize = ExplorationHudScreenLayout.FontSize(12, Screen.width, Screen.height);
             int statusSize = ExplorationHudScreenLayout.FontSize(11, Screen.width, Screen.height);
             float lineY = strip.y + 5f * scale;

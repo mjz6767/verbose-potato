@@ -2228,7 +2228,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.5.0", VersionInfo.PackageVersion, "package version matches the v2.5 release");
+            AssertEqual("v2.6.0", VersionInfo.PackageVersion, "package version matches the v2.6 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
@@ -5162,6 +5162,14 @@ namespace AshenHalls.Editor
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Space / E")), "exploration help mentions contextual use");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Growth tab")), "exploration help points earned progression to I > Growth");
             AssertEqual(true, explore.Lines.Any(line => line.IndexOf("east and west gates", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help mentions pass-through gates");
+            AssertEqual(
+                true,
+                explore.Lines.Any(line =>
+                    line.IndexOf("patrons", StringComparison.OrdinalIgnoreCase) >= 0
+                    && line.IndexOf("Town Hall's Grand Hearth", StringComparison.OrdinalIgnoreCase) >= 0
+                    && line.IndexOf("storm doors", StringComparison.OrdinalIgnoreCase) >= 0
+                    && line.IndexOf("begin the journey", StringComparison.OrdinalIgnoreCase) >= 0),
+                "exploration help explains the Town Hall gathering and required first departure");
             AssertEqual(true, combat.Lines.Any(line => line.Contains("Tree Cover")), "combat help mentions tree cover");
             AssertEqual(true, combat.Lines.Any(line => line.Contains("undo this turn's movement")), "combat help explains pre-action movement undo");
             AssertEqual(true, combat.Lines.Any(line => line.Contains("cancels an armed target")), "combat help explains non-destructive target cancellation");
@@ -5170,6 +5178,10 @@ namespace AshenHalls.Editor
             AssertEqual(true, muster.Lines.Any(line => line.Contains("50-point")), "muster help mentions stat budget");
             AssertEqual(true, tavern.Lines.Any(line => line.IndexOf("muster", StringComparison.OrdinalIgnoreCase) >= 0)
                 && !tavern.Lines.Any(line => line.Contains("Customize Party")), "title help names the current new-company path without a removed choice");
+            AssertEqual(
+                true,
+                tavern.Lines.Any(line => line.IndexOf("Town Hall's Grand Hearth", StringComparison.OrdinalIgnoreCase) >= 0),
+                "title help sends the new company to Town Hall's Grand Hearth");
             AssertEqual(true, victory.Title.Contains("Victory"), "victory help title");
             AssertEqual(true, defeat.Title.Contains("Defeat"), "defeat help title");
         }
@@ -5998,6 +6010,39 @@ namespace AshenHalls.Editor
 
         private static void GrandHearthInteriorContractIsStable()
         {
+            AssertEqual("midgaard-grand-hearth", MidgaardInteriorRules.GrandHearthZoneId, "Town Hall interior keeps its save-stable zone identity");
+            AssertEqual("Town Hall / Grand Hearth", MidgaardInteriorRules.GrandHearthDisplayName, "Town Hall interior has the intended player-facing name");
+            AssertEqual("midgaard-grand-hearth-door", MidgaardInteriorRules.GrandHearthDoorId, "Town Hall exterior door identity remains stable");
+            AssertEqual("midgaard-grand-hearth-exit", MidgaardInteriorRules.GrandHearthExitId, "Town Hall interior exit identity remains stable");
+            AssertEqual("midgaard-grand-hearth-fire", MidgaardInteriorRules.GrandHearthFireId, "Grand Hearth fixture identity remains stable");
+            AssertEqual("midgaard-grand-hearth-cargo", MidgaardInteriorRules.GrandHearthCargoId, "Town Hall cargo identity remains stable");
+            AssertEqual("midgaard-grand-hearth-window", MidgaardInteriorRules.GrandHearthWindowId, "Town Hall window identity remains stable");
+            AssertEqual("midgaard-grand-hearth-map-table", MidgaardInteriorRules.GrandHearthMapTableId, "Town Hall map-table identity remains stable");
+            AssertEqual("midgaard-grand-hearth-road-chest", MidgaardInteriorRules.GrandHearthRoadChestId, "Town Hall road-chest identity remains stable");
+            AssertEqual(6, MidgaardInteriorRules.GrandHearthPatrons.Count, "Town Hall gathering has six authored patrons");
+            GrandHearthPatronPlacement[] expectedPatrons =
+            {
+                new GrandHearthPatronPlacement(1, 1, AmbientCitizenProfession.Tailor),
+                new GrandHearthPatronPlacement(6, 1, AmbientCitizenProfession.Mason),
+                new GrandHearthPatronPlacement(8, 2, AmbientCitizenProfession.Lamplighter),
+                new GrandHearthPatronPlacement(1, 5, AmbientCitizenProfession.CaravanGuide),
+                new GrandHearthPatronPlacement(6, 6, AmbientCitizenProfession.RoadPilgrim),
+                new GrandHearthPatronPlacement(2, 7, AmbientCitizenProfession.Fishmonger)
+            };
+            HashSet<int> patronAtlasCells = new HashSet<int>();
+            for (int index = 0; index < expectedPatrons.Length; index++)
+            {
+                GrandHearthPatronPlacement actual = MidgaardInteriorRules.GrandHearthPatrons[index];
+                GrandHearthPatronPlacement expected = expectedPatrons[index];
+                AssertEqual(expected.OffsetX, actual.OffsetX, $"Town Hall patron {index} keeps its audited horizontal placement");
+                AssertEqual(expected.OffsetY, actual.OffsetY, $"Town Hall patron {index} keeps its audited vertical placement");
+                AssertEqual(expected.Profession, actual.Profession, $"Town Hall patron {index} keeps its authored citizen role");
+                AssertEqual(
+                    true,
+                    patronAtlasCells.Add(ExplorationCharacterArtCatalog.CitizenAtlasIndex(actual.Profession)),
+                    $"Town Hall patron {index} uses a distinct approved citizen sprite");
+            }
+
             Vector2Int[] sizes =
             {
                 new Vector2Int(58, 46),
@@ -6017,13 +6062,65 @@ namespace AshenHalls.Editor
                 RectInt room = MidgaardInteriorRules.GrandHearthBounds(map);
                 Point spawn = MidgaardInteriorRules.GrandHearthSpawn(map);
                 Point exit = MidgaardInteriorRules.GrandHearthExit(map);
+                AssertEqual(1, room.xMin, $"Town Hall uses the safe westward expansion on {size.x}x{size.y}");
+                AssertEqual(Math.Max(1, size.y - 10), room.yMin, $"Town Hall keeps its stable north/south reservation on {size.x}x{size.y}");
+                AssertEqual(10, room.width, $"Town Hall preserves its largest safe width on {size.x}x{size.y}");
+                AssertEqual(9, room.height, $"Town Hall preserves its largest safe height on {size.x}x{size.y}");
+                AssertEqual(56, (room.width - 2) * (room.height - 2), $"Town Hall provides an open 8x7 gathering floor on {size.x}x{size.y}");
                 AssertEqual(true, room.xMin >= 1 && room.yMin >= 1 && room.xMax < size.x && room.yMax < size.y, $"Grand Hearth room fits supported map {size.x}x{size.y}");
                 AssertEqual(true, room.Contains(new Vector2Int(spawn.X, spawn.Y)), $"Grand Hearth spawn stays inside room {size.x}x{size.y}");
                 AssertEqual(true, room.Contains(new Vector2Int(exit.X, exit.Y)), $"Grand Hearth exit stays inside room {size.x}x{size.y}");
+                AssertEqual(room.xMin + 5, spawn.X, $"Town Hall spawn keeps its stable horizontal coordinate on {size.x}x{size.y}");
+                AssertEqual(room.yMin + 4, spawn.Y, $"Town Hall spawn keeps its stable company-runner row on {size.x}x{size.y}");
                 AssertEqual(room.xMax - 1, exit.X, $"Grand Hearth storm doors remain on the east wall {size.x}x{size.y}");
+                AssertEqual(spawn.Y, exit.Y, $"Town Hall spawn and storm doors remain joined by the company runner on {size.x}x{size.y}");
+                AssertEqual(true, MidgaardInteriorRules.IsGrandHearthCompanyRunner(map, room.xMin + 3, spawn.Y), $"Town Hall runner keeps its stable west endpoint on {size.x}x{size.y}");
+                AssertEqual(true, MidgaardInteriorRules.IsGrandHearthCompanyRunner(map, room.xMax - 2, spawn.Y), $"Town Hall runner keeps its stable east endpoint on {size.x}x{size.y}");
+                AssertEqual(false, MidgaardInteriorRules.IsGrandHearthCompanyRunner(map, room.xMin + 2, spawn.Y), $"Town Hall expansion does not extend the company runner west on {size.x}x{size.y}");
                 AssertEqual(false, room.Overlaps(MidgaardInteriorRules.ThroneRoomBounds(map)), $"Grand Hearth remains separate from the throne room {size.x}x{size.y}");
                 AssertEqual(false, room.Overlaps(MidgaardInteriorRules.MerchantHallBounds(map)), $"Grand Hearth remains separate from the merchant hall {size.x}x{size.y}");
                 AssertEqual(true, MidgaardInteriorRules.IsReservedCell(map, spawn.X, spawn.Y), $"Grand Hearth spawn is protected from procedural landmarks {size.x}x{size.y}");
+
+                HashSet<Vector2Int> fixtureCells = new HashSet<Vector2Int>
+                {
+                    new Vector2Int(exit.X, exit.Y),
+                    new Vector2Int(room.xMin + 2, room.yMin + 2),
+                    new Vector2Int(room.xMin + 3, room.yMin + 2),
+                    new Vector2Int(room.xMin + 4, room.yMin + 1),
+                    new Vector2Int(room.xMin + 3, room.yMin),
+                    new Vector2Int(room.xMax - 3, room.yMin),
+                    new Vector2Int(room.xMax - 3, room.yMin + 1),
+                    new Vector2Int(room.xMax - 2, room.yMin + 1),
+                    new Vector2Int(room.xMax - 3, room.yMax - 4),
+                    new Vector2Int(room.xMin + 2, room.yMax - 4),
+                    new Vector2Int(room.xMin + 4, room.yMax - 3),
+                    new Vector2Int(room.xMax - 2, room.yMax - 3)
+                };
+                HashSet<Vector2Int> patronCells = new HashSet<Vector2Int>();
+                foreach (GrandHearthPatronPlacement patron in MidgaardInteriorRules.GrandHearthPatrons)
+                {
+                    Vector2Int cell = new Vector2Int(room.xMin + patron.OffsetX, room.yMin + patron.OffsetY);
+                    AssertEqual(true, patronCells.Add(cell), $"Town Hall patron placements are unique on {size.x}x{size.y}");
+                    AssertEqual(
+                        true,
+                        cell.x > room.xMin && cell.x < room.xMax - 1
+                            && cell.y > room.yMin && cell.y < room.yMax - 1,
+                        $"Town Hall patron remains on the open interior floor at {cell.x},{cell.y} on {size.x}x{size.y}");
+                    AssertEqual(false, MidgaardInteriorRules.IsGrandHearthCompanyRunner(map, cell.x, cell.y), $"Town Hall patron stays off the company runner at {cell.x},{cell.y} on {size.x}x{size.y}");
+                    AssertEqual(false, cell == new Vector2Int(spawn.X, spawn.Y), $"Town Hall patron keeps the first-spawn tile clear on {size.x}x{size.y}");
+                    AssertEqual(false, cell == new Vector2Int(exit.X, exit.Y), $"Town Hall patron keeps the storm doors clear on {size.x}x{size.y}");
+                    AssertEqual(false, fixtureCells.Contains(cell), $"Town Hall patron avoids stable fixture and NPC cells at {cell.x},{cell.y} on {size.x}x{size.y}");
+                    AssertEqual(
+                        true,
+                        ExplorationCharacterArtCatalog.CitizenAtlasIndex(patron.Profession) >= 0
+                            && ExplorationCharacterArtCatalog.CitizenAtlasIndex(patron.Profession) < ExplorationCharacterArtCatalog.CitizenCellCount,
+                        $"Town Hall patron {patron.Profession} maps to the approved citizen atlas");
+                    AssertEqual(
+                        true,
+                        MidgaardInteriorRules.TryGrandHearthPatron(map, cell.x, cell.y, out AmbientCitizenProfession resolved)
+                            && resolved == patron.Profession,
+                        $"Town Hall patron lookup round-trips {cell.x},{cell.y} on {size.x}x{size.y}");
+                }
             }
 
             MapData portalMap = new MapData
@@ -6043,9 +6140,21 @@ namespace AshenHalls.Editor
             AssertEqual(true, MidgaardInteriorRules.HasValidTarget(portalMap, exterior), "Grand Hearth exterior storm doors resolve the interior exit");
             AssertEqual(true, MidgaardInteriorRules.HasValidTarget(portalMap, interior), "Grand Hearth interior storm doors resolve the Midgaard doorway");
             AssertEqual(0, MidgaardInteriorRules.BrokenPortalIds(portalMap).Count, "Grand Hearth portal pair is complete");
-            AssertEqual("Grand Hearth", WorldZoneCatalog.For("midgaard-grand-hearth", 1).Name, "Grand Hearth has a dedicated player-facing zone");
-            AssertEqual(MusicDirectorRules.Tavern, MusicDirectorRules.ExploreTrackKey("midgaard-grand-hearth", ObjectType.Tavern, true, false), "Grand Hearth continues the title overture");
-            AssertEqual("ambhearth", GameAudioCueRules.AmbientFor("midgaard-grand-hearth", null), "Grand Hearth uses the hearth ambience bed");
+            WorldZone zone = WorldZoneCatalog.For(MidgaardInteriorRules.GrandHearthZoneId, 1);
+            AssertEqual(MidgaardInteriorRules.GrandHearthDisplayName, zone.Name, "Town Hall / Grand Hearth has a dedicated player-facing zone");
+            AssertEqual(true, zone.Summary.IndexOf("patrons", StringComparison.OrdinalIgnoreCase) >= 0, "Town Hall zone copy describes the gathering patrons");
+            AssertEqual(
+                true,
+                zone.Story.IndexOf("leave through the storm doors", StringComparison.OrdinalIgnoreCase) >= 0
+                    && zone.Story.IndexOf("begin the journey", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Town Hall zone copy makes departure the first journey step");
+            string explorationHudSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.ExplorationHud.cs"));
+            AssertEqual(
+                true,
+                explorationHudSource.Contains("\"Leave Town Hall through the storm doors to begin the journey.\""),
+                "opening objective explicitly requires leaving Town Hall");
+            AssertEqual(MusicDirectorRules.Tavern, MusicDirectorRules.ExploreTrackKey(MidgaardInteriorRules.GrandHearthZoneId, ObjectType.Tavern, true, false), "Grand Hearth continues the title overture");
+            AssertEqual("ambhearth", GameAudioCueRules.AmbientFor(MidgaardInteriorRules.GrandHearthZoneId, null), "Grand Hearth uses the hearth ambience bed");
         }
 
         private static void RoamingThreatsTelegraphAndPathAroundTerrain()

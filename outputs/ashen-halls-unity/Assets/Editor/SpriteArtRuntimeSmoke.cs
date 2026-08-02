@@ -222,6 +222,35 @@ namespace AshenHalls.Editor
             Assert(
                 !ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, false, true),
                 "ambient citizens never occupy an interactable object's cell");
+
+            MapData townHallMap = new MapData
+            {
+                Width = WorldMapGenerationRules.Width,
+                Height = WorldMapGenerationRules.Height,
+                Depth = 1
+            };
+            RectInt townHall = MidgaardInteriorRules.GrandHearthBounds(townHallMap);
+            HashSet<string> patronCells = new HashSet<string>(StringComparer.Ordinal);
+            Assert(MidgaardInteriorRules.GrandHearthPatrons.Count == 6,
+                "Town Hall authors six presentation-only patrons");
+            foreach (GrandHearthPatronPlacement placement in MidgaardInteriorRules.GrandHearthPatrons)
+            {
+                int x = townHall.xMin + placement.OffsetX;
+                int y = townHall.yMin + placement.OffsetY;
+                Assert(MidgaardInteriorRules.TryGrandHearthPatron(
+                        townHallMap,
+                        x,
+                        y,
+                        out AmbientCitizenProfession profession)
+                    && profession == placement.Profession,
+                    placement.Profession + " resolves at its authored Town Hall cell");
+                Assert(ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession) >= 0,
+                    placement.Profession + " uses approved v2.4 citizen art in Town Hall");
+                Assert(patronCells.Add(x + "," + y),
+                    "Town Hall patron cells are unique");
+                Assert(!MidgaardInteriorRules.IsGrandHearthCompanyRunner(townHallMap, x, y),
+                    placement.Profession + " stays off the first-step company runner");
+            }
         }
 
         private static T GetPrivateField<T>(object target, string fieldName)

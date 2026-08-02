@@ -981,6 +981,16 @@ namespace AshenHalls
         private string ExploreObjectiveSummaryLine()
         {
             if (state == null) return "Prepare the party.";
+            if (state.Depth == 1
+                && state.Map != null
+                && !HasStoryFlag(StoryFlags.MidgaardGrandHearthDeparted)
+                && string.Equals(
+                    MidgaardInteriorIdAt(state.PlayerX, state.PlayerY, state.Map, state.Depth),
+                    MidgaardInteriorRules.GrandHearthZoneId,
+                    StringComparison.Ordinal))
+            {
+                return "Leave Town Hall through the storm doors to begin the journey.";
+            }
             if (state.Depth == 1 && TryCurrentMidgaardObjectiveType(out ObjectType target))
             {
                 if (target == ObjectType.KingHall) return "Meet King Halvard and accept the sewer contract.";

@@ -80,13 +80,13 @@ namespace AshenHalls
             PlacePlayerAtGrandHearthStart();
             lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
             DiscoverCurrentZone(true);
-            PushLog("Four names gather beneath the Grand Hearth's blackened rafters. Beyond the storm doors, Midgaard waits in the rain.", Tone.Good);
+            PushLog("Four names gather with the patrons on Town Hall's broad Grand Hearth floor. Beyond the storm doors, Midgaard waits in the rain.", Tone.Good);
             PushLog(state.ActiveStory, Tone.Normal);
-            PushLog("First steps: cross the company runner and open the storm doors. Move with WASD or arrows; use Space or E beside a marked location.", Tone.Good);
-            ShowBanner("Grand Hearth / First Steps");
+            PushLog("First step: leave Town Hall. Cross the company runner and open the storm doors with Space or E to begin the journey.", Tone.Good);
+            ShowBanner(MidgaardInteriorRules.GrandHearthDisplayName);
             PlaySfx("uiconfirm", 0.55f);
             PlaySfx("fire", 0.24f);
-            AutosaveCheckpoint("new party gathers at the Grand Hearth");
+            AutosaveCheckpoint("new party gathers in Town Hall");
         }
 
         private void QuickStart()

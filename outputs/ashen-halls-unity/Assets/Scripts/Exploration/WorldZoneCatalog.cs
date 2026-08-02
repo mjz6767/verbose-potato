@@ -13,12 +13,12 @@ namespace AshenHalls
             "King Halvard receives the party here before the Old Road opens.");
 
         private static readonly WorldZone GrandHearth = Zone(
-            "midgaard-grand-hearth",
-            "Grand Hearth",
-            "last fire before the Old Road",
+            MidgaardInteriorRules.GrandHearthZoneId,
+            MidgaardInteriorRules.GrandHearthDisplayName,
+            "town hall gathering chamber",
             0,
-            "blackened timber, an old stone hearth, rain-blue windows, and a company runner",
-            "Every road-company begins here: four names at the fire, one storm-bright door, and Midgaard waiting beyond.");
+            "a broad hearthwood floor, blackened timber, road patrons, rain-blue windows, and a company runner",
+            "Every road-company begins in Town Hall: muster at the Grand Hearth, cross the gathering floor, and leave through the storm doors to begin the journey.");
 
         private static readonly WorldZone MerchantHall = Zone(
             "midgaard-merchant-hall",

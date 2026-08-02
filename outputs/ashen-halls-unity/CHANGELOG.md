@@ -2,6 +2,12 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.6.0 - Town Hall Gathering
+
+- New Game -> Muster now places the company inside Town Hall's expanded 10 by 9 Grand Hearth chamber. The continuous 8 by 7 gathering floor preserves the original spawn, storm-door exit, clear company runner, stable room/object identities, cartography table, blue company road chest, and portal flow.
+- Added six authored patrons to make the Grand Hearth read as a civic gathering space. They reuse approved v2.4 citizen-atlas cells but remain a separate, fixed presentation layer: walk-through, off the tutorial runner, and without a `MapObject`, hover response, Talk prompt, dialogue, collision, or saved identity. Procedural ambient citizens remain exterior-only and retain their existing exclusions.
+- Made departure from Town Hall the required first journey step. NEXT, objective copy, door copy, arrival/departure feedback, and the first checkpoint now agree that the journey begins only after the company leaves through the storm doors; the route then advances to King Halvard. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, and the current Windows build pass. Four direct built-player Local/Region captures at 1280 by 720 and 1920 by 1080 report `complete=True`, `failure=None` and pass visual review. Final packaging, clean-extracted boot, physical-controller, and human-playthrough gates remain pending. Existing campaign data remains compatible; save schema remains v25.
+
 ## v2.5.0 - Party Growth
 
 - Added a fifth Armory tab that lets an active campaign spend earned attribute and talent points instead of leaving them stranded in the save. Players can filter to any party member, stage Strength, Intelligence, Agility, Health, and only that class's relevant talents, then inspect the resulting HP, MP, damage, power, defense, speed, and movement before committing.
