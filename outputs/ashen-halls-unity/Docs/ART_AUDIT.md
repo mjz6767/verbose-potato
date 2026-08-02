@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-The v2.8.0 Grand Hearth atmosphere candidate exact-pins a third companion atlas for deterministic light and grounding. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, and the deterministic visual packet pass. Packaging remains the final automated candidate gate. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained as historical records.
+The verified v2.8.0 Grand Hearth atmosphere candidate exact-pins a third companion atlas for deterministic light and grounding. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, the deterministic visual packet, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained as historical records.
 
 ## Active Runtime Art
 
@@ -16,7 +16,7 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 - All six 512-pixel cells retain at least 36 transparent pixels on every edge at alpha > 8 and contain zero visible bright-magenta residue.
 - Deterministic draw rules place the layer between the established floor, patrons, and fixtures, with reduced Region Map opacity. It introduces no map object, collision, interaction, saved identity, or motion state.
 - The v2.8 handoff records the built-in ImageGen prompt, flat-key removal, normalization, hashes, semantic cell order, and runtime constraints.
-- RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the Windows build pass. Six Local/Region captures under `QA/v2.8.0-grand-hearth` cover 960 by 600, 1280 by 720, and 1920 by 1080; all report `complete=True`, `failure=None`, and the deterministic packet passes. Visual review accepts restrained warm/cool depth, horizontal east-door guidance, readable patrons, continuous runner, and unobstructed fixtures. Package inventory and clean-extracted boot remain candidate gates.
+- RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the Windows build pass. Six Local/Region captures under `QA/v2.8.0-grand-hearth` cover 960 by 600, 1280 by 720, and 1920 by 1080; all report `complete=True`, `failure=None`, and the deterministic packet passes. Visual review accepts restrained warm/cool depth, horizontal east-door guidance, readable patrons, continuous runner, and unobstructed fixtures. Canonical package inventory and clean-extracted boot pass; the release-integrity record reports clean tracked source, save v25, player exit 0, 83 packaged art files, and the exact ambience-atlas hash.
 - Kobold route: route markers, cave props, dedicated kobold combat terrain, boss route art.
 - Combat UI/effects: combat UI, combat UI panel, combat HUD, combat command icons, ability icons, spellbook UI, combat spellbook UI, spellbook open art, magic UI, ember/epic/combat spell effects, spell animation, combat floating text art.
 - Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.

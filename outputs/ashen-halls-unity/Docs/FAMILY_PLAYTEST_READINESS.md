@@ -2,7 +2,7 @@
 
 ## Current Candidate
 
-`v2.8.0` is the current family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It adds deterministic painted hearthlight, stormlight, sconces, ember haze, rain reflection, and patron grounding to the existing Grand Hearth without changing the Town Hall room, first journey step, gameplay, save data, or save schema v25. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, and the deterministic visual packet pass. Packaging remains the final automated candidate gate. Physical-controller review and a complete real playthrough remain manual gates. This is not a content-complete game.
+`v2.8.0` is the current verified family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It adds deterministic painted hearthlight, stormlight, sconces, ember haze, rain reflection, and patron grounding to the existing Grand Hearth without changing the Town Hall room, first journey step, gameplay, save data, or save schema v25. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, the deterministic visual packet, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete real playthrough remain manual gates. This is not a content-complete game.
 
 ## Grand Hearth Atmosphere v2.8 - Automated, Build, and Visual Gates Passed
 
@@ -10,7 +10,7 @@
 - Every cell retains at least 36 transparent pixels on every edge at alpha > 8, and no visible bright-magenta residue remains.
 - Light and decals are deterministic presentation only. They do not create objects, interaction, collision, movement rules, saved identity, or animation state.
 - The room, patrons, fixtures, company runner, first spawn, east-door exit, portal/objective flow, and save schema v25 remain stable.
-- RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the Windows build pass. Six Local/Region captures under `QA/v2.8.0-grand-hearth` cover 960 by 600, 1280 by 720, and 1920 by 1080; each reports `complete=True`, `failure=None`, and the deterministic packet passes. Visual review accepts the warm hearth pool, horizontal east-door stormlight, restrained window reflection, smaller wall sconces, legible patrons, continuous runner, and unobstructed route. Packaging and clean-extracted boot remain the final automated candidate gate.
+- RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the Windows build pass. Six Local/Region captures under `QA/v2.8.0-grand-hearth` cover 960 by 600, 1280 by 720, and 1920 by 1080; each reports `complete=True`, `failure=None`, and the deterministic packet passes. Visual review accepts the warm hearth pool, horizontal east-door stormlight, restrained window reflection, smaller wall sconces, legible patrons, continuous runner, and unobstructed route. Canonical packaging and clean-extracted packaged boot pass; the release-integrity record reports `sourceDirty=false`, save v25, `playerExitCode=0`, and `packagedArtCount=83`.
 
 ## Grand Hearth Art v2.7 - Automated, Build, and Visual Gates Passed
 

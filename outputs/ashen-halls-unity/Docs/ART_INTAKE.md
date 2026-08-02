@@ -9,7 +9,7 @@ High-visibility runtime art loads an approved exact filename first, then uses a 
 
 The layer is additive to the v2.7 floor and set-piece sheets. Deterministic presentation places it between established floor, patrons, and fixtures, rotates the storm spill into the east-west departure axis, and reduces Region Map opacity. It introduces no `MapObject`, collision, interaction, save data, or animation state. The accepted source set is the runtime PNG plus generated, alpha, prompt, and validation companions listed in `GRAND_HEARTH_VISUAL_V2.8_HANDOFF.md`; only the runtime PNG may enter the player package.
 
-RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, and the deterministic visual packet pass. Packaging and clean-extracted boot remain the final automated candidate gate. Physical-controller review and a complete human walkthrough remain manual.
+RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, the deterministic visual packet, canonical packaging, and clean-extracted packaged boot pass. The release-integrity record reports clean tracked source, save v25, player exit 0, 83 packaged art files, and the exact ambience-atlas hash. Physical-controller review and a complete human walkthrough remain manual.
 
 ## Active v2.7.0 Grand Hearth companion contract - automated, visual, and package gates passed
 
