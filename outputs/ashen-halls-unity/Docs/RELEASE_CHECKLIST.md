@@ -33,7 +33,7 @@ Use this for each small release zip.
 - Confirm all four gates keep their intended proportions at both map scales, without a black portal, square atlas background, neighboring-cell bleed, or an oversized structure covering nearby roads.
 - Confirm the party marker is a compact four-person formation that remains easy to locate in both Local and Region Map without spanning adjacent tiles.
 - Stage a one-member party and confirm its Local and Region Map marker uses the correct Shield, Pike, Bow, Knife, Mender, Ember, Hex, or Ward cell from the dedicated v2.4 sheet. Restore a multi-member party and confirm the established group marker returns.
-- Inspect Midgaard exterior ambience and confirm coordinate-stable citizens remain off the Grand Hearth tutorial lane, certified safe roads, guidance routes, entrances, and interactable cells. Hover and click them to confirm they never offer Talk, dialogue, or another interaction.
+- Inspect exterior ambience and confirm coordinate-stable citizens remain off the Grand Hearth tutorial lane, current guidance, certified safe roads, rooms, water, hazards, entrances, authored regional-site reservations, and interactable cells while suitable non-safe roads remain eligible. Hover and click them to confirm they never offer Talk, dialogue, or another interaction.
 - Without reading the README, follow NEXT to King's Hall. Confirm it gives the exact physical pair for the first step (`W / Up`, `S / Down`, `A / Left`, or `D / Right`) and distance; beside the doors it changes to `E / Space`.
 - Compare Local and Region Map while traveling. Confirm the restrained automatic thread begins at the party, the next cell shows the same WASD key as NEXT, a visible destination receives an arrival cue, and an offscreen route receives one continuation chip at the first path exit.
 - Enter King's Hall and confirm NEXT retargets King Halvard rather than pointing back to the exterior building. Accept the writ and confirm it immediately advances to the sewer.
@@ -44,7 +44,7 @@ Use this for each small release zip.
 - Hover exploration tiles and confirm region/object/movement hints appear.
 - Move into a new exploration region and confirm a region banner or chronicle line appears.
 - On a new campaign, confirm the map is 58x46 and all eight regional sites and named junctions are reachable without entering a reserved Midgaard interior footprint.
-- Move at least one roaming patrol away from its saved home. Confirm the matching habitat remains fixed at `HomeX`/`HomeY`, draws beneath the moving threat token, stays off certified safe roads, and changes no encounter, movement, or save behavior.
+- Move at least one roaming patrol away from its saved home. Confirm the matching active habitat remains fixed at `HomeX`/`HomeY`, draws beneath the moving threat token, stays off certified safe roads, and changes no encounter, movement, or save behavior. Defeat the patrol and confirm the same home presents the neutral ruined-waystation aftermath cell.
 - Chart two outer-road junctions, open Journal, mark each in turn, and confirm Mark/Clear state, the path-aware location readout, and the stronger bounded gold map trail all follow the selected destination in both Local and Region Map.
 - Confirm a marked Journal waypoint visibly overrides the automatic story route, then clear it and confirm the Golden Thread immediately resumes the story target.
 - Save and load with a waypoint selected, then descend to a new depth and confirm the old-depth waypoint does not leak onto the new map.

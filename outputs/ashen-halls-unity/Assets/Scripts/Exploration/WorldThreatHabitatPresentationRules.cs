@@ -32,6 +32,19 @@ namespace AshenHalls
                 : AtlasIndex(definition.Archetype, definition.Faction);
         }
 
+        public static int PresentationIndex(
+            bool active,
+            RoamingThreatDefinition definition,
+            string fallbackArchetype)
+        {
+            if (!active) return RuinedRoadWaystationIndex;
+
+            int index = definition != null
+                ? AtlasIndex(definition)
+                : ArchetypeIndex(fallbackArchetype);
+            return index >= 0 ? index : RuinedRoadWaystationIndex;
+        }
+
         public static int AtlasIndex(string archetype, RoamingThreatFaction faction)
         {
             int archetypeIndex = ArchetypeIndex(archetype);

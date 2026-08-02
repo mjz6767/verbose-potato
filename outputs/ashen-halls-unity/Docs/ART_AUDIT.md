@@ -17,8 +17,8 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 ## Newly Connected In v2.4.0 - Verification Pending
 
 - Source wiring exact-pins `world-threat-habitat-atlas-runtime-v2.4.0.png`, `world-npc-citizen-atlas-runtime-v2.4.0.png`, and `player-exploration-role-atlas-runtime-v2.4.0.png` as separate 4 by 2, 1536 by 768 transparent contracts with eight populated 384-pixel cells and 20-pixel safe gutters.
-- Threat habitats remain stationary at the existing saved home beneath mobile threat tokens and are suppressed on certified safe roads. They add no encounters and mutate no campaign state.
-- Ambient citizens are deterministic exterior dressing only. They stay off the Grand Hearth tutorial lane, roads, guidance, entrances, and interactables and never replace a named NPC or dialogue portrait.
+- Active-threat habitats remain stationary at the existing saved home beneath mobile threat tokens and are suppressed on certified safe roads; inactive threats leave the neutral ruined-waystation aftermath cell. They add no encounters and mutate no campaign state.
+- Ambient citizens are deterministic exterior dressing only. Suitable streets and non-safe roads remain eligible, while the Grand Hearth tutorial lane, current guidance, certified safe roads, rooms, water, hazards, entrances, authored sites, and interactables stay clear. Citizens never replace a named NPC or dialogue portrait.
 - Exactly one represented party member uses the dedicated Shield, Pike, Bow, Knife, Mender, Ember, Hex, or Ward atlas cell. Multi-member parties retain the mixed atlas group marker; combat and inventory character art remain unchanged.
 - RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, Windows build/package, clean-extracted packaged boot, and final endpoint visual inspection remain pending for the settled v2.4.0 source.
 

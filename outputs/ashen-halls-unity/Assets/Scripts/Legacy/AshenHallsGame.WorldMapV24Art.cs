@@ -185,10 +185,10 @@ namespace AshenHalls
                     threat.Id,
                     threat.Depth,
                     ContentSetCatalog.IsFullPrototype(activeContentSet));
-                int index = definition != null
-                    ? WorldThreatHabitatPresentationRules.AtlasIndex(definition)
-                    : WorldThreatHabitatPresentationRules.ArchetypeIndex(threat.Archetype);
-                if (index < 0) index = WorldThreatHabitatPresentationRules.RuinedRoadWaystationIndex;
+                int index = WorldThreatHabitatPresentationRules.PresentationIndex(
+                    threat.Active,
+                    definition,
+                    threat.Archetype);
 
                 bool onObjectiveRoute = IsExploreGuidanceCell(threat.HomeX, threat.HomeY, guidanceCells);
                 float alpha = WorldThreatHabitatPresentationRules.TintAlpha(onObjectiveRoute);
@@ -228,12 +228,16 @@ namespace AshenHalls
             }
 
             ExplorationCellRole roles = ExplorationSurfaceRules.RolesAt(state.Map, x, y);
-            bool tutorialLane = ExplorationSurfaceRules.IsPath(roles);
-            WorldZone zone = ZoneFor(x, y, state.Map, state.Depth);
-            bool certifiedSafeRoad = tutorialLane && (zone == null || zone.Danger <= 0);
+            bool path = ExplorationSurfaceRules.IsPath(roles);
             bool guidanceRoute = IsExploreGuidanceCell(x, y, guidanceCells);
-            bool entrance = (roles & ExplorationCellRole.Threshold) != 0;
+            bool tutorialLane = ExplorationCharacterArtCatalog.IsNewGameTutorialLane(
+                state.Depth,
+                HasStoryFlag(StoryFlags.MidgaardRatQuestGiven),
+                guidanceRoute);
+            WorldZone zone = ZoneFor(x, y, state.Map, state.Depth);
+            bool certifiedSafeRoad = path && (zone == null || zone.Danger <= 0);
             bool hasInteractable = ObjectAt(state.Map, x, y) != null;
+            bool siteReserved = IsRegionalSiteCell(state.Map, x, y);
             bool midgaardCity = IsMidgaardCityCell(x, y, state.Map, state.Depth);
             string district = midgaardCity
                 ? MidgaardDistrictRules.DistrictAtOffset(x - state.Map.StartX, y - state.Map.StartY)
@@ -243,11 +247,12 @@ namespace AshenHalls
                     state.Seed,
                     x,
                     y,
+                    roles,
                     tutorialLane,
                     certifiedSafeRoad,
                     guidanceRoute,
-                    entrance,
-                    hasInteractable))
+                    hasInteractable,
+                    siteReserved))
             {
                 return false;
             }

@@ -219,6 +219,34 @@ namespace AshenHalls
             return CitizenAtlasIndex(AmbientProfession(district, worldSeed, x, y));
         }
 
+        public static bool IsNewGameTutorialLane(
+            int depth,
+            bool firstContractAccepted,
+            bool isGuidanceRoute)
+        {
+            return depth == 1 && !firstContractAccepted && isGuidanceRoute;
+        }
+
+        public static bool CanPlaceAmbientCitizen(
+            ExplorationCellRole roles,
+            bool isTutorialLane,
+            bool isCertifiedSafeRoad,
+            bool isGuidanceRoute,
+            bool hasInteractable,
+            bool isSiteReserved)
+        {
+            const ExplorationCellRole reservedRoles = ExplorationCellRole.Room
+                | ExplorationCellRole.Water
+                | ExplorationCellRole.Hazard
+                | ExplorationCellRole.Threshold;
+            return (roles & reservedRoles) == 0
+                && !isTutorialLane
+                && !isCertifiedSafeRoad
+                && !isGuidanceRoute
+                && !hasInteractable
+                && !isSiteReserved;
+        }
+
         public static bool CanPlaceAmbientCitizen(
             bool isTutorialLane,
             bool isCertifiedSafeRoad,
@@ -226,11 +254,43 @@ namespace AshenHalls
             bool isEntrance,
             bool hasInteractable)
         {
-            return !isTutorialLane
-                && !isCertifiedSafeRoad
-                && !isGuidanceRoute
-                && !isEntrance
-                && !hasInteractable;
+            ExplorationCellRole roles = isEntrance
+                ? ExplorationCellRole.Threshold
+                : ExplorationCellRole.None;
+            return CanPlaceAmbientCitizen(
+                roles,
+                isTutorialLane,
+                isCertifiedSafeRoad,
+                isGuidanceRoute,
+                hasInteractable,
+                false);
+        }
+
+        public static bool ShouldPlaceAmbientCitizen(
+            string district,
+            int worldSeed,
+            int x,
+            int y,
+            ExplorationCellRole roles,
+            bool isTutorialLane,
+            bool isCertifiedSafeRoad,
+            bool isGuidanceRoute,
+            bool hasInteractable,
+            bool isSiteReserved)
+        {
+            if (!CanPlaceAmbientCitizen(
+                roles,
+                isTutorialLane,
+                isCertifiedSafeRoad,
+                isGuidanceRoute,
+                hasInteractable,
+                isSiteReserved))
+            {
+                return false;
+            }
+
+            int roll = StableCoordinateHash(worldSeed, x, y, district, 32452843) % 100;
+            return roll < DensityPercent(district);
         }
 
         public static bool ShouldPlaceAmbientCitizen(
@@ -244,18 +304,20 @@ namespace AshenHalls
             bool isEntrance,
             bool hasInteractable)
         {
-            if (!CanPlaceAmbientCitizen(
+            ExplorationCellRole roles = isEntrance
+                ? ExplorationCellRole.Threshold
+                : ExplorationCellRole.None;
+            return ShouldPlaceAmbientCitizen(
+                district,
+                worldSeed,
+                x,
+                y,
+                roles,
                 isTutorialLane,
                 isCertifiedSafeRoad,
                 isGuidanceRoute,
-                isEntrance,
-                hasInteractable))
-            {
-                return false;
-            }
-
-            int roll = StableCoordinateHash(worldSeed, x, y, district, 32452843) % 100;
-            return roll < DensityPercent(district);
+                hasInteractable,
+                false);
         }
 
         private static int DensityPercent(string district)

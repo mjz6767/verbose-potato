@@ -2160,6 +2160,10 @@ namespace AshenHalls.Editor
             AssertEqual(5, WorldThreatHabitatPresentationRules.FactionIndex(RoamingThreatFaction.Undead), "undead patrols use the ossuary habitat");
             AssertEqual(6, WorldThreatHabitatPresentationRules.FactionIndex(RoamingThreatFaction.Demons), "demon patrols use the breach habitat");
             AssertEqual(7, WorldThreatHabitatPresentationRules.ArchetypeIndex("waystation"), "neutral aftermath uses the ruined waystation habitat");
+            RoamingThreatDefinition activeKobold = RoamingThreatCatalog.Find("dusk-market-kobold-raiders", 2, true);
+            AssertEqual(2, WorldThreatHabitatPresentationRules.PresentationIndex(true, activeKobold, "demon"), "active threats retain their authored habitat");
+            AssertEqual(7, WorldThreatHabitatPresentationRules.PresentationIndex(false, activeKobold, "demon"), "inactive threats leave neutral ruined-road aftermath art");
+            AssertEqual(6, WorldThreatHabitatPresentationRules.PresentationIndex(true, null, "demon"), "active legacy threats retain their archetype habitat fallback");
             AssertEqual(true, WorldThreatHabitatPresentationRules.DrawsBeneathRoamingThreatToken, "habitats remain below mobile patrol tokens");
             AssertEqual(true, WorldThreatHabitatPresentationRules.BottomCenterPivotY == 1f, "habitats keep a GUI bottom-center anchor");
             AssertEqual(false, WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, true), "habitats stay off certified safe roads");
@@ -2184,12 +2188,21 @@ namespace AshenHalls.Editor
                 ExplorationCharacterArtCatalog.AmbientCitizenIndex("Wharf Market", 9471, 23, 17),
                 ExplorationCharacterArtCatalog.AmbientCitizenIndex("Wharf Market", 9471, 23, 17),
                 "ambient citizen placement is deterministic");
-            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(true, false, false, false, false), "ambient citizens stay off the tutorial lane");
-            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, true, false, false, false), "ambient citizens stay off certified safe roads");
-            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, true, false, false), "ambient citizens stay off guidance routes");
-            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, true, false), "ambient citizens keep entrances clear");
-            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, false, true), "ambient citizens never become interactable-cell impostors");
-            AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, false, false), "ordinary non-interactive ambience remains eligible");
+            AssertEqual(true, ExplorationCharacterArtCatalog.IsNewGameTutorialLane(1, false, true), "the opening Grand Hearth objective route is the tutorial lane");
+            AssertEqual(false, ExplorationCharacterArtCatalog.IsNewGameTutorialLane(1, false, false), "ordinary chapter-one roads are not mislabeled as tutorial lanes");
+            AssertEqual(false, ExplorationCharacterArtCatalog.IsNewGameTutorialLane(1, true, true), "the tutorial lane retires after the first contract is accepted");
+            AssertEqual(false, ExplorationCharacterArtCatalog.IsNewGameTutorialLane(2, false, true), "later-depth guidance is not mislabeled as the New Game tutorial lane");
+
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, true, false, false, false, false), "ambient citizens stay off the actual tutorial lane");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, true, false, false, false), "ambient citizens stay off certified safe roads");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, true, false, false), "ambient citizens stay off guidance routes");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Room, false, false, false, false, false), "ambient citizens stay out of room-reserved cells");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Water, false, false, false, false, false), "ambient citizens stay out of water cells");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Hazard, false, false, false, false, false), "ambient citizens stay out of hazard cells");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Threshold, false, false, false, false, false), "ambient citizens keep entrances clear");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, false, true, false), "ambient citizens never become interactable-cell impostors");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, false, false, true), "ambient citizens stay out of authored regional-site reservations");
+            AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, false, false, false), "suitable non-tutorial roads remain eligible for ambient citizens");
         }
 
         private static void ExplorationMiniMapPresentationRulesReserveSemanticMarkers()
