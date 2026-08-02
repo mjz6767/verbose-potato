@@ -5,6 +5,7 @@ namespace AshenHalls
         public const int Columns = 4;
         public const int Rows = 2;
         public const int CellCount = Columns * Rows;
+        public const bool PreserveScaleAtViewportEdge = true;
 
         public static int IconIndex(string siteId)
         {

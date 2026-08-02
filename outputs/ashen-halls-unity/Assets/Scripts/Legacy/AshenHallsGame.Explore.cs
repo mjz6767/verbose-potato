@@ -1533,18 +1533,25 @@ namespace AshenHalls
                     DrawExploreTileAccent(c, x, y, tile, tileKind);
                 }
                 DrawExploreMaterialFeather(c, x, y, tile);
-                DrawExploreSurfaceOverlay(c, x, y, tile);
-                DrawMidgaardPavingDecal(c, x, y, tile, tileKind);
+                bool midgaardInterior = IsMidgaardInteriorCell(x, y, state.Map, state.Depth);
+                if (midgaardInterior || !ExplorationSurfaceRules.IsPath(ExploreRolesAt(x, y)))
+                {
+                    DrawExploreSurfaceOverlay(c, x, y, tile);
+                }
+                if (midgaardInterior)
+                {
+                    DrawMidgaardPavingDecal(c, x, y, tile, tileKind, guidanceCells);
+                }
                 DrawExploreTileEdges(c, x, y, tile);
                 DrawExploreDistanceShade(c, vx, vy, viewW, viewH);
+                // Preserve the accepted Grand Hearth composition: patrons and
+                // their authored shadows receive the room's light/embers above.
                 DrawGrandHearthPatronShadow(c, x, y, tile, guidanceCells);
-                // Authored Town Hall patrons and ambient exterior citizens are
-                // presentation-only. A selected silhouette replaces the
-                // procedural prop for its cell so it stays readable.
-                if (!TryDrawWorldAmbientCitizen(c, x, y, tile, guidanceCells))
+                bool drewGrandHearthPatron = TryDrawGrandHearthPatron(c, x, y, tile, guidanceCells);
+                if (midgaardInterior && !drewGrandHearthPatron)
                 {
-                    DrawMidgaardAmbientProp(c, x, y, tile, tileKind);
-                    DrawExploreBiomeAmbientProp(c, x, y, tile, tileKind);
+                    DrawMidgaardAmbientProp(c, x, y, tile, tileKind, guidanceCells);
+                    DrawExploreBiomeAmbientProp(c, x, y, tile, tileKind, guidanceCells);
                 }
             }
 
@@ -1555,9 +1562,12 @@ namespace AshenHalls
             // Stationary habitat art is anchored to the patrol's persisted home
             // and stays beneath roads, authored sites, mobile threats, and party UI.
             DrawRoamingThreatHabitats(grid, cell, origin, viewW, viewH, guidanceCells);
+            DrawExplorePathSurfaceOverlayPass(grid, cell, origin, viewW, viewH);
             DrawExploreTerrainBoundaries(grid, cell, origin, viewW, viewH);
+            DrawExploreAmbientPresentationPass(grid, cell, origin, viewW, viewH, guidanceCells);
+            // Ground breadcrumbs may cross soft scenery but stay beneath roofs and
+            // authored set-pieces. The later next-step/edge cue remains above art.
             DrawExploreWaypointTrail(grid, cell, origin, viewW, viewH);
-            DrawExploreMovementHints(grid, cell, origin, viewW, viewH);
             exploreFrameInteractionTarget = CurrentExploreInteraction().Target;
 
             foreach (MapObject obj in state.Map.Objects)
@@ -1598,6 +1608,9 @@ namespace AshenHalls
             }
 
             DrawRoamingThreats(grid, cell, origin, viewW, viewH);
+            // Access cues belong above the art they explain. They remain below the
+            // party token so the player is never hidden by navigation chrome.
+            DrawExploreMovementHints(grid, cell, origin, viewW, viewH, guidanceCells);
 
             PartyMember lead = state.Party.Count > 0 ? state.Party[0] : null;
             Color leadColor = lead != null ? MemberColor(lead) : teal;
@@ -1624,7 +1637,7 @@ namespace AshenHalls
             if (showExploreArtDebug) DrawExploreArtDebugOverlay(playerCell, tokenRect, "Party");
             DrawExploreRegionStrip(grid);
             DrawExploreViewportEdgeHints(grid, origin, viewW, viewH);
-            DrawExploreHover(grid, cell, origin, viewW, viewH);
+            DrawExploreHover(grid, cell, origin, viewW, viewH, guidanceCells);
             HandleExploreMouse(grid, cell, origin, viewW, viewH);
         }
 
@@ -1744,8 +1757,15 @@ namespace AshenHalls
         private void DrawMidgaardBuildingFootprint(Rect cell, MapObject obj)
         {
             if (obj == null || !ExplorationArtRules.IsMidgaardBuilding(obj.Type)) return;
-            float width = cell.width * (exploreWideView ? 1.18f : 1.48f);
-            float height = cell.height * (exploreWideView ? 0.46f : 0.58f);
+            bool preserveInteriorFootprint = IsMidgaardInteriorCell(obj.X, obj.Y, state?.Map, state?.Depth ?? 1);
+            float widthInCells = preserveInteriorFootprint
+                ? exploreWideView ? 1.18f : 1.48f
+                : ExplorationArtRules.MidgaardBuildingFoundationWidthInCells(exploreWideView);
+            float heightInCells = preserveInteriorFootprint
+                ? exploreWideView ? 0.46f : 0.58f
+                : ExplorationArtRules.MidgaardBuildingFoundationHeightInCells(exploreWideView);
+            float width = cell.width * widthInCells;
+            float height = cell.height * heightInCells;
             Rect foundation = new Rect(
                 cell.center.x - width * 0.5f,
                 cell.y + cell.height * (exploreWideView ? 0.48f : 0.42f),
@@ -1817,32 +1837,28 @@ namespace AshenHalls
                 cell.yMax - size * WorldAreaSetpiecePresentationRules.BaselineFraction(exploreWideView),
                 size,
                 size);
-            float safeInset = Mathf.Max(2f, cell.width * 0.10f);
-            bool fullFits = WorldAreaSetpiecePresentationRules.FitsViewport(
-                fullRect.xMin,
-                fullRect.yMin,
-                fullRect.xMax,
-                fullRect.yMax,
-                grid.xMin,
-                grid.yMin,
-                grid.xMax,
-                grid.yMax,
-                safeInset);
-            drawnRect = fullFits ? fullRect : Pad(cell, cell.width * 0.08f);
-            if (!fullFits)
-            {
-                WorldZone zone = ZoneFor(site.X, site.Y, state.Map, state.Depth);
-                Color accent = ZoneDangerColor(zone);
-                Rect backing = Pad(cell, cell.width * 0.05f);
-                DrawRect(backing, Hex("030506", 0.88f));
-                DrawBorder(backing, accent.WithAlpha(0.64f), 1);
-            }
+            drawnRect = fullRect;
             WorldMapArtSpec spec = new WorldMapArtSpec(
-                fullFits ? 0.98f : 0.92f,
+                0.98f,
                 new Vector2(0.5f, 1f),
                 Vector2.zero,
                 true);
-            return TryDrawWorldAreaSetpieceAtlasIcon(drawnRect, index, Color.white, spec);
+            Rect clippedRect = new Rect(
+                drawnRect.x - grid.x,
+                drawnRect.y - grid.y,
+                drawnRect.width,
+                drawnRect.height);
+            bool drawn;
+            GUI.BeginGroup(grid);
+            try
+            {
+                drawn = TryDrawWorldAreaSetpieceAtlasIcon(clippedRect, index, Color.white, spec);
+            }
+            finally
+            {
+                GUI.EndGroup();
+            }
+            return drawn;
         }
 
         private bool ShouldUseExploreRegionMarker(MapObject obj, int distance, bool objective)
@@ -1905,17 +1921,75 @@ namespace AshenHalls
             return exploreWideView ? 0.19f : 0.11f;
         }
 
-        private void DrawMidgaardAmbientProp(Rect cell, int x, int y, int tile, string kind)
+        private void DrawExploreAmbientPresentationPass(
+            Rect grid,
+            float cell,
+            Point origin,
+            int viewW,
+            int viewH,
+            HashSet<int> guidanceCells)
         {
-            if (state?.Map == null || state.Depth != 1 || tile == 0 || !IsMidgaardCityCell(x, y, state.Map, state.Depth)) return;
-            if (ObjectAt(state.Map, x, y) != null) return;
-            if (HasNearbyMidgaardFocusObject(x, y)) return;
-            if (x == state.PlayerX && y == state.PlayerY) return;
+            for (int vy = 0; vy < viewH; vy++)
+            for (int vx = 0; vx < viewW; vx++)
+            {
+                int x = origin.X + vx;
+                int y = origin.Y + vy;
+                int tile = TileAt(state.Map, x, y);
+                Rect c = new Rect(grid.x + vx * cell, grid.y + vy * cell, cell, cell);
+                string tileKind = ExploreTileKind(x, y, tile);
+                if (IsMidgaardInteriorCell(x, y, state.Map, state.Depth)) continue;
+                DrawMidgaardPavingDecal(c, x, y, tile, tileKind, guidanceCells);
+
+                // Exterior passersby are soft scenery. A selected silhouette
+                // replaces the procedural prop in its cell.
+                if (TryDrawWorldExteriorAmbientCitizen(c, x, y, tile, guidanceCells)) continue;
+                DrawMidgaardAmbientProp(c, x, y, tile, tileKind, guidanceCells);
+                DrawExploreBiomeAmbientProp(c, x, y, tile, tileKind, guidanceCells);
+            }
+        }
+
+        private bool ShouldDrawExploreAmbientPropAt(int x, int y, HashSet<int> guidanceCells)
+        {
+            if (state?.Map == null) return false;
+            // The Grand Hearth is an authored interior whose accepted furnishing
+            // placement predates the exterior lane-readability contract.
+            if (IsMidgaardInteriorCell(x, y, state.Map, state.Depth)) return true;
+            ExplorationCellRole roles = ExploreRolesAt(x, y);
+            if (ExplorationSurfaceRules.IsPath(roles)) return false;
+            if ((roles & (ExplorationCellRole.Plaza | ExplorationCellRole.Threshold)) != 0) return false;
+            return !IsExploreGuidanceCell(x, y, guidanceCells);
+        }
+
+        private bool TryGetMidgaardAmbientPropIndex(
+            int x,
+            int y,
+            int tile,
+            string kind,
+            HashSet<int> guidanceCells,
+            out int index)
+        {
+            index = -1;
+            if (state?.Map == null || state.Depth != 1 || tile == 0 || !IsMidgaardCityCell(x, y, state.Map, state.Depth)) return false;
+            if (ObjectAt(state.Map, x, y) != null || HasNearbyMidgaardFocusObject(x, y)) return false;
+            if (x == state.PlayerX && y == state.PlayerY) return false;
+            if (!ShouldDrawExploreAmbientPropAt(x, y, guidanceCells)) return false;
             kind = kind ?? "";
-            if (!kind.StartsWith("midgaard")) return;
+            if (!kind.StartsWith("midgaard")) return false;
             int roll = ExploreNoise(x, y, 79) % 100;
-            int index = MidgaardAmbientPropAtlasIndex(kind, x, y, roll);
-            if (index < 0) return;
+            index = MidgaardAmbientPropAtlasIndex(kind, x, y, roll);
+            return index >= 0;
+        }
+
+        private void DrawMidgaardAmbientProp(
+            Rect cell,
+            int x,
+            int y,
+            int tile,
+            string kind,
+            HashSet<int> guidanceCells)
+        {
+            kind = kind ?? "";
+            if (!TryGetMidgaardAmbientPropIndex(x, y, tile, kind, guidanceCells, out int index)) return;
 
             bool useStreetLife = (ExploreNoise(x, y, 89) & 1) == 0;
             int streetLifeIndex = useStreetLife ? MidgaardStreetLifeAtlasIndex(kind, x, y) : -1;
@@ -1924,7 +1998,8 @@ namespace AshenHalls
                 : kind == "midgaard-market" || kind == "midgaard-tavern" ? 0.18f : 0.20f;
             Rect propRect = Pad(cell, cell.width * scale);
             float noise = (ExploreNoise(x, y, 83) % 7) / 6f;
-            Color tint = Color.white.WithAlpha(ExplorationReadabilityRules.MidgaardPropAlpha(exploreWideView, noise));
+            float alpha = ExplorationReadabilityRules.MidgaardPropAlpha(exploreWideView, noise) * ExploreDecorativeAlphaScale();
+            Color tint = Color.white.WithAlpha(Mathf.Clamp01(alpha));
             bool drawn = streetLifeIndex >= 0 && TryDrawMidgaardStreetLifeAtlasIcon(propRect, streetLifeIndex, tint);
             if (!drawn) drawn = TryDrawMidgaardCityPropAtlasIcon(propRect, index, tint);
             if (!drawn)
@@ -2006,7 +2081,13 @@ namespace AshenHalls
             }
         }
 
-        private void DrawMidgaardPavingDecal(Rect cell, int x, int y, int tile, string kind)
+        private void DrawMidgaardPavingDecal(
+            Rect cell,
+            int x,
+            int y,
+            int tile,
+            string kind,
+            HashSet<int> guidanceCells)
         {
             if (state?.Map == null || state.Depth != 1 || tile == 0 || !IsMidgaardCityCell(x, y, state.Map, state.Depth)) return;
             if (HasNearbyMidgaardFocusObject(x, y)) return;
@@ -2018,8 +2099,7 @@ namespace AshenHalls
             int roll = ExploreNoise(x, y, 101);
             if (!ExplorationReadabilityRules.ShouldDrawMidgaardPavingDecal(exploreWideView, distance, hasObject, roll)) return;
 
-            int propRoll = ExploreNoise(x, y, 79) % 100;
-            if (MidgaardAmbientPropAtlasIndex(kind, x, y, propRoll) >= 0) return;
+            if (TryGetMidgaardAmbientPropIndex(x, y, tile, kind, guidanceCells, out _)) return;
 
             int index = MidgaardPavingDecalAtlasIndex(kind, x, y);
             if (index < 0) return;
@@ -2074,11 +2154,18 @@ namespace AshenHalls
             }
         }
 
-        private void DrawExploreBiomeAmbientProp(Rect cell, int x, int y, int tile, string kind)
+        private void DrawExploreBiomeAmbientProp(
+            Rect cell,
+            int x,
+            int y,
+            int tile,
+            string kind,
+            HashSet<int> guidanceCells)
         {
             if (state?.Map == null || tile == 0) return;
             if (ObjectAt(state.Map, x, y) != null) return;
             if (x == state.PlayerX && y == state.PlayerY) return;
+            if (!ShouldDrawExploreAmbientPropAt(x, y, guidanceCells)) return;
             kind = kind ?? "";
             if (kind.StartsWith("midgaard")) return;
 
@@ -2089,7 +2176,8 @@ namespace AshenHalls
             int variant = ExploreNoise(x, y, 193) % 4;
             int index = BiomeAmbientPropAtlasIndex(kind, variant);
             float noise = (ExploreNoise(x, y, 197) % 7) / 6f;
-            Color tint = BiomeAmbientTint(kind).WithAlpha(ExplorationReadabilityRules.BiomePropAlpha(exploreWideView, noise));
+            float alpha = ExplorationReadabilityRules.BiomePropAlpha(exploreWideView, noise) * ExploreDecorativeAlphaScale();
+            Color tint = BiomeAmbientTint(kind).WithAlpha(Mathf.Clamp01(alpha));
             Rect propRect = Pad(cell, cell.width * BiomeAmbientPadding(kind));
             if (index >= 0 && TryDrawWorldMapBiomePropAtlasIcon(propRect, index, tint))
             {
@@ -2325,11 +2413,21 @@ namespace AshenHalls
             return 0.03f;
         }
 
-        private void DrawExploreObjectPlinth(Rect rect, Color color, bool quiet, bool framed, float pulse)
+        private void DrawExploreObjectPlinth(Rect rect, Color color, bool quiet, bool framed, float pulse, bool standable)
         {
             float shadowH = Mathf.Max(3f, rect.height * (quiet ? 0.085f : 0.105f));
             Rect shadow = new Rect(rect.x + rect.width * 0.14f, rect.yMax - shadowH - rect.height * 0.03f, rect.width * 0.72f, shadowH);
-            DrawRect(shadow, Hex("020303", framed ? 0.92f : 0.84f));
+            Color contact = Hex("020303", framed ? 0.92f : 0.84f);
+            if (standable)
+            {
+                float segmentWidth = shadow.width * 0.34f;
+                DrawRect(new Rect(shadow.x, shadow.y, segmentWidth, shadow.height), contact);
+                DrawRect(new Rect(shadow.xMax - segmentWidth, shadow.y, segmentWidth, shadow.height), contact);
+            }
+            else
+            {
+                DrawRect(shadow, contact);
+            }
             float washAlpha = ExplorationReadabilityRules.InteractiveObjectBackdropAlpha(quiet, framed);
             if (washAlpha <= 0f) return;
             Rect wash = Pad(rect, rect.width * (quiet ? 0.16f : 0.13f));
@@ -2590,9 +2688,42 @@ namespace AshenHalls
             return x >= 0 && x < state.Map.Width && y >= 0 && y < state.Map.Height;
         }
 
-        private void DrawExploreMovementHints(Rect grid, float cell, Point origin, int viewW, int viewH)
+        private WorldMapCellAccessKind ExploreCellAccessAt(int x, int y, HashSet<int> guidanceCells)
         {
-            ExplorationInteraction interaction = CurrentExploreInteraction();
+            int tile = TileAt(state?.Map, x, y);
+            MapObject mapObject = ObjectAt(state?.Map, x, y);
+            bool softScenery = ExploreCellHasSoftScenery(x, y, tile, guidanceCells);
+            bool enemyOccupied = RoamingThreatAt(x, y) != null;
+            return ExplorationReadabilityRules.ClassifyCellAccess(tile, mapObject, softScenery, enemyOccupied);
+        }
+
+        private bool ExploreCellHasSoftScenery(int x, int y, int tile, HashSet<int> guidanceCells)
+        {
+            if (state?.Map == null || tile != 1 || ObjectAt(state.Map, x, y) != null) return false;
+            if (x == state.PlayerX && y == state.PlayerY) return false;
+            if (TryGetGrandHearthPatronAt(x, y, tile, guidanceCells, out _)) return true;
+            if (TryGetWorldAmbientCitizenAt(x, y, tile, guidanceCells, out _, out _)) return true;
+            if (IsRoamingThreatHomeCell(x, y)) return true;
+
+            string kind = ExploreTileKind(x, y, tile) ?? "";
+            if (TryGetMidgaardAmbientPropIndex(x, y, tile, kind, guidanceCells, out _)) return true;
+            if (!ShouldDrawExploreAmbientPropAt(x, y, guidanceCells)) return false;
+            if (kind.StartsWith("midgaard")) return false;
+            int roll = ExploreNoise(x, y, 191) % 100;
+            if (!ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp(kind, exploreWideView, roll)) return false;
+            if (roll > Mathf.RoundToInt(BiomeAmbientDensity(kind) * ExploreDecorativeDensityScale())) return false;
+
+            return true;
+        }
+
+        private void DrawExploreMovementHints(
+            Rect grid,
+            float cell,
+            Point origin,
+            int viewW,
+            int viewH,
+            HashSet<int> guidanceCells)
+        {
             Point[] steps =
             {
                 new Point(state.PlayerX, state.PlayerY - 1),
@@ -2606,13 +2737,83 @@ namespace AshenHalls
                 if (step.X < 0 || step.X >= state.Map.Width || step.Y < 0 || step.Y >= state.Map.Height) continue;
                 if (!ExplorePointInViewport(step.X, step.Y, origin, viewW, viewH)) continue;
                 Rect tile = new Rect(grid.x + (step.X - origin.X) * cell, grid.y + (step.Y - origin.Y) * cell, cell, cell);
-                if (interaction.HasTarget && interaction.Target.X == step.X && interaction.Target.Y == step.Y) continue;
-                bool passable = CanStepExplore(step.X, step.Y);
-                Color color = passable ? teal : Hex("8a5c35");
-                Rect cue = ExploreMovementCueRect(tile, step);
-                DrawRect(Pad(cue, -1f), Hex("030405", 0.62f));
-                DrawRect(cue, color.WithAlpha(passable ? 0.62f : 0.42f));
+                WorldMapCellAccessKind access = ExploreCellAccessAt(step.X, step.Y, guidanceCells);
+                DrawExploreMovementCue(tile, step, ExplorationReadabilityRules.MovementCueKind(access), ExploreAccessColor(access));
             }
+        }
+
+        private Color ExploreAccessColor(WorldMapCellAccessKind access)
+        {
+            switch (access)
+            {
+                case WorldMapCellAccessKind.UseFromBeside: return gold;
+                case WorldMapCellAccessKind.EnemyOccupied: return blood;
+                case WorldMapCellAccessKind.SolidObstacle: return Hex("a6673d");
+                case WorldMapCellAccessKind.BlockedTerrain: return Hex("826650");
+                case WorldMapCellAccessKind.SoftScenery: return Color.Lerp(teal, frost, 0.42f);
+                default: return teal;
+            }
+        }
+
+        private void DrawExploreMovementCue(
+            Rect tile,
+            Point step,
+            WorldMapMovementCueKind kind,
+            Color color)
+        {
+            Rect cue = ExploreMovementCueRect(tile, step);
+            bool vertical = cue.height > cue.width;
+            float thickness = vertical ? cue.width : cue.height;
+            float reach = Mathf.Clamp(tile.width * 0.09f, 5f, 10f);
+            float dx = Mathf.Sign(step.X - state.PlayerX);
+            float dy = Mathf.Sign(step.Y - state.PlayerY);
+
+            if (kind == WorldMapMovementCueKind.OpenTick)
+            {
+                DrawExploreCueSegment(cue, color, 0.78f);
+                Rect stem = vertical
+                    ? new Rect(dx < 0f ? cue.center.x - reach : cue.center.x, cue.center.y - thickness * 0.5f, reach, thickness)
+                    : new Rect(cue.center.x - thickness * 0.5f, dy < 0f ? cue.center.y - reach : cue.center.y, thickness, reach);
+                DrawExploreCueSegment(stem, color, 0.78f);
+                return;
+            }
+
+            if (kind == WorldMapMovementCueKind.UseBracket)
+            {
+                DrawExploreCueSegment(cue, color, 0.88f);
+                float capThickness = Mathf.Max(2f, thickness);
+                Rect capA = vertical
+                    ? new Rect(dx < 0f ? cue.center.x - reach : cue.center.x, cue.y, reach, capThickness)
+                    : new Rect(cue.x, dy < 0f ? cue.center.y - reach : cue.center.y, capThickness, reach);
+                Rect capB = vertical
+                    ? new Rect(dx < 0f ? cue.center.x - reach : cue.center.x, cue.yMax - capThickness, reach, capThickness)
+                    : new Rect(cue.xMax - capThickness, dy < 0f ? cue.center.y - reach : cue.center.y, capThickness, reach);
+                DrawExploreCueSegment(capA, color, 0.88f);
+                DrawExploreCueSegment(capB, color, 0.88f);
+                return;
+            }
+
+            if (kind == WorldMapMovementCueKind.ThreatDoubleBar)
+            {
+                DrawExploreCueSegment(cue, color, 0.92f);
+                float offset = thickness * 2.2f;
+                Rect second = new Rect(cue.x + dx * offset, cue.y + dy * offset, cue.width, cue.height);
+                DrawExploreCueSegment(second, color, 0.92f);
+                return;
+            }
+
+            // Terrain and solid obstacles use one broad stop bar. Its heavier
+            // silhouette stays distinguishable even without color perception.
+            Rect stop = vertical
+                ? new Rect(cue.x - thickness * 0.42f, cue.y - thickness, cue.width + thickness * 0.84f, cue.height + thickness * 2f)
+                : new Rect(cue.x - thickness, cue.y - thickness * 0.42f, cue.width + thickness * 2f, cue.height + thickness * 0.84f);
+            DrawExploreCueSegment(stop, color, 0.72f);
+        }
+
+        private void DrawExploreCueSegment(Rect segment, Color color, float alpha)
+        {
+            DrawRect(Pad(segment, -1f), Hex("030405", 0.70f));
+            DrawRect(segment, color.WithAlpha(alpha));
         }
 
         private Rect ExploreMovementCueRect(Rect tile, Point step)
@@ -2697,7 +2898,13 @@ namespace AshenHalls
             exploreHoverLookLine = ExploreLookLine(x, y);
         }
 
-        private void DrawExploreHover(Rect grid, float cell, Point origin, int viewW, int viewH)
+        private void DrawExploreHover(
+            Rect grid,
+            float cell,
+            Point origin,
+            int viewW,
+            int viewH,
+            HashSet<int> guidanceCells)
         {
             if (Event.current == null || !grid.Contains(Event.current.mousePosition)) return;
             if (SidePanelRect().Contains(Event.current.mousePosition)) return;
@@ -2705,11 +2912,51 @@ namespace AshenHalls
 
             Rect tile = new Rect(grid.x + (x - origin.X) * cell, grid.y + (y - origin.Y) * cell, cell, cell);
             ExplorationInteraction interaction = CurrentExploreInteraction();
-            if (interaction.HasTarget && interaction.Target.X == x && interaction.Target.Y == y) return;
+            if (interaction.HasTarget && interaction.Target.X == x && interaction.Target.Y == y)
+            {
+                exploreHoverLookLine = ExploreLookLine(x, y);
+                return;
+            }
             bool adjacent = Distance(x, y, state.PlayerX, state.PlayerY) <= 1;
-            DrawBorder(Pad(tile, cell * 0.04f), adjacent ? cursorWhite.WithAlpha(0.86f) : frost.WithAlpha(0.48f), adjacent ? 2 : 1);
+            WorldMapCellAccessKind access = ExploreCellAccessAt(x, y, guidanceCells);
+            DrawExploreAccessHover(tile, access, adjacent);
 
             exploreHoverLookLine = ExploreLookLine(x, y);
+        }
+
+        private void DrawExploreAccessHover(Rect tile, WorldMapCellAccessKind access, bool adjacent)
+        {
+            Rect focus = Pad(tile, tile.width * 0.04f);
+            Color color = ExploreAccessColor(access).WithAlpha(adjacent ? 0.92f : 0.62f);
+            float thickness = adjacent ? 2f : 1f;
+            float corner = tile.width * (adjacent ? 0.22f : 0.17f);
+            switch (access)
+            {
+                case WorldMapCellAccessKind.OpenGround:
+                case WorldMapCellAccessKind.SoftScenery:
+                case WorldMapCellAccessKind.WalkableFeature:
+                    DrawCornerBrackets(focus, color, thickness, corner);
+                    DrawRect(
+                        new Rect(focus.center.x - tile.width * 0.055f, focus.yMax - thickness, tile.width * 0.11f, thickness),
+                        color);
+                    break;
+                case WorldMapCellAccessKind.UseFromBeside:
+                    DrawCornerBrackets(focus, color, thickness + 1f, corner);
+                    DrawRect(
+                        new Rect(focus.x + tile.width * 0.26f, focus.yMax - thickness * 2f, focus.width - tile.width * 0.52f, thickness * 2f),
+                        color);
+                    break;
+                case WorldMapCellAccessKind.EnemyOccupied:
+                    DrawBorder(focus, color, adjacent ? 3 : 2);
+                    DrawBorder(Pad(focus, tile.width * 0.08f), color.WithAlpha(color.a * 0.72f), 1);
+                    break;
+                default:
+                    DrawBorder(focus, color, adjacent ? 2 : 1);
+                    DrawRect(
+                        new Rect(focus.x + focus.width * 0.22f, focus.center.y - thickness, focus.width * 0.56f, thickness * 2f),
+                        color);
+                    break;
+            }
         }
 
         private void HandleExploreKeyboard()
@@ -4224,6 +4471,20 @@ namespace AshenHalls
             return obj != null && IsMidgaardGateType(obj.Type);
         }
 
+        private void DrawExplorePathSurfaceOverlayPass(Rect grid, float cell, Point origin, int viewW, int viewH)
+        {
+            for (int vy = 0; vy < viewH; vy++)
+            for (int vx = 0; vx < viewW; vx++)
+            {
+                int x = origin.X + vx;
+                int y = origin.Y + vy;
+                if (!ExplorationSurfaceRules.IsPath(ExploreRolesAt(x, y))) continue;
+                if (IsMidgaardInteriorCell(x, y, state.Map, state.Depth)) continue;
+                Rect c = new Rect(grid.x + vx * cell, grid.y + vy * cell, cell, cell);
+                DrawExploreSurfaceOverlay(c, x, y, TileAt(state.Map, x, y));
+            }
+        }
+
         private void DrawExploreSurfaceOverlay(Rect rect, int x, int y, int tile)
         {
             if (tile != 1) return;
@@ -5184,13 +5445,8 @@ namespace AshenHalls
             bool gate = IsMidgaardGateType(type);
             float pulse = quiet || state != null && state.ReducedMotion ? 0.35f : 0.35f + Mathf.Sin(Time.time * 3.5f + (int)type) * 0.12f;
             if (gate) DrawMidgaardGateFoundation(cell, rect, type, framed);
-            else DrawExploreObjectPlinth(rect, objectColor, quiet, framed, pulse);
+            else DrawExploreObjectPlinth(rect, objectColor, quiet, framed, pulse, ExplorationTraversalRules.CanStandOnObject(type));
             Rect artRect = Pad(rect, rect.width * ExploreObjectArtPadding(type, quiet));
-            if (!gate)
-            {
-                Rect shadowRect = new Rect(artRect.x + 2f, artRect.y + 3f, artRect.width, artRect.height);
-                TryDrawWorldObjectIcon(shadowRect, type, obj, Hex("020303", 0.82f));
-            }
             if (TryDrawWorldObjectIcon(artRect, type, obj))
             {
                 if (!gate && ShouldReinforceExploreObjectAlpha(type))
@@ -6156,27 +6412,66 @@ namespace AshenHalls
         {
             string region = ExploreRegionName(x, y);
             WorldZone zone = ZoneAt(x, y);
+            HashSet<int> guidanceCells = BuildCurrentExploreGuidanceCellSet();
             RoamingThreat threat = RoamingThreatAt(x, y);
             if (threat != null)
             {
                 int threatDistance = Distance(x, y, state.PlayerX, state.PlayerY);
                 string intent = threat.Alerted ? "pursuing the party" : "prowling";
                 string action = threatDistance == 1 ? "click or move toward it to engage" : $"range {threatDistance}";
-                return $"{threat.Name} / {region} / {intent}\nMoving enemy patrol / {action}";
+                return $"{threat.Name} / {region} / {intent}\nEnemy occupies this tile / {action}";
             }
             MapObject obj = ObjectAt(state.Map, x, y);
             int distance = Distance(x, y, state.PlayerX, state.PlayerY);
             if (obj != null)
             {
-                string step = distance == 0
-                    ? "underfoot"
-                    : distance == 1 && ShouldResolveExploreObjectFromAdjacent(obj)
-                        ? "click or Space/E to use"
-                        : distance == 1 && CanStepExplore(x, y)
-                            ? "click to step onto it"
-                            : $"range {distance}";
+                WorldMapCellAccessKind access = ExploreCellAccessAt(x, y, guidanceCells);
+                string step;
+                if (ExplorationReadabilityRules.IsWalkableAccess(access))
+                {
+                    step = distance == 0
+                        ? "walkable / underfoot"
+                        : distance == 1
+                            ? "walkable / click to step onto it"
+                            : $"walkable / range {distance}";
+                }
+                else if (access == WorldMapCellAccessKind.UseFromBeside)
+                {
+                    step = distance == 1
+                        ? "blocks movement / Space/E to use from beside"
+                        : $"blocks movement / approach to use from beside / range {distance}";
+                }
+                else
+                {
+                    step = $"blocks movement / range {distance}";
+                }
                 string objective = IsCurrentMidgaardObjective(obj) ? " / current work" : "";
                 return $"{ObjectName(obj)} / {region} / {ZoneDangerText(zone)}{objective}\n{ObjectHint(obj)} / {step}";
+            }
+
+            if ((x != state.PlayerX || y != state.PlayerY)
+                && TryGetWorldAmbientCitizenAt(
+                    x,
+                    y,
+                    TileAt(state.Map, x, y),
+                    guidanceCells,
+                    out AmbientCitizenProfession profession,
+                    out _))
+            {
+                string label = ExplorationCharacterArtCatalog.AmbientCitizenDisplayLabel(profession);
+                return $"{label} / {region}\nYields the path / walkable";
+            }
+
+            if ((x != state.PlayerX || y != state.PlayerY)
+                && TryGetGrandHearthPatronAt(
+                    x,
+                    y,
+                    TileAt(state.Map, x, y),
+                    guidanceCells,
+                    out AmbientCitizenProfession patronProfession))
+            {
+                string label = ExplorationCharacterArtCatalog.CitizenDisplayName(patronProfession);
+                return $"{label} / Grand Hearth patron / {region}\nYields the path / walkable";
             }
 
             if (TryRegionalJunctionAt(x, y, 0, out WorldMapJunction junction))
@@ -6186,7 +6481,7 @@ namespace AshenHalls
                 string status = charted && RouteChartRules.IsWaypoint(state.ActiveRouteWaypointKey, state.Depth, junction.Id)
                     ? "marked waypoint"
                     : charted ? "charted" : "uncharted";
-                return $"{junction.Name} / {region} / {status}\n{junction.Summary}";
+                return $"{junction.Name} / {region} / {status}\n{junction.Summary} / walkable";
             }
 
             if (TileAt(state.Map, x, y) == 0)
@@ -6195,7 +6490,9 @@ namespace AshenHalls
             }
 
             string move = distance == 0 ? "current position" : distance == 1 ? "click to move" : $"range {distance}";
-            return $"{ExploreGroundName(x, y)} / {region} / {ZoneDangerText(zone)}\n{move} / {zone.Summary}";
+            WorldMapCellAccessKind groundAccess = ExploreCellAccessAt(x, y, guidanceCells);
+            string scenery = groundAccess == WorldMapCellAccessKind.SoftScenery ? "scenery yields the path / " : "";
+            return $"{ExploreGroundName(x, y)} / {region} / {ZoneDangerText(zone)}\n{scenery}walkable / {move} / {zone.Summary}";
         }
 
         private string ExploreLegendLine()

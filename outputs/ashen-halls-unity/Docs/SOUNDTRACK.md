@@ -1,12 +1,13 @@
 # Ash & Brimstone Soundtrack
 
-The score contains 44 original compositions, all shipped as reproducible stereo masters in v1.78. Music crossfades through two Unity audio sources and is controlled independently from sound effects. Every context also retains its established procedural safety arrangement, so a missing or invalid master cannot leave a game state silent.
+The score contains 53 original compositions. The v2.9 expansion adds a 60-second main-title overture, a quieter Grand Hearth reprise, and dedicated music for all eight authored regional destinations. Every stereo master is reproducible from the local audio builder. Music crossfades through two Unity audio sources and is controlled independently from sound effects; every context also retains a procedural safety arrangement so a missing or invalid master cannot leave a game state silent.
 
 ## Player States
 
 | Context | Track |
 |---|---|
-| Tavern / title | The Brimstone Overture |
+| Title / main menu | Ash & Brimstone |
+| Grand Hearth | Four Names by the Fire |
 | Party Setup | Muster by Firelight |
 | Victory | Embers Carry Home |
 | Defeat | Ashes on the Road |
@@ -52,6 +53,21 @@ Local Midgaard themes activate near their associated landmark. Throne Room and M
 
 Landmark themes require close proximity. Pursuit music applies only outside Midgaard and yields immediately to combat when the patrol engages.
 
+## Authored Regional Sites
+
+| Destination | Track |
+|---|---|
+| Green Shrine training ring | Sparks on the Oathring |
+| Old Quarry forge | Anvil Echoes in Old Stone |
+| Gloam Deep crypt | The Crypt Keeps Its Names |
+| Glass Lore library | Starlight in the Glass Index |
+| Dusk Market hideout | Lanterns under False Names |
+| Red Gate seal | Embers at the Broken Seal |
+| Salt Cistern gate | Chains below Bellstone |
+| Ash Fen ancient grove | Old Sap under Ash |
+
+The site-center score takes priority over its surrounding territory while the area is calm. An alerted patrol still invokes `Footsteps Behind`, and combat continues to take final priority.
+
 ## Combat
 
 | Context | Track |
@@ -76,9 +92,10 @@ Boss identity has highest priority, followed by the last-stand state and encount
 
 - `MusicDirectorRules` owns deterministic selection and priority.
 - `BuildMusicClips` registers the complete score and its procedural safety bank.
+- The legacy `Tavern` route remains an alias of the title route for compatibility; `GrandHearth` now owns a distinct in-world reprise.
 - Exact-name files under `Resources/Audio/Music` replace matching eager themes, while a route-to-name map resolves adaptive themes without composing an unused fallback.
 - Music source masters are 32 kHz stereo PCM16 WAV files imported as Vorbis-compressed in-memory clips; short effects retain their separate 48 kHz mono PCM contract.
-- The v1.82 title arrangement expands its established tavern cue to a 36.9-second, twelve-bar form with a quiet opening, forged-road lute motif, bowed answer, central lift, and returning coda.
+- The v2.9 title arrangement is exactly 60 seconds: 24 bars at 96 BPM in D Dorian. Its forged-road motif answers the title reveal, four instrumental voices represent the company at the threshold, and bowed strings, weathered lute, bronze horns, drums, hearth, and rain build toward the storm-road crest before a loop-safe coda.
 - Procedural themes remain available as deterministic fallbacks and are generated only if their imported master cannot be loaded.
 - `MusicTransitionDuration` crossfades state, zone, landmark, pursuit, and combat changes.
 - Save schema is unaffected; music mute and volume continue using the existing v23 settings.

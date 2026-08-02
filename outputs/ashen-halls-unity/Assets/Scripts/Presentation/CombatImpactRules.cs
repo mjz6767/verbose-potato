@@ -145,6 +145,16 @@ namespace AshenHalls
                     return Profile("castshock", "shock", "resonance", 0.58f, 1.08f, 0.48f, CombatPowerVisualRules.BeamDuration("thunderclap"), 0.34f, 22, 1.58f, 4f, 0.26f, 0.42f, 2);
                 case "CLT":
                     return Profile("castshock", "shock", "resonance", 0.62f, 1.10f, 0.52f, CombatPowerVisualRules.BeamDuration("lightning"), 0.44f, 24, 1.74f, 3f, 0.24f, 0.52f, 2);
+                case "DWP":
+                    return Profile("castmend", "heal", "fieldholy", 0.58f, 1.04f, 0.46f, 0.28f, 0.40f, 20, 1.28f, 1f, 0.16f, 0.48f, 2);
+                case "CNS":
+                    return Profile("castember", "fieldfire", "bladecontact", 0.64f, 1.14f, 0.48f, 0.34f, 0.48f, 28, 1.82f, 6f, 0.34f, 0.58f, 3);
+                case "GRH":
+                    return Profile("casthex", "death", "fieldsnare", 0.56f, 1.00f, 0.40f, 0.28f, 0.40f, 18, 1.34f, 3f, 0.22f, 0.46f, 2);
+                case "SLV":
+                    return Profile("castpact", "ward", "resonance", 0.58f, 0.98f, 0.42f, 0.28f, 0.40f, 18, 1.24f, 1f, 0.16f, 0.46f, 2);
+                case "ACR":
+                    return Profile("castember", "fieldcurse", "fieldfire", 0.66f, 1.16f, 0.54f, 0.34f, 0.50f, 30, 1.88f, 7f, 0.36f, 0.60f, 3);
                 case "RLM":
                     return Profile("castdeathburst", "deathburst", "fieldcurse", 0.56f, 1.14f, 0.54f, 0.10f, 0.28f, 26, 1.72f, 6f, 0.34f, 0.56f);
                 case "IBD":
@@ -202,6 +212,8 @@ namespace AshenHalls
                     return Profile("rally", "guard", "ward", 0.62f, 0.94f, 0.40f, 0.08f, 0.22f, 16, 1.08f, 1f, 0.16f, 0.22f);
                 case "cleave":
                     return Profile("blade", "attack", "blade", 0.64f, 0.94f, 0.32f, 0.18f, 0.28f, 16, 1.32f, 3f, 0.22f, 0.34f);
+                case "sunder":
+                    return Profile("swingheavy", "impactshield", "breakcover", 0.68f, 1.02f, 0.36f, 0.18f, 0.30f, 18, 1.42f, 4f, 0.26f, 0.46f, 2);
                 case "stealth":
                     return Profile("stealth", "status", "", 0.54f, 0.76f, 0f, 0.07f, 0.16f, 10, 0.82f, 0f, 0f, 0.22f);
                 case "throwknife":
@@ -210,6 +222,8 @@ namespace AshenHalls
                     return Profile("smoke", "smoke", "status", 0.62f, 0.88f, 0.28f, 0.08f, 0.22f, 16, 1.14f, 1f, 0.16f, 0.36f);
                 case "hamstring":
                     return Profile("eviscerate", "blade", "pinning", 0.58f, 0.88f, 0.24f, 0.18f, 0.28f, 13, 1.16f, 2f, 0.18f, 0.34f);
+                case "shadowstep":
+                    return Profile("stealth", "ambushimpact", "bladecontact", 0.64f, 0.96f, 0.32f, 0.22f, 0.32f, 18, 1.46f, 3f, 0.22f, 0.44f, 2);
                 case "aimedshot":
                     return Profile("aimedshot", "bow", "", 0.62f, 0.92f, 0f, 0.20f, 0.26f, 12, 1.20f, 2f, 0.18f, 0.30f);
                 case "pinningshot":
@@ -220,6 +234,8 @@ namespace AshenHalls
                     return Profile("bow", "blade", "", 0.58f, 0.92f, 0f, 0.20f, 0.27f, 14, 1.24f, 2f, 0.18f, 0.36f);
                 case "disruptingshot":
                     return Profile("aimedshot", "counter", "shock", 0.62f, 0.94f, 0.30f, 0.20f, 0.30f, 16, 1.30f, 3f, 0.22f, 0.36f);
+                case "quickshot":
+                    return Profile("aimedshot", "arrowcontact", "bow", 0.60f, 0.88f, 0.30f, 0.24f, 0.34f, 16, 1.34f, 2f, 0.18f, 0.42f, 2);
                 case "riftpounce":
                     return Profile("riftpounce", "riftpounceimpact", "resonance", 0.74f, 1.16f, 0.52f, 0.22f, 0.36f, 28, 1.82f, 6f, 0.34f, 0.58f, 3);
                 case "abyssalwhirl":

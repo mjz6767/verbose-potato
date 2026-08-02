@@ -1,0 +1,296 @@
+{
+  "file": "combat-spell-effects-atlas-runtime-v2.9.0.png",
+  "dimensions": [
+    1280,
+    1280
+  ],
+  "grid": [
+    4,
+    4
+  ],
+  "cellDimensions": [
+    320,
+    320
+  ],
+  "alphaThreshold": 8,
+  "maxSpriteDimensions": [
+    280,
+    280
+  ],
+  "baseline": 258,
+  "verticalAlignment": "center",
+  "cells": [
+    {
+      "index": 0,
+      "empty": false,
+      "sourceBounds": [
+        58,
+        104,
+        277,
+        285
+      ],
+      "normalizedBounds": [
+        20,
+        44,
+        280,
+        231
+      ],
+      "visibleFraction": 0.233
+    },
+    {
+      "index": 1,
+      "empty": false,
+      "sourceBounds": [
+        32,
+        66,
+        292,
+        314
+      ],
+      "normalizedBounds": [
+        20,
+        26,
+        280,
+        267
+      ],
+      "visibleFraction": 0.3947
+    },
+    {
+      "index": 2,
+      "empty": false,
+      "sourceBounds": [
+        46,
+        53,
+        303,
+        301
+      ],
+      "normalizedBounds": [
+        20,
+        25,
+        280,
+        270
+      ],
+      "visibleFraction": 0.3336
+    },
+    {
+      "index": 3,
+      "empty": false,
+      "sourceBounds": [
+        4,
+        28,
+        274,
+        316
+      ],
+      "normalizedBounds": [
+        29,
+        20,
+        262,
+        280
+      ],
+      "visibleFraction": 0.3036
+    },
+    {
+      "index": 4,
+      "empty": false,
+      "sourceBounds": [
+        44,
+        60,
+        296,
+        274
+      ],
+      "normalizedBounds": [
+        20,
+        41,
+        280,
+        238
+      ],
+      "visibleFraction": 0.2867
+    },
+    {
+      "index": 5,
+      "empty": false,
+      "sourceBounds": [
+        28,
+        28,
+        290,
+        296
+      ],
+      "normalizedBounds": [
+        23,
+        20,
+        274,
+        280
+      ],
+      "visibleFraction": 0.459
+    },
+    {
+      "index": 6,
+      "empty": false,
+      "sourceBounds": [
+        28,
+        30,
+        320,
+        297
+      ],
+      "normalizedBounds": [
+        20,
+        32,
+        280,
+        256
+      ],
+      "visibleFraction": 0.2658
+    },
+    {
+      "index": 7,
+      "empty": false,
+      "sourceBounds": [
+        0,
+        33,
+        278,
+        296
+      ],
+      "normalizedBounds": [
+        20,
+        27,
+        280,
+        265
+      ],
+      "visibleFraction": 0.4973
+    },
+    {
+      "index": 8,
+      "empty": false,
+      "sourceBounds": [
+        48,
+        16,
+        284,
+        320
+      ],
+      "normalizedBounds": [
+        51,
+        20,
+        217,
+        280
+      ],
+      "visibleFraction": 0.2589
+    },
+    {
+      "index": 9,
+      "empty": false,
+      "sourceBounds": [
+        17,
+        21,
+        294,
+        320
+      ],
+      "normalizedBounds": [
+        30,
+        20,
+        259,
+        280
+      ],
+      "visibleFraction": 0.4343
+    },
+    {
+      "index": 10,
+      "empty": false,
+      "sourceBounds": [
+        22,
+        33,
+        320,
+        320
+      ],
+      "normalizedBounds": [
+        20,
+        25,
+        280,
+        270
+      ],
+      "visibleFraction": 0.2621
+    },
+    {
+      "index": 11,
+      "empty": false,
+      "sourceBounds": [
+        0,
+        4,
+        271,
+        269
+      ],
+      "normalizedBounds": [
+        20,
+        23,
+        280,
+        274
+      ],
+      "visibleFraction": 0.3853
+    },
+    {
+      "index": 12,
+      "empty": false,
+      "sourceBounds": [
+        36,
+        0,
+        279,
+        265
+      ],
+      "normalizedBounds": [
+        31,
+        20,
+        257,
+        280
+      ],
+      "visibleFraction": 0.3626
+    },
+    {
+      "index": 13,
+      "empty": false,
+      "sourceBounds": [
+        11,
+        0,
+        271,
+        267
+      ],
+      "normalizedBounds": [
+        23,
+        20,
+        273,
+        280
+      ],
+      "visibleFraction": 0.4535
+    },
+    {
+      "index": 14,
+      "empty": false,
+      "sourceBounds": [
+        0,
+        0,
+        320,
+        265
+      ],
+      "normalizedBounds": [
+        20,
+        44,
+        280,
+        232
+      ],
+      "visibleFraction": 0.3889
+    },
+    {
+      "index": 15,
+      "empty": false,
+      "sourceBounds": [
+        0,
+        35,
+        281,
+        212
+      ],
+      "normalizedBounds": [
+        20,
+        72,
+        280,
+        176
+      ],
+      "visibleFraction": 0.2598
+    }
+  ]
+}

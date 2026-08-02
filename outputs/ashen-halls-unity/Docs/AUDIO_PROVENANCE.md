@@ -1,14 +1,22 @@
 # Ash & Brimstone Audio Provenance
 
+## v2.9 title and regional score expansion
+
+The current bank contains 53 original stereo music masters. `Ash & Brimstone` replaces the title cue at its compatibility-stable runtime basename with an exact 60-second, 24-bar D-Dorian overture. The forged-road motif answers the established title reveal, then passes among bowed strings, weathered lute, reed, and bronze horns before four staggered company voices converge over travel and battle drums. Hearth on the left and rain beyond the storm road on the right bind the score to the approved title painting. The music deliberately leaves the title screen's existing 0.28-second impact and 0.72-second confirmation one-shots undoubled.
+
+Grand Hearth now routes to the quieter `Four Names by the Fire` reprise instead of replaying the title overture. Eight additional masters give the Green Shrine training ring, Old Quarry forge, Gloam Deep crypt, Glass Lore library, Dusk Market hideout, Red Gate seal, Salt Cistern gate, and Ash Fen ancient grove distinct calm identities. Alerted-patrol and combat priorities remain unchanged.
+
+All ten v2.9 arrangements are original deterministic local synthesis. They use no recordings, samples, model-produced audio, generative-audio service, or network input. The bounded smoothstep loop bridge prevents seam-window overshoot while preserving quiet endpoints; validation checks both endpoint delta and boundary-window peak behavior. `python Tools/Audio/BuildOriginalAudio.py` rebuilds and validates the full 53-music/89-original-SFX bank. `--music-cue <cue>` remains available for focused iteration, while a complete run is required to refresh the manifests and previews.
+
 ## v1.82 title overture
 
-`The Brimstone Overture` replaces the former 24-second tavern master at the same exact runtime cue name, so music routing, crossfades, settings, and the procedural safety fallback remain unchanged. The 36.9-second stereo arrangement now has a two-bar bowed opening, a recurring forged-road lute motif, frame-drum entrance, bowed counter-line, ember-bell markers, one restrained distant-weather swell, a central dynamic crest, and a returning coda.
+In v1.82, `The Brimstone Overture` replaced the former 24-second tavern master at the same exact runtime cue name. That historical 36.9-second stereo arrangement had a two-bar bowed opening, a recurring forged-road lute motif, frame-drum entrance, bowed counter-line, ember-bell markers, one restrained distant-weather swell, a central dynamic crest, and a returning coda.
 
-The revised master remains entirely original deterministic local synthesis. It uses no recordings, samples, model-produced audio, generative-audio service, or network input. `python Tools/Audio/BuildOriginalAudio.py --music-cue tavern_storm_hearth_ensemble_loop` rebuilds the cue alone; the normal no-argument command still reproduces and validates the complete bank.
+That v1.82 master was also entirely original deterministic local synthesis, with no recordings, samples, model-produced audio, generative-audio service, or network input. The current generator preserves the same provenance contract while producing the v2.9 arrangement described above.
 
 ## v1.78 original score and sound-design expansion
 
-The playable game now uses three complementary audio layers:
+The v1.78 expansion introduced three complementary audio layers:
 
 - 44 original stereo music masters cover every player state, Midgaard district, outer territory, landmark, pursuit state, hostile faction, combat escalation, Victory, and Defeat.
 - 81 original mono sound-effect masters cover magic, terrain, routes, services, rooms, items, semantic interface states, turn handoff, level gains, material footsteps, and eighteen sparse ambience cues.
@@ -20,7 +28,7 @@ Music source masters live at `Assets/Resources/Audio/Music/<procedural-clip-name
 
 New effects live at `Assets/Resources/Audio/Sfx/<runtime-cue-key>.wav` and use the existing exact-basename routing contract. They are 48 kHz mono PCM files, no longer than 1.84 seconds. The v1.86 combat mix uses eight reusable voices so staged invocation, release, impact, reaction, and aftermath layers retain stable spatial placement.
 
-`ORIGINAL_AUDIO_ASSET_MANIFEST.tsv` records every original cue, musical direction, format, duration, peak, RMS, seam delta, and SHA-256 digest. `ORIGINAL_AUDIO_VALIDATION.json` is the matching machine-readable report. A complete generator run writes `QA/ash-and-brimstone-v1.82-music-preview.wav` in manifest order; this focused overlay also includes `QA/brimstone-overture-v1.82-preview.wav` for direct title-theme review.
+`ORIGINAL_AUDIO_ASSET_MANIFEST.tsv` records every original cue, musical direction, format, duration, peak, RMS, seam delta, and SHA-256 digest. `ORIGINAL_AUDIO_VALIDATION.json` is the matching machine-readable report. A complete v2.9 generator run writes `QA/ash-and-brimstone-v2.9-music-preview.wav` in manifest order and copies the complete title master to `QA/ash-and-brimstone-v2.9-title-preview.wav` for direct review of its arc, coda, and loop.
 
 ## v1.70 shipping source
 
@@ -47,4 +55,4 @@ No generative-audio service or Asset Store package contributed samples to v1.70.
 
 ## Review expectations
 
-Automated checks confirm that required keys and track names exist, all 136 imported SFX resolve over procedural fallbacks, all 44 music masters resolve over their procedural score contexts, samples are finite and bounded, loops meet the seam budget, and semantically different files do not collapse to identical waveforms. Human release QA should still listen for masking, excessive repetition, loop fatigue, tail density during multi-target actions, and whether each cue communicates its action at normal and reduced volume.
+Automated checks confirm that required keys and track names exist, all 144 imported SFX resolve over procedural fallbacks, all 53 music masters resolve over their procedural score contexts, samples are finite and bounded, loops meet endpoint and boundary-window budgets, and semantically different files do not collapse to identical waveforms. Human release QA should still listen through the complete title loop and all nine new in-world routes at 25%, 65%, and 100% music volume for masking, repetition, transition balance, and whether the title retains enough presence at the default setting.

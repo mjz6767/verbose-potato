@@ -168,18 +168,18 @@ namespace AshenHalls
                     grid.y + (threat.HomeY - origin.Y) * cell,
                     cell,
                     cell);
-                float size = cell * WorldThreatHabitatPresentationRules.MapScale(exploreWideView);
+                bool homeOccupied = threat.Active
+                    && threat.X == threat.HomeX
+                    && threat.Y == threat.HomeY;
+                float size = cell * WorldThreatHabitatPresentationRules.MapScale(
+                    exploreWideView,
+                    threat.Active,
+                    homeOccupied);
                 Rect habitatRect = new Rect(
                     homeCell.center.x - size * 0.5f,
                     homeCell.yMax - size,
                     size,
                     size);
-                float safeInset = Mathf.Max(1f, cell * 0.04f);
-                bool fitsViewport = habitatRect.xMin >= grid.xMin + safeInset
-                    && habitatRect.yMin >= grid.yMin + safeInset
-                    && habitatRect.xMax <= grid.xMax - safeInset
-                    && habitatRect.yMax <= grid.yMax - safeInset;
-                if (!fitsViewport) habitatRect = Pad(homeCell, homeCell.width * 0.03f);
 
                 RoamingThreatDefinition definition = RoamingThreatCatalog.Find(
                     threat.Id,
@@ -191,9 +191,10 @@ namespace AshenHalls
                     threat.Archetype);
 
                 bool onObjectiveRoute = IsExploreGuidanceCell(threat.HomeX, threat.HomeY, guidanceCells);
-                float alpha = WorldThreatHabitatPresentationRules.TintAlpha(onObjectiveRoute);
-                if (threat.Active) alpha = Mathf.Max(alpha, 0.78f);
-                else alpha = Mathf.Min(alpha, 0.52f);
+                float alpha = WorldThreatHabitatPresentationRules.HabitatAlpha(
+                    onObjectiveRoute,
+                    threat.Active,
+                    homeOccupied);
                 WorldMapArtSpec spec = new WorldMapArtSpec(
                     0.98f,
                     new Vector2(
@@ -201,28 +202,109 @@ namespace AshenHalls
                         WorldThreatHabitatPresentationRules.BottomCenterPivotY),
                     Vector2.zero,
                     true);
-                if (TryDrawWorldThreatHabitatAtlasIcon(habitatRect, index, Color.white.WithAlpha(alpha), spec)
-                    && showExploreArtDebug)
+                // Preserve the authored world-space scale at viewport edges. A GUI
+                // group clips spillover to the map instead of shrinking the whole
+                // habitat into a misleading one-cell fallback.
+                Rect clippedRect = new Rect(
+                    habitatRect.x - grid.x,
+                    habitatRect.y - grid.y,
+                    habitatRect.width,
+                    habitatRect.height);
+                bool drawn;
+                GUI.BeginGroup(grid);
+                try
+                {
+                    drawn = TryDrawWorldThreatHabitatAtlasIcon(
+                        clippedRect,
+                        index,
+                        Color.white.WithAlpha(alpha),
+                        spec);
+                }
+                finally
+                {
+                    GUI.EndGroup();
+                }
+                if (drawn && showExploreArtDebug)
                 {
                     DrawExploreArtDebugOverlay(homeCell, habitatRect, "Habitat: " + threat.Name);
                 }
             }
         }
 
-        private bool TryDrawWorldAmbientCitizen(
+        private bool TryDrawWorldExteriorAmbientCitizen(
             Rect cell,
             int x,
             int y,
             int tile,
             HashSet<int> guidanceCells)
         {
-            if (TryDrawGrandHearthPatron(cell, x, y, tile, guidanceCells)) return true;
+            if (!IsWorldNpcCitizenAtlas()
+                || !TryGetWorldAmbientCitizenAt(
+                    x,
+                    y,
+                    tile,
+                    guidanceCells,
+                    out AmbientCitizenProfession profession,
+                    out string district))
+            {
+                return false;
+            }
 
-            if (state?.Map == null
+            int index = ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession);
+            if (index < 0) return false;
+            bool yieldingToParty = ExplorationCharacterArtCatalog.ExteriorCitizenYieldsToParty(
+                x,
+                y,
+                state.PlayerX,
+                state.PlayerY);
+            bool overlapsParty = x == state.PlayerX && y == state.PlayerY;
+            Rect citizenRect = Pad(
+                cell,
+                cell.width * ExplorationCharacterArtCatalog.ExteriorCitizenPadding(exploreWideView));
+            citizenRect.x += cell.width * ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells(
+                district,
+                state.Seed,
+                x,
+                y,
+                state.PlayerX,
+                state.PlayerY);
+            citizenRect.y += cell.height * ExplorationCharacterArtCatalog.ExteriorCitizenVerticalOffsetInCells(
+                x,
+                y,
+                state.PlayerX,
+                state.PlayerY);
+            float alpha = ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(exploreWideView, yieldingToParty);
+            if (overlapsParty) alpha *= 0.56f;
+            WorldMapArtSpec spec = new WorldMapArtSpec(
+                0.98f,
+                new Vector2(0.5f, 1f),
+                new Vector2(0f, 0.01f),
+                true);
+            bool drawn = TryDrawWorldNpcCitizenAtlasIcon(citizenRect, index, Color.white.WithAlpha(alpha), spec);
+            if (drawn && showExploreArtDebug)
+            {
+                DrawExploreArtDebugOverlay(
+                    cell,
+                    citizenRect,
+                    "Ambient: " + ExplorationCharacterArtCatalog.CitizenDisplayName(profession));
+            }
+            return drawn;
+        }
+
+        private bool TryGetWorldAmbientCitizenAt(
+            int x,
+            int y,
+            int tile,
+            HashSet<int> guidanceCells,
+            out AmbientCitizenProfession profession,
+            out string district)
+        {
+            profession = AmbientCitizenProfession.Unknown;
+            district = "";
+            if (!IsWorldNpcCitizenAtlas()
+                || state?.Map == null
                 || tile != 1
-                || !IsWorldNpcCitizenAtlas()
                 || IsMidgaardInteriorCell(x, y, state.Map, state.Depth)
-                || x == state.PlayerX && y == state.PlayerY
                 || RoamingThreatAt(x, y) != null
                 || IsRoamingThreatHomeCell(x, y))
             {
@@ -241,7 +323,7 @@ namespace AshenHalls
             bool hasInteractable = ObjectAt(state.Map, x, y) != null;
             bool siteReserved = IsRegionalSiteCell(state.Map, x, y);
             bool midgaardCity = IsMidgaardCityCell(x, y, state.Map, state.Depth);
-            string district = midgaardCity
+            district = midgaardCity
                 ? MidgaardDistrictRules.DistrictAtOffset(x - state.Map.StartX, y - state.Map.StartY)
                 : zone?.Id ?? ZoneIdFor(x, y, state.Map, state.Depth);
             if (!ExplorationCharacterArtCatalog.ShouldPlaceAmbientCitizen(
@@ -256,25 +338,12 @@ namespace AshenHalls
                     hasInteractable,
                     siteReserved))
             {
+                district = "";
                 return false;
             }
 
-            int index = ExplorationCharacterArtCatalog.AmbientCitizenIndex(district, state.Seed, x, y);
-            if (index < 0) return false;
-            Rect citizenRect = Pad(cell, cell.width * (exploreWideView ? 0.20f : 0.07f));
-            float alpha = exploreWideView ? 0.72f : 0.88f;
-            WorldMapArtSpec spec = new WorldMapArtSpec(
-                0.98f,
-                new Vector2(0.5f, 1f),
-                new Vector2(0f, 0.01f),
-                true);
-            bool drawn = TryDrawWorldNpcCitizenAtlasIcon(citizenRect, index, Color.white.WithAlpha(alpha), spec);
-            if (drawn && showExploreArtDebug)
-            {
-                AmbientCitizenProfession profession = ExplorationCharacterArtCatalog.CitizenProfessionAt(index);
-                DrawExploreArtDebugOverlay(cell, citizenRect, "Ambient: " + profession);
-            }
-            return drawn;
+            profession = ExplorationCharacterArtCatalog.AmbientProfession(district, state.Seed, x, y);
+            return ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession) >= 0;
         }
 
         private bool TryDrawGrandHearthPatron(
@@ -284,14 +353,9 @@ namespace AshenHalls
             int tile,
             HashSet<int> guidanceCells)
         {
-            if (state?.Map == null
-                || state.Depth != 1
-                || tile != 1
-                || !IsWorldNpcCitizenAtlas()
+            if (!IsWorldNpcCitizenAtlas()
                 || x == state.PlayerX && y == state.PlayerY
-                || ObjectAt(state.Map, x, y) != null
-                || IsExploreGuidanceCell(x, y, guidanceCells)
-                || !MidgaardInteriorRules.TryGrandHearthPatron(state.Map, x, y, out AmbientCitizenProfession profession))
+                || !TryGetGrandHearthPatronAt(x, y, tile, guidanceCells, out AmbientCitizenProfession profession))
             {
                 return false;
             }
@@ -315,6 +379,23 @@ namespace AshenHalls
                 DrawExploreArtDebugOverlay(cell, patronRect, "Town Hall patron: " + profession);
             }
             return drawn;
+        }
+
+        private bool TryGetGrandHearthPatronAt(
+            int x,
+            int y,
+            int tile,
+            HashSet<int> guidanceCells,
+            out AmbientCitizenProfession profession)
+        {
+            profession = AmbientCitizenProfession.Unknown;
+            return IsWorldNpcCitizenAtlas()
+                && state?.Map != null
+                && state.Depth == 1
+                && tile == 1
+                && ObjectAt(state.Map, x, y) == null
+                && !IsExploreGuidanceCell(x, y, guidanceCells)
+                && MidgaardInteriorRules.TryGrandHearthPatron(state.Map, x, y, out profession);
         }
 
         private bool IsRoamingThreatHomeCell(int x, int y)

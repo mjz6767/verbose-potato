@@ -191,6 +191,20 @@ namespace AshenHalls
 
         private float combatMusicDuckDepth;
 
+        private CombatState combatMusicEncounter;
+
+        private string combatMusicBaseKey = "";
+
+        private string combatMusicSelectedKey = "";
+
+        private float combatMusicSelectedAt = -1f;
+
+        private float combatMusicCriticalStartedAt = -1f;
+
+        private float combatMusicRecoveredStartedAt = -1f;
+
+        private bool combatMusicLastStandActive;
+
         private AudioClip tavernMusicClip;
 
         private AudioClip combatMusicClip;
@@ -244,6 +258,8 @@ namespace AshenHalls
 
         private readonly List<ScheduledSfxCue> scheduledSfx = new List<ScheduledSfxCue>();
 
+        private int scheduledSfxSerial;
+
         private struct ScheduledSfxCue
         {
             public string Key;
@@ -251,6 +267,8 @@ namespace AshenHalls
             public float PlayAt;
             public float Pan;
             public float Pitch;
+            public int Priority;
+            public int Serial;
         }
 
         private enum GateOrientation
@@ -600,6 +618,43 @@ namespace AshenHalls
                 new[] { 293.7f, 261.6f, 220f, 196f, 174.6f, 196f, 220f, 164.8f, 196f, 174.6f, 146.8f, 130.8f, 146.8f, 164.8f, 130.8f, 110f },
                 new[] { 73.4f, 65.4f, 55f, 49f, 61.7f, 55f, 41.2f, 49f }, 0.30f, "lament"));
 
+            RegisterAdaptiveMusic(MusicDirectorRules.GrandHearth, () => MakePatternMusic(
+                "four_names_by_the_fire_loop", 26f, 0.72f,
+                new[] { 293.7f, 349.2f, 440f, 392f, 349.2f, 293.7f, 261.6f, 220f, 293.7f, 392f, 440f, 493.9f, 440f, 392f, 349.2f, 293.7f },
+                new[] { 73.4f, 98f, 82.4f, 110f, 73.4f, 65.4f, 82.4f, 98f }, 0.28f, "camp"));
+            RegisterAdaptiveMusic(MusicDirectorRules.GreenShrineTrainingRing, () => MakePatternMusic(
+                "sparks_on_the_oathring_loop", 22f, 0.42f,
+                new[] { 392f, 466.2f, 523.3f, 587.3f, 523.3f, 440f, 392f, 349.2f, 392f, 493.9f, 587.3f, 659.3f, 587.3f, 523.3f, 440f, 392f },
+                new[] { 98f, 123.5f, 110f, 146.8f, 98f, 130.8f, 110f, 82.4f }, 0.50f, "watch"));
+            RegisterAdaptiveMusic(MusicDirectorRules.OldQuarryForge, () => MakePatternMusic(
+                "anvil_echoes_in_old_stone_loop", 24f, 0.56f,
+                new[] { 220f, 261.6f, 293.7f, 329.6f, 293.7f, 261.6f, 246.9f, 220f, 196f, 246.9f, 293.7f, 349.2f, 329.6f, 293.7f, 261.6f, 220f },
+                new[] { 55f, 73.4f, 65.4f, 82.4f, 55f, 87.3f, 73.4f, 49f }, 0.45f, "stone"));
+            RegisterAdaptiveMusic(MusicDirectorRules.GloamDeepCrypt, () => MakePatternMusic(
+                "the_crypt_keeps_its_names_loop", 26f, 0.76f,
+                new[] { 246.9f, 220f, 196f, 174.6f, 164.8f, 146.8f, 130.8f, 123.5f, 196f, 174.6f, 146.8f, 130.8f, 123.5f, 110f, 98f, 82.4f },
+                new[] { 61.7f, 55f, 49f, 41.2f, 46.2f, 36.7f, 41.2f, 30.9f }, 0.25f, "ruins"));
+            RegisterAdaptiveMusic(MusicDirectorRules.GlassLoreLibrary, () => MakePatternMusic(
+                "starlight_in_the_glass_index_loop", 24f, 0.52f,
+                new[] { 493.9f, 587.3f, 698.5f, 784f, 698.5f, 659.3f, 587.3f, 523.3f, 587.3f, 698.5f, 880f, 784f, 698.5f, 659.3f, 587.3f, 493.9f },
+                new[] { 123.5f, 146.8f, 174.6f, 110f, 130.8f, 164.8f, 146.8f, 98f }, 0.39f, "arcane"));
+            RegisterAdaptiveMusic(MusicDirectorRules.DuskMarketHideout, () => MakePatternMusic(
+                "lanterns_under_false_names_loop", 22f, 0.38f,
+                new[] { 293.7f, 311.1f, 349.2f, 392f, 349.2f, 329.6f, 311.1f, 293.7f, 277.2f, 329.6f, 369.9f, 440f, 392f, 349.2f, 311.1f, 277.2f },
+                new[] { 73.4f, 77.8f, 98f, 82.4f, 69.3f, 92.5f, 77.8f, 65.4f }, 0.60f, "stealth"));
+            RegisterAdaptiveMusic(MusicDirectorRules.RedGateSeal, () => MakePatternMusic(
+                "embers_at_the_broken_seal_loop", 24f, 0.46f,
+                new[] { 220f, 261.6f, 329.6f, 392f, 349.2f, 329.6f, 293.7f, 261.6f, 246.9f, 293.7f, 369.9f, 440f, 392f, 349.2f, 329.6f, 293.7f },
+                new[] { 55f, 65.4f, 82.4f, 61.7f, 55f, 73.4f, 65.4f, 49f }, 0.62f, "omen"));
+            RegisterAdaptiveMusic(MusicDirectorRules.SaltCisternGate, () => MakePatternMusic(
+                "chains_below_bellstone_loop", 26f, 0.68f,
+                new[] { 164.8f, 196f, 174.6f, 146.8f, 130.8f, 146.8f, 123.5f, 110f, 146.8f, 174.6f, 164.8f, 130.8f, 123.5f, 110f, 98f, 82.4f },
+                new[] { 41.2f, 49f, 46.2f, 36.7f, 41.2f, 32.7f, 36.7f, 30.9f }, 0.34f, "threshold"));
+            RegisterAdaptiveMusic(MusicDirectorRules.AshFenAncientGrove, () => MakePatternMusic(
+                "old_sap_under_ash_loop", 26f, 0.72f,
+                new[] { 293.7f, 392f, 440f, 523.3f, 440f, 392f, 349.2f, 293.7f, 329.6f, 440f, 493.9f, 587.3f, 493.9f, 440f, 392f, 329.6f },
+                new[] { 73.4f, 98f, 110f, 82.4f, 73.4f, 110f, 98f, 65.4f }, 0.29f, "grove"));
+
             RegisterAdaptiveMusic(MusicDirectorRules.MidgaardTemple, () => MakePatternMusic(
                 "bells_over_temple_square_loop", 24f, 0.68f,
                 new[] { 392f, 523.3f, 659.3f, 587.3f, 523.3f, 440f, 392f, 349.2f, 392f, 493.9f, 587.3f, 523.3f, 440f, 392f, 329.6f, 349.2f },
@@ -690,6 +745,15 @@ namespace AshenHalls
             RegisterImportedMusicRoute(MusicDirectorRules.Muster, "muster_by_firelight_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.Victory, "embers_carry_home_victory_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.Defeat, "ashes_on_the_road_defeat_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.GrandHearth, "four_names_by_the_fire_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.GreenShrineTrainingRing, "sparks_on_the_oathring_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.OldQuarryForge, "anvil_echoes_in_old_stone_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.GloamDeepCrypt, "the_crypt_keeps_its_names_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.GlassLoreLibrary, "starlight_in_the_glass_index_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.DuskMarketHideout, "lanterns_under_false_names_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.RedGateSeal, "embers_at_the_broken_seal_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.SaltCisternGate, "chains_below_bellstone_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.AshFenAncientGrove, "old_sap_under_ash_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.MidgaardTemple, "bells_over_temple_square_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.MidgaardMarket, "lanterns_and_ledgers_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.MidgaardTavernLane, "wet_cobble_reel_loop");
@@ -2494,6 +2558,7 @@ namespace AshenHalls
 
         private void UpdateTavernMusic()
         {
+            if (state == null || state.Mode != GameMode.Combat) ResetCombatMusicPresentationState();
             if (musicSource == null) return;
             AudioClip desired = DesiredMusicClip();
             bool shouldPlay = desired != null && state != null && !IsStartupSplashVisible() && !state.MusicMuted;
@@ -2557,7 +2622,12 @@ namespace AshenHalls
 
         private AudioClip DesiredMusicClip()
         {
-            if (state == null) return null;
+            if (state == null)
+            {
+                ResetCombatMusicPresentationState();
+                return null;
+            }
+            if (state.Mode != GameMode.Combat) ResetCombatMusicPresentationState();
             if (state.Mode == GameMode.Tavern) return MusicClipForKey(MusicDirectorRules.Tavern);
             if (state.Mode == GameMode.Muster)
             {
@@ -2641,6 +2711,7 @@ namespace AshenHalls
         {
             if (state?.Combat?.Units == null)
             {
+                ResetCombatMusicPresentationState();
                 return MusicDirectorRules.CombatGeneric;
             }
 
@@ -2657,13 +2728,14 @@ namespace AshenHalls
             bool hasGreaterDemon = false;
             foreach (CombatUnit unit in state.Combat.Units)
             {
-                if (unit == null || unit.Hp <= 0) continue;
+                if (unit == null) continue;
                 if (unit.Side == UnitSide.Party)
                 {
                     partyHp += Mathf.Max(0, unit.Hp);
                     partyMaxHp += Mathf.Max(1, unit.MaxHp);
                     continue;
                 }
+                if (unit.Hp <= 0) continue;
 
                 string identity = ((unit.Name ?? "") + " "
                     + (unit.Role ?? "") + " "
@@ -2705,14 +2777,130 @@ namespace AshenHalls
             SetDominantMusicFaction("kobold", kobolds, ref factionKey, ref largest);
             SetDominantMusicFaction("undead", undead, ref factionKey, ref largest);
             SetDominantMusicFaction("rat", rats, ref factionKey, ref largest);
-            return MusicDirectorRules.CombatTrackKey(
+            string candidateBaseKey = MusicDirectorRules.CombatTrackKey(
                 state.Combat.EncounterStyle,
                 factionKey,
                 hasRatfolk,
                 hasCaster,
                 hasElite,
                 hasGreaterDemon,
-                MusicDirectorRules.IsCriticalPartyHealth(partyHp, partyMaxHp));
+                false);
+            return ResolveCombatMusicPresentationKey(
+                state.Combat,
+                candidateBaseKey,
+                partyHp,
+                partyMaxHp,
+                Time.unscaledTime);
+        }
+
+        private string ResolveCombatMusicPresentationKey(
+            CombatState encounter,
+            string candidateBaseKey,
+            int partyHp,
+            int partyMaxHp,
+            float now)
+        {
+            if (!ReferenceEquals(combatMusicEncounter, encounter))
+            {
+                ResetCombatMusicPresentationState();
+                combatMusicEncounter = encounter;
+                combatMusicBaseKey = CombatMusicPresentationRules.StableBaseTrack("", candidateBaseKey);
+                combatMusicSelectedKey = combatMusicBaseKey;
+                combatMusicSelectedAt = now;
+            }
+
+            string stableBase = CombatMusicPresentationRules.StableBaseTrack(combatMusicBaseKey, candidateBaseKey);
+            if (!string.Equals(stableBase, combatMusicBaseKey, StringComparison.Ordinal))
+            {
+                combatMusicBaseKey = stableBase;
+                combatMusicSelectedKey = stableBase;
+                combatMusicSelectedAt = now;
+                combatMusicLastStandActive = false;
+                combatMusicCriticalStartedAt = -1f;
+                combatMusicRecoveredStartedAt = -1f;
+            }
+
+            bool critical = CombatMusicPresentationRules.IsCriticalPartyHealth(partyHp, partyMaxHp);
+            bool recovered = CombatMusicPresentationRules.IsRecoveredPartyHealth(partyHp, partyMaxHp);
+            if (critical)
+            {
+                if (combatMusicCriticalStartedAt < 0f) combatMusicCriticalStartedAt = now;
+                combatMusicRecoveredStartedAt = -1f;
+            }
+            else
+            {
+                combatMusicCriticalStartedAt = -1f;
+                if (recovered)
+                {
+                    if (combatMusicRecoveredStartedAt < 0f) combatMusicRecoveredStartedAt = now;
+                }
+                else
+                {
+                    combatMusicRecoveredStartedAt = -1f;
+                }
+            }
+
+            float selectedDwell = combatMusicSelectedAt < 0f ? 0f : Mathf.Max(0f, now - combatMusicSelectedAt);
+            float criticalHeld = combatMusicCriticalStartedAt < 0f ? 0f : Mathf.Max(0f, now - combatMusicCriticalStartedAt);
+            float recoveredHeld = combatMusicRecoveredStartedAt < 0f ? 0f : Mathf.Max(0f, now - combatMusicRecoveredStartedAt);
+
+            if (CombatMusicPresentationRules.IsBossCombatTrack(combatMusicBaseKey))
+            {
+                combatMusicLastStandActive = false;
+                combatMusicSelectedKey = combatMusicBaseKey;
+            }
+            else if (CombatMusicPresentationRules.ShouldEnterLastStand(
+                combatMusicBaseKey,
+                combatMusicLastStandActive,
+                partyHp,
+                partyMaxHp,
+                criticalHeld,
+                selectedDwell))
+            {
+                combatMusicLastStandActive = true;
+                combatMusicSelectedKey = MusicDirectorRules.CombatLastStand;
+                combatMusicSelectedAt = now;
+                combatMusicRecoveredStartedAt = -1f;
+            }
+            else if (CombatMusicPresentationRules.ShouldExitLastStand(
+                combatMusicLastStandActive,
+                partyHp,
+                partyMaxHp,
+                recoveredHeld,
+                selectedDwell))
+            {
+                combatMusicLastStandActive = false;
+                combatMusicSelectedKey = combatMusicBaseKey;
+                combatMusicSelectedAt = now;
+                combatMusicCriticalStartedAt = -1f;
+            }
+
+            return string.IsNullOrEmpty(combatMusicSelectedKey)
+                ? MusicDirectorRules.CombatGeneric
+                : combatMusicSelectedKey;
+        }
+
+        private void ResetCombatMusicPresentationState()
+        {
+            if (combatMusicEncounter == null
+                && string.IsNullOrEmpty(combatMusicBaseKey)
+                && combatMusicDuckDepth <= 0f)
+            {
+                return;
+            }
+
+            combatMusicEncounter = null;
+            combatMusicBaseKey = "";
+            combatMusicSelectedKey = "";
+            combatMusicSelectedAt = -1f;
+            combatMusicCriticalStartedAt = -1f;
+            combatMusicRecoveredStartedAt = -1f;
+            combatMusicLastStandActive = false;
+            combatMusicDuckStartedAt = -1f;
+            combatMusicDuckFullDepthAt = -1f;
+            combatMusicDuckHoldUntil = -1f;
+            combatMusicDuckUntil = -1f;
+            combatMusicDuckDepth = 0f;
         }
 
         private static void SetDominantMusicFaction(
@@ -3020,7 +3208,7 @@ namespace AshenHalls
                 CombatIconCatalog.AbilityAtlasColumns,
                 CombatIconCatalog.ExpandedAbilityAtlasRows,
                 true,
-                Enumerable.Range(0, CombatIconCatalog.AbilityAtlasColumns * CombatIconCatalog.ExpandedAbilityAtlasRows).ToArray());
+                CombatIconCatalog.MappedAbilityIndices.OrderBy(index => index).ToArray());
             ValidateAtlasSquareCells(
                 abilityIconAtlas,
                 "ability icon",
@@ -4160,10 +4348,21 @@ namespace AshenHalls
             }
             if (CombatAudioMixRules.ShouldLayerSpellRelease(profile))
             {
-                QueueSfx("spellrelease", Mathf.Max(0.035f, profile.ImpactDelay * 0.48f), CombatAudioMixRules.AuxiliaryLayerVolume(epicImpact ? 0.30f : 0.20f), releasePan, Mathf.Clamp(releasePitch * 1.03f, 0.94f, 1.10f));
+                QueueSfx("spellrelease", Mathf.Max(0.035f, profile.ImpactDelay * 0.48f), CombatAudioMixRules.AuxiliaryLayerVolume(epicImpact ? 0.30f : 0.20f), releasePan, Mathf.Clamp(releasePitch * 1.03f, 0.94f, 1.10f), CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
             }
-            QueueSfx(profile.ImpactSfx, profile.ImpactDelay, profile.ImpactVolume, impactPan, impactPitch);
-            QueueSfx(profile.AftershockSfx, profile.AftershockDelay, profile.AftershockVolume, impactPan * 0.72f, Mathf.Clamp(impactPitch * 0.96f, 0.90f, 1.10f));
+            QueueSfx(profile.ImpactSfx, profile.ImpactDelay, profile.ImpactVolume, impactPan, impactPitch, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
+            int secondaryBeatCount = CombatAudioMixRules.SecondaryImpactBeatCount(profile, reactionCount);
+            for (int i = 0; i < secondaryBeatCount; i++)
+            {
+                QueueSfx(
+                    CombatAudioMixRules.SecondaryImpactCue(profile, i),
+                    CombatAudioMixRules.SecondaryImpactDelay(profile, i),
+                    CombatAudioMixRules.SecondaryImpactVolume(profile, i),
+                    CombatAudioMixRules.SecondaryImpactPan(impactPan, i),
+                    CombatAudioMixRules.SecondaryImpactPitch(impactPitch, i),
+                    CombatAudioMixRules.ScheduledSfxPrioritySecondaryImpact);
+            }
+            QueueSfx(profile.AftershockSfx, profile.AftershockDelay, profile.AftershockVolume, impactPan * 0.72f, Mathf.Clamp(impactPitch * 0.96f, 0.90f, 1.10f), CombatAudioMixRules.ScheduledSfxPrioritySupporting);
             CombatUnit impactTarget = state?.Combat?.Units?.FirstOrDefault(unit =>
                 unit != null
                 && unit.X == impactX
@@ -4177,16 +4376,17 @@ namespace AshenHalls
                     profile.ImpactDelay + 0.035f,
                     CombatAudioMixRules.AuxiliaryLayerVolume(impactTarget.Hp <= 0 ? 0.60f : 0.34f),
                     impactPan,
-                    Mathf.Clamp(impactPitch * 1.02f, 0.94f, 1.10f));
+                    Mathf.Clamp(impactPitch * 1.02f, 0.94f, 1.10f),
+                    CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
             }
             if (epicImpact)
             {
-                QueueSfx("impactlow", profile.ImpactDelay + 0.015f, CombatAudioMixRules.AuxiliaryLayerVolume(0.38f), impactPan * 0.48f, Mathf.Clamp(impactPitch * 0.82f, 0.90f, 1.02f));
+                QueueSfx("impactlow", profile.ImpactDelay + 0.015f, CombatAudioMixRules.AuxiliaryLayerVolume(0.38f), impactPan * 0.48f, Mathf.Clamp(impactPitch * 0.82f, 0.90f, 1.02f), CombatAudioMixRules.ScheduledSfxPrioritySupporting);
             }
             if (CombatAudioMixRules.ShouldLayerReaction(reactionCount)
                 && !string.Equals(profile.AftershockSfx, "resonance", StringComparison.OrdinalIgnoreCase))
             {
-                QueueSfx("resonance", profile.ImpactDelay + 0.055f, CombatAudioMixRules.AuxiliaryLayerVolume(0.40f + Mathf.Min(2, reactionCount) * 0.06f), impactPan * 0.62f, Mathf.Clamp(impactPitch * 1.02f, 0.94f, 1.10f));
+                QueueSfx("resonance", profile.ImpactDelay + 0.055f, CombatAudioMixRules.AuxiliaryLayerVolume(0.40f + Mathf.Min(2, reactionCount) * 0.06f), impactPan * 0.62f, Mathf.Clamp(impactPitch * 1.02f, 0.94f, 1.10f), CombatAudioMixRules.ScheduledSfxPrioritySupporting);
             }
             BeginCombatMusicDuck(profile, reactionCount, profile.ImpactDelay);
         }
@@ -4229,21 +4429,22 @@ namespace AshenHalls
                     feedback.ImpactDelay + 0.012f,
                     critical ? 0.90f : 0.62f,
                     pan,
-                    Mathf.Clamp(pitch * (critical ? 0.96f : 1f), 0.90f, 1.10f));
+                    Mathf.Clamp(pitch * (critical ? 0.96f : 1f), 0.90f, 1.10f),
+                    CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
             }
             else
             {
-                QueueSfx("miss", feedback.ImpactDelay, 0.62f, pan, pitch);
+                QueueSfx("miss", feedback.ImpactDelay, 0.62f, pan, pitch, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
             }
             if (hit)
             {
                 string reaction = CreatureAudioRules.CueFor(target, target.Hp <= 0 ? "death" : "hurt");
                 if (!string.IsNullOrEmpty(reaction))
                 {
-                    QueueSfx(reaction, feedback.ImpactDelay + 0.032f, target.Hp <= 0 ? 0.66f : 0.40f, pan, Mathf.Clamp(pitch * 1.03f, 0.94f, 1.10f));
+                    QueueSfx(reaction, feedback.ImpactDelay + 0.032f, target.Hp <= 0 ? 0.66f : 0.40f, pan, Mathf.Clamp(pitch * 1.03f, 0.94f, 1.10f), CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
                 }
             }
-            if (hit && critical) QueueSfx("impactlow", feedback.ImpactDelay + 0.022f, 0.30f, pan * 0.48f, 0.92f);
+            if (hit && critical) QueueSfx("impactlow", feedback.ImpactDelay + 0.022f, 0.30f, pan * 0.48f, 0.92f, CombatAudioMixRules.ScheduledSfxPrioritySupporting);
         }
 
         private void PlayCoverAttackSequence(CombatUnit attacker, Point cover, bool ranged, bool broken, bool arcing = false)
@@ -4269,7 +4470,8 @@ namespace AshenHalls
                 impactDelay + 0.014f,
                 WeaponFeedbackRules.CoverContactVolume(feedback, broken),
                 pan,
-                Mathf.Clamp(pitch * (cover.Kind == "tree" ? 1.03f : 0.92f), 0.88f, 1.10f));
+                Mathf.Clamp(pitch * (cover.Kind == "tree" ? 1.03f : 0.92f), 0.88f, 1.10f),
+                CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
             if (broken)
             {
                 QueueSfx("breakcover", impactDelay + 0.050f, 0.76f, pan * 0.88f, cover.Kind == "tree" ? 1.04f : 0.91f);
@@ -4326,7 +4528,13 @@ namespace AshenHalls
             ApplyAudioSettings();
         }
 
-        private void QueueSfx(string key, float delay, float volume, float pan = 0f, float pitch = 1f)
+        private void QueueSfx(
+            string key,
+            float delay,
+            float volume,
+            float pan = 0f,
+            float pitch = 1f,
+            int priority = CombatAudioMixRules.ScheduledSfxPrioritySupporting)
         {
             if (string.IsNullOrEmpty(key) || !soundClips.ContainsKey(key)) return;
             if (delay <= 0.005f)
@@ -4335,15 +4543,78 @@ namespace AshenHalls
                 return;
             }
 
-            scheduledSfx.Add(new ScheduledSfxCue
+            ScheduledSfxCue incoming = new ScheduledSfxCue
             {
                 Key = key,
                 Volume = Mathf.Clamp(volume, 0f, 1.4f),
                 PlayAt = Time.time + Mathf.Clamp(delay, 0.01f, 0.60f),
                 Pan = Mathf.Clamp(pan, -0.85f, 0.85f),
-                Pitch = Mathf.Clamp(pitch, 0.90f, 1.10f)
-            });
-            if (scheduledSfx.Count > 12) scheduledSfx.RemoveRange(0, scheduledSfx.Count - 12);
+                Pitch = Mathf.Clamp(pitch, 0.90f, 1.10f),
+                Priority = Mathf.Clamp(priority, CombatAudioMixRules.ScheduledSfxPriorityAuxiliary, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact),
+                Serial = scheduledSfxSerial++
+            };
+
+            for (int i = 0; i < scheduledSfx.Count; i++)
+            {
+                ScheduledSfxCue existing = scheduledSfx[i];
+                if (!CombatAudioMixRules.ShouldCoalesceScheduledCue(
+                    existing.Key,
+                    existing.PlayAt,
+                    existing.Pan,
+                    existing.Priority,
+                    incoming.Key,
+                    incoming.PlayAt,
+                    incoming.Pan,
+                    incoming.Priority))
+                {
+                    continue;
+                }
+
+                existing.Volume = Mathf.Max(existing.Volume, incoming.Volume);
+                existing.PlayAt = Mathf.Min(existing.PlayAt, incoming.PlayAt);
+                existing.Pan = Mathf.Lerp(existing.Pan, incoming.Pan, 0.5f);
+                existing.Pitch = Mathf.Lerp(existing.Pitch, incoming.Pitch, 0.5f);
+                existing.Priority = Mathf.Max(existing.Priority, incoming.Priority);
+                scheduledSfx[i] = existing;
+                return;
+            }
+
+            if (scheduledSfx.Count >= CombatAudioMixRules.ScheduledSfxCapacity)
+            {
+                int replaceIndex = ScheduledSfxReplacementIndex(incoming);
+                if (replaceIndex < 0) return;
+                scheduledSfx.RemoveAt(replaceIndex);
+            }
+            scheduledSfx.Add(incoming);
+        }
+
+        private int ScheduledSfxReplacementIndex(ScheduledSfxCue incoming)
+        {
+            int replaceIndex = -1;
+            for (int i = 0; i < scheduledSfx.Count; i++)
+            {
+                ScheduledSfxCue candidate = scheduledSfx[i];
+                if (candidate.Priority >= incoming.Priority) continue;
+                if (replaceIndex < 0
+                    || candidate.Priority < scheduledSfx[replaceIndex].Priority
+                    || candidate.Priority == scheduledSfx[replaceIndex].Priority
+                        && candidate.PlayAt > scheduledSfx[replaceIndex].PlayAt)
+                {
+                    replaceIndex = i;
+                }
+            }
+            if (replaceIndex >= 0) return replaceIndex;
+            if (incoming.Priority < CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact) return -1;
+
+            // A fully saturated primary-only queue stays bounded. Prefer the cue that
+            // lands first so a just-scheduled impact cannot be lost behind a later one.
+            int latestIndex = -1;
+            for (int i = 0; i < scheduledSfx.Count; i++)
+            {
+                if (scheduledSfx[i].Priority != incoming.Priority) continue;
+                if (latestIndex < 0 || scheduledSfx[i].PlayAt > scheduledSfx[latestIndex].PlayAt) latestIndex = i;
+            }
+            return latestIndex >= 0 && incoming.PlayAt < scheduledSfx[latestIndex].PlayAt ? latestIndex : -1;
         }
 
         private void UpdateScheduledSfx()
@@ -4356,11 +4627,27 @@ namespace AshenHalls
             }
 
             float now = Time.time;
+            List<ScheduledSfxCue> due = null;
             for (int i = scheduledSfx.Count - 1; i >= 0; i--)
             {
                 ScheduledSfxCue cue = scheduledSfx[i];
                 if (now < cue.PlayAt) continue;
                 scheduledSfx.RemoveAt(i);
+                if (due == null) due = new List<ScheduledSfxCue>();
+                due.Add(cue);
+            }
+            if (due == null) return;
+            due.Sort((left, right) =>
+            {
+                int priorityOrder = left.Priority.CompareTo(right.Priority);
+                if (priorityOrder != 0) return priorityOrder;
+                int timeOrder = left.PlayAt.CompareTo(right.PlayAt);
+                return timeOrder != 0 ? timeOrder : left.Serial.CompareTo(right.Serial);
+            });
+            foreach (ScheduledSfxCue cue in due)
+            {
+                // Supporting layers play first; primary impacts are the final voices
+                // requested in a saturated frame and therefore survive voice stealing.
                 PlaySfxSpatial(cue.Key, cue.Volume, cue.Pan, cue.Pitch);
             }
         }
@@ -5264,6 +5551,7 @@ namespace AshenHalls
             Color color = VividColor(unit.Color.ToColor());
             Color frame = CombatFrameColor(unit, active);
             DrawCombatSpritePedestal(anchoredRect, frame, color, active);
+            DrawCombatSpriteFootlight(anchoredRect, frame, color, active);
             Rect spriteRect = rect;
             if (active)
             {
@@ -5271,7 +5559,7 @@ namespace AshenHalls
                 spriteRect.y += bob;
             }
 
-            DrawSpriteGroundShadow(anchoredRect, color, active);
+            DrawCombatSpriteGroundShadow(anchoredRect, color, active);
             Color previousGuiColor = GUI.color;
             try
             {
@@ -5305,20 +5593,51 @@ namespace AshenHalls
                 GUI.color = previousGuiColor;
             }
 
+            DrawCombatSpriteSideRim(anchoredRect, unit, frame, active, figureAlpha);
+            if (active && figureAlpha > 0.05f) DrawActiveSpriteAccent(anchoredRect, unit);
+
             // Keep combat sprites art-first; tactical details live in HP bars, edge pips, hover cards, and side panels.
         }
 
         private void DrawCombatSpritePedestal(Rect rect, Color frame, Color accent, bool active)
         {
-            Rect shadowPlate = new Rect(
-                rect.x + rect.width * 0.17f,
-                rect.y + rect.height * 0.75f,
-                rect.width * 0.66f,
-                rect.height * 0.13f);
-            DrawRect(shadowPlate, Hex("030405", active ? 0.52f : 0.36f));
+            CombatSpriteStageGeometry stage = CombatSpriteStageRules.GeometryFor(rect);
+            DrawRect(stage.Footprint, Hex("030405", active ? 0.54f : 0.38f));
             DrawRect(
-                new Rect(shadowPlate.x + shadowPlate.width * 0.08f, shadowPlate.yMax - 2f, shadowPlate.width * 0.84f, 2f),
+                new Rect(stage.Footprint.x + stage.Footprint.width * 0.08f, stage.Footprint.yMax - 2f, stage.Footprint.width * 0.84f, 2f),
                 Color.Lerp(frame, accent, 0.28f).WithAlpha(active ? 0.90f : 0.58f));
+        }
+
+        private void DrawCombatSpriteFootlight(Rect rect, Color frame, Color accent, bool active)
+        {
+            CombatSpriteStageGeometry stage = CombatSpriteStageRules.GeometryFor(rect);
+            Color light = Color.Lerp(frame, accent, 0.46f);
+            DrawRect(stage.Footlight, light.WithAlpha(active ? 0.085f : 0.045f));
+            DrawRect(stage.FootlightCore, Color.Lerp(light, cursorWhite, 0.12f).WithAlpha(active ? 0.11f : 0.055f));
+        }
+
+        private void DrawCombatSpriteGroundShadow(Rect rect, Color tint, bool active)
+        {
+            CombatSpriteStageGeometry stage = CombatSpriteStageRules.GeometryFor(rect);
+            Color shadow = Hex("050708", active ? 0.80f : 0.61f);
+            DrawRect(stage.Footprint, shadow);
+            DrawRect(stage.FootprintCore, Color.Lerp(shadow, tint, active ? 0.23f : 0.16f));
+        }
+
+        private void DrawCombatSpriteSideRim(
+            Rect rect,
+            CombatUnit unit,
+            Color frame,
+            bool active,
+            float figureAlpha)
+        {
+            if (unit == null || figureAlpha <= 0.05f) return;
+            CombatSpriteStageGeometry stage = CombatSpriteStageRules.GeometryFor(rect);
+            Color faction = unit.Side == UnitSide.Party ? teal : blood;
+            Color rim = Color.Lerp(frame, faction, 0.44f).WithAlpha(
+                Mathf.Clamp01(figureAlpha) * (active ? 0.72f : 0.36f));
+            DrawRect(stage.LeftRim, rim);
+            DrawRect(stage.RightRim, rim.WithAlpha(rim.a * 0.72f));
         }
 
         private void DrawPartyPortraitSprite(Rect rect, PartyMember member, Color color)
@@ -5427,11 +5746,14 @@ namespace AshenHalls
 
         private void DrawActiveSpriteAccent(Rect rect, CombatUnit unit)
         {
-            float pulse = state != null && state.ReducedMotion ? 0.65f : 0.45f + Mathf.Sin(Time.time * 6f) * 0.20f;
+            CombatSpriteStageGeometry stage = CombatSpriteStageRules.GeometryFor(rect);
+            float pulse = CombatSpriteStageRules.ActivePulse(Time.time, state != null && state.ReducedMotion);
             Color baseGlow = unit.Side == UnitSide.Party ? teal : blood;
             Color glow = Color.Lerp(baseGlow, cursorWhite, Mathf.Clamp01(pulse));
-            DrawBorder(Pad(rect, -rect.width * 0.035f), glow, 2);
-            DrawRect(new Rect(rect.x + rect.width * 0.22f, rect.y + rect.height * 0.90f, rect.width * 0.56f, Mathf.Max(3f, rect.height * 0.035f)), glow.WithAlpha(0.82f));
+            DrawRect(stage.ActiveTick, glow.WithAlpha(0.54f + pulse * 0.24f));
+            DrawRect(stage.ActiveTickCore, Color.Lerp(glow, cursorWhite, 0.26f).WithAlpha(0.90f));
+            DrawRect(new Rect(stage.ActiveTick.x, stage.ActiveTick.y - 2f, 2f, stage.ActiveTick.height + 4f), glow.WithAlpha(0.78f));
+            DrawRect(new Rect(stage.ActiveTick.xMax - 2f, stage.ActiveTick.y - 2f, 2f, stage.ActiveTick.height + 4f), glow.WithAlpha(0.62f));
         }
 
         private void DrawPartyCombatSpriteAccents(Rect rect, CombatUnit unit, Color frame)

@@ -628,6 +628,24 @@ namespace AshenHalls
         }
     }
 
+    public static class CombatAbilityModalPointerRules
+    {
+        public const float PreviewDwellSeconds = 0.10f;
+
+        public static bool ShouldCommitPreview(
+            string candidateId,
+            string selectedId,
+            bool pointerStillInside,
+            float enteredAt,
+            float now)
+        {
+            return pointerStillInside
+                && !string.IsNullOrWhiteSpace(candidateId)
+                && !string.Equals(candidateId, selectedId, StringComparison.Ordinal)
+                && now >= enteredAt + PreviewDwellSeconds;
+        }
+    }
+
     public static class CombatAbilityModalListRules
     {
         public const float BaseRowHeight = 70f;
@@ -804,6 +822,8 @@ namespace AshenHalls
         private float rowGap = CombatAbilityModalListRules.BaseRowGap;
         private string selectedId = "";
         private string hoveredId = "";
+        private string pendingHoveredId = "";
+        private float pendingHoverEnteredAt;
         private int activeCardCount;
         private int openedFrame = -1;
         private string listContextKey = "";
@@ -835,6 +855,7 @@ namespace AshenHalls
         public string SelectedId => selectedId;
         public CombatAbilityModalFilter ActiveFilter => currentFilter;
         public string PreviewedIdForTest => hoveredId;
+        public string PendingPreviewIdForTest => pendingHoveredId;
         public string DetailIdForTest => DetailId();
         public string DetailActionLabelForTest => detailActionLabel == null ? "" : detailActionLabel.text;
         public bool DetailActionInteractableForTest => detailActionButton != null && detailActionButton.interactable;
@@ -900,8 +921,32 @@ namespace AshenHalls
             row => row.StatusBadge != null
                 && row.StatusBadge.gameObject.activeSelf
                 && string.Equals(row.State?.text, "TARGETING", StringComparison.Ordinal));
-        public int VisibleTargetingRailCountForTest => CountVisibleRows(
-            row => row.ArmedRail != null && row.ArmedRail.gameObject.activeSelf);
+        // Retained as a compatibility probe for older smoke harnesses. Count the
+        // live hierarchy so a future accidental second rail is caught by tests.
+        public int VisibleTargetingRailCountForTest
+        {
+            get
+            {
+                if (panel == null) return 0;
+                int count = 0;
+                RectTransform[] descendants = panel.GetComponentsInChildren<RectTransform>(true);
+                for (int i = 0; i < descendants.Length; i++)
+                {
+                    RectTransform descendant = descendants[i];
+                    if (descendant != null
+                        && descendant.gameObject.activeInHierarchy
+                        && string.Equals(descendant.name, "Targeting Rail", StringComparison.Ordinal))
+                    {
+                        count++;
+                    }
+                }
+                return count;
+            }
+        }
+        public int VisiblePreviewCueCountForTest => CountVisibleRows(
+            row => row.SelectionIcon != null
+                && row.SelectionIcon.gameObject.activeSelf
+                && string.Equals(row.Id, hoveredId, StringComparison.Ordinal));
         public int VisibleStateIconCountForTest => CountVisibleRows(
             row => row.StatusIcon != null && row.StatusIcon.gameObject.activeSelf)
             + CountVisibleRows(row => row.SelectionIcon != null && row.SelectionIcon.gameObject.activeSelf)
@@ -964,6 +1009,7 @@ namespace AshenHalls
                 heldVerticalDirection = seed.HeldDirection;
                 nextVerticalRepeatAt = seed.NextRepeatAt;
                 hoveredId = "";
+                CancelPendingPointerPreview();
                 lastWidth = -1f;
                 lastHeight = -1f;
                 RefreshSelectionPresentation();
@@ -972,6 +1018,7 @@ namespace AshenHalls
             else if (changed)
             {
                 hoveredId = "";
+                CancelPendingPointerPreview();
                 heldVerticalDirection = 0;
                 nextVerticalRepeatAt = 0f;
                 if (ownedSelection && eventSystem != null) eventSystem.SetSelectedGameObject(null);
@@ -989,6 +1036,7 @@ namespace AshenHalls
 
         private void OnDisable()
         {
+            CancelPendingPointerPreview();
             ReleaseNavigationEvents();
         }
 
@@ -1064,6 +1112,7 @@ namespace AshenHalls
             {
                 selectedId = "";
                 hoveredId = "";
+                CancelPendingPointerPreview();
                 filterInitialized = false;
                 pendingFilterSelectionId = "";
                 pendingFilterScrollY = 0f;
@@ -1096,6 +1145,11 @@ namespace AshenHalls
                 || string.Equals(hoveredId, selectedId, StringComparison.Ordinal))
             {
                 hoveredId = "";
+            }
+            if (IndexOfVisible(pendingHoveredId) < 0
+                || string.Equals(pendingHoveredId, selectedId, StringComparison.Ordinal))
+            {
+                CancelPendingPointerPreview();
             }
             activeCardCount = visibleCards.Count;
             EnsureRowCount(visibleCards.Count);
@@ -1164,7 +1218,17 @@ namespace AshenHalls
 
         public void HoverVisibleIndexForTest(int index)
         {
-            HoverVisibleIndex(index);
+            CommitPointerPreview(index);
+        }
+
+        public void QueuePointerPreviewForTest(int index)
+        {
+            QueuePointerPreview(index);
+        }
+
+        public bool CommitPointerPreviewForTest(float now)
+        {
+            return CommitPendingPointerPreview(now);
         }
 
         public void ClearHoverForTest()
@@ -1227,9 +1291,15 @@ namespace AshenHalls
         {
             if (!IsVisible || Time.frameCount <= openedFrame) return;
 
+            CommitPendingPointerPreview(Time.unscaledTime);
+
             if (DetailNarrativeCanScroll() && detailNarrativeScroll != null)
             {
                 float detailVertical = Input.GetAxisRaw("DetailVertical");
+                if (Mathf.Abs(detailVertical) >= CombatAbilityModalDetailScrollRules.AxisThreshold)
+                {
+                    ClearPointerPreview(true);
+                }
                 float nextDetailPosition = CombatAbilityModalDetailScrollRules.ApplyAxis(
                     detailNarrativeScroll.verticalNormalizedPosition,
                     detailVertical,
@@ -1245,6 +1315,10 @@ namespace AshenHalls
                 Time.unscaledTime);
             heldVerticalDirection = navigation.HeldDirection;
             nextVerticalRepeatAt = navigation.NextRepeatAt;
+            if (Mathf.Abs(controllerVertical) >= CombatAbilityModalNavigationRules.AxisThreshold)
+            {
+                ClearPointerPreview(true);
+            }
 
             if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1))
             {
@@ -1289,11 +1363,13 @@ namespace AshenHalls
             }
             if (Input.GetKeyDown(KeyCode.PageUp))
             {
+                ClearPointerPreview(true);
                 if (!ScrollDetailPage(1)) MoveSelection(-PageSize());
                 return;
             }
             if (Input.GetKeyDown(KeyCode.PageDown))
             {
+                ClearPointerPreview(true);
                 if (!ScrollDetailPage(-1)) MoveSelection(PageSize());
                 return;
             }
@@ -1453,6 +1529,8 @@ namespace AshenHalls
                 ? card.Locked
                     ? Hex("10181c", 0.98f)
                     : Hex("102126", 0.98f)
+                : hovered
+                    ? Color.Lerp(Hex("12181d", 0.98f), previewAccent, 0.08f)
                 : card.Locked
                     ? Hex("090c0f", 0.98f)
                     : Hex("12181d", 0.98f);
@@ -1468,19 +1546,18 @@ namespace AshenHalls
                         ? Hex("303638", 0.72f)
                         : Hex("3c4544", 0.82f);
             row.Outline.effectDistance = selected || armed ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
-            bool showSelectionCue = selected && !armed || hovered && !selected && !armed;
+            bool showSelectionCue = selected;
+            bool showPreviewCue = hovered && !selected;
             row.SelectionRail.gameObject.SetActive(showSelectionCue);
-            row.SelectionRail.color = hovered && !selected ? previewAccent : selectionAccent;
+            row.SelectionRail.color = selectionAccent;
             row.SelectionChevron.gameObject.SetActive(false);
             SetBookStateIcon(
                 row.SelectionIcon,
-                hovered && !selected
+                showPreviewCue
                     ? CombatIconCatalog.BookStatePreviewIndex
                     : CombatIconCatalog.BookStateSelectionIndex,
-                hovered && !selected ? previewAccent : selectionAccent,
-                showSelectionCue);
-            row.ArmedRail.gameObject.SetActive(armed);
-            row.ArmedRail.color = armedAccent;
+                showPreviewCue ? previewAccent : selectionAccent,
+                showSelectionCue || showPreviewCue);
             row.IconFrame.GetComponent<Outline>().effectColor = cardAccent.WithAlpha(card.Locked ? 0.38f : 0.82f);
             RefreshIcon(row.Icon, row.Sigil, card, cardAccent);
             row.Name.text = card.Name ?? "";
@@ -1496,7 +1573,9 @@ namespace AshenHalls
                 BookStateIndex(card),
                 AvailabilityTextColor(card),
                 exceptionalState);
-            row.Name.color = card.Locked ? Hex("9aa0a1", 1f) : Hex("f3ead7", 1f);
+            row.Name.color = card.Locked
+                ? Hex("9aa0a1", 1f)
+                : showPreviewCue ? Hex("b9edf1", 1f) : Hex("f3ead7", 1f);
             row.Summary.color = card.Locked ? Hex("7d8586", 1f) : Hex("d8d0c1", 1f);
             row.Meta.color = canActivate ? Hex("d7a84e", 1f) : Hex("a79c87", 1f);
 
@@ -2069,15 +2148,12 @@ namespace AshenHalls
             button.targetGraphic = background;
             button.onClick.AddListener(() => SelectVisibleIndex(index, true, SelectionOrigin.PointerClick));
             CombatAbilityModalFocusRelay focusRelay = root.gameObject.AddComponent<CombatAbilityModalFocusRelay>();
-            focusRelay.PointerEnter = () => HoverVisibleIndex(index);
+            focusRelay.PointerEnter = () => QueuePointerPreview(index);
             focusRelay.PointerExit = () => ClearHoverForVisibleIndex(index);
             focusRelay.Selected = () => SelectVisibleIndexFromEventSystem(index);
 
             Image selectionRail = AddImage("Selection Rail", root, Hex("66cdb9", 1f));
             selectionRail.raycastTarget = false;
-            Image armedRail = AddImage("Targeting Rail", root, Hex("d7a84e", 1f));
-            armedRail.raycastTarget = false;
-            armedRail.gameObject.SetActive(false);
             Text selectionChevron = AddText("Selection Chevron", root, "", 18, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             selectionChevron.fontStyle = FontStyle.Bold;
             selectionChevron.gameObject.SetActive(false);
@@ -2107,7 +2183,6 @@ namespace AshenHalls
                 Background = background,
                 Outline = root.GetComponent<Outline>(),
                 SelectionRail = selectionRail,
-                ArmedRail = armedRail,
                 SelectionChevron = selectionChevron,
                 SelectionIcon = selectionIcon,
                 IconFrame = iconFrame,
@@ -2148,7 +2223,6 @@ namespace AshenHalls
                     rowHeight);
                 SetLocalRect(row.Root, card);
                 SetLocalRect(row.SelectionRail.rectTransform, new Rect(0f, 0f, 5f, rowHeight));
-                SetLocalRect(row.ArmedRail.rectTransform, new Rect(card.width - 4f, 0f, 4f, rowHeight));
                 SetLocalRect(row.SelectionChevron.rectTransform, new Rect(5f, 0f, 14f, rowHeight));
                 SetLocalRect(row.SelectionIcon.rectTransform, new Rect(5f, (rowHeight - 16f) * 0.5f, 16f, 16f));
                 float iconSize = Mathf.Min(68f, rowHeight - 20f);
@@ -2208,6 +2282,7 @@ namespace AshenHalls
             currentFilter = filter;
             filterInitialized = true;
             hoveredId = "";
+            CancelPendingPointerPreview();
             if (filterBrowseStates.TryGetValue(
                 FilterBrowseKey(listContextKey, filter),
                 out FilterBrowseState restored))
@@ -2324,7 +2399,7 @@ namespace AshenHalls
             }
         }
 
-        private void HoverVisibleIndex(int index)
+        private void QueuePointerPreview(int index)
         {
             if (index < 0 || index >= visibleCards.Count) return;
             string nextId = visibleCards[index].Id ?? "";
@@ -2334,15 +2409,54 @@ namespace AshenHalls
                 ClearHover();
                 return;
             }
+            if (string.Equals(hoveredId, nextId, StringComparison.Ordinal)
+                || string.Equals(pendingHoveredId, nextId, StringComparison.Ordinal)) return;
+            bool hadPreview = !string.IsNullOrWhiteSpace(hoveredId);
+            hoveredId = "";
+            pendingHoveredId = nextId;
+            pendingHoverEnteredAt = Time.unscaledTime;
+            if (hadPreview) RefreshSelectionPresentation();
+        }
+
+        private void CommitPointerPreview(int index)
+        {
+            if (index < 0 || index >= visibleCards.Count) return;
+            string nextId = visibleCards[index].Id ?? "";
+            if (string.IsNullOrWhiteSpace(nextId)
+                || string.Equals(nextId, selectedId, StringComparison.Ordinal)) return;
+            CancelPendingPointerPreview();
             if (string.Equals(hoveredId, nextId, StringComparison.Ordinal)) return;
             hoveredId = nextId;
             RefreshSelectionPresentation();
+        }
+
+        private bool CommitPendingPointerPreview(float now)
+        {
+            int index = IndexOfVisible(pendingHoveredId);
+            if (!CombatAbilityModalPointerRules.ShouldCommitPreview(
+                pendingHoveredId,
+                selectedId,
+                index >= 0,
+                pendingHoverEnteredAt,
+                now)) return false;
+            CommitPointerPreview(index);
+            return true;
+        }
+
+        private void CancelPendingPointerPreview()
+        {
+            pendingHoveredId = "";
+            pendingHoverEnteredAt = 0f;
         }
 
         private void ClearHoverForVisibleIndex(int index)
         {
             if (index < 0 || index >= visibleCards.Count) return;
             string id = visibleCards[index]?.Id ?? "";
+            if (string.Equals(pendingHoveredId, id, StringComparison.Ordinal))
+            {
+                CancelPendingPointerPreview();
+            }
             if (!string.Equals(hoveredId, id, StringComparison.Ordinal)) return;
             ClearHover();
         }
@@ -2354,7 +2468,10 @@ namespace AshenHalls
 
         private bool ClearPointerPreview(bool refresh)
         {
-            if (string.IsNullOrWhiteSpace(hoveredId)) return false;
+            bool changed = !string.IsNullOrWhiteSpace(hoveredId)
+                || !string.IsNullOrWhiteSpace(pendingHoveredId);
+            CancelPendingPointerPreview();
+            if (string.IsNullOrWhiteSpace(hoveredId)) return changed;
             hoveredId = "";
             if (refresh) RefreshSelectionPresentation();
             return true;
@@ -3029,7 +3146,6 @@ namespace AshenHalls
             public Image Background;
             public Outline Outline;
             public Image SelectionRail;
-            public Image ArmedRail;
             public Text SelectionChevron;
             public Image SelectionIcon;
             public RectTransform IconFrame;

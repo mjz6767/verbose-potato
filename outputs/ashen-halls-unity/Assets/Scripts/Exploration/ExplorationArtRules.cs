@@ -100,12 +100,24 @@ namespace AshenHalls
             return 0.01f;
         }
 
+        public static float MidgaardBuildingFoundationWidthInCells(bool wideView)
+        {
+            // A building painting may rise beyond its cell, but its ground contact
+            // must still communicate the one-cell movement footprint accurately.
+            return wideView ? 0.94f : 0.98f;
+        }
+
+        public static float MidgaardBuildingFoundationHeightInCells(bool wideView)
+        {
+            return wideView ? 0.38f : 0.46f;
+        }
+
         public static float MidgaardBuildingVerticalOffset(bool wideView)
         {
             // Scaling from the destination centre would grow just as far into the
             // street as toward the roofline. Shift upward to keep doorsteps and
             // market counters visually tied to their map cell.
-            return wideView ? -0.05f : -0.10f;
+            return wideView ? -0.10f : -0.16f;
         }
 
         public static string PartyTokenRole(int partyCount, string leadRole)

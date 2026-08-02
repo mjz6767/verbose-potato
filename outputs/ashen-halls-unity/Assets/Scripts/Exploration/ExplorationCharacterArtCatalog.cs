@@ -167,6 +167,29 @@ namespace AshenHalls
             }
         }
 
+        public static string CitizenDisplayName(AmbientCitizenProfession profession)
+        {
+            switch (profession)
+            {
+                case AmbientCitizenProfession.Lamplighter: return "Lamplighter";
+                case AmbientCitizenProfession.Fishmonger: return "Fishmonger";
+                case AmbientCitizenProfession.Tailor: return "Tailor";
+                case AmbientCitizenProfession.Mason: return "Mason";
+                case AmbientCitizenProfession.Apothecary: return "Apothecary";
+                case AmbientCitizenProfession.RoadPilgrim: return "Road pilgrim";
+                case AmbientCitizenProfession.Gravedigger: return "Gravedigger";
+                case AmbientCitizenProfession.CaravanGuide: return "Caravan guide";
+                default: return "Passing townsfolk";
+            }
+        }
+
+        public static string AmbientCitizenDisplayLabel(AmbientCitizenProfession profession)
+        {
+            return profession == AmbientCitizenProfession.Unknown
+                ? "Passing townsfolk"
+                : CitizenDisplayName(profession) + " / passing townsfolk";
+        }
+
         public static IReadOnlyList<AmbientCitizenProfession> ProfessionsForDistrict(string district)
         {
             switch (NormalizeKey(district))
@@ -236,7 +259,9 @@ namespace AshenHalls
             bool isSiteReserved)
         {
             const ExplorationCellRole reservedRoles = ExplorationCellRole.Room
+                | ExplorationCellRole.Trail
                 | ExplorationCellRole.Water
+                | ExplorationCellRole.Bridge
                 | ExplorationCellRole.Hazard
                 | ExplorationCellRole.Threshold;
             return (roles & reservedRoles) == 0
@@ -245,6 +270,61 @@ namespace AshenHalls
                 && !isGuidanceRoute
                 && !hasInteractable
                 && !isSiteReserved;
+        }
+
+        public static float ExteriorCitizenPadding(bool wideView)
+        {
+            return wideView ? 0.26f : 0.16f;
+        }
+
+        public static bool ExteriorCitizenYieldsToParty(
+            int x,
+            int y,
+            int partyX,
+            int partyY)
+        {
+            return Math.Abs(x - partyX) + Math.Abs(y - partyY) <= 1;
+        }
+
+        public static float ExteriorCitizenAlpha(bool wideView, bool yieldingToParty)
+        {
+            if (yieldingToParty) return wideView ? 0.50f : 0.66f;
+            return wideView ? 0.58f : 0.76f;
+        }
+
+        public static float ExteriorCitizenHorizontalOffsetInCells(
+            string district,
+            int worldSeed,
+            int x,
+            int y,
+            int partyX,
+            int partyY)
+        {
+            bool overlapsParty = x == partyX && y == partyY;
+            if (overlapsParty)
+            {
+                int overlapSide = StableCoordinateHash(worldSeed, x, y, district, 49979687) % 2 == 0 ? -1 : 1;
+                return overlapSide * 0.16f;
+            }
+
+            int awayFromParty = Math.Sign(x - partyX);
+            if (ExteriorCitizenYieldsToParty(x, y, partyX, partyY) && awayFromParty != 0)
+            {
+                return awayFromParty * 0.16f;
+            }
+
+            int side = StableCoordinateHash(worldSeed, x, y, district, 49979687) % 2 == 0 ? -1 : 1;
+            return side * (ExteriorCitizenYieldsToParty(x, y, partyX, partyY) ? 0.15f : 0.13f);
+        }
+
+        public static float ExteriorCitizenVerticalOffsetInCells(
+            int x,
+            int y,
+            int partyX,
+            int partyY)
+        {
+            if (!ExteriorCitizenYieldsToParty(x, y, partyX, partyY)) return 0f;
+            return Math.Sign(y - partyY) * 0.05f;
         }
 
         public static bool CanPlaceAmbientCitizen(

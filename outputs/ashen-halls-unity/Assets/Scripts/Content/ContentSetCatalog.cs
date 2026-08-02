@@ -9,8 +9,20 @@ namespace AshenHalls
         public const string SewerSlice = "sewer-slice";
         public const string FullPrototype = "full-prototype";
 
-        private static readonly string[] sewerSliceFormulaCodes = { "OIC", "TBQ", "GBH", "NVC", "FIF", "WBI", "RIG", "RSG", "CLT", "VST", "AST", "FBL", "SRF", "RKW", "IBD", "RBT" };
-        private static readonly string[] sewerSliceAbilityIds = { "charge", "execute", "shieldbash", "rally", "stealth", "ambush", "smokebomb", "aimedshot", "pinningshot", "scoutmark", "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" };
+        private static readonly string[] sewerSliceFormulaCodes =
+        {
+            "OIC", "TBQ", "NVC", "GBH", "TNC", "SRF", "DWP", "SBN",
+            "FIF", "RIG", "WBI", "FBL", "RSG", "CLT", "CNS", "VST", "ACR", "AST",
+            "RKW", "RNH", "RBT", "IBD", "GRH", "SLV", "PBR", "VRS", "DFA"
+        };
+
+        private static readonly string[] sewerSliceAbilityIds =
+        {
+            "charge", "rally", "shieldbash", "execute", "cleave", "whirlwind", "sunder",
+            "stealth", "ambush", "throwknife", "smokebomb", "hamstring", "eviscerate", "shadowstep",
+            "aimedshot", "pinningshot", "scoutmark", "volley", "broadheadshot", "disruptingshot", "quickshot",
+            "riftpounce", "abyssalwhirl", "soulrend", "dreadroar"
+        };
         private static readonly string[] sewerSliceEnemyIds = { "sewerrat", "giantrat", "ratfolk", "ratcutthroat", "ratmage", "ratbrute" };
 
         private static readonly EncounterDefinition[] sewerSliceEncounters =

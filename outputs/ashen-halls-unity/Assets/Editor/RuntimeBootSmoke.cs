@@ -823,7 +823,7 @@ namespace AshenHalls.Editor
             HashSet<string> importedMusicKeys = GetPrivateField<HashSet<string>>(game, "importedMusicKeys");
             Dictionary<string, AudioClip> importedMusicClips = GetPrivateField<Dictionary<string, AudioClip>>(game, "importedMusicClips");
             AudioClip[] importedMusic = Resources.LoadAll<AudioClip>("Audio/Music");
-            Assert(importedMusic.Length == 44, "original music resource bank contains all 44 routed score contexts");
+            Assert(importedMusic.Length == 53, "original music resource bank contains all 53 routed score contexts");
             Assert(importedMusicKeys.Count == importedMusic.Length, "every original music master passes the runtime metadata contract");
             Assert(importedMusicClips.Count == importedMusic.Length, "every original music master is indexed by exact clip name");
             foreach (AudioClip clip in importedMusic)
@@ -833,7 +833,7 @@ namespace AshenHalls.Editor
                 Assert(importedMusicClips.TryGetValue(key, out AudioClip indexed) && indexed == clip, key + " resolves through the music override bank");
                 Assert(clip.loadState != AudioDataLoadState.Failed, key + " music data loads");
                 Assert(clip.frequency == 32000 && clip.channels == 2, key + " is mastered as 32 kHz stereo");
-                float maximumDuration = key == "tavern_storm_hearth_ensemble_loop" ? 40f : 30.1f;
+                float maximumDuration = key == "tavern_storm_hearth_ensemble_loop" ? 60.1f : 30.1f;
                 Assert(
                     clip.length >= 15f && clip.length <= maximumDuration,
                     key + " stays inside its authored loop-duration budget");
@@ -846,8 +846,8 @@ namespace AshenHalls.Editor
             AudioClip drowCombatMusic = GetPrivateField<AudioClip>(game, "drowCombatMusicClip");
             AudioClip demonCombatMusic = GetPrivateField<AudioClip>(game, "demonCombatMusicClip");
             AudioClip undeadCombatMusic = GetPrivateField<AudioClip>(game, "undeadCombatMusicClip");
-            Assert(tavernMusic != null && tavernMusic.length >= 36.8f && tavernMusic.length <= 37f, "tavern owns the complete 36.9-second Brimstone Overture");
-            Assert(importedMusic.Contains(tavernMusic), "tavern uses its original stereo master instead of the procedural fallback");
+            Assert(tavernMusic != null && tavernMusic.length >= 59.9f && tavernMusic.length <= 60.1f, "title mode owns the complete 60-second Ash & Brimstone overture");
+            Assert(importedMusic.Contains(tavernMusic), "title mode uses its original stereo master instead of the procedural fallback");
             Assert(combatMusic != null && sewerCombatMusic != null && bossCombatMusic != null, "combat director owns standard, sewer, and boss music");
             Assert(koboldCombatMusic != null && drowCombatMusic != null && demonCombatMusic != null && undeadCombatMusic != null, "combat director owns four faction scores");
             Assert(AudioClipsDiffer(combatMusic, sewerCombatMusic), "sewer combat has a distinct score");
@@ -858,7 +858,11 @@ namespace AshenHalls.Editor
             Dictionary<string, AudioClip> adaptiveMusicClips = GetPrivateField<Dictionary<string, AudioClip>>(game, "adaptiveMusicClips");
             string[] expandedMusicKeys =
             {
-                MusicDirectorRules.Muster, MusicDirectorRules.Victory, MusicDirectorRules.Defeat,
+                MusicDirectorRules.Muster, MusicDirectorRules.Victory, MusicDirectorRules.Defeat, MusicDirectorRules.GrandHearth,
+                MusicDirectorRules.GreenShrineTrainingRing, MusicDirectorRules.OldQuarryForge,
+                MusicDirectorRules.GloamDeepCrypt, MusicDirectorRules.GlassLoreLibrary,
+                MusicDirectorRules.DuskMarketHideout, MusicDirectorRules.RedGateSeal,
+                MusicDirectorRules.SaltCisternGate, MusicDirectorRules.AshFenAncientGrove,
                 MusicDirectorRules.MidgaardTemple, MusicDirectorRules.MidgaardMarket, MusicDirectorRules.MidgaardTavernLane,
                 MusicDirectorRules.MidgaardGateWatch, MusicDirectorRules.MidgaardCisternMouth, MusicDirectorRules.MidgaardRoyalApproach,
                 MusicDirectorRules.MidgaardRoad, MusicDirectorRules.RoadsideRest, MusicDirectorRules.SacredGround,
@@ -867,7 +871,7 @@ namespace AshenHalls.Editor
                 MusicDirectorRules.CombatRatfolk, MusicDirectorRules.CombatArcaneDuel, MusicDirectorRules.CombatElite,
                 MusicDirectorRules.CombatLastStand, MusicDirectorRules.CombatKoboldKing, MusicDirectorRules.CombatDemonLord
             };
-            Assert(adaptiveMusicFactories.Count == expandedMusicKeys.Length, "adaptive score registers exactly 24 additional themes");
+            Assert(adaptiveMusicFactories.Count == expandedMusicKeys.Length, "adaptive score registers exactly 33 additional themes");
             Assert(expandedMusicKeys.All(adaptiveMusicFactories.ContainsKey), "every expanded score key has a lazy composition factory");
             Assert(adaptiveMusicClips.Count < adaptiveMusicFactories.Count, "procedural fallback score remains lazy when original masters are present");
             foreach (string musicKey in expandedMusicKeys)
@@ -877,6 +881,15 @@ namespace AshenHalls.Editor
             }
 
             AudioClip musterMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.Muster);
+            AudioClip grandHearthMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.GrandHearth);
+            AudioClip greenShrineMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.GreenShrineTrainingRing);
+            AudioClip quarryForgeMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.OldQuarryForge);
+            AudioClip deepCryptMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.GloamDeepCrypt);
+            AudioClip glassLibraryMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.GlassLoreLibrary);
+            AudioClip duskHideoutMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.DuskMarketHideout);
+            AudioClip redGateSealMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.RedGateSeal);
+            AudioClip saltGateMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.SaltCisternGate);
+            AudioClip ashFenGroveMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.AshFenAncientGrove);
             AudioClip templeMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.MidgaardTemple);
             AudioClip pursuitMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.HuntedRoad);
             AudioClip ratfolkMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.CombatRatfolk);
@@ -884,12 +897,30 @@ namespace AshenHalls.Editor
             AudioClip victoryMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.Victory);
             AudioClip defeatMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.Defeat);
             Assert(musterMusic != null && musterMusic.name == "muster_by_firelight_loop", "Party Setup owns its quieter firelight theme");
+            Assert(grandHearthMusic != null && grandHearthMusic.name == "four_names_by_the_fire_loop", "Grand Hearth owns the quieter main-theme reprise");
+            Assert(greenShrineMusic != null && greenShrineMusic.name == "sparks_on_the_oathring_loop", "Green Shrine training ring owns its oath-ring score");
+            Assert(quarryForgeMusic != null && quarryForgeMusic.name == "anvil_echoes_in_old_stone_loop", "Old Quarry forge owns its anvil score");
+            Assert(deepCryptMusic != null && deepCryptMusic.name == "the_crypt_keeps_its_names_loop", "Gloam Deep crypt owns its memorial score");
+            Assert(glassLibraryMusic != null && glassLibraryMusic.name == "starlight_in_the_glass_index_loop", "Glass Lore library owns its crystalline score");
+            Assert(duskHideoutMusic != null && duskHideoutMusic.name == "lanterns_under_false_names_loop", "Dusk Market hideout owns its covert score");
+            Assert(redGateSealMusic != null && redGateSealMusic.name == "embers_at_the_broken_seal_loop", "Red Gate seal owns its omen score");
+            Assert(saltGateMusic != null && saltGateMusic.name == "chains_below_bellstone_loop", "Salt Cistern gate owns its understone score");
+            Assert(ashFenGroveMusic != null && ashFenGroveMusic.name == "old_sap_under_ash_loop", "Ash Fen grove owns its living-wood score");
             Assert(templeMusic != null && templeMusic.name == "bells_over_temple_square_loop", "Temple Square uses its original bell score");
             Assert(pursuitMusic != null && pursuitMusic.name == "footsteps_behind_loop", "alerted patrols own a pursuit score");
             Assert(ratfolkMusic != null && ratfolkMusic.name == "ratfolk_plague_march_loop", "ratfolk combat owns a plague march");
             Assert(kingMusic != null && kingMusic.name == "crooked_crown_kobold_king_loop", "Kobold King owns a dedicated battle score");
             Assert(victoryMusic != null && defeatMusic != null, "Victory and Defeat no longer fall silent");
             Assert(importedMusic.Contains(musterMusic)
+                && importedMusic.Contains(grandHearthMusic)
+                && importedMusic.Contains(greenShrineMusic)
+                && importedMusic.Contains(quarryForgeMusic)
+                && importedMusic.Contains(deepCryptMusic)
+                && importedMusic.Contains(glassLibraryMusic)
+                && importedMusic.Contains(duskHideoutMusic)
+                && importedMusic.Contains(redGateSealMusic)
+                && importedMusic.Contains(saltGateMusic)
+                && importedMusic.Contains(ashFenGroveMusic)
                 && importedMusic.Contains(templeMusic)
                 && importedMusic.Contains(pursuitMusic)
                 && importedMusic.Contains(ratfolkMusic)
@@ -902,7 +933,48 @@ namespace AshenHalls.Editor
             Assert(AudioClipsDiffer(kingMusic, bossCombatMusic), "Kobold King score differs from the generic boss theme");
             Assert(AudioClipsDiffer(victoryMusic, defeatMusic), "Victory and Defeat have opposite musical identities");
 
+            CombatState musicProbe = new CombatState();
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatGeneric, 40, 40, 0f) == MusicDirectorRules.CombatGeneric,
+                "live combat music may begin on the bootstrap generic cue");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatDrow, 40, 40, 0.10f) == MusicDirectorRules.CombatDrow,
+                "live combat music promotes the bootstrap cue to the first authored faction identity");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatKobold, 40, 40, 1f) == MusicDirectorRules.CombatDrow,
+                "live combat music remains stable through later roster changes");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatDrow, 10, 40, 6.20f) == MusicDirectorRules.CombatDrow,
+                "live combat music waits for sustained critical health");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatDrow, 10, 40, 7.20f) == MusicDirectorRules.CombatLastStand,
+                "live combat music enters last stand after its hold and dwell gates");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatDrow, 0, 40, 10f) == MusicDirectorRules.CombatLastStand,
+                "a defeated party cannot falsely recover the battle score");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatDrow, 22, 40, 12.20f) == MusicDirectorRules.CombatLastStand,
+                "last-stand music retains its exit hysteresis and minimum dwell");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", musicProbe, MusicDirectorRules.CombatDrow, 22, 40, 16.20f) == MusicDirectorRules.CombatDrow,
+                "live combat music returns to the encounter identity after sustained recovery");
+
+            CombatState bossMusicProbe = new CombatState();
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", bossMusicProbe, MusicDirectorRules.CombatBoss, 10, 40, 17f) == MusicDirectorRules.CombatBoss,
+                "boss combat establishes its authored score");
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", bossMusicProbe, MusicDirectorRules.CombatGeneric, 10, 40, 30f) == MusicDirectorRules.CombatBoss,
+                "boss music ignores both roster churn and last-stand pressure");
+            CombatState resetMusicProbe = new CombatState();
+            Assert(
+                InvokePrivate<string>(game, "ResolveCombatMusicPresentationKey", resetMusicProbe, MusicDirectorRules.CombatKobold, 40, 40, 31f) == MusicDirectorRules.CombatKobold,
+                "a new encounter resets combat music identity and hysteresis state");
+            InvokePrivate(game, "ResetCombatMusicPresentationState");
+
             GameMode modeBeforeMusicProbe = state.Mode;
+            state.Mode = GameMode.Tavern;
+            Assert(InvokePrivate<AudioClip>(game, "DesiredMusicClip").name == "tavern_storm_hearth_ensemble_loop", "live director routes the iconic main-title overture");
             state.Mode = GameMode.Muster;
             Assert(InvokePrivate<AudioClip>(game, "DesiredMusicClip").name == "muster_by_firelight_loop", "live director routes Party Setup music");
             state.Mode = GameMode.Victory;
@@ -1313,6 +1385,9 @@ namespace AshenHalls.Editor
 
             string look = InvokePrivate<string>(game, "ExploreLookLine", target.X, target.Y);
             Assert(look.IndexOf("Space/E", StringComparison.OrdinalIgnoreCase) >= 0 || look.IndexOf("use", StringComparison.OrdinalIgnoreCase) >= 0, "adjacent target look text advertises use instead of overlap");
+            Assert(look.IndexOf("blocks movement", StringComparison.OrdinalIgnoreCase) >= 0, "adjacent target look text explicitly identifies its collision footprint");
+            string standingLook = InvokePrivate<string>(game, "ExploreLookLine", standX, standY);
+            Assert(standingLook.IndexOf("walkable", StringComparison.OrdinalIgnoreCase) >= 0, "open ground look text explicitly identifies walkable space");
 
             InvokePrivate(game, "UseNearbyExploreObject");
             Assert(state.PlayerX == standX && state.PlayerY == standY, "using adjacent target does not overlap sprite");
@@ -1782,7 +1857,7 @@ namespace AshenHalls.Editor
                 "runtime signature spell atlas exposes the expanded 7x8 grid");
             Assert(abilityIcons.width == CombatIconCatalog.AbilityAtlasWidth
                 && abilityIcons.height == CombatIconCatalog.AbilityAtlasHeight,
-                "runtime ability atlas exposes the expanded 4x6 grid");
+                "runtime ability atlas exposes the expanded 4x7 grid");
             Assert(powerBookStateIcons != null
                 && CombatIconCatalog.IsBookStateAtlasDimensions(powerBookStateIcons.width, powerBookStateIcons.height),
                 "power-book state atlas preserves the exact 4x3 microicon contract");
@@ -1885,6 +1960,58 @@ namespace AshenHalls.Editor
             combatState.Combat.EncounterStyle = originalEncounterStyle;
             combatState.Combat.Round = originalRound;
             Assert(hudView.Commands.All(command => command.IconTexture != null && command.IconSource.width > 1f && command.IconSource.height > 1f), "all six migrated combat commands resolve generated atlas art");
+
+            string attackProbeClass = active.ClassKey;
+            string attackProbeRole = active.Role;
+            string attackProbeWeapon = active.WeaponName;
+            int attackProbeRange = active.Range;
+            int attackProbeDemonTurns = active.DemonFormTurns;
+            int attackProbeX = active.X;
+            int attackProbeY = active.Y;
+            Dictionary<CombatUnit, Vector2Int> attackProbeEnemyPositions = combatState.Combat.Units
+                .Where(unit => unit != null && unit.Side != active.Side)
+                .ToDictionary(unit => unit, unit => new Vector2Int(unit.X, unit.Y));
+            active.ClassKey = "ranger";
+            active.Role = "bow";
+            active.WeaponName = "ashwood longbow";
+            active.Range = 5;
+            active.DemonFormTurns = 0;
+            active.X = 1;
+            active.Y = 1;
+            foreach (CombatUnit enemy in attackProbeEnemyPositions.Keys)
+            {
+                enemy.X = 10;
+                enemy.Y = 6;
+            }
+            CombatHudCommandView shootCommand = InvokePrivate<CombatHudView>(game, "BuildCombatHudView")
+                .Commands.First(command => command.Mode == ActionMode.Attack);
+            Assert(
+                shootCommand.Label == "Shoot"
+                && ReferenceEquals(shootCommand.IconTexture, combatCommandIcons)
+                && shootCommand.IconSource == InvokePrivate<Rect>(game, "CombatCommandIconAtlasCell", CombatHudCommandStyleRules.ShootCommandAtlasIndex),
+                "production combat HUD pairs an unengaged ranger's Shoot command with the bow emblem");
+            CombatUnit adjacentAttackProbe = attackProbeEnemyPositions.Keys.First();
+            adjacentAttackProbe.X = 2;
+            adjacentAttackProbe.Y = 1;
+            CombatHudCommandView meleeCommand = InvokePrivate<CombatHudView>(game, "BuildCombatHudView")
+                .Commands.First(command => command.Mode == ActionMode.Attack);
+            Assert(
+                meleeCommand.Label == "Melee"
+                && ReferenceEquals(meleeCommand.IconTexture, combatCommandIcons)
+                && meleeCommand.IconSource == InvokePrivate<Rect>(game, "CombatCommandIconAtlasCell", CombatIconCatalog.CombatCommandAttackIndex),
+                "production combat HUD switches an engaged ranger to Melee and the sword emblem");
+            active.ClassKey = attackProbeClass;
+            active.Role = attackProbeRole;
+            active.WeaponName = attackProbeWeapon;
+            active.Range = attackProbeRange;
+            active.DemonFormTurns = attackProbeDemonTurns;
+            active.X = attackProbeX;
+            active.Y = attackProbeY;
+            foreach (KeyValuePair<CombatUnit, Vector2Int> pair in attackProbeEnemyPositions)
+            {
+                pair.Key.X = pair.Value.x;
+                pair.Key.Y = pair.Value.y;
+            }
             IReadOnlyList<ActionMode> fallbackModes = InvokePrivate<IReadOnlyList<ActionMode>>(game, "CombatHudFallbackModes", active);
             Assert(fallbackModes != null && fallbackModes.Count == 6, "production IMGUI action bar exposes six commands");
             Assert(fallbackModes[0] == ActionMode.Move && fallbackModes[1] == ActionMode.Attack && fallbackModes[5] == ActionMode.Wait, "action bar keeps Move/Attack/End Turn in stable positions");
@@ -2283,6 +2410,7 @@ namespace AshenHalls.Editor
             Assert(modal.VisibleStatusBadgeCountForTest == 0, "ordinary Ready Spellbook rows stay quiet instead of repeating global state");
             Assert(!modal.UsesGeneratedStateIconAtlasForTest
                 && modal.VisibleStateIconCountForTest >= 1
+                && modal.SelectedRailCountForTest == 1
                 && modal.VisibleTargetingRailCountForTest == 0,
                 "spellbook uses authored state microicons with one selector and no redundant right targeting rail");
             Assert(modal.SelectedRailUsesSelectionAccentForTest
@@ -2349,22 +2477,29 @@ namespace AshenHalls.Editor
             string hoverPendingFormula = GetPrivateField<string>(game, "pendingFormulaCode");
             int arcaneTempestIndex = readySpellbookView.Cards.ToList().FindIndex(card => card.Id == "AST");
             Assert(arcaneTempestIndex >= 0, "spellbook hover regression probe resolves Arcane Tempest in the complete book");
-            modal.HoverVisibleIndexForTest(arcaneTempestIndex);
-            Assert(modal.PreviewedIdForTest == "AST"
-                && modal.DetailIdForTest == "AST"
-                && modal.SelectedId == "FBL"
-                && modal.SelectedRailCountForTest == 2
-                && modal.SelectedRailUsesSelectionAccentForTest
-                && modal.VisibleTargetingRailCountForTest == 0
-                && modal.DetailBookStateForTest == CombatAbilityModalBookState.ReadyNow
-                && !modal.DetailActionInteractableForTest
-                && modal.DetailActionLabelForTest == "Preview Only"
-                && modal.DetailPromptForTest.Contains("Click or focus the card"), "spell hover uses one quiet passive preview while preserving one committed selection");
+            CombatAbilityModalCardView arcaneTempestCard = readySpellbookView.Cards[arcaneTempestIndex];
+            CombatAbilityModalBookState expectedArcaneTempestState = CombatAbilityModalPresentationRules.ResolveBookState(arcaneTempestCard);
+            float pointerPreviewQueuedAt = Time.unscaledTime;
+            modal.QueuePointerPreviewForTest(arcaneTempestIndex);
+            Assert(modal.PendingPreviewIdForTest == "AST"
+                && string.IsNullOrEmpty(modal.PreviewedIdForTest)
+                && !modal.CommitPointerPreviewForTest(pointerPreviewQueuedAt + 0.05f),
+                "spellbook pointer preview waits through the protected 100 ms dwell");
+            Assert(modal.CommitPointerPreviewForTest(pointerPreviewQueuedAt + 0.20f), "spell pointer preview commits after the protected dwell");
+            Assert(string.IsNullOrEmpty(modal.PendingPreviewIdForTest), "committed spell preview clears its pending hover state");
+            Assert(modal.PreviewedIdForTest == "AST" && modal.DetailIdForTest == "AST", "spell hover previews Arcane Tempest detail without changing selection");
+            Assert(modal.SelectedId == "FBL" && modal.SelectedRailCountForTest == 1, "spell hover preserves one committed Fireball selection rail");
+            Assert(modal.VisiblePreviewCueCountForTest == 1, "spell hover adds exactly one quiet passive preview cue");
+            Assert(modal.SelectedRailUsesSelectionAccentForTest && modal.VisibleTargetingRailCountForTest == 0, "spell hover keeps teal selection chrome and no targeting rail");
+            Assert(modal.DetailBookStateForTest == expectedArcaneTempestState, "hovered Arcane Tempest detail retains its authoritative live book state");
+            Assert(!modal.DetailActionInteractableForTest && modal.DetailActionLabelForTest == "Preview Only", "hovered spell detail cannot activate until committed");
+            Assert(modal.DetailPromptForTest.Contains("Click or focus the card"), "hovered spell detail explains how to commit the preview");
             Assert(GetPrivateField<string>(game, "spellbookSelectedCode") == "FBL"
                 && GetPrivateField<string>(game, "pendingFormulaCode") == hoverPendingFormula
                 && Mathf.Approximately(modal.ScrollYForTest, hoverScrollY), "spell hover neither persists browse memory, arms a formula, nor moves the list");
             modal.ClearHoverForTest();
             Assert(string.IsNullOrEmpty(modal.PreviewedIdForTest)
+                && modal.VisiblePreviewCueCountForTest == 0
                 && modal.DetailIdForTest == "FBL"
                 && modal.SelectedId == "FBL", "leaving a spell row restores committed detail");
             modal.HoverVisibleIndexForTest(arcaneTempestIndex);
@@ -2411,11 +2546,11 @@ namespace AshenHalls.Editor
                 && armedFireball.Selected
                 && modal.SelectedBookStateForTest == CombatAbilityModalBookState.Targeting
                 && modal.SelectedBookStateIconIndexForTest == CombatIconCatalog.BookStateTargetingIndex
-                && modal.SelectedRailCountForTest == 0
+                && modal.SelectedRailCountForTest == 1
                 && modal.TargetingBadgeCountForTest == 1
                 && modal.VisibleStatusBadgeCountForTest >= modal.TargetingBadgeCountForTest
                 && modal.VisibleStateIconCountForTest >= 2
-                && modal.VisibleTargetingRailCountForTest == 1
+                && modal.VisibleTargetingRailCountForTest == 0
                 && !modal.DetailStatusVisibleForTest
                 && modal.DetailContextForTest == "TARGETING ARMED"
                 && modal.DetailUsesArmedChromeForTest
@@ -2430,7 +2565,7 @@ namespace AshenHalls.Editor
                 && modal.SelectedRailCountForTest == 1
                 && modal.TargetingBadgeCountForTest == 1
                 && modal.VisibleStatusBadgeCountForTest >= modal.TargetingBadgeCountForTest
-                && modal.VisibleTargetingRailCountForTest == 1, "browsing another spell keeps one committed-selection rail beside one distinct armed targeting rail");
+                && modal.VisibleTargetingRailCountForTest == 0, "browsing another spell keeps one committed-selection rail while armed targeting stays in its badge and chrome");
             InvokePrivate(game, "CloseCombatAbilityModal");
             Assert(InvokePrivate<bool>(game, "CancelCombatTargeting"), "armed spell targeting remains explicitly cancelable after closing the book");
             InvokePrivate(game, "SelectOrRunAction", ActionMode.Cast, active);
@@ -2457,9 +2592,9 @@ namespace AshenHalls.Editor
             CombatAbilityModalView progressionView = InvokePrivate<CombatAbilityModalView>(game, "BuildCombatAbilityModalView");
             CombatAbilityModalCardView futureThunderStep = progressionView.Cards.First(card => card.Id == "VST");
             CombatAbilityModalCardView futureTempest = progressionView.Cards.First(card => card.Id == "AST");
-            Assert(futureThunderStep.Locked && futureThunderStep.UnlockLevel == 4, "spellbook shows Thunder Step as a visible future unlock");
-            Assert(futureTempest.Locked && futureTempest.UnlockLevel == 6 && futureTempest.Epic, "spellbook shows the elder Arcane Tempest progression card");
-            Assert(CombatAbilityModalPresentationRules.RowMeta(futureTempest).StartsWith("Unlocks L6", StringComparison.Ordinal)
+            Assert(futureThunderStep.Locked && futureThunderStep.UnlockLevel == 16, "spellbook shows Thunder Step as a visible future unlock");
+            Assert(futureTempest.Locked && futureTempest.UnlockLevel == 20 && futureTempest.Epic, "spellbook shows the elder Arcane Tempest progression card");
+            Assert(CombatAbilityModalPresentationRules.RowMeta(futureTempest).StartsWith("Unlocks L20", StringComparison.Ordinal)
                 && CombatAbilityModalPresentationRules.RowMeta(futureTempest).Contains(futureTempest.Cost)
                 && CombatAbilityModalPresentationRules.RowMeta(futureTempest).Contains(futureTempest.Range), "locked production Spellbook rows expose unlock level, cost, and reach without opening detail");
             modal.Refresh();
@@ -2564,6 +2699,7 @@ namespace AshenHalls.Editor
                 && ReferenceEquals(armedSpellCommand.IconTexture, signatureSpellIcons)
                 && armedSpellCommand.IconSource == InvokePrivate<Rect>(game, "SignatureSpellIconAtlasCell", CombatIconCatalog.SignatureSpellIndex("FBL")),
                 "armed spell command returns Fireball art to the deck with an explicit targeting state");
+            Assert(hud.CommandStateTagForTest(ActionMode.Cast) == "ARMED", "rendered spell command binds the live ARMED state tag");
             string spellTargetState = InvokePrivate<string>(game, "CombatHudUnitStateLine", forecastTarget, false);
             Assert(spellTargetState.Contains("Fireball")
                 && spellTargetState.Contains("fire")
@@ -2652,6 +2788,33 @@ namespace AshenHalls.Editor
             SetPrivateField(game, "combatMusicDuckDepth", 0f);
             object scheduledSfx = GetPrivateField<object>(game, "scheduledSfx");
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
+            InvokePrivate(
+                game,
+                "QueueSfx",
+                "shock",
+                0.20f,
+                0.24f,
+                0.05f,
+                1f,
+                CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            InvokePrivate(
+                game,
+                "QueueSfx",
+                "shock",
+                0.20f,
+                0.32f,
+                0.08f,
+                1.02f,
+                CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            Assert(
+                (int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) == 1,
+                "runtime combat audio coalesces near-identical supporting cues");
+            object coalescedCue = scheduledSfx.GetType().GetProperty("Item").GetValue(scheduledSfx, new object[] { 0 });
+            Assert(
+                (int)coalescedCue.GetType().GetField("Priority", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).GetValue(coalescedCue)
+                    == CombatAudioMixRules.ScheduledSfxPrioritySupporting,
+                "runtime combat audio preserves the coalesced cue priority");
+            scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
             Point feedbackTree = new Point(2, 1, "tree", 3);
             InvokePrivate(game, "StageCoverImpactFeedback", active, feedbackTree, new Color(0.42f, 0.66f, 0.30f, 1f), true, false, false);
             Assert(stagedBeams.Any(value => value.Kind == "weapon-splinter"), "broken tree cover stages a dedicated splinter motif");
@@ -2711,10 +2874,13 @@ namespace AshenHalls.Editor
                 }
             }
             Assert(stagedImpactCue != null, "Fireball queues its primary target impact cue");
+            Assert(scheduledSfxCount <= CombatAudioMixRules.ScheduledSfxCapacity, "Fireball audio remains inside the bounded combat queue");
             float stagedPan = (float)stagedImpactCue.GetType().GetField("Pan", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).GetValue(stagedImpactCue);
             float stagedPitch = (float)stagedImpactCue.GetType().GetField("Pitch", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).GetValue(stagedImpactCue);
+            int stagedPriority = (int)stagedImpactCue.GetType().GetField("Priority", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic).GetValue(stagedImpactCue);
             Assert(stagedPan < -0.10f && stagedPan >= -0.85f, "Fireball impact audio follows its left-side battlefield target");
             Assert(stagedPitch >= 0.95f && stagedPitch <= 1.05f, "Fireball impact pitch variation remains restrained");
+            Assert(stagedPriority == CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact, "Fireball primary impact is protected from lower-priority mix crowding");
             Assert(castAuras.Any(aura => aura.SourceX == active.X && aura.SourceY == active.Y && aura.TargetX == spellTarget.X && aura.TargetY == spellTarget.Y && aura.Focused), "focused Fireball stages a caster-to-target power aura");
             Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Y == spellTarget.Y && echo.Intensity == 3 && echo.ReactionCount >= 1 && !echo.StaticStamp && echo.ImpactAt > echo.Start), "gas ignition promotes Fireball into an animated epic reaction echo");
             CombatUnitPresentationBeat fireballTargetBeat = unitPresentationBeats
@@ -2849,7 +3015,7 @@ namespace AshenHalls.Editor
             stagedFlashes.Clear();
             stagedParticles.Clear();
             combatState.Combat.Obstacles.Clear();
-            active.Level = Math.Max(active.Level, 6);
+            active.Level = ProgressionRules.MaximumLevel;
             active.ClassKey = "mage";
             active.Role = "ember";
             active.Spell = "ember";
@@ -3246,6 +3412,7 @@ namespace AshenHalls.Editor
                 && skillbookView.ActionState == "ACTION READY"
                 && !modal.UsesGeneratedStateIconAtlasForTest
                 && modal.VisibleStateIconCountForTest >= 1
+                && modal.SelectedRailCountForTest == 1
                 && modal.VisibleTargetingRailCountForTest == 0, "combat Skills command opens the structured martial skillbook with authored state chrome");
             Assert(aimedShotCard.TargetCountKnown && aimedShotCard.ValidTargetCount > 0
                 && !string.IsNullOrWhiteSpace(aimedShotCard.RowSummary)
@@ -3270,7 +3437,9 @@ namespace AshenHalls.Editor
             Assert(modal.DetailIdForTest == visibleSkillCards[alternateSkillIndex].Id
                 && modal.SelectedId == "aimedshot"
                 && GetPrivateField<string>(game, "abilitySelectedId") == "aimedshot"
-                && modal.SelectedRailCountForTest == 2
+                && modal.SelectedRailCountForTest == 1
+                && modal.VisiblePreviewCueCountForTest == 1
+                && modal.VisibleTargetingRailCountForTest == 0
                 && modal.SelectedRailUsesSelectionAccentForTest
                 && !modal.DetailActionInteractableForTest
                 && modal.DetailActionLabelForTest == "Preview Only"
@@ -3290,6 +3459,7 @@ namespace AshenHalls.Editor
             Assert(modal.IsVisible
                 && modal.SelectedId == previewedSkillId
                 && string.IsNullOrEmpty(modal.PreviewedIdForTest)
+                && modal.VisiblePreviewCueCountForTest == 0
                 && string.IsNullOrEmpty(GetPrivateField<string>(game, "pendingAbilityId"))
                 && combatState.Combat.MovePoints == previewCommitMovePoints
                 && combatState.Combat.ActionAvailable == previewCommitAction
@@ -3372,6 +3542,70 @@ namespace AshenHalls.Editor
             Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Kind == "bow"), "Aimed Shot receives the shared impact echo");
             Assert(stagedGlyphs.Count == 0 && stagedFlashes.Count == 0, "shared Aimed Shot feedback suppresses the legacy ranger glyph and tile flash");
             Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) >= 1, "Aimed Shot queues staged release and impact audio");
+
+            combatState.Combat.Obstacles.Clear();
+            active.Level = ProgressionRules.MaximumLevel;
+            active.DamageMin = Math.Max(active.DamageMin, 12);
+            active.DamageMax = Math.Max(active.DamageMax, 16);
+            active.Skills.Arms = Math.Max(active.Skills.Arms, 40);
+            active.Skills.Missile = Math.Max(active.Skills.Missile, 40);
+            spellTarget.Defense = 0;
+            spellTarget.ArmorBonus = 0;
+            spellTarget.Agility = 1;
+            spellTarget.MaxHp = Math.Max(spellTarget.MaxHp, 240);
+
+            active.ClassKey = "warrior";
+            active.Role = "shield";
+            active.X = 1;
+            active.Y = 1;
+            spellTarget.X = 2;
+            spellTarget.Y = 1;
+            spellTarget.Hp = spellTarget.MaxHp;
+            spellTarget.Guarding = true;
+            spellTarget.GuardBonus = 1;
+            spellTarget.Shielded = 3;
+            combatState.Combat.ActionAvailable = true;
+            SetPrivateField(game, "rng", new System.Random(1));
+            int sunderHp = spellTarget.Hp;
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "sunder", spellTarget, spellTarget.X, spellTarget.Y), "Sunder resolves through the centralized martial path");
+            Assert(spellTarget.Hp < sunderHp
+                && !spellTarget.Guarding
+                && spellTarget.GuardBonus == 0
+                && spellTarget.Shielded == 1, "Sunder deals measured damage, breaks Guard, and strips exactly two ward turns");
+
+            active.ClassKey = "rogue";
+            active.Role = "rogue";
+            active.X = 1;
+            active.Y = 1;
+            active.Stealthed = 2;
+            spellTarget.X = 4;
+            spellTarget.Y = 1;
+            spellTarget.Hp = spellTarget.MaxHp;
+            spellTarget.Guarding = false;
+            spellTarget.GuardBonus = 0;
+            spellTarget.Shielded = 0;
+            combatState.Combat.ActionAvailable = true;
+            SetPrivateField(game, "rng", new System.Random(1));
+            int shadowstepHp = spellTarget.Hp;
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "shadowstep", spellTarget, spellTarget.X, spellTarget.Y), "Shadowstep resolves through the centralized martial path");
+            Assert(spellTarget.Hp < shadowstepHp
+                && Math.Abs(active.X - spellTarget.X) + Math.Abs(active.Y - spellTarget.Y) == 1
+                && active.Stealthed == 0, "Shadowstep lands beside its target, strikes, and consumes stealth");
+
+            active.ClassKey = "ranger";
+            active.Role = "bow";
+            active.X = 1;
+            active.Y = 1;
+            spellTarget.X = 4;
+            spellTarget.Y = 1;
+            spellTarget.Hp = spellTarget.MaxHp;
+            combatState.Combat.ActionAvailable = true;
+            SetPrivateField(game, "rng", new System.Random(1));
+            int quickShotHp = spellTarget.Hp;
+            int quickShotBeams = stagedBeams.Count(beam => beam.Kind == "shot");
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "quickshot", spellTarget, spellTarget.X, spellTarget.Y), "Quick Shot resolves through the centralized martial path");
+            Assert(spellTarget.Hp < quickShotHp
+                && stagedBeams.Count(beam => beam.Kind == "shot") >= quickShotBeams + 2, "Quick Shot rolls and delivers two independently armored arrows");
 
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
             stagedFloats.Clear();

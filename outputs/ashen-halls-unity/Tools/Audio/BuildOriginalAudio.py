@@ -13,6 +13,7 @@ import csv
 import hashlib
 import json
 import math
+import shutil
 import wave
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -24,6 +25,8 @@ import numpy as np
 MUSIC_SAMPLE_RATE = 32_000
 SFX_SAMPLE_RATE = 48_000
 MUSIC_BEATS = 32
+AUDIO_RELEASE = "v2.9.0"
+AUDIO_RELEASE_SLUG = "v2.9"
 STAGE_ROOT = Path(__file__).resolve().parents[2]
 MUSIC_DIR = STAGE_ROOT / "Assets" / "Resources" / "Audio" / "Music"
 SFX_DIR = STAGE_ROOT / "Assets" / "Resources" / "Audio" / "Sfx"
@@ -80,14 +83,113 @@ MIXOLYDIAN = (0, 2, 4, 5, 7, 9, 10)
 TRACKS: tuple[TrackSpec, ...] = (
     TrackSpec(
         "tavern_storm_hearth_ensemble_loop",
-        "The Brimstone Overture",
-        78,
+        "Ash & Brimstone",
+        96,
         50,
         DORIAN,
-        (0, 0, 3, 5, 4, 0, 6, 3, 5, 4, 3, 0),
+        (0, 0, 5, 3, 0, 6, 4, 5, 0, 3, 5, 4, 6, 5, 3, 0, 0, 5, 3, 4, 6, 5, 3, 0),
+        "title",
+        0.92,
+        "The sixty-second main-title overture: the forged-road motif answers the title reveal, rising from hearth and rain into bronze horns, four company voices, driving strings, and war drums.",
+    ),
+    TrackSpec(
+        "four_names_by_the_fire_loop",
+        "Four Names by the Fire",
+        72,
+        50,
+        DORIAN,
+        (0, 3, 4, 0, 5, 3, 6, 4),
         "tavern",
-        0.56,
-        "A twelve-bar title overture with a forged lute motif, bowed counter-line, frame drum, ember bells, hearth, and rain beyond the shutters.",
+        0.30,
+        "An intimate Grand Hearth reprise of the title motif for low strings, weathered lute, ember bells, rain, and quiet room tone.",
+    ),
+    TrackSpec(
+        "sparks_on_the_oathring_loop",
+        "Sparks on the Oathring",
+        96,
+        55,
+        DORIAN,
+        (0, 3, 4, 5, 0, 6, 4, 3),
+        "muster",
+        0.52,
+        "A disciplined reed call, quick bowed answers, and training-drum pulse for the Green Shrine oathring.",
+    ),
+    TrackSpec(
+        "anvil_echoes_in_old_stone_loop",
+        "Anvil Echoes in Old Stone",
+        84,
+        45,
+        AEOLIAN,
+        (0, 5, 3, 0, 6, 4, 5, 3),
+        "merchant",
+        0.47,
+        "Measured hammered strings, bowed weight, and restrained forge rhythm inside the Old Quarry forge.",
+    ),
+    TrackSpec(
+        "the_crypt_keeps_its_names_loop",
+        "The Crypt Keeps Its Names",
+        64,
+        47,
+        AEOLIAN,
+        (0, 5, 3, 0, 6, 4, 1, 0),
+        "defeat",
+        0.25,
+        "Hollow low strings and isolated weathered bells pace a restrained memorial theme for the Gloam deep crypt.",
+    ),
+    TrackSpec(
+        "starlight_in_the_glass_index_loop",
+        "Starlight in the Glass Index",
+        88,
+        57,
+        HARMONIC_MINOR,
+        (0, 4, 6, 3, 0, 5, 2, 6),
+        "city",
+        0.40,
+        "Brittle glass bells, turning string harmonies, and a cool arcane bass for the Glass Warrens lore library.",
+    ),
+    TrackSpec(
+        "lanterns_under_false_names_loop",
+        "Lanterns under False Names",
+        102,
+        50,
+        PHRYGIAN,
+        (0, 1, 5, 3, 0, 6, 1, 4),
+        "dusk",
+        0.61,
+        "Muted hand drums and a watchful low reed for the hidden camp beneath Dusk Market.",
+    ),
+    TrackSpec(
+        "embers_at_the_broken_seal_loop",
+        "Embers at the Broken Seal",
+        90,
+        45,
+        HARMONIC_MINOR,
+        (0, 5, 4, 0, 6, 3, 5, 0),
+        "boss",
+        0.64,
+        "A restrained bowed warning, slow war pulse, and unstable rising plucked intervals at the Red Gate seal.",
+    ),
+    TrackSpec(
+        "chains_below_bellstone_loop",
+        "Chains below Bellstone",
+        70,
+        45,
+        PHRYGIAN,
+        (0, 1, 4, 0, 5, 1, 3, 0),
+        "cave",
+        0.35,
+        "Low string weight, wet-stone bells, and widely separated drops at the Salt Cistern dungeon gate.",
+    ),
+    TrackSpec(
+        "old_sap_under_ash_loop",
+        "Old Sap under Ash",
+        70,
+        52,
+        DORIAN,
+        (0, 3, 5, 0, 4, 6, 3, 0),
+        "road",
+        0.30,
+        "Patient bowed resonance, a leaflike reed, and a remembered road phrase in the Ash Fen ancient grove.",
     ),
     TrackSpec(
         "muster_by_firelight_loop",
@@ -767,6 +869,20 @@ def reed(frequency: float, duration: float, sample_rate: int, rng: np.random.Gen
     return (tone + breath) * envelope(frames, sample_rate, 0.07, 0.14)
 
 
+def brass(frequency: float, duration: float, sample_rate: int, rng: np.random.Generator) -> np.ndarray:
+    """A rounded bronze-horn voice for the title fanfare."""
+    frames = max(1, int(duration * sample_rate))
+    t = np.arange(frames, dtype=np.float64) / sample_rate
+    phase = rng.uniform(0.0, 2.0 * math.pi)
+    fundamental = oscillator(frequency, frames, sample_rate, "softsaw", phase, 0.012, 5.0)
+    second = oscillator(frequency * 2.0, frames, sample_rate, "sine", phase * 0.61, 0.008, 4.6)
+    sub = oscillator(frequency * 0.5, frames, sample_rate, "sine", phase * 0.83)
+    bloom = 0.72 + 0.28 * (1.0 - np.exp(-t * 3.2))
+    breath = lowpass(colored_noise(frames, rng, 0.18), 5) * 0.014
+    tone = lowpass((fundamental * 0.72 + second * 0.20 + sub * 0.08) * bloom + breath, 3)
+    return tone * envelope(frames, sample_rate, 0.045, 0.22, 0.16, 0.88)
+
+
 def bell(frequency: float, duration: float, sample_rate: int, rng: np.random.Generator) -> np.ndarray:
     frames = max(1, int(duration * sample_rate))
     t = np.arange(frames, dtype=np.float64) / sample_rate
@@ -801,6 +917,22 @@ def click(duration: float, sample_rate: int, rng: np.random.Generator, bright: b
     signal = oscillator(base, frames, sample_rate, "sine", rng.uniform(0, 2 * math.pi))
     signal += colored_noise(frames, rng, 0.0) * 0.55
     return signal * np.exp(-t * (48.0 if bright else 32.0)) * envelope(frames, sample_rate, 0.001, 0.02)
+
+
+def cymbal(duration: float, sample_rate: int, rng: np.random.Generator) -> np.ndarray:
+    """A restrained deterministic bronze swell without an external sample."""
+    frames = max(1, int(duration * sample_rate))
+    t = np.arange(frames, dtype=np.float64) / sample_rate
+    noise = colored_noise(frames, rng, 0.04)
+    shimmer = noise - lowpass(noise, 31)
+    phase = rng.uniform(0.0, 2.0 * math.pi)
+    metal = (
+        oscillator(1840.0, frames, sample_rate, "sine", phase)
+        + 0.62 * oscillator(2713.0, frames, sample_rate, "sine", phase * 0.73)
+        + 0.38 * oscillator(3911.0, frames, sample_rate, "sine", phase * 1.21)
+    )
+    decay = np.exp(-t * 2.6)
+    return (shimmer * 0.72 + metal * 0.28) * decay * envelope(frames, sample_rate, 0.006, 0.20)
 
 
 def mix_circular(
@@ -849,22 +981,19 @@ def rotate_to_quiet_seam(stereo: np.ndarray, sample_rate: int) -> np.ndarray:
 
 
 def bridge_loop_seam(stereo: np.ndarray, sample_rate: int) -> np.ndarray:
-    """Replace 24 ms around the wrap with a smooth cubic Hermite bridge."""
+    """Replace 24 ms around the wrap with a bounded smoothstep bridge."""
     result = stereo.copy()
     half = max(64, int(0.012 * sample_rate))
     total = half * 2
     u = np.linspace(0.0, 1.0, total, endpoint=False)
-    h00 = 2 * u**3 - 3 * u**2 + 1
-    h10 = u**3 - 2 * u**2 + u
-    h01 = -2 * u**3 + 3 * u**2
-    h11 = u**3 - u**2
+    smooth = u * u * (3.0 - 2.0 * u)
     for channel in range(result.shape[0]):
         source = result[channel]
         y0 = source[-half]
         y1 = source[half]
-        m0 = (source[-half + 1] - source[-half]) * total
-        m1 = (source[half + 1] - source[half]) * total
-        bridge = h00 * y0 + h10 * m0 + h01 * y1 + h11 * m1
+        # A monotonic bridge cannot create the edge spikes that unconstrained
+        # Hermite tangents produced on otherwise quiet Grand Hearth/site seams.
+        bridge = y0 + (y1 - y0) * smooth
         source[-half:] = bridge[:half]
         source[:half] = bridge[half:]
     return result
@@ -908,6 +1037,8 @@ def add_music_note(
         signal = bowed(frequency, duration, MUSIC_SAMPLE_RATE, rng)
     elif instrument == "reed":
         signal = reed(frequency, duration, MUSIC_SAMPLE_RATE, rng)
+    elif instrument == "brass":
+        signal = brass(frequency, duration, MUSIC_SAMPLE_RATE, rng)
     elif instrument == "bell":
         signal = bell(frequency, duration, MUSIC_SAMPLE_RATE, rng)
     else:
@@ -915,36 +1046,43 @@ def add_music_note(
     mix_circular(mix, signal, int(start_beat * beat_seconds * MUSIC_SAMPLE_RATE), gain, pan)
 
 
-def compose_tavern_title_track(spec: TrackSpec) -> np.ndarray:
-    """Compose the longer, shaped title arrangement without changing other routes."""
-    rng = np.random.default_rng(stable_seed(spec.cue + ":v1.80-title"))
+def compose_main_title_track(spec: TrackSpec) -> np.ndarray:
+    """Compose the iconic sixty-second title overture around the forged-road motif."""
+    rng = np.random.default_rng(stable_seed(spec.cue + ":v2.9-main-title"))
     beat_seconds = 60.0 / spec.bpm
-    total_beats = 48
-    duration = total_beats * beat_seconds
-    frames = int(round(duration * MUSIC_SAMPLE_RATE))
+    total_beats = 96
+    frames = int(round(total_beats * beat_seconds * MUSIC_SAMPLE_RATE))
     mix = np.zeros((2, frames), dtype=np.float64)
 
-    # The room is present but quiet: rain remains beyond the shutters while
-    # close hearth texture keeps the title screen sheltered rather than wet.
-    rain_left = lowpass(colored_noise(frames, rng, 0.52), 11) * 0.0085
-    rain_right = np.roll(lowpass(colored_noise(frames, rng, 0.58), 13), 379) * 0.0080
-    hearth_noise = colored_noise(frames, rng, 1.65)
-    crackle_source = colored_noise(frames, rng, 0.08)
-    crackle_mask = (np.abs(crackle_source) > 0.925).astype(np.float64)
-    hearth_left = hearth_noise * crackle_mask * 0.024
-    hearth_right = np.roll(hearth_noise, 107) * np.roll(crackle_mask, 83) * 0.022
-    mix += np.vstack((rain_left + hearth_left, rain_right + hearth_right))
+    # Match the art's two halves: a sheltered amber hearth on the left and a
+    # cold rain road on the right. Both remain quiet enough for menu feedback.
+    rain_left = lowpass(colored_noise(frames, rng, 0.56), 13) * 0.0055
+    rain_right = np.roll(lowpass(colored_noise(frames, rng, 0.48), 9), 431) * 0.0105
+    storm_breath = np.sin(np.linspace(0.0, math.pi * 8.0, frames)) * 0.0018
+    hearth_noise = colored_noise(frames, rng, 1.62)
+    crackle_source = colored_noise(frames, rng, 0.06)
+    crackle_mask = (np.abs(crackle_source) > 0.932).astype(np.float64)
+    hearth_left = hearth_noise * crackle_mask * 0.025
+    hearth_right = np.roll(hearth_noise, 113) * np.roll(crackle_mask, 79) * 0.011
+    mix += np.vstack((rain_left + hearth_left, rain_right + hearth_right + storm_breath))
 
-    progression = (0, 0, 3, 5, 4, 0, 6, 3, 5, 4, 3, 0)
-    bar_levels = (0.72, 0.78, 0.84, 0.90, 0.94, 0.98, 1.06, 1.10, 1.04, 1.00, 0.92, 0.80)
-    for bar, degree in enumerate(progression):
+    progression = spec.progression
+    section_levels = (
+        0.70, 0.76, 0.82, 0.87, 0.91, 0.95,
+        0.98, 1.00, 1.02, 1.04, 1.06, 1.08,
+        1.10, 1.12, 1.16, 1.18, 1.20, 1.16,
+        1.12, 1.08, 1.02, 0.96, 0.86, 0.76,
+    )
+    for bar in range(24):
+        degree = progression[bar % len(progression)]
         bar_beat = float(bar * 4)
-        level = bar_levels[bar]
+        level = section_levels[bar]
 
-        # A dark three-voice bow bed changes inversion as the road motif grows.
+        # Broad strings carry a classic party-RPG harmonic bed. In the crest,
+        # the upper voice opens above the ensemble like the storm gate in art.
         for voice, chord_degree in enumerate((degree, degree + 2, degree + 4)):
             octave = -1 if voice == 0 else 0
-            if bar in {6, 7, 8} and voice == 2:
+            if 14 <= bar <= 19 and voice == 2:
                 octave += 1
             note = scale_note(spec.root_midi, spec.mode, chord_degree, octave)
             add_music_note(
@@ -952,36 +1090,25 @@ def compose_tavern_title_track(spec: TrackSpec) -> np.ndarray:
                 "bowed",
                 note,
                 bar_beat,
-                4.20,
+                4.28,
                 beat_seconds,
-                (0.031 + voice * 0.004) * level,
-                (-0.46, -0.04, 0.42)[voice],
+                (0.032 + voice * 0.005) * level,
+                (-0.48, -0.02, 0.46)[voice],
                 rng,
             )
 
         bass_note = scale_note(spec.root_midi, spec.mode, degree, -2)
-        add_music_note(mix, "bowed", bass_note, bar_beat, 3.80, beat_seconds, 0.078 * level, -0.16, rng)
-        if bar >= 2:
-            add_music_note(
-                mix,
-                "pluck",
-                bass_note + 12,
-                bar_beat + 2.45,
-                0.70,
-                beat_seconds,
-                0.050 * level,
-                0.10,
-                rng,
-            )
+        add_music_note(mix, "bowed", bass_note, bar_beat, 3.9, beat_seconds, 0.082 * level, -0.12, rng)
+        if 10 <= bar <= 20:
+            horn_note = scale_note(spec.root_midi, spec.mode, degree, -1)
+            add_music_note(mix, "brass", horn_note, bar_beat, 3.75, beat_seconds, 0.032 * level, 0.04, rng)
 
-        # Weathered lute arpeggios enter after the two-bar oath-like opening,
-        # leave small gaps for the melody, and thin again during the coda.
-        if 2 <= bar <= 10:
+        # Weathered lute becomes a driving string ostinato as the company moves
+        # from firelight toward the Old Road, then thins for the loop coda.
+        if 2 <= bar <= 21:
             arpeggio = (degree, degree + 4, degree + 2, degree + 5)
-            starts = (0.0, 1.35, 2.20, 3.15)
-            arpeggio_gain = (0.044 if bar < 6 else 0.051) * level
-            if bar == 10:
-                arpeggio_gain *= 0.78
+            starts = (0.0, 1.0, 2.0, 3.0)
+            gain = (0.040 if bar < 8 else 0.052 if bar < 20 else 0.037) * level
             for index, (local_beat, note_degree) in enumerate(zip(starts, arpeggio)):
                 note = scale_note(spec.root_midi, spec.mode, note_degree, 0)
                 add_music_note(
@@ -989,18 +1116,21 @@ def compose_tavern_title_track(spec: TrackSpec) -> np.ndarray:
                     "pluck",
                     note,
                     bar_beat + local_beat,
-                    0.58 if index < 2 else 0.46,
+                    0.54,
                     beat_seconds,
-                    arpeggio_gain,
-                    (-0.30, 0.27, -0.08, 0.34)[index],
+                    gain,
+                    (-0.34, 0.26, -0.10, 0.36)[index],
                     rng,
                 )
 
-        # A frame-drum heartbeat arrives with the road and gains a soft pickup
-        # only in the central lift; the opening and final bar remain spacious.
-        if 2 <= bar <= 10:
-            for local_beat, gain, pan in ((0.0, 0.118, -0.10), (2.0, 0.068, 0.14)):
-                hit = drum(61.0 if local_beat == 0.0 else 82.0, 0.32, MUSIC_SAMPLE_RATE, rng, 0.48)
+        # The travel heartbeat grows into a full turn-based battle pulse at the
+        # central crest, but leaves the first reveal and final cadence spacious.
+        if 1 <= bar <= 21:
+            drum_events = ((0.0, 58.0, 0.120, -0.10), (2.0, 82.0, 0.070, 0.12))
+            if 14 <= bar <= 19:
+                drum_events += ((1.0, 96.0, 0.046, 0.20), (3.0, 90.0, 0.052, -0.20))
+            for local_beat, frequency, gain, pan in drum_events:
+                hit = drum(frequency, 0.38, MUSIC_SAMPLE_RATE, rng, 0.62 if bar >= 8 else 0.48)
                 mix_circular(
                     mix,
                     hit,
@@ -1008,93 +1138,120 @@ def compose_tavern_title_track(spec: TrackSpec) -> np.ndarray:
                     gain * level,
                     pan,
                 )
-            if 5 <= bar <= 8:
-                pickup = click(0.08, MUSIC_SAMPLE_RATE, rng, bright=False)
-                mix_circular(
-                    mix,
-                    pickup,
-                    int((bar_beat + 3.5) * beat_seconds * MUSIC_SAMPLE_RATE),
-                    0.032 * level,
-                    0.34,
-                )
+            if 8 <= bar <= 20:
+                for local_beat in (1.5, 3.5):
+                    tick = click(0.09, MUSIC_SAMPLE_RATE, rng, bright=False)
+                    mix_circular(
+                        mix,
+                        tick,
+                        int((bar_beat + local_beat) * beat_seconds * MUSIC_SAMPLE_RATE),
+                        0.034 * level,
+                        0.34 if local_beat < 2.0 else -0.34,
+                    )
 
-    # The same five-note "forged road" idea is heard as lute, then reed, then
-    # returned by the lute in a shorter coda so the loop has a recognizable hook.
-    motif_starts = (0.0, 0.78, 1.55, 2.52, 3.28, 4.58, 5.35, 6.55)
-    motif_degrees = (0, 2, 4, 3, 2, 0, 6, 4)
-    for phrase_start, instrument, gain, transpose in (
-        (8.0, "pluck", 0.092, 0),
-        (24.0, "reed", 0.078, 0),
-    ):
-        for index, (local_beat, degree) in enumerate(zip(motif_starts, motif_degrees)):
-            note = scale_note(spec.root_midi, spec.mode, degree + transpose, 1 if instrument == "reed" else 0)
+    motif_events = (
+        (0.00, 0, 0.60),
+        (0.72, 2, 0.60),
+        (1.44, 4, 1.30),
+        (2.92, 3, 0.56),
+        (3.62, 2, 0.56),
+        (4.34, 0, 0.92),
+        (5.48, 6, 0.58),
+        (6.22, 4, 1.32),
+    )
+
+    def add_motif(
+        start_beat: float,
+        instrument: str,
+        gain: float,
+        octave: int,
+        pan_bias: float = 0.0,
+        degree_offset: int = 0,
+    ) -> None:
+        for index, (local_beat, degree, duration_beats) in enumerate(motif_events):
+            note = scale_note(spec.root_midi, spec.mode, degree + degree_offset, octave)
             add_music_note(
                 mix,
                 instrument,
                 note,
-                phrase_start + local_beat,
-                0.68 if instrument == "pluck" else 0.86,
+                start_beat + local_beat,
+                duration_beats,
                 beat_seconds,
-                gain * (1.08 if index in {0, 4} else 1.0),
-                (-0.26, 0.20, -0.08, 0.30)[index % 4],
+                gain * (1.10 if index in {0, 2, 5} else 1.0),
+                max(-0.88, min(0.88, pan_bias + (-0.22, 0.18, -0.06, 0.24)[index % 4])),
                 rng,
             )
 
-    coda_starts = (0.0, 0.82, 1.62, 2.58, 3.42, 4.72, 5.58)
-    coda_degrees = (0, 2, 4, 3, 2, 1, 0)
-    for index, (local_beat, degree) in enumerate(zip(coda_starts, coda_degrees)):
-        note = scale_note(spec.root_midi, spec.mode, degree, 0)
-        add_music_note(
-            mix,
-            "pluck",
-            note,
-            40.0 + local_beat,
-            0.72,
-            beat_seconds,
-            0.086 * (1.08 if index == 0 else 1.0),
-            (-0.22, 0.18, -0.05, 0.24)[index % 4],
-            rng,
-        )
+    # The title's immediately legible signature begins just after the existing
+    # 0.72 s reveal chime and returns in increasingly complete statements.
+    title_theme_beat = 0.72 / beat_seconds
+    add_motif(title_theme_beat, "brass", 0.094, 1)
+    add_motif(9.25, "pluck", 0.082, 0, -0.08)
+    add_motif(17.25, "reed", 0.070, 1, 0.20)
+    add_motif(25.25, "bowed", 0.064, 1, -0.16)
+    add_motif(40.25, "brass", 0.096, 1, 0.02)
+    add_motif(56.25, "brass", 0.112, 1, -0.02)
+    add_motif(56.25, "bowed", 0.056, 0, 0.12)
+    add_motif(72.25, "brass", 0.118, 1, 0.00)
+    add_motif(72.25, "reed", 0.050, 2, 0.22)
+    add_motif(84.25, "pluck", 0.078, 0, -0.10)
 
-    # A restrained bowed answer makes the middle section feel composed rather
-    # than merely layered, while three bell sparks mark the title's large beats.
-    for start_beat, degree, duration_beats in ((28.0, 4, 3.4), (32.0, 5, 3.2), (36.0, 3, 3.5)):
-        note = scale_note(spec.root_midi, spec.mode, degree, 1)
-        add_music_note(mix, "bowed", note, start_beat, duration_beats, beat_seconds, 0.052, 0.36, rng)
-    for start_beat, degree in ((7.55, 4), (23.55, 6), (39.55, 4)):
-        note = scale_note(spec.root_midi, spec.mode, degree, 2)
-        add_music_note(mix, "bell", note, start_beat, 1.35, beat_seconds, 0.036, 0.48, rng)
+    # Four staggered fragments stand for the four silhouettes at the threshold;
+    # they converge before the full company statement at beat 40.
+    hero_fragments = (
+        (32.0, -0.48, (0, 2, 4)),
+        (33.4, -0.16, (4, 3, 2)),
+        (34.8, 0.18, (2, 0, 6)),
+        (36.2, 0.48, (6, 4, 0)),
+    )
+    for hero, (start_beat, pan, degrees) in enumerate(hero_fragments):
+        instrument = ("pluck", "reed", "bowed", "brass")[hero]
+        for index, degree in enumerate(degrees):
+            note = scale_note(spec.root_midi, spec.mode, degree, 1 if hero > 0 else 0)
+            add_music_note(
+                mix,
+                instrument,
+                note,
+                start_beat + index * 0.72,
+                0.82,
+                beat_seconds,
+                0.056 + hero * 0.006,
+                pan,
+                rng,
+            )
 
-    # One low, far-off weather swell supports the central crest without reading
-    # as foreground thunder or masking menu feedback.
-    thunder_seconds = 3.1
-    thunder_frames = int(thunder_seconds * MUSIC_SAMPLE_RATE)
-    thunder_env = envelope(thunder_frames, MUSIC_SAMPLE_RATE, 0.62, 1.40)
-    thunder = oscillator(43.0, thunder_frames, MUSIC_SAMPLE_RATE, "sine", rng.uniform(0.0, 2.0 * math.pi))
-    thunder += lowpass(colored_noise(thunder_frames, rng, 1.15), 29) * 0.38
-    thunder *= thunder_env
-    thunder_start = int(31.0 * beat_seconds * MUSIC_SAMPLE_RATE)
-    mix_circular(mix, thunder, thunder_start, 0.035, -0.34)
-    mix_circular(mix, np.roll(thunder, 173), thunder_start, 0.030, 0.42)
+    for event_beat, pan, gain in ((16.0, -0.44, 0.026), (32.0, 0.40, 0.030), (56.0, -0.20, 0.046), (72.0, 0.24, 0.050)):
+        wash = cymbal(1.85 if event_beat >= 56.0 else 1.40, MUSIC_SAMPLE_RATE, rng)
+        mix_circular(mix, wash, int(event_beat * beat_seconds * MUSIC_SAMPLE_RATE), gain, pan)
+
+    # One remote thunder swell belongs to the blue road half of the image; it
+    # supports the crest without masking narration or menu confirmation sounds.
+    thunder_frames = int(3.6 * MUSIC_SAMPLE_RATE)
+    thunder_tone = oscillator(39.0, thunder_frames, MUSIC_SAMPLE_RATE, "sine", rng.uniform(0.0, 2.0 * math.pi))
+    thunder_noise = lowpass(colored_noise(thunder_frames, rng, 1.18), 31) * 0.42
+    thunder = (thunder_tone + thunder_noise) * envelope(thunder_frames, MUSIC_SAMPLE_RATE, 0.72, 1.55)
+    thunder_start = int(61.5 * beat_seconds * MUSIC_SAMPLE_RATE)
+    mix_circular(mix, thunder, thunder_start, 0.034, 0.48)
+    mix_circular(mix, np.roll(thunder, 191), thunder_start, 0.026, -0.28)
 
     beat_positions = np.arange(frames, dtype=np.float64) / (MUSIC_SAMPLE_RATE * beat_seconds)
     dynamics = np.interp(
         beat_positions,
-        (0.0, 8.0, 16.0, 24.0, 32.0, 40.0, 48.0),
-        (0.78, 0.88, 0.97, 1.03, 1.08, 0.94, 0.78),
+        (0.0, 8.0, 24.0, 40.0, 56.0, 72.0, 84.0, 96.0),
+        (0.70, 0.88, 0.96, 1.04, 1.14, 1.18, 0.96, 0.72),
     )
     mix *= dynamics[np.newaxis, :]
-    mix = circular_reverb(mix, MUSIC_SAMPLE_RATE, 0.19, 0.96)
+    mix = circular_reverb(mix, MUSIC_SAMPLE_RATE, 0.19, 1.0)
     mid = (mix[0] + mix[1]) * 0.5
     side = (mix[0] - mix[1]) * 0.5
-    mix = np.vstack((mid + side * 1.28, mid - side * 1.28))
+    mix = np.vstack((mid + side * 1.26, mid - side * 1.26))
     mix = bridge_loop_seam(mix, MUSIC_SAMPLE_RATE)
-    return master_audio(mix, -20.0, -3.0)
+    return master_audio(mix, -18.7, -3.0)
 
 
 def compose_track(spec: TrackSpec) -> np.ndarray:
     if spec.cue == "tavern_storm_hearth_ensemble_loop":
-        return compose_tavern_title_track(spec)
+        return compose_main_title_track(spec)
 
     rng = np.random.default_rng(stable_seed(spec.cue))
     beat_seconds = 60.0 / spec.bpm
@@ -1789,13 +1946,16 @@ def metrics_for(
     )
 
 
-def build_preview(tracks: Sequence[tuple[TrackSpec, np.ndarray]]) -> Path:
+def build_preview(tracks: Sequence[TrackSpec]) -> Path:
     excerpt_seconds = 5.5
     gap_seconds = 0.24
     excerpt_frames = int(excerpt_seconds * MUSIC_SAMPLE_RATE)
     gap = np.zeros((2, int(gap_seconds * MUSIC_SAMPLE_RATE)), dtype=np.float64)
     sections: list[np.ndarray] = []
-    for _, audio in tracks:
+    for spec in tracks:
+        audio, sample_rate = read_pcm16(MUSIC_DIR / f"{spec.cue}.wav")
+        if sample_rate != MUSIC_SAMPLE_RATE or audio.ndim != 2 or audio.shape[0] != 2:
+            raise ValueError(f"{spec.cue}: invalid music master while building preview")
         if audio.shape[1] <= excerpt_frames:
             excerpt = audio.copy()
         else:
@@ -1809,12 +1969,23 @@ def build_preview(tracks: Sequence[tuple[TrackSpec, np.ndarray]]) -> Path:
         sections.extend((excerpt, gap))
     preview = np.concatenate(sections[:-1], axis=1)
     preview = master_audio(preview, -20.0, -3.0)
-    path = QA_DIR / "ash-and-brimstone-v1.82-music-preview.wav"
+    path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-music-preview.wav"
     write_pcm16(path, preview, MUSIC_SAMPLE_RATE)
     return path
 
 
-def write_manifests(metrics: Sequence[AssetMetrics], preview_path: Path) -> None:
+def build_title_preview() -> Path:
+    source = MUSIC_DIR / "tavern_storm_hearth_ensemble_loop.wav"
+    path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-title-preview.wav"
+    shutil.copyfile(source, path)
+    return path
+
+
+def write_manifests(
+    metrics: Sequence[AssetMetrics],
+    preview_path: Path,
+    title_preview_path: Path,
+) -> None:
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     tsv_path = DOCS_DIR / "ORIGINAL_AUDIO_ASSET_MANIFEST.tsv"
     fields = list(asdict(metrics[0]).keys())
@@ -1825,7 +1996,7 @@ def write_manifests(metrics: Sequence[AssetMetrics], preview_path: Path) -> None
             writer.writerow(asdict(item))
 
     report = {
-        "release": "v1.82.0",
+        "release": AUDIO_RELEASE,
         "generator": "Tools/Audio/BuildOriginalAudio.py",
         "deterministic": True,
         "external_samples": False,
@@ -1834,6 +2005,7 @@ def write_manifests(metrics: Sequence[AssetMetrics], preview_path: Path) -> None
         "music_sample_rate": MUSIC_SAMPLE_RATE,
         "sfx_sample_rate": SFX_SAMPLE_RATE,
         "preview": str(preview_path.relative_to(STAGE_ROOT)).replace("\\", "/"),
+        "title_preview": str(title_preview_path.relative_to(STAGE_ROOT)).replace("\\", "/"),
         "assets": [asdict(item) for item in metrics],
     }
     (DOCS_DIR / "ORIGINAL_AUDIO_VALIDATION.json").write_text(
@@ -1858,16 +2030,25 @@ def read_pcm16(path: Path) -> tuple[np.ndarray, int]:
 
 def validate_outputs() -> list[str]:
     errors: list[str] = []
+    track_cues = [spec.cue for spec in TRACKS]
+    sfx_cues = [spec.cue for spec in SFX]
+    if len(track_cues) != len(set(track_cues)):
+        errors.append("duplicate music cue IDs exist in TRACKS")
+    if len(sfx_cues) != len(set(sfx_cues)):
+        errors.append("duplicate SFX cue IDs exist in SFX")
     expected_music = {spec.cue for spec in TRACKS}
     expected_sfx = {spec.cue for spec in SFX}
     actual_music = {path.stem for path in MUSIC_DIR.glob("*.wav")}
     actual_sfx = {path.stem for path in SFX_DIR.glob("*.wav")}
     missing_music = expected_music - actual_music
     missing_sfx = expected_sfx - actual_sfx
+    unexpected_music = actual_music - expected_music
     if missing_music:
         errors.append(f"missing original music cues: {sorted(missing_music)}")
     if missing_sfx:
         errors.append(f"missing original SFX cues: {sorted(missing_sfx)}")
+    if unexpected_music:
+        errors.append(f"unexpected original music cues: {sorted(unexpected_music)}")
 
     all_audio: list[tuple[Path, int, int]] = []
     all_audio.extend((MUSIC_DIR / f"{cue}.wav", MUSIC_SAMPLE_RATE, 2) for cue in sorted(expected_music))
@@ -1900,6 +2081,41 @@ def validate_outputs() -> list[str]:
             seam_delta = float(np.max(np.abs(audio[:, 0] - audio[:, -1])))
             if seam_delta > 0.025:
                 errors.append(f"{path}: loop seam delta {db(seam_delta):.2f} dBFS is too large")
+            edge_frames = max(64, int(0.012 * sample_rate))
+            edge = np.concatenate((audio[:, -edge_frames:], audio[:, :edge_frames]), axis=1)
+            interior = audio[:, edge_frames:-edge_frames]
+            edge_peak = float(np.max(np.abs(edge)))
+            interior_peak = float(np.max(np.abs(interior))) if interior.size else 0.0
+            if edge_peak > interior_peak * 1.10 + (2.0 / 32768.0):
+                errors.append(
+                    f"{path}: loop boundary peak {db(edge_peak):.2f} dBFS exceeds "
+                    f"the interior peak {db(interior_peak):.2f} dBFS"
+                )
+
+    report_path = DOCS_DIR / "ORIGINAL_AUDIO_VALIDATION.json"
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+        report_assets = report.get("assets", [])
+        report_cues = {(item.get("kind"), item.get("cue")) for item in report_assets}
+        expected_report_cues = ({("music", cue) for cue in expected_music}
+                                | {("sfx", cue) for cue in expected_sfx})
+        if report.get("release") != AUDIO_RELEASE:
+            errors.append(f"{report_path}: stale release label {report.get('release')!r}")
+        if report.get("music_count") != len(expected_music):
+            errors.append(f"{report_path}: stale music count")
+        if report.get("sfx_count") != len(expected_sfx):
+            errors.append(f"{report_path}: stale SFX count")
+        if report_cues != expected_report_cues:
+            errors.append(f"{report_path}: asset cue inventory is stale")
+        for item in report_assets:
+            output = item.get("output", "")
+            if not output:
+                continue
+            asset_path = STAGE_ROOT / output
+            if asset_path.is_file() and item.get("sha256") != sha256(asset_path):
+                errors.append(f"{report_path}: stale digest for {output}")
+    except Exception as exc:
+        errors.append(f"{report_path}: unreadable validation report ({exc})")
     return errors
 
 
@@ -1908,13 +2124,11 @@ def build() -> None:
     SFX_DIR.mkdir(parents=True, exist_ok=True)
     QA_DIR.mkdir(parents=True, exist_ok=True)
 
-    built_tracks: list[tuple[TrackSpec, np.ndarray]] = []
     metrics: list[AssetMetrics] = []
     for spec in TRACKS:
         audio = compose_track(spec)
         path = MUSIC_DIR / f"{spec.cue}.wav"
         write_pcm16(path, audio, MUSIC_SAMPLE_RATE)
-        built_tracks.append((spec, audio))
         metrics.append(metrics_for(spec.cue, spec.title, spec.direction, "music", path, audio, MUSIC_SAMPLE_RATE))
         print(f"music  {spec.cue:42s} {audio.shape[1] / MUSIC_SAMPLE_RATE:6.2f}s")
 
@@ -1925,14 +2139,16 @@ def build() -> None:
         metrics.append(metrics_for(spec.cue, spec.cue, spec.direction, "sfx", path, audio, SFX_SAMPLE_RATE))
         print(f"sfx    {spec.cue:42s} {audio.size / SFX_SAMPLE_RATE:6.2f}s")
 
-    preview_path = build_preview(built_tracks)
-    write_manifests(metrics, preview_path)
+    preview_path = build_preview(TRACKS)
+    title_preview_path = build_title_preview()
+    write_manifests(metrics, preview_path, title_preview_path)
     errors = validate_outputs()
     if errors:
         raise SystemExit("Audio validation failed:\n- " + "\n- ".join(errors))
     print(
         f"Built {len(TRACKS)} music loops and {len(SFX)} SFX; "
-        f"preview: {preview_path.relative_to(STAGE_ROOT)}"
+        f"previews: {preview_path.relative_to(STAGE_ROOT)}, "
+        f"{title_preview_path.relative_to(STAGE_ROOT)}"
     )
 
 

@@ -1,0 +1,266 @@
+{
+  "ability": {
+    "base": "ability-icon-atlas-runtime-v2.0.0.png",
+    "source": "early-progression-ability-icons-source-v2.9.0-alpha.png",
+    "output": "ability-icon-atlas-runtime-v2.9.0.png",
+    "dimensions": [
+      1024,
+      1792
+    ],
+    "grid": [
+      4,
+      7
+    ],
+    "cellSize": 256,
+    "padding": 18,
+    "preservedBasePixelSha256": "b41f27411507d885bdafe6613bf85c7192084167739855192acc123d8589b814",
+    "reservedEmptyIndices": [
+      27
+    ],
+    "cells": [
+      {
+        "atlasIndex": 24,
+        "abilityId": "sunder",
+        "sourceIndex": 0,
+        "sourceRegion": [
+          0,
+          0,
+          627,
+          627
+        ],
+        "sourceBounds": [
+          59,
+          63,
+          588,
+          579
+        ],
+        "runtimeBounds": [
+          18,
+          1556,
+          238,
+          1771
+        ],
+        "runtimeSize": [
+          220,
+          215
+        ],
+        "pixelSha256": "05d1123f2b27335ebe3cbc5d4bf9a0c42f0f0e7b0f1da0b445f7cbcf537c05a6"
+      },
+      {
+        "atlasIndex": 25,
+        "abilityId": "shadowstep",
+        "sourceIndex": 1,
+        "sourceRegion": [
+          627,
+          0,
+          1254,
+          627
+        ],
+        "sourceBounds": [
+          40,
+          87,
+          564,
+          566
+        ],
+        "runtimeBounds": [
+          274,
+          1563,
+          494,
+          1764
+        ],
+        "runtimeSize": [
+          220,
+          201
+        ],
+        "pixelSha256": "fdb79346af0814ef40ab10ba8560d79850fc7306cae50fb1accd9311e9f6a3bf"
+      },
+      {
+        "atlasIndex": 26,
+        "abilityId": "quickshot",
+        "sourceIndex": 2,
+        "sourceRegion": [
+          0,
+          627,
+          627,
+          1254
+        ],
+        "sourceBounds": [
+          0,
+          25,
+          581,
+          627
+        ],
+        "runtimeBounds": [
+          534,
+          1554,
+          746,
+          1774
+        ],
+        "runtimeSize": [
+          212,
+          220
+        ],
+        "pixelSha256": "97ecf1530614e13ec0cc4182d6eecb1bf776497b298774659b068e0897adb6c2"
+      }
+    ]
+  },
+  "spell": {
+    "base": "signature-spell-icon-atlas-runtime-v2.0.0.png",
+    "source": "early-progression-spell-icons-source-v2.9.0-alpha.png",
+    "output": "signature-spell-icon-atlas-runtime-v2.9.0.png",
+    "dimensions": [
+      1792,
+      2048
+    ],
+    "grid": [
+      7,
+      8
+    ],
+    "cellSize": 256,
+    "padding": 18,
+    "preservedMappedCellCount": 51,
+    "preservedBasePixelSha256": "24172c0c0c86a9e8fb2f6d56d3ba5f4a2d256f018e6b6c9bfa418d927c951acc",
+    "cells": [
+      {
+        "atlasIndex": 51,
+        "formulaCode": "DWP",
+        "sourceIndex": 0,
+        "sourceRegion": [
+          0,
+          0,
+          512,
+          512
+        ],
+        "sourceBounds": [
+          0,
+          0,
+          512,
+          487
+        ],
+        "runtimeBounds": [
+          530,
+          1815,
+          750,
+          2024
+        ],
+        "runtimeSize": [
+          220,
+          209
+        ],
+        "pixelSha256": "06b7eab33c31f0af19a4c6502340954a197d982f3b0d10e4e31a097d28d73d73"
+      },
+      {
+        "atlasIndex": 52,
+        "formulaCode": "CNS",
+        "sourceIndex": 1,
+        "sourceRegion": [
+          512,
+          0,
+          1024,
+          512
+        ],
+        "sourceBounds": [
+          0,
+          60,
+          474,
+          468
+        ],
+        "runtimeBounds": [
+          786,
+          1825,
+          1006,
+          2014
+        ],
+        "runtimeSize": [
+          220,
+          189
+        ],
+        "pixelSha256": "2a2a2383cfb52b720a8ca6d5b6b6a0a6ae7f0fdb4aa0cab5c13c7bbf433ec7ba"
+      },
+      {
+        "atlasIndex": 53,
+        "formulaCode": "GRH",
+        "sourceIndex": 2,
+        "sourceRegion": [
+          1024,
+          0,
+          1536,
+          512
+        ],
+        "sourceBounds": [
+          15,
+          73,
+          415,
+          472
+        ],
+        "runtimeBounds": [
+          1042,
+          1810,
+          1262,
+          2029
+        ],
+        "runtimeSize": [
+          220,
+          219
+        ],
+        "pixelSha256": "ea5b727c92ce0d0493748660273bfb7237673abe78c8db646830db72b6d37727"
+      },
+      {
+        "atlasIndex": 54,
+        "formulaCode": "SLV",
+        "sourceIndex": 3,
+        "sourceRegion": [
+          0,
+          512,
+          512,
+          1024
+        ],
+        "sourceBounds": [
+          89,
+          26,
+          512,
+          412
+        ],
+        "runtimeBounds": [
+          1298,
+          1819,
+          1518,
+          2020
+        ],
+        "runtimeSize": [
+          220,
+          201
+        ],
+        "pixelSha256": "eefc53e79c348fcd9a2ec1029610c3dc203bae345b28340db8f79395db8b3ca9"
+      },
+      {
+        "atlasIndex": 55,
+        "formulaCode": "ACR",
+        "sourceIndex": 4,
+        "sourceRegion": [
+          512,
+          512,
+          1024,
+          1024
+        ],
+        "sourceBounds": [
+          0,
+          19,
+          458,
+          410
+        ],
+        "runtimeBounds": [
+          1554,
+          1826,
+          1774,
+          2014
+        ],
+        "runtimeSize": [
+          220,
+          188
+        ],
+        "pixelSha256": "64e58a770a80c5885e5a1a98bbbcc58123459872a48da75cfac5388a0f4efe4b"
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-The verified v2.8.0 Grand Hearth atmosphere candidate exact-pins a third companion atlas for deterministic light and grounding. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, the deterministic visual packet, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained as historical records.
+The integrated v2.9.0 candidate exact-pins expanded ability and signature-spell books plus a rebuilt combat-effects atlas, while improving combatant staging and the presentation of existing world-map art. Combined RuleSmoke, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, and full RuntimeBoot pass. The final Windows build, built-player visual matrix, canonical packaging, and clean-extracted packaged boot remain pending release gates. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained as historical records.
 
 ## Active Runtime Art
 
@@ -9,6 +9,15 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 - Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI.
 - Party/enemies: character combat atlas, enemy sprite atlas, creature/combat sprite fallback atlas, enemy roster, boss enemy fallback, Kobold King boss atlas.
 - World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, dedicated Grand Hearth floor/set-piece/ambience companions, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
+
+## Newly Connected In v2.9.0 - Automated Gates Passed; Release Gates Pending
+
+- `ability-icon-atlas-runtime-v2.9.0.png` expands the preserved skill sheet to an exact RGBA 4 by 7 contract. Cells 24-26 are Sunder, Shadowstep, and Quick Shot; cell 27 remains transparent.
+- `signature-spell-icon-atlas-runtime-v2.9.0.png` keeps the exact RGBA 7 by 8 contract and maps Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse to former reserve cells 51-55.
+- `combat-spell-effects-atlas-runtime-v2.9.0.png` is the exact-pinned RGBA 1280 by 1280, 4 by 4 effect sheet. Each 320-pixel cell limits visible content to 280 by 280 and retains at least 20 transparent pixels on each side at alpha greater than 8. Its stable semantic order supports layered impact motifs and one static Reduced Motion stamp.
+- Existing player and enemy sheets now receive normalized board footprints, contact light, faction rims, and a restrained active-unit pulse. Existing world-map sheets gain safer edge framing, more grounded building placement, quieter ambient layers, and citizen clearance without changing their atlas cells or introducing replacement map art.
+- The accepted v2.9 power-art source set contains thirteen exact files: three runtime PNGs and ten chroma-key, alpha, prompt/design, and validation companions. All thirteen require exact-path promotion from the locally excluded ArtReferences workspace; only the three runtime PNGs are package candidates.
+- Combined RuleSmoke, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, and full RuntimeBoot pass with the live pins and mappings. The final Windows build, source/staged/packaged hash comparison, built-player visual inspection, canonical package inventory, and clean-extracted packaged boot remain pending.
 
 ## Newly Connected In v2.8.0 - Automated, Build, and Visual Gates Passed
 

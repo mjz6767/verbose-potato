@@ -73,6 +73,11 @@ namespace AshenHalls
                 case "CLT":
                 case "VST": return 2;
                 case "VRS": return 2;
+                case "DWP": return 2;
+                case "CNS": return 3;
+                case "GRH": return 2;
+                case "SLV": return 2;
+                case "ACR": return 3;
                 case "AST": return 3;
             }
             if (formula.Code == "FBL" || formula.Code == "MTR" || formula.Code == "RLM" || formula.Code == "IBG" || formula.Code == "DFA") return 3;
@@ -98,6 +103,9 @@ namespace AshenHalls
                 case "smokebomb":
                 case "broadheadshot":
                 case "disruptingshot":
+                case "sunder":
+                case "shadowstep":
+                case "quickshot":
                     return 2;
                 default:
                     return 1;

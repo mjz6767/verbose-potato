@@ -794,7 +794,7 @@ namespace AshenHalls
             if (member == null) return;
             if (member.Skills == null) member.Skills = new SkillSet().Normalize();
             bool missingVitalBaseline = member.MaxHp <= 0;
-            member.Level = Mathf.Max(1, member.Level);
+            member.Level = ProgressionRules.ClampLevel(member.Level);
             int strength = EffectiveStrength(member);
             int intelligence = EffectiveIntelligence(member);
             int agility = EffectiveAgility(member);
@@ -914,6 +914,10 @@ namespace AshenHalls
         private string ProgressLine(PartyMember member)
         {
             if (member == null) return "";
+            if (ProgressionRules.IsMaximumLevel(member.Level))
+            {
+                return $"Level {ProgressionRules.MaximumLevel} / MAX / unspent stat {member.StatPoints} skill {member.SkillPoints}";
+            }
             int next = ExperienceForNextLevel(member.Level);
             return $"Level {member.Level} / XP {member.Experience}/{next} / unspent stat {member.StatPoints} skill {member.SkillPoints}";
         }
@@ -949,13 +953,13 @@ namespace AshenHalls
                 }
             }
             Tuple<int, string> next = unlocks.OrderBy(u => u.Item1).ThenBy(u => u.Item2).FirstOrDefault();
-            return next == null ? "deeper training" : $"L{next.Item1} {next.Item2}";
+            if (next != null) return $"L{next.Item1} {next.Item2}";
+            return ProgressionRules.IsMaximumLevel(member.Level) ? "level cap mastered" : "deeper training";
         }
 
         private int ExperienceForNextLevel(int level)
         {
-            level = Mathf.Max(1, level);
-            return 60 + level * level * 40;
+            return ProgressionRules.ExperienceForNextLevel(level);
         }
 
         private int StartingRange(string role)
@@ -1222,8 +1226,8 @@ namespace AshenHalls
                 if (string.IsNullOrWhiteSpace(member.Origin)) member.Origin = DefaultOrigin(member.Name);
                 if (string.IsNullOrWhiteSpace(member.Sigil)) member.Sigil = DefaultSigil(member.Role);
                 if (string.IsNullOrWhiteSpace(member.SpriteColor)) member.SpriteColor = RoleColor(member.Role).ToHex();
-                if (member.Level <= 0) member.Level = 1;
-                member.Experience = Mathf.Max(0, member.Experience);
+                member.Level = ProgressionRules.ClampLevel(member.Level);
+                member.Experience = ProgressionRules.NormalizeExperience(member.Level, member.Experience);
                 member.SkillPoints = Mathf.Max(0, member.SkillPoints);
                 member.StatPoints = Mathf.Max(0, member.StatPoints);
                 if (member.Skills == null) member.Skills = new SkillSet().Normalize();

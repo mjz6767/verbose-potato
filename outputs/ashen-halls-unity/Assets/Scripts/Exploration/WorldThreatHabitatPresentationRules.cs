@@ -7,6 +7,7 @@ namespace AshenHalls
         public const int Columns = 4;
         public const int Rows = 2;
         public const int CellCount = Columns * Rows;
+        public const bool PreserveScaleAtViewportEdge = true;
 
         public const int RatWarrenIndex = 0;
         public const int PlagueBellMiddenIndex = 1;
@@ -121,7 +122,29 @@ namespace AshenHalls
 
         public static float MapScale(bool wideView)
         {
-            return wideView ? 1.35f : 1.65f;
+            return MapScale(wideView, true);
+        }
+
+        public static float MapScale(bool wideView, bool active)
+        {
+            return MapScale(wideView, active, active);
+        }
+
+        public static float MapScale(bool wideView, bool active, bool homeOccupied)
+        {
+            // Active lairs remain prominent tactical landmarks. Once cleared, the
+            // aftermath sits closer to its one-cell footprint so it reads as
+            // walkable history rather than a still-occupied encounter.
+            if (active && homeOccupied) return wideView ? 1.35f : 1.65f;
+            if (active) return wideView ? 1.12f : 1.30f;
+            return wideView ? 1.10f : 1.25f;
+        }
+
+        public static float HabitatAlpha(bool onObjectiveRoute, bool active, bool homeOccupied)
+        {
+            if (active && homeOccupied) return onObjectiveRoute ? 1f : 0.78f;
+            if (active) return onObjectiveRoute ? 0.60f : 0.46f;
+            return 0.52f;
         }
 
         public static float TintAlpha(bool onObjectiveRoute)

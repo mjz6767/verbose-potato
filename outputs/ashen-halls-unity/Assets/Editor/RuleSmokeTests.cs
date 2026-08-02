@@ -98,9 +98,11 @@ namespace AshenHalls.Editor
             CombatHudScreenLayoutFitsSupportedResolutions();
             CombatAbilityModalLayoutFitsSupportedResolutions();
             CombatAbilityModalNavigationRepeatsPredictably();
+            V29CombatPresentationPolishRulesStayStable();
             CombatAbilityModalCardsExposeArtIdentity();
             CombatTargetHighlightsRequireAnArmedPower();
             AdvancedCasterProgressionPowersAreExplicit();
+            EarlyProgressionRuleSmoke.Run();
             DemonFormPackageDefinesCohesiveProgression();
             LightningPowerRulesDefineTacticalStormLadder();
             CombatIconCatalogDefinesUniqueActiveSkillArt();
@@ -253,23 +255,28 @@ namespace AshenHalls.Editor
             {
                 "ashes_on_the_road_defeat_loop",
                 "a_fire_between_roads_loop",
+                "anvil_echoes_in_old_stone_loop",
                 "ash_fen_haze_loop",
                 "banners_before_the_crown_loop",
                 "bells_over_temple_square_loop",
                 "bones_beneath_stone_loop",
+                "chains_below_bellstone_loop",
                 "combat_battle_pulse_loop",
                 "crooked_crown_kobold_king_loop",
                 "crown_and_ashes_boss_loop",
                 "drow_nightblades_loop",
                 "dusk_market_ambush_loop",
+                "embers_at_the_broken_seal_loop",
                 "embers_carry_home_victory_loop",
                 "footsteps_behind_loop",
+                "four_names_by_the_fire_loop",
                 "glass_and_quiet_stars_loop",
                 "glass_warrens_shimmer_loop",
                 "gloam_courts_echo_loop",
                 "green_shrine_teal_loop",
                 "kobold_hide_drums_loop",
                 "lanterns_and_ledgers_loop",
+                "lanterns_under_false_names_loop",
                 "last_lamps_east_loop",
                 "midgaard_lamps_loop",
                 "midgaard_merchant_hall_loop",
@@ -280,6 +287,7 @@ namespace AshenHalls.Editor
                 "old_green_prayer_loop",
                 "old_quarry_stone_loop",
                 "old_road_walk_loop",
+                "old_sap_under_ash_loop",
                 "one_more_turn_last_stand_loop",
                 "ratfolk_plague_march_loop",
                 "red_gate_omen_loop",
@@ -289,8 +297,11 @@ namespace AshenHalls.Editor
                 "sewer_hunt_combat_loop",
                 "sigils_crossed_arcane_duel_loop",
                 "smoke_across_the_road_loop",
+                "sparks_on_the_oathring_loop",
+                "starlight_in_the_glass_index_loop",
                 "steel_against_the_chosen_loop",
                 "tavern_storm_hearth_ensemble_loop",
+                "the_crypt_keeps_its_names_loop",
                 "the_rift_walks_demon_lord_loop",
                 "under_the_bellstone_loop",
                 "watchfires_on_the_wall_loop",
@@ -335,7 +346,7 @@ namespace AshenHalls.Editor
                     clip.name,
                     "tavern_storm_hearth_ensemble_loop",
                     StringComparison.Ordinal)
-                    ? 40f
+                    ? 60.1f
                     : 30.1f;
                 AssertEqual(
                     true,
@@ -351,13 +362,15 @@ namespace AshenHalls.Editor
                 .ToList();
             List<int> iconIndices = abilityIds.Select(CombatIconCatalog.AbilityIndex).ToList();
 
-            AssertEqual(22, abilityIds.Count, "active martial and demon-form ability count");
+            AssertEqual(25, abilityIds.Count, "active martial and demon-form ability count");
             AssertEqual(true, iconIndices.All(index => index >= 0), "every active martial ability has icon art");
             AssertEqual(abilityIds.Count, iconIndices.Distinct().Count(), "active martial ability icons are unique");
             AssertEqual(19, CombatIconCatalog.AbilityIndex("smokebomb"), "expanded smoke bomb icon cell");
             AssertEqual("20,21,22,23", string.Join(",", AbilityCatalog.IdsForClass("demon").Select(CombatIconCatalog.AbilityIndex)), "demon-form art occupies the appended atlas row");
-            AssertEqual(6, CombatIconCatalog.AbilityAtlasRows(1024, 1536), "expanded ability atlas rows");
-            AssertEqual(true, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1536), "exact expanded ability atlas dimensions are accepted");
+            AssertEqual("24,25,26", string.Join(",", new[] { "sunder", "shadowstep", "quickshot" }.Select(CombatIconCatalog.AbilityIndex)), "level 16 martial capstones occupy the appended atlas row");
+            AssertEqual(7, CombatIconCatalog.AbilityAtlasRows(1024, 1792), "expanded ability atlas rows");
+            AssertEqual(true, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1792), "exact expanded ability atlas dimensions are accepted");
+            AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1536), "pre-capstone ability atlas dimensions are rejected");
             AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 1280), "pre-demon ability atlas dimensions are rejected");
             AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1448, 1086), "legacy irregular ability atlas dimensions are rejected");
             AssertEqual(false, CombatIconCatalog.IsAbilityAtlasDimensions(1024, 512), "legacy 4x2 ability atlas dimensions are rejected");
@@ -415,7 +428,7 @@ namespace AshenHalls.Editor
         {
             string[] codes = FormulaCatalog.All.Select(formula => formula.Code).ToArray();
             List<int> indices = codes.Select(CombatIconCatalog.SignatureSpellIndex).ToList();
-            AssertEqual(51, codes.Length, "full prototype formula count");
+            AssertEqual(56, codes.Length, "full prototype formula count");
             AssertEqual(true, indices.All(index => index >= 0), "every spellbook formula has dedicated icon art");
             AssertEqual(codes.Length, indices.Distinct().Count(), "every spellbook formula icon is unique");
             AssertEqual(
@@ -425,6 +438,7 @@ namespace AshenHalls.Editor
             AssertEqual(7, CombatIconCatalog.SignatureSpellAtlasColumns, "expanded spell icon atlas columns");
             AssertEqual(8, CombatIconCatalog.SignatureSpellAtlasRows, "expanded spell icon atlas rows");
             AssertEqual("49,50", string.Join(",", new[] { CombatIconCatalog.SignatureSpellIndex("RBT"), CombatIconCatalog.SignatureSpellIndex("VRS") }), "pact gap spells occupy appended signature cells");
+            AssertEqual("51,52,53,54,55", string.Join(",", new[] { "DWP", "CNS", "GRH", "SLV", "ACR" }.Select(CombatIconCatalog.SignatureSpellIndex)), "new gradual-progression spells fill the reserved signature cells");
             AssertEqual(-1, CombatIconCatalog.SignatureSpellIndex("UNKNOWN"), "unknown spell has no signature cell");
             string[] lightningCodes = { "RIG", "CLT", "RSG", "AST", "VST" };
             int[] lightningIndices = lightningCodes
@@ -456,7 +470,7 @@ namespace AshenHalls.Editor
                 magic = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MagicUiAtlas);
                 effects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.SpellAnimationAtlas);
                 epicEffects = LoadApprovedRuntimeAtlas(RuntimeArtManifest.EpicSpellEffectsAtlas);
-                AssertEqual(new Vector2Int(1024, 1536), new Vector2Int(ability.width, ability.height), "approved ability atlas dimensions");
+                AssertEqual(new Vector2Int(CombatIconCatalog.AbilityAtlasWidth, CombatIconCatalog.AbilityAtlasHeight), new Vector2Int(ability.width, ability.height), "approved ability atlas dimensions");
                 AssertEqual(new Vector2Int(1792, 2048), new Vector2Int(spell.width, spell.height), "approved signature spell atlas dimensions");
                 AssertEqual(new Vector2Int(1024, 512), new Vector2Int(lightning.width, lightning.height), "approved lightning spell atlas dimensions");
                 AssertEqual(
@@ -469,8 +483,15 @@ namespace AshenHalls.Editor
                     "approved combat command atlas dimensions");
                 AssertEqual(new Vector2Int(1024, 1024), new Vector2Int(magic.width, magic.height), "approved magic UI atlas dimensions");
                 AssertEqual(new Vector2Int(1276, 1276), new Vector2Int(effects.width, effects.height), "approved spell animation atlas dimensions");
-                AssertEqual(new Vector2Int(1254, 1254), new Vector2Int(epicEffects.width, epicEffects.height), "approved epic spell effects atlas dimensions");
-                AssertAtlasCellCoverage(ability, 4, 6, Enumerable.Range(0, 24), 0.10f, 0.90f, "approved ability icon");
+                AssertEqual(new Vector2Int(1280, 1280), new Vector2Int(epicEffects.width, epicEffects.height), "approved 4x4 epic spell effects atlas dimensions");
+                AssertAtlasCellCoverage(
+                    ability,
+                    CombatIconCatalog.AbilityAtlasColumns,
+                    CombatIconCatalog.ExpandedAbilityAtlasRows,
+                    CombatIconCatalog.MappedAbilityIndices,
+                    0.10f,
+                    0.90f,
+                    "approved ability icon");
                 AssertAtlasCellCoverage(
                     spell,
                     CombatIconCatalog.SignatureSpellAtlasColumns,
@@ -508,7 +529,15 @@ namespace AshenHalls.Editor
                     0.90f,
                     "approved combat command icon");
                 AssertAtlasCellCoverage(effects, 4, 4, Enumerable.Range(0, 16), 0.02f, 0.92f, "approved spell animation");
-                AssertAtlasCellSafeGutter(ability, 4, 6, Enumerable.Range(0, 24), 12, 8, 32, "approved ability icon");
+                AssertAtlasCellSafeGutter(
+                    ability,
+                    CombatIconCatalog.AbilityAtlasColumns,
+                    CombatIconCatalog.ExpandedAbilityAtlasRows,
+                    CombatIconCatalog.MappedAbilityIndices,
+                    12,
+                    8,
+                    32,
+                    "approved ability icon");
                 AssertAtlasCellSafeGutter(
                     spell,
                     CombatIconCatalog.SignatureSpellAtlasColumns,
@@ -1977,11 +2006,33 @@ namespace AshenHalls.Editor
             AssertEqual(true, ExplorationReadabilityRules.JunctionMarkerAlpha(true, true, true, false) > ExplorationReadabilityRules.JunctionMarkerAlpha(true, false, true, false), "active waypoint junctions outrank charted junctions");
             AssertEqual(true, ExplorationReadabilityRules.JunctionMarkerAlpha(true, false, false, true) > ExplorationReadabilityRules.JunctionMarkerAlpha(true, false, false, false), "nearby junctions outrank distant uncharted junctions");
             AssertEqual(true, ExplorationReadabilityRules.DecorativeDensityScale(true) < ExplorationReadabilityRules.DecorativeDensityScale(false), "region map uses fewer decorative props");
-            AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(false, 0f) >= 0.80f, "close-map ambient city props remain solid and visible");
-            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 0f) >= 0.82f, "close-map biome props remain solid and visible");
-            AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(false, 0f) >= 0.94f, "close-map city props no longer read as transparent ghosts");
-            AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(true, 1f) < 1f, "wide-map city props remain secondary to interactive targets");
-            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 1f) >= 0.98f, "close-map biome props remain solid enough to read");
+            AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(false, 0f) >= 0.76f, "close-map ambient city props remain legible");
+            AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(false, 1f) <= 0.86f, "close-map ambient city props remain subordinate to blockers");
+            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 0f) >= 0.78f, "close-map biome props remain legible");
+            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 1f) <= 0.90f, "close-map biome props remain subordinate to blockers");
+            AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(true, 1f) < ExplorationReadabilityRules.MidgaardPropAlpha(false, 1f), "region-map city props yield to semantic targets");
+            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(true, 1f) < ExplorationReadabilityRules.BiomePropAlpha(false, 1f), "region-map biome props yield to semantic targets");
+
+            MapObject stairs = new MapObject(1, 1, ObjectType.Stairs);
+            MapObject healer = new MapObject(1, 1, ObjectType.TempleHealer);
+            MapObject wall = new MapObject(1, 1, ObjectType.CityWall);
+            MapObject northGate = new MapObject(1, 1, ObjectType.NorthGate);
+            MapObject southGate = new MapObject(1, 1, ObjectType.SouthGate);
+            AssertEqual(WorldMapCellAccessKind.OpenGround, ExplorationReadabilityRules.ClassifyCellAccess(1, null, false, false), "empty floor reads as open ground");
+            AssertEqual(WorldMapCellAccessKind.SoftScenery, ExplorationReadabilityRules.ClassifyCellAccess(1, null, true, false), "presentation-only art reads as soft scenery");
+            AssertEqual(WorldMapCellAccessKind.WalkableFeature, ExplorationReadabilityRules.ClassifyCellAccess(1, stairs, false, false), "stairs retain their walkable interaction footprint");
+            AssertEqual(WorldMapCellAccessKind.UseFromBeside, ExplorationReadabilityRules.ClassifyCellAccess(1, healer, false, false), "named NPCs advertise adjacent use instead of overlap");
+            AssertEqual(WorldMapCellAccessKind.SolidObstacle, ExplorationReadabilityRules.ClassifyCellAccess(1, wall, false, false), "solid objects advertise their blocking footprint");
+            AssertEqual(WorldMapCellAccessKind.BlockedTerrain, ExplorationReadabilityRules.ClassifyCellAccess(0, null, false, false), "closed terrain advertises its blocked footprint");
+            AssertEqual(WorldMapCellAccessKind.UseFromBeside, ExplorationReadabilityRules.ClassifyCellAccess(0, northGate, false, false), "barred north gate advertises adjacent use despite its wall tile");
+            AssertEqual(WorldMapCellAccessKind.UseFromBeside, ExplorationReadabilityRules.ClassifyCellAccess(0, southGate, false, false), "barred south gate advertises adjacent use despite its wall tile");
+            AssertEqual(WorldMapCellAccessKind.EnemyOccupied, ExplorationReadabilityRules.ClassifyCellAccess(1, null, false, true), "mobile threats outrank ground presentation");
+            AssertEqual(true, ExplorationReadabilityRules.IsWalkableAccess(WorldMapCellAccessKind.SoftScenery), "soft scenery explicitly yields the path");
+            AssertEqual(false, ExplorationReadabilityRules.IsWalkableAccess(WorldMapCellAccessKind.UseFromBeside), "adjacent-use objects never imply overlap");
+            AssertEqual(WorldMapMovementCueKind.OpenTick, ExplorationReadabilityRules.MovementCueKind(WorldMapCellAccessKind.WalkableFeature), "walkable features use an open cue shape");
+            AssertEqual(WorldMapMovementCueKind.UseBracket, ExplorationReadabilityRules.MovementCueKind(WorldMapCellAccessKind.UseFromBeside), "adjacent-use objects use a bracket cue shape");
+            AssertEqual(WorldMapMovementCueKind.StopBar, ExplorationReadabilityRules.MovementCueKind(WorldMapCellAccessKind.SolidObstacle), "solid blockers use a stop-bar cue shape");
+            AssertEqual(WorldMapMovementCueKind.ThreatDoubleBar, ExplorationReadabilityRules.MovementCueKind(WorldMapCellAccessKind.EnemyOccupied), "enemy-occupied cells use a distinct double cue shape");
             AssertEqual(true, ExplorationReadabilityRules.ShouldPreferCalmGroundUnderFocus(1, false), "near-party ground prefers calm variants");
             AssertEqual(true, ExplorationReadabilityRules.ShouldPreferCalmGroundUnderFocus(8, true), "object ground prefers calm variants");
             AssertEqual(false, ExplorationReadabilityRules.ShouldPreferCalmGroundUnderFocus(8, false), "distant empty ground can use textured variants");
@@ -2143,9 +2194,10 @@ namespace AshenHalls.Editor
             AssertEqual(true, WorldAreaSetpiecePresentationRules.MapScale(true) >= 2f, "region-map set-pieces remain prominent landmarks");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.BaselineFraction(false) > WorldAreaSetpiecePresentationRules.BaselineFraction(true), "local set-pieces keep their authored ground baseline");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.BaselineFraction(true) > 0.70f && WorldAreaSetpiecePresentationRules.BaselineFraction(false) < 0.90f, "set-piece baselines stay inside their map cells");
+            AssertEqual(true, WorldAreaSetpiecePresentationRules.PreserveScaleAtViewportEdge, "edge-crossing set-pieces preserve world-space scale and clip to the map");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.FitsViewport(12f, 12f, 28f, 28f, 0f, 0f, 40f, 40f, 2f), "fully visible authored set-pieces keep their large presentation");
-            AssertEqual(false, WorldAreaSetpiecePresentationRules.FitsViewport(-2f, 12f, 14f, 28f, 0f, 0f, 40f, 40f, 2f), "edge-crossing authored set-pieces use the compact fallback");
-            AssertEqual(false, WorldAreaSetpiecePresentationRules.FitsViewport(2f, 12f, 18f, 28f, 0f, 0f, 40f, 40f, 3f), "set-piece safe inset prevents near-edge clipping");
+            AssertEqual(false, WorldAreaSetpiecePresentationRules.FitsViewport(-2f, 12f, 14f, 28f, 0f, 0f, 40f, 40f, 2f), "edge-crossing authored set-pieces are recognized for map clipping");
+            AssertEqual(false, WorldAreaSetpiecePresentationRules.FitsViewport(2f, 12f, 18f, 28f, 0f, 0f, 40f, 40f, 3f), "set-piece safe inset recognizes near-edge clipping");
         }
 
         private static void V24WorldMapCharacterArtRulesAreStable()
@@ -2167,8 +2219,17 @@ namespace AshenHalls.Editor
             AssertEqual(6, WorldThreatHabitatPresentationRules.PresentationIndex(true, null, "demon"), "active legacy threats retain their archetype habitat fallback");
             AssertEqual(true, WorldThreatHabitatPresentationRules.DrawsBeneathRoamingThreatToken, "habitats remain below mobile patrol tokens");
             AssertEqual(true, WorldThreatHabitatPresentationRules.BottomCenterPivotY == 1f, "habitats keep a GUI bottom-center anchor");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.PreserveScaleAtViewportEdge, "edge-crossing habitats preserve world-space scale and clip to the map");
             AssertEqual(false, WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, true), "habitats stay off certified safe roads");
             AssertEqual(true, WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, false), "valid threat homes receive habitat art");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.MapScale(false, false) < WorldThreatHabitatPresentationRules.MapScale(false, true), "cleared habitats shrink into walkable aftermath");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.MapScale(true, false) < WorldThreatHabitatPresentationRules.MapScale(true, true), "region-map aftermath stays subordinate to active lairs");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.MapScale(false, true, false) < WorldThreatHabitatPresentationRules.MapScale(false, true, true), "an active lair yields visually after its patrol leaves home");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, false) < WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, true), "an unoccupied active lair becomes visibly subordinate to its roaming token");
+            AssertEqual(true, ExplorationArtRules.MidgaardBuildingFoundationWidthInCells(false) <= 1f, "local-view building ground contact matches its one-cell collision footprint");
+            AssertEqual(true, ExplorationArtRules.MidgaardBuildingFoundationWidthInCells(true) <= 1f, "region-view building ground contact matches its one-cell collision footprint");
+            AssertEqual(true, ExplorationArtRules.MidgaardBuildingSpriteScale(false) > 1f, "local-view building art may still rise beyond its collision footprint");
+            AssertEqual(true, ExplorationArtRules.MidgaardBuildingSpriteScale(true) > 1f, "region-view building silhouettes remain readable");
 
             string[] roles = { "shield", "pike", "bow", "knife", "mender", "ember", "hex", "ward" };
             for (int index = 0; index < roles.Length; index++)
@@ -2203,7 +2264,23 @@ namespace AshenHalls.Editor
             AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Threshold, false, false, false, false, false), "ambient citizens keep entrances clear");
             AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, false, true, false), "ambient citizens never become interactable-cell impostors");
             AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, false, false, true), "ambient citizens stay out of authored regional-site reservations");
-            AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, false, false, false), "suitable non-tutorial roads remain eligible for ambient citizens");
+            AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Road, false, false, false, false, false), "edge-offset passersby can inhabit ordinary non-guidance roads");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Trail, false, false, false, false, false), "ambient citizens keep trails visually clear");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Bridge, false, false, false, false, false), "ambient citizens keep bridges visually clear");
+            AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.Plaza, false, false, false, false, false), "edge-offset passersby keep ordinary plazas inhabited");
+            AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.None, false, false, false, false, false), "off-lane civic ground remains eligible for ambient life");
+            AssertEqual("Lamplighter / passing townsfolk", ExplorationCharacterArtCatalog.AmbientCitizenDisplayLabel(AmbientCitizenProfession.Lamplighter), "passersby receive natural non-interactive hover labels");
+            AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenPadding(true) > ExplorationCharacterArtCatalog.ExteriorCitizenPadding(false), "region-map passersby occupy less of their cell");
+            AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, false) < 0.80f, "local passersby remain visibly behind named actors");
+            AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, true) < ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, false), "nearby passersby fade as they yield the path");
+            AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenYieldsToParty(5, 4, 4, 4), "orthogonally adjacent passersby yield to the party");
+            AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenYieldsToParty(4, 4, 4, 4), "overlapped passersby finish stepping aside instead of popping out");
+            AssertEqual(false, ExplorationCharacterArtCatalog.ExteriorCitizenYieldsToParty(5, 5, 4, 4), "diagonal passersby do not pretend to occupy a movement target");
+            float citizenOffset = ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells("Wharf Market", 9471, 23, 17, 12, 12);
+            AssertEqual(citizenOffset, ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells("Wharf Market", 9471, 23, 17, 12, 12), "passerby edge placement is deterministic");
+            AssertEqual(true, Math.Abs(citizenOffset) >= 0.12f && Math.Abs(citizenOffset) <= 0.18f, "passersby stay near a cell edge without leaving their walkable cell");
+            float overlapOffset = ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells("Wharf Market", 9471, 23, 17, 23, 17);
+            AssertEqual(true, Math.Abs(overlapOffset) >= 0.15f && Math.Abs(overlapOffset) <= ExplorationCharacterArtCatalog.ExteriorCitizenPadding(false), "an overlapped passerby completes a visible side-step without spilling into an adjacent cell");
         }
 
         private static void ExplorationMiniMapPresentationRulesReserveSemanticMarkers()
@@ -2228,16 +2305,16 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.8.0", VersionInfo.PackageVersion, "package version matches the v2.8 release");
+            AssertEqual("v2.9.0", VersionInfo.PackageVersion, "package version matches the v2.9 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
-            AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
-            AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
+            AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
+            AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
             AssertEqual("lightning-spell-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.LightningSpellIconAtlas, "approved v1.97 lightning spell atlas pin");
             AssertEqual("power-book-state-icon-atlas-runtime-v1.97.0.png", RuntimeArtManifest.PowerBookStateIconAtlas, "approved v1.97 power-book state atlas pin");
             AssertEqual("combat-command-icon-atlas-runtime-v1.99.0.png", RuntimeArtManifest.CombatCommandIconAtlas, "approved v1.99 combat command atlas pin");
             AssertEqual("magic-ui-atlas-runtime-v1.31.0.png", RuntimeArtManifest.MagicUiAtlas, "approved v1.31 magic UI atlas pin");
             AssertEqual("spell-animation-atlas-runtime-v1.49.0.png", RuntimeArtManifest.SpellAnimationAtlas, "approved v1.49 spell animation atlas pin");
-            AssertEqual("combat-spell-effects-atlas-runtime-v0.73.png", RuntimeArtManifest.EpicSpellEffectsAtlas, "approved epic spell effects atlas pin");
+            AssertEqual("combat-spell-effects-atlas-runtime-v2.9.0.png", RuntimeArtManifest.EpicSpellEffectsAtlas, "approved v2.9 epic spell effects atlas pin");
             AssertEqual("title-backdrop-runtime-v2.4.0.png", RuntimeArtManifest.TavernBackdrop, "approved v2.4 Grand Hearth title backdrop pin");
             AssertEqual("tavern-ui-atlas-runtime-v1.5.9.png", RuntimeArtManifest.TavernUiAtlas, "approved v1.5.9 Grand Hearth relic atlas pin");
             AssertEqual("midgaard-gate-atlas-runtime-v1.93.0.png", RuntimeArtManifest.MidgaardGateAtlas, "approved v1.93 gate atlas pin");
@@ -2279,7 +2356,7 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
             AssertEqual(48, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
@@ -4016,6 +4093,100 @@ namespace AshenHalls.Editor
             AssertEqual(-1, freshPress.Direction, "a fresh press still moves exactly once immediately");
         }
 
+        private static void V29CombatPresentationPolishRulesStayStable()
+        {
+            AssertEqual(
+                false,
+                CombatAbilityModalPointerRules.ShouldCommitPreview("fireball", "spark", true, 10f, 10.05f),
+                "pointer preview waits through its hover dwell");
+            AssertEqual(
+                true,
+                CombatAbilityModalPointerRules.ShouldCommitPreview("fireball", "spark", true, 10f, 10.20f),
+                "pointer preview commits after a stable hover");
+            AssertEqual(
+                false,
+                CombatAbilityModalPointerRules.ShouldCommitPreview("fireball", "spark", false, 10f, 10.20f),
+                "pointer exit cancels a pending preview");
+            AssertEqual(
+                false,
+                CombatAbilityModalPointerRules.ShouldCommitPreview("spark", "spark", true, 10f, 10.20f),
+                "hovering the selected power cannot create a second selection rail");
+
+            AssertEqual(
+                CombatHudCommandStyleRules.ShootCommandAtlasIndex,
+                CombatHudCommandStyleRules.AttackCommandAtlasIndex(true, false),
+                "an unengaged ranged attack uses the bow command icon");
+            AssertEqual(
+                CombatIconCatalog.CombatCommandAttackIndex,
+                CombatHudCommandStyleRules.AttackCommandAtlasIndex(true, true),
+                "an engaged ranged combatant uses the melee attack icon");
+            AssertEqual(
+                CombatIconCatalog.CombatCommandAttackIndex,
+                CombatHudCommandStyleRules.AttackCommandAtlasIndex(false, false),
+                "a melee combatant keeps the sword command icon");
+
+            CombatHudCommandView blocked = new CombatHudCommandView
+            {
+                Enabled = false,
+                Blocked = true,
+                DisabledReason = "Out of range."
+            };
+            CombatHudCommandView armed = new CombatHudCommandView
+            {
+                Enabled = true,
+                Armed = true,
+                SubLabel = "Choose a target"
+            };
+            CombatHudCommandView promoted = new CombatHudCommandView
+            {
+                Enabled = true,
+                Promoted = true
+            };
+            AssertEqual(CombatHudCommandVisualState.Blocked, CombatHudCommandStyleRules.Resolve(blocked), "disabled combat commands resolve to blocked styling");
+            AssertEqual("BLOCK", CombatHudCommandStyleRules.StateTag(CombatHudCommandStyleRules.Resolve(blocked)), "blocked command receives a compact state tag");
+            AssertEqual(true, CombatHudCommandStyleRules.SecondaryLine(blocked).StartsWith("BLOCKED", StringComparison.Ordinal), "blocked command explains why it cannot be used");
+            AssertEqual(CombatHudCommandVisualState.Armed, CombatHudCommandStyleRules.Resolve(armed), "armed targeting owns the strongest command state");
+            AssertEqual("ARMED", CombatHudCommandStyleRules.StateTag(CombatHudCommandStyleRules.Resolve(armed)), "armed command receives a targeting tag");
+            AssertEqual("NEXT", CombatHudCommandStyleRules.StateTag(CombatHudCommandStyleRules.Resolve(promoted)), "promoted end-turn command advertises the next combatant");
+
+            AssertEqual(
+                MusicDirectorRules.CombatDrow,
+                CombatMusicPresentationRules.StableBaseTrack("", MusicDirectorRules.CombatDrow),
+                "combat establishes one encounter music identity");
+            AssertEqual(
+                MusicDirectorRules.CombatBoss,
+                CombatMusicPresentationRules.StableBaseTrack(MusicDirectorRules.CombatGeneric, MusicDirectorRules.CombatBoss),
+                "a boss reveal may escalate an ordinary encounter score once");
+            AssertEqual(
+                MusicDirectorRules.CombatDrow,
+                CombatMusicPresentationRules.StableBaseTrack(MusicDirectorRules.CombatGeneric, MusicDirectorRules.CombatDrow),
+                "the first authored faction score may replace a bootstrap generic cue");
+            AssertEqual(
+                MusicDirectorRules.CombatDrow,
+                CombatMusicPresentationRules.StableBaseTrack(MusicDirectorRules.CombatDrow, MusicDirectorRules.CombatKobold),
+                "later roster changes cannot churn an established faction score");
+            AssertEqual(
+                MusicDirectorRules.CombatBoss,
+                CombatMusicPresentationRules.StableBaseTrack(MusicDirectorRules.CombatBoss, MusicDirectorRules.CombatGeneric),
+                "boss music cannot be downgraded by later roster changes");
+            AssertEqual(false, CombatMusicPresentationRules.IsRecoveredPartyHealth(0, 40), "a defeated party cannot be misclassified as recovered");
+            AssertEqual(false, CombatMusicPresentationRules.ShouldEnterLastStand(MusicDirectorRules.CombatGeneric, false, 10, 40, 0.50f, 8f), "last-stand music waits for sustained danger");
+            AssertEqual(false, CombatMusicPresentationRules.ShouldEnterLastStand(MusicDirectorRules.CombatGeneric, false, 10, 40, 1.20f, 5f), "last-stand music respects the track dwell floor");
+            AssertEqual(true, CombatMusicPresentationRules.ShouldEnterLastStand(MusicDirectorRules.CombatGeneric, false, 10, 40, 1.20f, 7f), "sustained critical health enters last-stand music after dwell");
+            AssertEqual(false, CombatMusicPresentationRules.ShouldEnterLastStand(MusicDirectorRules.CombatBoss, false, 10, 40, 2f, 8f), "boss encounters retain their authored score at critical health");
+            AssertEqual(false, CombatMusicPresentationRules.ShouldExitLastStand(true, 22, 40, 1f, 8f), "last-stand recovery uses exit hysteresis");
+            AssertEqual(true, CombatMusicPresentationRules.ShouldExitLastStand(true, 22, 40, 2.5f, 8f), "sustained recovery exits last-stand music cleanly");
+
+            Rect actor = new Rect(100f, 50f, 80f, 100f);
+            CombatSpriteStageGeometry stage = CombatSpriteStageRules.GeometryFor(actor);
+            AssertEqual(true, stage.Footprint.xMin >= actor.xMin && stage.Footprint.xMax <= actor.xMax, "sprite footprint remains inside its tactical cell");
+            AssertEqual(true, stage.Footlight.xMin >= actor.xMin && stage.Footlight.xMax <= actor.xMax, "sprite footlight remains local to the combatant");
+            AssertEqual(true, stage.LeftRim.xMin >= actor.xMin && stage.RightRim.xMax <= actor.xMax, "faction rim lighting remains inside the sprite stage");
+            AssertEqual(true, stage.ActiveTick.width > stage.ActiveTickCore.width && stage.ActiveTick.height > 0f, "active-turn tick has a readable outer and inner mark");
+            AssertEqual(0.64f, CombatSpriteStageRules.ActivePulse(0f, true), "Reduced Motion keeps a stable active-unit cue");
+            AssertEqual(true, CombatSpriteStageRules.ActivePulse(0f, false) != CombatSpriteStageRules.ActivePulse(0.5f, false), "standard active-unit cue pulses subtly over time");
+        }
+
         private static void CombatTargetHighlightsRequireAnArmedPower()
         {
             AssertEqual(
@@ -4090,10 +4261,10 @@ namespace AshenHalls.Editor
             HashSet<string> validTargets = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "ally", "enemy", "self", "tile" };
             HashSet<string> validEffects = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase) { "chain", "cure", "damage", "dispel", "drain", "heal", "status", "summon", "tempest", "terrain", "teleport", "thunderclap", "transform" };
 
-            AssertEqual(4, FormulaCatalog.RequiredLevel(thunderStep), "Thunder Step unlock level");
-            AssertEqual(6, FormulaCatalog.RequiredLevel(tempest), "Arcane Tempest unlock level");
-            AssertEqual(6, FormulaCatalog.RequiredLevel(ascendance), "Abyssal Ascendance unlock level");
-            AssertEqual(3, FormulaCatalog.RequiredLevel(riftSeal), "Rift Seal unlock level");
+            AssertEqual(16, FormulaCatalog.RequiredLevel(thunderStep), "Thunder Step unlock level");
+            AssertEqual(20, FormulaCatalog.RequiredLevel(tempest), "Arcane Tempest unlock level");
+            AssertEqual(18, FormulaCatalog.RequiredLevel(ascendance), "Abyssal Ascendance unlock level");
+            AssertEqual(10, FormulaCatalog.RequiredLevel(riftSeal), "Rift Seal unlock level");
             AssertEqual("teleport", thunderStep.Effect, "Thunder Step has an explicit teleport effect");
             AssertEqual("transform", ascendance.Effect, "Abyssal Ascendance has an explicit transform effect");
             AssertEqual("dispel", riftSeal.Effect, "Rift Seal has an explicit dispel effect");
@@ -4108,7 +4279,7 @@ namespace AshenHalls.Editor
             AssertEqual(true, CombatImpactRules.ForFormula(ascendance).AftershockVolume >= 0.60f, "Abyssal Ascendance owns a layered transformation aftershock");
             AssertEqual("resonance", CombatImpactRules.ForFormula(riftSeal).AftershockSfx, "Rift Seal owns a sealing resonance layer");
             AssertEqual(true, CombatIconCatalog.SignatureSpellIndex("VST") >= 0 && CombatIconCatalog.SignatureSpellIndex("DFA") >= 0, "advanced powers have runtime icon placeholders");
-            AssertEqual(false, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "DFA"), "late pact transformation stays outside the first sewer slice");
+            AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "DFA"), "late pact transformation remains in the level-20 progression slice");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.FullPrototype, "DFA"), "late pact transformation is available in prototype testing");
             AssertEqual(true, FormulaCatalog.All.All(formula => validTargets.Contains(formula.Target ?? "")), "every formula target passes the runtime catalog contract");
             AssertEqual(true, FormulaCatalog.All.All(formula => validEffects.Contains(formula.Effect ?? "")), "every formula effect passes the runtime catalog contract");
@@ -4132,7 +4303,7 @@ namespace AshenHalls.Editor
                 "Rift Bolt fills the pact starter-damage gap");
             AssertEqual(true,
                 riftStep.Name == "Rift Step"
-                && FormulaCatalog.RequiredLevel(riftStep) == 4
+                && FormulaCatalog.RequiredLevel(riftStep) == 10
                 && riftStep.School == "pact"
                 && riftStep.Skill == "hex"
                 && riftStep.Mana == 6
@@ -4141,9 +4312,9 @@ namespace AshenHalls.Editor
                 && riftStep.Effect == "teleport"
                 && riftStep.DamageType == "death"
                 && riftStep.Arc,
-                "Rift Step fills the level-four pact mobility gap");
+                "Rift Step fills the level-ten pact mobility tier");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "RBT"), "Rift Bolt is available to the sewer-slice warlock");
-            AssertEqual(false, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "VRS"), "Rift Step remains a later progression power");
+            AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "VRS"), "Rift Step remains a later level-20 progression power");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.FullPrototype, "VRS"), "Rift Step is available in the full prototype");
             AssertEqual(CombatPowerFootprintKind.Single, CombatPowerTargetingRules.ForFormula(riftBolt).Kind, "Rift Bolt is a direct target spell");
             AssertEqual("STEP|Teleport destination", CombatPowerTargetingRules.ForFormula(riftStep).BoardLabel + "|" + CombatPowerTargetingRules.ForFormula(riftStep).ModalLabel, "Rift Step previews its open destination");
@@ -4226,7 +4397,7 @@ namespace AshenHalls.Editor
                 && !arcSpark.Arc
                 && !arcSpark.Splash, "Arc Spark is the reliable direct starter shock");
             AssertEqual("Thunderclap", thunderclap.Name, "self-area lightning spell name");
-            AssertEqual(true, FormulaCatalog.RequiredLevel(thunderclap) == 2
+            AssertEqual(true, FormulaCatalog.RequiredLevel(thunderclap) == 8
                 && thunderclap.Mana == 6
                 && thunderclap.Range == 0
                 && thunderclap.Target == "self"
@@ -4234,7 +4405,7 @@ namespace AshenHalls.Editor
                 && thunderclap.DamageType == "shock"
                 && thunderclap.Power == 8, "Thunderclap is the adjacent push-and-collision spell");
             AssertEqual("Chain Lightning", chainLightning.Name, "chain lightning spell name");
-            AssertEqual(true, FormulaCatalog.RequiredLevel(chainLightning) == 3
+            AssertEqual(true, FormulaCatalog.RequiredLevel(chainLightning) == 12
                 && chainLightning.Mana == 9
                 && chainLightning.Range == 6
                 && chainLightning.Target == "enemy"
@@ -4243,7 +4414,7 @@ namespace AshenHalls.Editor
                 && chainLightning.Power == 14
                 && chainLightning.Arc, "Chain Lightning is the four-target formation spell");
             AssertEqual("Thunder Step", thunderStep.Name, "teleport lightning spell name");
-            AssertEqual(true, FormulaCatalog.RequiredLevel(thunderStep) == 4
+            AssertEqual(true, FormulaCatalog.RequiredLevel(thunderStep) == 16
                 && thunderStep.Mana == 8
                 && thunderStep.Range == 6
                 && thunderStep.Target == "tile"
@@ -4252,7 +4423,7 @@ namespace AshenHalls.Editor
                 && thunderStep.Power == 8
                 && thunderStep.Arc, "Thunder Step is the damaging arrival teleport");
             AssertEqual("Arcane Tempest", tempest.Name, "elder lightning spell name");
-            AssertEqual(true, FormulaCatalog.RequiredLevel(tempest) == 6
+            AssertEqual(true, FormulaCatalog.RequiredLevel(tempest) == 20
                 && tempest.Mana == 14
                 && tempest.Range == 6
                 && tempest.Target == "enemy"
@@ -4404,6 +4575,12 @@ namespace AshenHalls.Editor
             AssertEqual(true, fireballPlan.SecondaryOpacity > 0.30f && fireballPlan.SecondaryOpacity <= 0.58f, "epic secondary art remains visible without washing out sprites");
             AssertEqual(false, CombatPowerVisualRules.ImpactArtPlan("fireball", 2, 0.25f).HasSecondary, "ordinary fireball impact remains single-layered");
             AssertEqual(false, CombatPowerVisualRules.ImpactArtPlan("whirlwindimpact", 3, 0.25f).HasSecondary, "martial signature render plans never borrow spell overlays");
+            CombatImpactArtPlan reducedFireballPlan = CombatPowerVisualRules.ReducedMotionImpactArtPlan("fireball", 3);
+            AssertEqual(3, reducedFireballPlan.PrimaryCell, "Reduced Motion pins Fireball to one impact frame");
+            AssertEqual(
+                reducedFireballPlan.PrimaryCell,
+                CombatPowerVisualRules.ReducedMotionImpactArtPlan("fireball", 3).PrimaryCell,
+                "Reduced Motion spell stamps remain frame-stable");
 
             FormulaDef webSnare = FormulaCatalog.All.First(formula => formula.Code == "WBK");
             FormulaDef sleep = FormulaCatalog.All.First(formula => formula.Code == "RMS");
@@ -4412,6 +4589,11 @@ namespace AshenHalls.Editor
             FormulaDef bind = FormulaCatalog.All.First(formula => formula.Code == "RKW");
             FormulaDef mindBreak = FormulaCatalog.All.First(formula => formula.Code == "RMB");
             FormulaDef dreamSmoke = FormulaCatalog.All.First(formula => formula.Code == "DSM");
+            FormulaDef dawnPulse = FormulaCatalog.All.First(formula => formula.Code == "DWP");
+            FormulaDef cinderstorm = FormulaCatalog.All.First(formula => formula.Code == "CNS");
+            FormulaDef graveHook = FormulaCatalog.All.First(formula => formula.Code == "GRH");
+            FormulaDef soulVeil = FormulaCatalog.All.First(formula => formula.Code == "SLV");
+            FormulaDef ashenCurse = FormulaCatalog.All.First(formula => formula.Code == "ACR");
             AssertEqual("websnare", CombatPowerVisualRules.ImpactKindForFormula(webSnare, "fieldsnare"), "Web Snare keeps semantic impact art even when audio is generic");
             AssertEqual("sleepmist", CombatPowerVisualRules.ImpactKindForFormula(sleep, "spell"), "Sleep keeps semantic impact art");
             AssertEqual("voidhex", CombatPowerVisualRules.ImpactKindForFormula(weaken, "spell"), "Weaken keeps semantic impact art");
@@ -4419,6 +4601,26 @@ namespace AshenHalls.Editor
             AssertEqual("websnare", CombatPowerVisualRules.ImpactKindForFormula(bind, "spell"), "Bind keeps semantic impact art");
             AssertEqual("voidhex", CombatPowerVisualRules.ImpactKindForFormula(mindBreak, "spell"), "Mind Break keeps semantic impact art");
             AssertEqual("sleepmist", CombatPowerVisualRules.ImpactKindForFormula(dreamSmoke, "spell"), "Dream Smoke keeps semantic impact art");
+            AssertEqual("dawnpulse", CombatPowerVisualRules.ImpactKindForFormula(dawnPulse, "spell"), "Dawn Pulse keeps its holy wave identity");
+            AssertEqual("cinderstorm", CombatPowerVisualRules.ImpactKindForFormula(cinderstorm, "spell"), "Cinderstorm keeps its fire-field identity");
+            AssertEqual("gravehook", CombatPowerVisualRules.ImpactKindForFormula(graveHook, "spell"), "Grave Hook keeps its void tether identity");
+            AssertEqual("soulveil", CombatPowerVisualRules.ImpactKindForFormula(soulVeil, "spell"), "Soul Veil keeps its protective void identity");
+            AssertEqual("ashencurse", CombatPowerVisualRules.ImpactKindForFormula(ashenCurse, "spell"), "Ashen Curse keeps its cursed-fire identity");
+            AssertEqual(CombatPowerVisualMotif.Holy, CombatPowerVisualRules.MotifFor("dawnpulse"), "Dawn Pulse uses the holy motif");
+            AssertEqual(CombatPowerVisualMotif.Fire, CombatPowerVisualRules.MotifFor("cinderstorm"), "Cinderstorm uses the fire motif");
+            AssertEqual(CombatPowerVisualMotif.Void, CombatPowerVisualRules.MotifFor("gravehook"), "Grave Hook uses the void motif");
+            AssertEqual(CombatPowerVisualMotif.Void, CombatPowerVisualRules.MotifFor("soulveil"), "Soul Veil uses the void motif");
+            AssertEqual(CombatPowerVisualMotif.Fire, CombatPowerVisualRules.MotifFor("ashencurse"), "Ashen Curse uses the fire motif");
+            AssertEqual("12,3,11,11,3", string.Join(",", new[] { "dawnpulse", "cinderstorm", "gravehook", "soulveil", "ashencurse" }.Select(CombatPowerVisualRules.EffectAtlasCell)), "new early spells use their approved effect-atlas cells");
+            AssertEqual(CombatPowerVisualMotif.Guard, CombatPowerVisualRules.MotifFor("sunder"), "Sunder uses a guard-breaking motif");
+            AssertEqual(CombatPowerVisualMotif.Shadow, CombatPowerVisualRules.MotifFor("shadowstep"), "Shadowstep uses a shadow motif");
+            AssertEqual(CombatPowerVisualMotif.Volley, CombatPowerVisualRules.MotifFor("quickshot"), "Quick Shot uses a projectile motif");
+            AssertEqual(CombatPowerVisualMotif.Guard, CombatPowerVisualRules.MotifFor(CombatImpactRules.ForAbility(AbilityCatalog.For("sunder")).ImpactSfx), "Sunder production impact routes to the guard-breaking motif");
+            AssertEqual(CombatPowerVisualMotif.Shadow, CombatPowerVisualRules.MotifFor(CombatImpactRules.ForAbility(AbilityCatalog.For("shadowstep")).ImpactSfx), "Shadowstep production impact routes to the shadow motif");
+            AssertEqual(CombatPowerVisualMotif.Volley, CombatPowerVisualRules.MotifFor(CombatImpactRules.ForAbility(AbilityCatalog.For("quickshot")).ImpactSfx), "Quick Shot production impact routes to the projectile motif");
+            AssertEqual("2,2,2", string.Join(",", new[] { "sunder", "shadowstep", "quickshot" }.Select(CombatPowerPresentationRules.AbilityIntensity)), "new early skills receive strong but bounded presentation");
+            AssertEqual(true, CombatPowerVisualRules.ReducedMotionStampScale(CombatPowerVisualMotif.Fire, 3) <= 1.10f, "Reduced Motion fire stamp stays inside its tactical cell");
+            AssertEqual(true, CombatPowerVisualRules.SemanticImpactOverlayOpacity(CombatPowerVisualMotif.Shadow, 2, true, true) >= 0.80f, "Reduced Motion preserves a readable martial impact mark");
             AssertEqual("ember", CombatPowerVisualRules.AftermathParticleKind(CombatPowerVisualMotif.Fire), "fire aftermath sheds embers");
             AssertEqual("shard", CombatPowerVisualRules.AftermathParticleKind(CombatPowerVisualMotif.Frost), "frost aftermath sheds shards");
             AssertEqual("streak", CombatPowerVisualRules.AftermathParticleKind(CombatPowerVisualMotif.Volley), "volley aftermath remains martial");
@@ -4431,6 +4633,13 @@ namespace AshenHalls.Editor
             {
                 float opacity = CombatPowerVisualRules.EffectOpacity(motif);
                 AssertEqual(true, opacity >= 0.35f && opacity <= 0.80f, "combat effect opacity remains art-first for " + motif);
+                float reducedOpacity = CombatPowerVisualRules.SemanticImpactOverlayOpacity(motif, 3, true, true);
+                AssertEqual(motif == CombatPowerVisualMotif.Generic, reducedOpacity == 0f, "Reduced Motion semantic overlay contract remains explicit for " + motif);
+                for (int intensity = 1; intensity <= 3; intensity++)
+                {
+                    float reducedScale = CombatPowerVisualRules.ReducedMotionStampScale(motif, intensity);
+                    AssertEqual(true, reducedScale >= 0.86f && reducedScale <= 1.10f, "Reduced Motion stamp stays local for " + motif + " tier " + intensity);
+                }
             }
         }
 
@@ -4673,7 +4882,7 @@ namespace AshenHalls.Editor
                     ObjectType.TrainingGround,
                     "ambforge",
                     "ambgrove",
-                    "green-shrine-road",
+                    MusicDirectorRules.GreenShrineTrainingRing,
                     "guard"),
                 new WorldSitePresentationProfile(
                     WorldSitePresentationRules.OldQuarryForge,
@@ -4681,7 +4890,7 @@ namespace AshenHalls.Editor
                     ObjectType.ForgeSite,
                     "ambforge",
                     "ambstone",
-                    "old-quarry",
+                    MusicDirectorRules.OldQuarryForge,
                     "servicearmor"),
                 new WorldSitePresentationProfile(
                     WorldSitePresentationRules.GloamDeepCrypt,
@@ -4689,7 +4898,7 @@ namespace AshenHalls.Editor
                     ObjectType.DeepCrypt,
                     "ambruin",
                     "ambcave",
-                    MusicDirectorRules.ForgottenRuins,
+                    MusicDirectorRules.GloamDeepCrypt,
                     "door"),
                 new WorldSitePresentationProfile(
                     WorldSitePresentationRules.GlassLoreLibrary,
@@ -4697,7 +4906,7 @@ namespace AshenHalls.Editor
                     ObjectType.LoreLibrary,
                     "ambglass",
                     "ambruin",
-                    MusicDirectorRules.ArcaneThreshold,
+                    MusicDirectorRules.GlassLoreLibrary,
                     "formula"),
                 new WorldSitePresentationProfile(
                     WorldSitePresentationRules.DuskMarketHideout,
@@ -4705,7 +4914,7 @@ namespace AshenHalls.Editor
                     ObjectType.FactionCamp,
                     "ambdrum",
                     "ambcamp",
-                    MusicDirectorRules.FactionCamp,
+                    MusicDirectorRules.DuskMarketHideout,
                     "ambush"),
                 new WorldSitePresentationProfile(
                     WorldSitePresentationRules.RedGateSeal,
@@ -4713,7 +4922,7 @@ namespace AshenHalls.Editor
                     ObjectType.PortalSeal,
                     "ambgate",
                     "ambglass",
-                    "red-gate",
+                    MusicDirectorRules.RedGateSeal,
                     "riftseal"),
                 new WorldSitePresentationProfile(
                     WorldSitePresentationRules.SaltCisternGate,
@@ -4721,7 +4930,7 @@ namespace AshenHalls.Editor
                     ObjectType.DungeonGate,
                     "ambdrip",
                     "ambcave",
-                    MusicDirectorRules.UnderstoneThreshold,
+                    MusicDirectorRules.SaltCisternGate,
                     "gateopen"),
                 new WorldSitePresentationProfile(
                     WorldSitePresentationRules.AshFenAncientGrove,
@@ -4729,7 +4938,7 @@ namespace AshenHalls.Editor
                     ObjectType.AncientGrove,
                     "ambgrove",
                     "ambfen",
-                    MusicDirectorRules.AncientGrove,
+                    MusicDirectorRules.AshFenAncientGrove,
                     "castnature")
             };
 
@@ -4881,6 +5090,8 @@ namespace AshenHalls.Editor
 
         private static void AdaptiveMusicDirectorRoutesDistinctContexts()
         {
+            AssertEqual(MusicDirectorRules.Title, MusicDirectorRules.Tavern, "title mode retains its save-stable Tavern route key");
+            AssertEqual(MusicDirectorRules.GrandHearth, MusicDirectorRules.ExploreTrackKey("midgaard-grand-hearth", ObjectType.Tavern, true, false), "Grand Hearth receives the quieter title-theme reprise");
             AssertEqual(MusicDirectorRules.MidgaardTemple, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.Temple, true, false), "Temple Square receives its own score");
             AssertEqual(MusicDirectorRules.MidgaardMarket, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.MarketClerk, true, false), "Market Square receives its own score");
             AssertEqual(MusicDirectorRules.MidgaardTavernLane, MusicDirectorRules.ExploreTrackKey("midgaard-city", ObjectType.Tavern, true, false), "Tavern Lane receives its own score");
@@ -4937,9 +5148,9 @@ namespace AshenHalls.Editor
                 .SelectMany(AbilityCatalog.IdsForClass)
                 .Select(id => CombatImpactRules.ForAbility(AbilityCatalog.For(id)))
                 .ToList();
-            AssertEqual(22, abilityProfiles.Count, "all martial and demon-form abilities enter the shared impact pipeline");
+            AssertEqual(25, abilityProfiles.Count, "all martial and demon-form abilities enter the shared impact pipeline");
             AssertEqual(true, abilityProfiles.All(profile => profile.CastSfx != "ui" && !string.IsNullOrWhiteSpace(profile.ImpactSfx)), "every martial ability has intentional cast and impact audio");
-            AssertEqual(22, abilityProfiles.Select(profile => profile.CastSfx + "|" + profile.ImpactSfx + "|" + profile.AftershockSfx).Distinct().Count(), "martial and demon-form abilities keep distinct audiovisual signatures");
+            AssertEqual(25, abilityProfiles.Select(profile => profile.CastSfx + "|" + profile.ImpactSfx + "|" + profile.AftershockSfx).Distinct().Count(), "martial and demon-form abilities keep distinct audiovisual signatures");
 
             float leftPan = CombatAudioMixRules.StereoPanForColumn(0, 12);
             float centerPan = CombatAudioMixRules.StereoPanForColumn(5, 12);
@@ -4994,6 +5205,32 @@ namespace AshenHalls.Editor
             AssertEqual(true, CombatAudioMixRules.ShouldLayerReaction(1), "terrain reaction receives a resonance layer");
             AssertEqual(true, CombatAudioMixRules.MusicDuckDuration(fireball) >= 0.36f, "fireball duck has a readable minimum duration");
             AssertEqual(true, CombatAudioMixRules.MusicDuckDuration(meteor) <= 0.82f, "epic music duck remains brief");
+            AssertEqual(16, CombatAudioMixRules.ScheduledSfxCapacity, "scheduled combat audio owns a bounded sixteen-cue queue");
+            AssertEqual(
+                true,
+                CombatAudioMixRules.ShouldCoalesceScheduledCue("shock", 2f, 0.10f, CombatAudioMixRules.ScheduledSfxPrioritySupporting, "SHOCK", 2.02f, 0.20f, CombatAudioMixRules.ScheduledSfxPrioritySupporting),
+                "near-identical supporting cues coalesce before crowding the mix");
+            AssertEqual(
+                false,
+                CombatAudioMixRules.ShouldCoalesceScheduledCue("impact", 2f, 0f, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact, "impact", 2.01f, 0f, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact),
+                "primary impacts never disappear into coalescing");
+            AssertEqual(
+                false,
+                CombatAudioMixRules.ShouldCoalesceScheduledCue("shock", 2f, -0.50f, CombatAudioMixRules.ScheduledSfxPrioritySupporting, "shock", 2.02f, 0.50f, CombatAudioMixRules.ScheduledSfxPrioritySupporting),
+                "spatially separate impacts remain audible");
+
+            CombatImpactProfile tempest = CombatImpactRules.ForFormula(FormulaCatalog.All.First(formula => formula.Code == "AST"));
+            CombatImpactProfile chainLightning = CombatImpactRules.ForFormula(FormulaCatalog.All.First(formula => formula.Code == "CLT"));
+            CombatImpactProfile thunderclap = CombatImpactRules.ForFormula(FormulaCatalog.All.First(formula => formula.Code == "RSG"));
+            AssertEqual(3, CombatAudioMixRules.SecondaryImpactBeatCount(tempest, 0), "Arcane Tempest receives three bounded secondary thunder beats");
+            AssertEqual(2, CombatAudioMixRules.SecondaryImpactBeatCount(meteor, 0), "Meteor receives two bounded secondary crash beats");
+            AssertEqual(2, CombatAudioMixRules.SecondaryImpactBeatCount(chainLightning, 0), "Chain Lightning receives two bounded secondary shock beats");
+            AssertEqual(2, CombatAudioMixRules.SecondaryImpactBeatCount(thunderclap, 0), "Thunderclap receives a short rolling shock tail");
+            AssertEqual(1, CombatAudioMixRules.SecondaryImpactBeatCount(fireball, 1), "an epic terrain reaction receives one supporting impact echo");
+            AssertEqual(true, CombatAudioMixRules.SecondaryImpactDelay(tempest, 0) < CombatAudioMixRules.SecondaryImpactDelay(tempest, 2), "secondary impact beats remain ordered");
+            AssertEqual(true, CombatAudioMixRules.SecondaryImpactDelay(tempest, 2) <= 0.60f, "secondary impact beats finish inside the combat mix window");
+            AssertEqual(true, CombatAudioMixRules.SecondaryImpactVolume(tempest, 2) < CombatAudioMixRules.SecondaryImpactVolume(tempest, 0), "secondary impacts taper beneath the primary hit");
+            AssertEqual(true, Math.Abs(CombatAudioMixRules.SecondaryImpactPan(0f, 0) - CombatAudioMixRules.SecondaryImpactPan(0f, 1)) > 0.20f, "secondary impacts spread across the battlefield mix");
         }
 
         private static void WeaponFeedbackProfilesStayDistinctAndBounded()
@@ -6300,7 +6537,7 @@ namespace AshenHalls.Editor
                 true,
                 explorationHudSource.Contains("\"Leave Town Hall through the storm doors to begin the journey.\""),
                 "opening objective explicitly requires leaving Town Hall");
-            AssertEqual(MusicDirectorRules.Tavern, MusicDirectorRules.ExploreTrackKey(MidgaardInteriorRules.GrandHearthZoneId, ObjectType.Tavern, true, false), "Grand Hearth continues the title overture");
+            AssertEqual(MusicDirectorRules.GrandHearth, MusicDirectorRules.ExploreTrackKey(MidgaardInteriorRules.GrandHearthZoneId, ObjectType.Tavern, true, false), "Grand Hearth continues the title theme with its quieter in-world reprise");
             AssertEqual("ambhearth", GameAudioCueRules.AmbientFor(MidgaardInteriorRules.GrandHearthZoneId, null), "Grand Hearth uses the hearth ambience bed");
         }
 
@@ -7186,8 +7423,8 @@ namespace AshenHalls.Editor
 
         private static void SewerSliceContentSetDefinesCompleteFirstPlayPath()
         {
-            AssertEqual(16, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
-            AssertEqual(14, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice permanent and derived ability count");
+            AssertEqual(27, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
+            AssertEqual(25, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice permanent and derived ability count");
             AssertEqual(6, ContentSetCatalog.SewerSliceEnemyIds.Count, "sewer slice enemy count");
             AssertEqual(3, ContentSetCatalog.SewerSliceEncounters.Count, "sewer slice encounter count");
 
@@ -7201,7 +7438,7 @@ namespace AshenHalls.Editor
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "RKW"), "warlock bind active in sewer slice");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "IBD"), "warlock summon imp active in sewer slice");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "RBT"), "warlock Rift Bolt active in sewer slice");
-            AssertEqual(false, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "VRS"), "later Rift Step remains outside the sewer slice");
+            AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "VRS"), "later Rift Step remains in the level-20 progression slice");
             AssertEqual(
                 "RIG,RSG,CLT,VST,AST",
                 string.Join(",", ContentSetCatalog.SewerSliceFormulaCodes.Where(code => new[] { "RIG", "RSG", "CLT", "VST", "AST" }.Contains(code))),
@@ -7212,7 +7449,7 @@ namespace AshenHalls.Editor
                 AssertEqual(true, AbilityCatalog.For(id) != null, "slice ability exists " + id);
                 AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, id), "slice ability active " + id);
             }
-            AssertEqual(false, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "whirlwind"), "whirlwind hidden in sewer slice");
+            AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "whirlwind"), "whirlwind remains in the level-20 progression slice");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.FullPrototype, "whirlwind"), "whirlwind available in prototype");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "execute"), "warrior execute active in sewer slice");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "stealth"), "rogue stealth active in sewer slice");

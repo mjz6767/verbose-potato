@@ -1400,9 +1400,14 @@ namespace AshenHalls
                 if (now < flash.Start) continue;
                 float t = Mathf.Clamp01((now - flash.Start) / flash.Duration);
                 Color c = flash.Color.ToColor();
-                c.a = (1f - t) * 0.42f;
-                DrawRect(Pad(rect, rect.width * Mathf.Lerp(0.05f, 0.22f, t)), c);
-                DrawBorder(Pad(rect, rect.width * 0.08f), Color.Lerp(c, cursorWhite, 0.25f), 1);
+                bool reducedMotion = state != null && state.ReducedMotion;
+                c.a = (1f - t) * (reducedMotion ? 0.34f : 0.42f);
+                float inset = reducedMotion ? 0.14f : Mathf.Lerp(0.05f, 0.22f, t);
+                DrawRect(Pad(rect, rect.width * inset), c);
+                DrawBorder(
+                    Pad(rect, rect.width * (reducedMotion ? 0.12f : 0.08f)),
+                    Color.Lerp(c, cursorWhite, reducedMotion ? 0.18f : 0.25f),
+                    1);
             }
         }
 
@@ -2910,11 +2915,19 @@ namespace AshenHalls
         private string PartyGrowthLine()
         {
             if (state?.Party == null || state.Party.Count == 0) return "No party growth data yet.";
-            int avg = Mathf.Max(1, Mathf.RoundToInt((float)state.Party.Average(p => Mathf.Max(1, p.Level))));
-            PartyMember closest = state.Party.OrderBy(p => Mathf.Max(0, ExperienceForNextLevel(p.Level) - p.Experience)).FirstOrDefault();
+            int avg = Mathf.Clamp(
+                Mathf.RoundToInt((float)state.Party.Average(p => ProgressionRules.ClampLevel(p.Level))),
+                ProgressionRules.MinimumLevel,
+                ProgressionRules.MaximumLevel);
+            PartyMember closest = state.Party
+                .Where(p => !ProgressionRules.IsMaximumLevel(p.Level))
+                .OrderBy(p => Mathf.Max(0, ExperienceForNextLevel(p.Level) - p.Experience))
+                .FirstOrDefault();
             int unspentStats = state.Party.Sum(p => Mathf.Max(0, p.StatPoints));
             int unspentSkills = state.Party.Sum(p => Mathf.Max(0, p.SkillPoints));
-            string next = closest == null ? "" : $"{closest.Name} {Mathf.Max(0, ExperienceForNextLevel(closest.Level) - closest.Experience)} XP to L{closest.Level + 1}";
+            string next = closest == null
+                ? "MAX LEVEL"
+                : $"{closest.Name} {Mathf.Max(0, ExperienceForNextLevel(closest.Level) - closest.Experience)} XP to L{closest.Level + 1}";
             string ready = unspentStats + unspentSkills > 0
                 ? $" / I > Growth: {unspentStats} stat {unspentSkills} skill"
                 : "";
@@ -3023,26 +3036,46 @@ namespace AshenHalls
                     float duration = Mathf.Max(0.08f, echo.Duration);
                     float tImpact = Mathf.Clamp01((now - echo.ImpactAt) / duration);
                     float fade = 1f - Mathf.SmoothStep(0f, 1f, tImpact);
-                    CombatImpactArtPlan artPlan = CombatPowerVisualRules.ImpactArtPlan(echo.Kind, intensity, tImpact);
                     if (echo.StaticStamp)
                     {
-                        float stampSize = cell * 0.90f;
+                        CombatImpactArtPlan staticArtPlan = CombatPowerVisualRules.ReducedMotionImpactArtPlan(echo.Kind, intensity);
+                        float stampSize = cell * CombatPowerVisualRules.ReducedMotionStampScale(motif, intensity);
                         Rect stamp = new Rect(
                             center.x - stampSize * 0.5f,
                             center.y - stampSize * 0.5f,
                             stampSize,
                             stampSize);
-                        bool stampDrawn = artPlan.HasPrimary
+                        DrawRect(
+                            Pad(stamp, stampSize * 0.20f),
+                            Color.Lerp(accent, retroBlack, 0.58f).WithAlpha(fade * 0.22f));
+                        bool stampDrawn = staticArtPlan.HasPrimary
                             && TryDrawSpellAnimationAtlasIcon(
                                 stamp,
-                                artPlan.PrimaryCell,
-                                Color.white.WithAlpha(fade * Mathf.Min(0.86f, artPlan.PrimaryOpacity)));
+                                staticArtPlan.PrimaryCell,
+                                Color.white.WithAlpha(fade * Mathf.Min(0.86f, staticArtPlan.PrimaryOpacity)));
                         if (!stampDrawn)
                         {
                             DrawImpactBrackets(stamp, accent.WithAlpha(fade * 0.88f), Mathf.Max(2f, cell * 0.04f));
                         }
+                        float staticSemantic = CombatPowerVisualRules.SemanticImpactOverlayOpacity(
+                            motif,
+                            intensity,
+                            stampDrawn,
+                            true);
+                        if (staticSemantic > 0f)
+                        {
+                            DrawSemanticImpactMotif(
+                                motif,
+                                center,
+                                cell,
+                                0.44f,
+                                fade * staticSemantic,
+                                accent,
+                                intensity);
+                        }
                         continue;
                     }
+                    CombatImpactArtPlan artPlan = CombatPowerVisualRules.ImpactArtPlan(echo.Kind, intensity, tImpact);
                     bool secondaryArtDrawn = false;
                     if (artPlan.HasSecondary)
                     {
@@ -3094,9 +3127,21 @@ namespace AshenHalls
                         DrawBorder(ring, ringColor.WithAlpha(fade * 0.68f), intensity >= 3 ? 2 : 1);
                     }
 
-                    if (CombatPowerVisualRules.IsMartialMotif(motif) || !impactArtDrawn)
+                    float semanticOpacity = CombatPowerVisualRules.SemanticImpactOverlayOpacity(
+                        motif,
+                        intensity,
+                        impactArtDrawn,
+                        false);
+                    if (semanticOpacity > 0f)
                     {
-                        DrawSemanticImpactMotif(motif, center, cell, tImpact, fade, accent, intensity);
+                        DrawSemanticImpactMotif(
+                            motif,
+                            center,
+                            cell,
+                            tImpact,
+                            fade * semanticOpacity,
+                            accent,
+                            intensity);
                     }
                 }
             }
@@ -4190,6 +4235,7 @@ namespace AshenHalls
             if (!ability.Targeted) return "instant";
             if (ability.Id == "charge") return "rush";
             if (ability.Id == "riftpounce") return "rift";
+            if (ability.Id == "shadowstep") return "shadow";
             if (ability.Id == "volley") return "arc";
             if (IsRangerAbility(ability.Id)) return "sight";
             return "adjacent";
@@ -4250,6 +4296,8 @@ namespace AshenHalls
                     return $"Brace with guard {3 + GearGuardBonus(active)}, gain ward 2, and ward adjacent allies.";
                 case "whirlwind":
                     return $"{WhirlwindRawDamage(active)} raw physical damage{AbilityStatNote(active, ability.Id)} to every adjacent enemy.";
+                case "sunder":
+                    return $"{SunderRawDamage(active)} raw physical damage{AbilityStatNote(active, ability.Id)}; break Guard and strip up to 2 ward.";
                 case "ambush":
                     return $"{AmbushRawDamage(active, active.Stealthed > 0)} raw physical damage{AbilityStatNote(active, ability.Id)}{(active.Stealthed > 0 ? " and stun 1 from stealth" : "")}.";
                 case "throwknife":
@@ -4262,6 +4310,8 @@ namespace AshenHalls
                     return "Gain stealth 2. Enemies deprioritize this rogue and opening attacks improve.";
                 case "smokebomb":
                     return "Gain stealth 2 and fill adjacent open tiles with 3-round smoke that blocks direct sight but not movement.";
+                case "shadowstep":
+                    return $"{ShadowstepRawDamage(active, active.Stealthed > 0)} raw physical damage{AbilityStatNote(active, ability.Id)}; pass through terrain and land beside the target.";
                 case "aimedshot":
                     return $"{AimedShotRawDamage(active, null)} base raw physical damage{AbilityStatNote(active, ability.Id)}; +4 against a marked target.";
                 case "pinningshot":
@@ -4274,6 +4324,8 @@ namespace AshenHalls
                     return $"{BroadheadShotRawDamage(active)} raw physical damage{AbilityStatNote(active, ability.Id)} and bleed 3.";
                 case "disruptingshot":
                     return $"{DisruptingShotRawDamage(active)} raw physical damage{AbilityStatNote(active, ability.Id)} and stun 1; more accurate against casters.";
+                case "quickshot":
+                    return $"Two independent arrows at {QuickShotRawDamage(active)} raw physical damage each{AbilityStatNote(active, ability.Id)}.";
                 case "riftpounce":
                     return $"{RiftPounceRawDamage(active)} raw death damage; ignores intervening terrain and lands beside the target.";
                 case "abyssalwhirl":
@@ -4466,7 +4518,7 @@ namespace AshenHalls
                 }
             }
             int commandIcon = ActionCombatCommandIconIndex(mode);
-            if (commandIcon >= 0 && TryDrawCombatCommandIconAtlasIcon(Pad(icon, -2f), commandIcon, Color.white.WithAlpha(enabled ? 0.96f : 0.34f)))
+            if (commandIcon >= 0 && TryDrawCombatCommandIconAtlasIcon(Pad(icon, -2f), commandIcon, Color.white.WithAlpha(enabled ? 0.96f : 0.60f)))
             {
                 return;
             }
@@ -4557,7 +4609,11 @@ namespace AshenHalls
             switch (mode)
             {
                 case ActionMode.Move: return CombatIconCatalog.CombatCommandMoveIndex;
-                case ActionMode.Attack: return CombatIconCatalog.CombatCommandAttackIndex;
+                case ActionMode.Attack:
+                    CombatUnit active = CurrentUnit();
+                    return CombatHudCommandStyleRules.AttackCommandAtlasIndex(
+                        IsRangedAttackProfile(active),
+                        active != null && IsEngagedByHostile(active));
                 case ActionMode.Cast: return CombatIconCatalog.CombatCommandCastIndex;
                 case ActionMode.Ability: return CombatIconCatalog.CombatCommandSkillsIndex;
                 case ActionMode.Guard: return CombatIconCatalog.CombatCommandGuardIndex;
@@ -5146,6 +5202,11 @@ namespace AshenHalls
                 case "CLT": return "Shock up to four linked enemies, losing power at each jump.";
                 case "VST": return "Teleport to an open tile and shock enemies beside the landing.";
                 case "AST": return "Call a radius-2 storm: heavy center damage, lighter outer bolts, and possible stuns.";
+                case "DWP": return "Heal one ally and echo half the healing through adjacent allies.";
+                case "CNS": return "Burn one enemy with adjacent splash; the primary target may bleed for 2 turns.";
+                case "GRH": return "Deal death damage to one enemy and test a 2-turn bind.";
+                case "SLV": return "Ward one ally for 2 turns and adjacent allies for 1 turn.";
+                case "ACR": return "Burn one enemy with adjacent splash; the primary target may be hexed for 2 turns.";
             }
             if (formula.Effect == "dispel") return "Seals summoning rituals instantly and unravels fire, ice, gas, smoke, web, or curse fields.";
             if (formula.Effect == "terrain")
@@ -5185,6 +5246,17 @@ namespace AshenHalls
                     return $"Teleport up to {EffectiveFormulaRange(formula, active)} tiles; adjacent enemies take {LightningPowerRules.ThunderStepDamage(damage.x)}-{LightningPowerRules.ThunderStepDamage(damage.y)} shock.";
                 case "AST":
                     return $"{damage.x}-{damage.y} shock at the center and 60% in radius 2; each surviving enemy may be stunned.";
+                case "DWP":
+                    Vector2Int dawnHeal = FormulaHealPreview(formula, active);
+                    return $"Heal {dawnHeal.x}-{dawnHeal.y} HP; adjacent allies recover half that amount.";
+                case "CNS":
+                    return $"{damage.x}-{damage.y} fire damage with adjacent splash; primary target may bleed 2.";
+                case "GRH":
+                    return $"{damage.x}-{damage.y} death damage; primary target may be bound 2.";
+                case "SLV":
+                    return "Ward the chosen ally 2 and adjacent allies 1.";
+                case "ACR":
+                    return $"{damage.x}-{damage.y} fire damage with adjacent splash; primary target may be hexed 2.";
             }
             if (formula.Effect == "damage" || formula.Effect == "drain")
             {
@@ -5198,6 +5270,9 @@ namespace AshenHalls
         private int FormulaTier(FormulaDef formula)
         {
             if (formula == null) return 1;
+            if (formula.Code == "CNS" || formula.Code == "ACR") return 4;
+            if (formula.Code == "DWP" || formula.Code == "SLV") return 3;
+            if (formula.Code == "GRH") return 2;
             if (formula.Code == "RLM" || formula.Code == "IBG" || formula.Code == "AST" || formula.Code == "DFA" || (formula.Splash && formula.Mana >= 9)) return 4;
             if (formula.Code == "IBF") return 3;
             if (formula.Splash || formula.Mana >= 8 || formula.Code == "TNC") return 3;
@@ -9915,9 +9990,14 @@ namespace AshenHalls
         {
             if (state?.Party == null || amount <= 0) return;
             bool partyLeveled = false;
-            foreach (PartyMember member in state.Party.Where(p => p.Hp > 0))
+            foreach (PartyMember member in state.Party.Where(p => p != null))
             {
-                int oldLevel = Mathf.Max(1, member.Level);
+                member.Level = ProgressionRules.ClampLevel(member.Level);
+                member.Experience = ProgressionRules.NormalizeExperience(member.Level, member.Experience);
+                if (member.Hp <= 0) continue;
+                if (ProgressionRules.IsMaximumLevel(member.Level)) continue;
+
+                int oldLevel = member.Level;
                 int oldMaxHp = member.MaxHp;
                 int oldMaxMana = member.MaxMana;
                 int oldStatPoints = member.StatPoints;
@@ -9925,14 +10005,17 @@ namespace AshenHalls
                 int gained = amount + RaceExperienceBonus(member, amount);
                 member.Experience += gained;
                 bool leveled = false;
-                while (member.Experience >= ExperienceForNextLevel(member.Level))
+                while (!ProgressionRules.IsMaximumLevel(member.Level))
                 {
-                    member.Experience -= ExperienceForNextLevel(member.Level);
+                    int threshold = ExperienceForNextLevel(member.Level);
+                    if (threshold <= 0 || member.Experience < threshold) break;
+                    member.Experience -= threshold;
                     member.Level++;
-                    member.SkillPoints += 2;
-                    member.StatPoints += member.Level % 2 == 0 ? 2 : 1;
+                    member.SkillPoints += ProgressionRules.SkillPointRewardForLevel(member.Level);
+                    member.StatPoints += ProgressionRules.StatPointRewardForLevel(member.Level);
                     leveled = true;
                 }
+                member.Experience = ProgressionRules.NormalizeExperience(member.Level, member.Experience);
                 RecalculateMember(member);
                 if (leveled)
                 {
@@ -11411,6 +11494,9 @@ namespace AshenHalls
                     : ability.Id == "scoutmark" ? UseScoutMark(active, target)
                     : ability.Id == "broadheadshot" ? UseBroadheadShot(active, target)
                     : ability.Id == "disruptingshot" ? UseDisruptingShot(active, target)
+                    : ability.Id == "sunder" ? UseSunder(active, target)
+                    : ability.Id == "shadowstep" ? UseShadowstep(active, target)
+                    : ability.Id == "quickshot" ? UseQuickShot(active, target)
                     : ability.Id == "riftpounce" ? UseRiftPounce(active, target)
                     : ability.Id == "soulrend" && UseSoulRend(active, target);
             }
@@ -11469,6 +11555,15 @@ namespace AshenHalls
                 if (BestRiftPounceLanding(active, target) == null)
                 {
                     reason = "No open rift landing";
+                    return false;
+                }
+                return true;
+            }
+            if (ability.Id == "shadowstep")
+            {
+                if (BestShadowstepLanding(active, target) == null)
+                {
+                    reason = "No open shadow landing";
                     return false;
                 }
                 return true;
@@ -11988,6 +12083,98 @@ namespace AshenHalls
             return true;
         }
 
+        private bool UseSunder(CombatUnit active, CombatUnit target)
+        {
+            if (!RollMartialHit(active, target, 18, "sunder")) return true;
+            int damage = DealDamage(target, SunderRawDamage(active), "physical", gold);
+            bool brokeGuard = target.Guarding || target.GuardBonus > 0;
+            int wardRemoved = Mathf.Min(2, Mathf.Max(0, target.Shielded));
+            target.Guarding = false;
+            target.GuardBonus = 0;
+            target.Shielded = Mathf.Max(0, target.Shielded - wardRemoved);
+            AddTween(active.Id, new Vector2(active.X, active.Y), new Vector2(active.X + Mathf.Sign(target.X - active.X) * 0.18f, active.Y + Mathf.Sign(target.Y - active.Y) * 0.18f), TweenKind.Lunge);
+            AddBurst(target.X, target.Y, gold);
+            AddFloat(target.X, target.Y, brokeGuard || wardRemoved > 0 ? "SUNDERED" : "sunder", gold);
+            ImproveSkill(active, "arms", 2);
+            string setup = brokeGuard && wardRemoved > 0
+                ? $", breaking guard and stripping {wardRemoved} ward"
+                : brokeGuard
+                    ? ", breaking guard"
+                    : wardRemoved > 0
+                        ? $", stripping {wardRemoved} ward"
+                        : "";
+            PushLog($"{active.Name} sunders {target.Name} for {damage} physical{setup}.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
+            if (target.Hp <= 0) ReportUnitDown(target);
+            return true;
+        }
+
+        private bool UseShadowstep(CombatUnit active, CombatUnit target)
+        {
+            Point landing = BestShadowstepLanding(active, target);
+            if (landing == null)
+            {
+                PushLog("No open tile beside that enemy can receive the shadowstep.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return false;
+            }
+
+            bool hidden = active.Stealthed > 0;
+            int fromX = active.X;
+            int fromY = active.Y;
+            active.X = landing.X;
+            active.Y = landing.Y;
+            CombatLifecycle().ApplyMovementBudgetResult(true, 0, 0);
+            AddTween(active.Id, new Vector2(fromX, fromY), new Vector2(active.X, active.Y), TweenKind.Move);
+            AddBeam(fromX, fromY, active.X, active.Y, violet, "arc");
+            bool hit = RollMartialHit(active, target, hidden ? 20 : 10, "shadowstep");
+            active.Stealthed = 0;
+            if (!hit) return true;
+
+            int damage = DealDamage(target, ShadowstepRawDamage(active, hidden), "physical", violet);
+            AddBurst(target.X, target.Y, violet);
+            AddFloat(target.X, target.Y, "SHADOWSTEP", violet);
+            ImproveSkill(active, "arms", 2);
+            PushLog($"{active.Name} steps through shadow and cuts {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
+            if (target.Hp <= 0) ReportUnitDown(target);
+            return true;
+        }
+
+        private bool UseQuickShot(CombatUnit active, CombatUnit target)
+        {
+            int raw = QuickShotRawDamage(active);
+            int hits = 0;
+            int totalDamage = 0;
+            CombatImpactProfile profile = CombatImpactRules.ForAbility(AbilityDef("quickshot"));
+            for (int arrow = 0; arrow < 2 && target.Hp > 0; arrow++)
+            {
+                float previousDelay = combatVfxImpactDelay;
+                combatVfxImpactDelay = Mathf.Max(previousDelay, CombatImpactRules.SequenceImpactDelay(profile, arrow));
+                try
+                {
+                    if (!RollMartialHit(active, target, 5, arrow == 0 ? "first quick shot" : "second quick shot", "missile")) continue;
+                    int damage = DealDamage(target, raw, "physical", arrow == 0 ? teal : gold);
+                    AddBeam(active.X, active.Y, target.X, target.Y, arrow == 0 ? teal : gold, "shot");
+                    AddRangerTileGlyph(target.X, target.Y, 0, arrow == 0 ? teal : gold);
+                    totalDamage += damage;
+                    hits++;
+                }
+                finally
+                {
+                    combatVfxImpactDelay = previousDelay;
+                }
+            }
+
+            targetedMartialHitConnected = hits > 0;
+            if (hits > 0) ImproveSkill(active, "missile", 2);
+            if (hits > 0)
+            {
+                AddFloat(target.X, target.Y, hits == 2 ? "DOUBLE SHOT" : "quick shot", gold);
+                PushLog($"{active.Name}'s quick shot lands {hits} arrow{(hits == 1 ? "" : "s")} on {target.Name} for {totalDamage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
+                if (target.Hp <= 0) ReportUnitDown(target);
+            }
+            return true;
+        }
+
         private bool RollMartialHit(CombatUnit active, CombatUnit target, int bonus, string verb, string skillName = "arms")
         {
             int chance = MartialHitChance(active, target, bonus, skillName);
@@ -12027,7 +12214,7 @@ namespace AshenHalls
         private bool IsRangerAbility(string abilityId)
         {
             string id = (abilityId ?? "").ToLowerInvariant();
-            return id == "aimedshot" || id == "pinningshot" || id == "volley" || id == "scoutmark" || id == "broadheadshot" || id == "disruptingshot";
+            return id == "aimedshot" || id == "pinningshot" || id == "volley" || id == "scoutmark" || id == "broadheadshot" || id == "disruptingshot" || id == "quickshot";
         }
 
         private bool IsSightLineAbility(string abilityId)
@@ -12085,6 +12272,11 @@ namespace AshenHalls
                 .FirstOrDefault();
         }
 
+        private Point BestShadowstepLanding(CombatUnit active, CombatUnit target)
+        {
+            return BestRiftPounceLanding(active, target);
+        }
+
         private bool CanExecuteTarget(CombatUnit target)
         {
             return target != null && target.MaxHp > 0 && target.Hp <= Mathf.CeilToInt(target.MaxHp * 0.35f);
@@ -12111,15 +12303,15 @@ namespace AshenHalls
         {
             if (active == null || PartyMemberForUnit(active) == null) return 0;
             string id = (abilityId ?? "").ToLowerInvariant();
-            if (id == "charge" || id == "execute" || id == "shieldbash" || id == "cleave" || id == "whirlwind")
+            if (id == "charge" || id == "execute" || id == "shieldbash" || id == "cleave" || id == "whirlwind" || id == "sunder")
             {
                 return Mathf.Max(0, (UnitStrengthScore(active) - 10) / 8);
             }
-            if (id == "ambush" || id == "eviscerate" || id == "hamstring")
+            if (id == "ambush" || id == "eviscerate" || id == "hamstring" || id == "shadowstep")
             {
                 return Mathf.Max(0, (Mathf.Max(UnitAgilityScore(active), UnitStrengthScore(active)) - 10) / 8);
             }
-            if (id == "throwknife" || id == "aimedshot" || id == "pinningshot" || id == "volley" || id == "broadheadshot" || id == "disruptingshot")
+            if (id == "throwknife" || id == "aimedshot" || id == "pinningshot" || id == "volley" || id == "broadheadshot" || id == "disruptingshot" || id == "quickshot")
             {
                 return Mathf.Max(0, (UnitAgilityScore(active) - 10) / 7);
             }
@@ -12135,9 +12327,9 @@ namespace AshenHalls
             int bonus = AbilityStatDamageBonus(active, abilityId);
             if (bonus <= 0) return "";
             string id = (abilityId ?? "").ToLowerInvariant();
-            string stat = id == "throwknife" || id == "aimedshot" || id == "pinningshot" || id == "volley" || id == "broadheadshot" || id == "disruptingshot"
+            string stat = id == "throwknife" || id == "aimedshot" || id == "pinningshot" || id == "volley" || id == "broadheadshot" || id == "disruptingshot" || id == "quickshot"
                 ? "AGI"
-                : id == "ambush" || id == "eviscerate" || id == "hamstring"
+                : id == "ambush" || id == "eviscerate" || id == "hamstring" || id == "shadowstep"
                     ? "finesse"
                     : id == "riftpounce" || id == "abyssalwhirl" || id == "soulrend"
                         ? "demon"
@@ -12191,6 +12383,11 @@ namespace AshenHalls
             return Mathf.Max(2, active.DamageMax + SkillValue(active.Skills, "arms") / 4 - 1 + WarriorEnrageBonus(active) + AbilityStatDamageBonus(active, "whirlwind"));
         }
 
+        private int SunderRawDamage(CombatUnit active)
+        {
+            return Mathf.Max(3, active.DamageMin + SkillValue(active.Skills, "guard") / 4 + active.Level / 2 + WarriorEnrageBonus(active) / 2 + AbilityStatDamageBonus(active, "sunder"));
+        }
+
         private int RiftPounceRawDamage(CombatUnit active)
         {
             return Mathf.Max(5, active.DamageMax + active.Power / 2 + SkillValue(active.Skills, "hex") / 4 + active.Level + AbilityStatDamageBonus(active, "riftpounce"));
@@ -12230,6 +12427,16 @@ namespace AshenHalls
         private int DisruptingShotRawDamage(CombatUnit active)
         {
             return Mathf.Max(2, active.DamageMin + SkillValue(active.Skills, "missile") / 4 + active.Level + 2 + AbilityStatDamageBonus(active, "disruptingshot"));
+        }
+
+        private int ShadowstepRawDamage(CombatUnit active, bool hidden)
+        {
+            return Mathf.Max(4, active.DamageMax + SkillValue(active.Skills, "arms") / 4 + active.Level / 2 + (hidden ? 4 : 1) + AbilityStatDamageBonus(active, "shadowstep"));
+        }
+
+        private int QuickShotRawDamage(CombatUnit active)
+        {
+            return Mathf.Max(2, active.DamageMin + SkillValue(active.Skills, "missile") / 6 + active.Level / 3 + AbilityStatDamageBonus(active, "quickshot") / 2);
         }
 
         private void ReportUnitDown(CombatUnit unit)
@@ -13803,7 +14010,7 @@ namespace AshenHalls
 
         private string FormulaSkill(FormulaDef formula, CombatUnit caster)
         {
-            if (formula.Code == "RLM" && caster != null && CasterKnowsSchool(caster.Spell, "ember") && SkillValue(caster.Skills, "ember") >= SkillValue(caster.Skills, "hex")) return "ember";
+            if ((formula.Code == "RLM" || formula.Code == "ACR") && caster != null && CasterKnowsSchool(caster.Spell, "ember") && SkillValue(caster.Skills, "ember") >= SkillValue(caster.Skills, "hex")) return "ember";
             if (formula.Code == "SRF" && caster != null && !CasterKnowsSchool(caster.Spell, "mend") && CasterKnowsSchool(caster.Spell, "ember")) return "ember";
             return string.IsNullOrEmpty(formula.Skill) ? caster?.Spell ?? "arms" : formula.Skill;
         }
@@ -16196,6 +16403,12 @@ namespace AshenHalls
                 int collision = PreviewDamageAfterTraits(target, LightningPowerRules.CollisionDamage(ShieldBashRawDamage(active)), "physical");
                 return $"Shield Bash: {damage} physical{AbilityStatNote(active, ability.Id)} / push 1\nblocked push: +{collision} collision and stun";
             }
+            if (ability.Id == "sunder")
+            {
+                int damage = PreviewDamageAfterTraits(target, SunderRawDamage(active), "physical");
+                int wards = target == null ? 0 : Mathf.Min(2, Mathf.Max(0, target.Shielded));
+                return $"Sunder: {damage} physical{AbilityStatNote(active, ability.Id)} / break Guard\nstrip {wards} ward; reliable setup strike";
+            }
             if (ability.Id == "cleave")
             {
                 int damage = PreviewDamageAfterTraits(target, CleaveRawDamage(active), "physical");
@@ -16227,6 +16440,13 @@ namespace AshenHalls
                 int damage = PreviewDamageAfterTraits(target, HamstringRawDamage(active), "physical");
                 return $"Hamstring: {damage} physical{AbilityStatNote(active, ability.Id)} / hobble 2\nbleeds and pins the target";
             }
+            if (ability.Id == "shadowstep")
+            {
+                bool hidden = active.Stealthed > 0;
+                int damage = PreviewDamageAfterTraits(target, ShadowstepRawDamage(active, hidden), "physical");
+                Point landing = BestShadowstepLanding(active, target);
+                return $"Shadowstep: {damage} physical{AbilityStatNote(active, ability.Id)}\n{(landing == null ? "no open landing" : "lands beside target / ignores intervening terrain")}";
+            }
             if (ability.Id == "aimedshot")
             {
                 int damage = PreviewDamageAfterTraits(target, AimedShotRawDamage(active, target), "physical");
@@ -16256,6 +16476,11 @@ namespace AshenHalls
             {
                 int damage = PreviewDamageAfterTraits(target, DisruptingShotRawDamage(active), "physical");
                 return $"Disrupting Shot: {damage} physical{AbilityStatNote(active, ability.Id)} / stun 1\nstronger hit chance against casters";
+            }
+            if (ability.Id == "quickshot")
+            {
+                int arrowDamage = PreviewDamageAfterTraits(target, QuickShotRawDamage(active), "physical");
+                return $"Quick Shot: 2 x {arrowDamage} physical{AbilityStatNote(active, ability.Id)}\neach arrow rolls separately; armor applies twice";
             }
             if (ability.Id == "riftpounce")
             {

@@ -2,14 +2,14 @@ namespace AshenHalls
 {
     public static class RuntimeArtManifest
     {
-        public const string AbilityIconAtlas = "ability-icon-atlas-runtime-v2.0.0.png";
-        public const string SignatureSpellIconAtlas = "signature-spell-icon-atlas-runtime-v2.0.0.png";
+        public const string AbilityIconAtlas = "ability-icon-atlas-runtime-v2.9.0.png";
+        public const string SignatureSpellIconAtlas = "signature-spell-icon-atlas-runtime-v2.9.0.png";
         public const string LightningSpellIconAtlas = "lightning-spell-icon-atlas-runtime-v1.97.0.png";
         public const string PowerBookStateIconAtlas = "power-book-state-icon-atlas-runtime-v1.97.0.png";
         public const string CombatCommandIconAtlas = "combat-command-icon-atlas-runtime-v1.99.0.png";
         public const string MagicUiAtlas = "magic-ui-atlas-runtime-v1.31.0.png";
         public const string SpellAnimationAtlas = "spell-animation-atlas-runtime-v1.49.0.png";
-        public const string EpicSpellEffectsAtlas = "combat-spell-effects-atlas-runtime-v0.73.png";
+        public const string EpicSpellEffectsAtlas = "combat-spell-effects-atlas-runtime-v2.9.0.png";
         public const string TavernBackdrop = "title-backdrop-runtime-v2.4.0.png";
         public const string TavernUiAtlas = "tavern-ui-atlas-runtime-v1.5.9.png";
         public const string MidgaardGateAtlas = "midgaard-gate-atlas-runtime-v1.93.0.png";

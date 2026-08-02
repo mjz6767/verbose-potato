@@ -883,8 +883,20 @@ namespace AshenHalls
                 bool promoted = mode == ActionMode.Wait && promoteEndTurn;
                 bool armed = command?.Armed ?? false;
                 bool emphasized = promoted || armed || selected && visuallyAvailable;
-                DrawRect(button, promoted || armed ? Hex("352316", 0.94f) : selected && visuallyAvailable ? Hex("243033", 0.90f) : Hex("151b20", 0.84f));
-                DrawBorder(button, promoted || armed ? gold : selected && visuallyAvailable ? teal : line.WithAlpha(0.40f), emphasized ? 2 : 1);
+                CombatHudCommandVisualState visualState = command == null
+                    ? blocked ? CombatHudCommandVisualState.Blocked : selected ? CombatHudCommandVisualState.Selected : CombatHudCommandVisualState.Available
+                    : CombatHudCommandStyleRules.Resolve(command);
+                DrawRect(
+                    button,
+                    visualState == CombatHudCommandVisualState.Blocked
+                        ? Hex("201316", 0.94f)
+                        : promoted || armed ? Hex("352316", 0.94f) : selected && visuallyAvailable ? Hex("243033", 0.90f) : Hex("151b20", 0.84f));
+                DrawBorder(
+                    button,
+                    visualState == CombatHudCommandVisualState.Blocked
+                        ? Hex("b94b56", 0.58f)
+                        : promoted || armed ? gold : selected && visuallyAvailable ? teal : line.WithAlpha(0.40f),
+                    emphasized ? 2 : 1);
                 bool compact = CombatHudScreenLayout.UsesCompactCommandLayout(button);
                 float iconSize = CombatHudScreenLayout.CommandIconSize(button);
                 float iconY = compact ? button.y + 4f : button.y + 6f;
@@ -895,15 +907,26 @@ namespace AshenHalls
                 GUI.Label(keycap, command?.Hotkey ?? "", CenterStyle(8, emphasized ? retroBlack : ink));
                 string label = command?.Label ?? ActionName(mode, active);
                 if (promoted) label = label.ToUpperInvariant();
-                string subLabel = promoted ? "Next combatant" : enabled ? command?.SubLabel ?? ActionButtonSubLabel(mode, active) : command?.DisabledReason ?? DisabledActionReason(mode, active, playerTurn);
-                Color labelColor = visuallyAvailable ? ink : Hex("9aa0a1", 0.88f);
-                Color subColor = blocked ? Hex("e39a82") : visuallyAvailable ? promoted ? gold : Hex("c7baa2") : muted;
+                string subLabel = command == null
+                    ? promoted ? "READY \u00b7 Next combatant" : enabled ? ActionButtonSubLabel(mode, active) : "BLOCKED \u00b7 " + DisabledActionReason(mode, active, playerTurn)
+                    : CombatHudCommandStyleRules.SecondaryLine(command);
+                Color labelColor = visualState == CombatHudCommandVisualState.Blocked ? Hex("e0afa1", 0.96f) : visuallyAvailable ? ink : Hex("9aa0a1", 0.88f);
+                Color subColor = visualState == CombatHudCommandVisualState.Blocked ? Hex("f0a08b") : visuallyAvailable ? promoted ? gold : Hex("c7baa2") : muted;
                 float labelY = icon.yMax + 1f;
                 float labelHeight = compact ? 15f : 17f;
                 GUI.Label(new Rect(button.x + 4f, labelY, button.width - 8f, labelHeight), FitText(label, button.width - 8f, CenterStyle(compact ? 11 : 12, labelColor)), CenterStyle(compact ? 11 : 12, labelColor));
                 if (!compact)
                 {
                     GUI.Label(new Rect(button.x + 4f, labelY + labelHeight, button.width - 8f, Mathf.Max(9f, button.yMax - labelY - labelHeight - 2f)), FitText(subLabel, button.width - 8f, CenterStyle(8, subColor)), CenterStyle(8, subColor));
+                }
+                string stateTag = CombatHudCommandStyleRules.StateTag(visualState);
+                if (!string.IsNullOrWhiteSpace(stateTag))
+                {
+                    Rect tag = new Rect(button.x + 5f, button.y + 4f, 44f, 14f);
+                    Color tagFill = visualState == CombatHudCommandVisualState.Blocked ? Hex("b94b56") : gold;
+                    DrawRect(tag, tagFill);
+                    DrawBorder(tag, retroBlack.WithAlpha(0.92f), 1);
+                    GUI.Label(tag, stateTag, CenterStyle(7, visualState == CombatHudCommandVisualState.Blocked ? Hex("fff0e8") : retroBlack));
                 }
                 DrawRect(new Rect(button.x, button.yMax - (emphasized ? 4f : 2f), button.width, emphasized ? 4f : 2f), (promoted || armed ? gold : CommandModeAccent(mode)).WithAlpha(emphasized ? 1f : visuallyAvailable ? 0.34f : 0.12f));
                 if (GUI.Button(button, GUIContent.none, GUIStyle.none)) RunCombatHudCommand(mode);

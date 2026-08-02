@@ -26,6 +26,12 @@ def main() -> int:
     parser.add_argument("--max-width", type=int, default=224)
     parser.add_argument("--max-height", type=int, default=220)
     parser.add_argument("--baseline", type=int, default=258)
+    parser.add_argument(
+        "--vertical-align",
+        choices=("baseline", "center"),
+        default="baseline",
+        help="Align each normalized sprite to the shared baseline or cell center.",
+    )
     parser.add_argument("--alpha-threshold", type=int, default=16)
     parser.add_argument("--report", type=Path)
     args = parser.parse_args()
@@ -43,7 +49,7 @@ def main() -> int:
     cell_height = source.height // args.rows
     if args.max_width > cell_width or args.max_height > cell_height:
         raise ValueError("Normalized bounds must fit within one atlas cell")
-    if args.baseline < 1 or args.baseline > cell_height:
+    if args.vertical_align == "baseline" and (args.baseline < 1 or args.baseline > cell_height):
         raise ValueError("Baseline must fall within one atlas cell")
 
     output = Image.new("RGBA", source.size, (0, 0, 0, 0))
@@ -70,8 +76,11 @@ def main() -> int:
             sprite = sprite.resize((width, height), Image.Resampling.LANCZOS)
 
         x = left + (cell_width - width) // 2
-        y = top + min(args.baseline - height, cell_height - height)
-        y = max(top, y)
+        if args.vertical_align == "center":
+            y = top + (cell_height - height) // 2
+        else:
+            y = top + min(args.baseline - height, cell_height - height)
+            y = max(top, y)
         output.alpha_composite(sprite, (x, y))
 
         alpha_histogram = sprite.getchannel("A").histogram()
@@ -97,6 +106,7 @@ def main() -> int:
         "alphaThreshold": args.alpha_threshold,
         "maxSpriteDimensions": [args.max_width, args.max_height],
         "baseline": args.baseline,
+        "verticalAlignment": args.vertical_align,
         "cells": cells,
     }
     if args.report:

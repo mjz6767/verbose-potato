@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.9.0 - Steel, Sorcery, and Living Roads
+
+- Refined the combat HUD and both power books around a steadier decision language. Pointer hover now waits for intentional dwell, Preview remains passive, committed Selection keeps one teal rail, armed Targeting keeps its gold identity, and BLOCKED / ARMED / NEXT command tags, responsive melee-versus-ranged emblems, stronger disabled states, and truthful target context make the current action easier to read.
+- Rebuilt combat presentation with an exact-pinned 1280 by 1280, 4 by 4 spell-effect atlas, layered power-specific impact motifs, bounded secondary audio beats, and a static Reduced Motion treatment. Combatants gain normalized board footprints, contact light, faction rims, and a restrained active-unit pulse without changing hit, damage, targeting, or turn rules.
+- Stabilized combat music around the encounter actually being fought. Generic music may promote once when a faction becomes known, boss identity remains protected, and bounded dwell plus critical/recovery hysteresis prevents rapid track churn. The original soundtrack now contains 53 reproducible masters, including a 60-second title overture, a Grand Hearth reprise, and a dedicated calm score for each of the eight authored regional sites.
+- Improved Local and Region Map readability with better grounded building silhouettes, quieter ambient dressing, traversal-accurate movement cues, edge-safe large landmarks and threat habitats, and more considerate ambient-citizen placement, fading, labeling, and party clearance. These changes preserve encounter homes, authored destinations, the Grand Hearth tutorial lane, named NPCs, interaction priority, and save data.
+- Established a reachable level-1-to-20 progression curve: thresholds rise from 100 to 820 XP in steady 40-XP steps, requiring 8,740 total XP to reach the cap. Warrior, Rogue, and Ranger gain Sunder, Shadowstep, and Quick Shot at level 16; Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse extend the spell ladders, each with dedicated exact-pinned book art. Existing saves normalize safely at the cap and remain on save schema v25.
+- Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, and SpriteArtRuntimeSmoke pass on the integrated candidate. The final Windows build, canonical package integrity gate, built-player visual matrix, physical-controller review, and complete human playthrough remain pending release checks.
+
 ## v2.8.0 - Hearthlight and Stormlight
 
 - Added an exact-pinned 1536 by 1024, 3 by 2 transparent Grand Hearth ambience atlas: warm hearth light, cool storm-door spill, a wrought-iron wall sconce, ember haze, rain-window reflection, and patron contact shadow. Every 512-pixel cell keeps a validated 36-pixel transparent gutter with zero visible magenta residue.

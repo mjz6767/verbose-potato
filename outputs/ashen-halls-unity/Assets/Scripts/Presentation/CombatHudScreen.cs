@@ -46,6 +46,85 @@ namespace AshenHalls
         public bool Promoted;
     }
 
+    public enum CombatHudCommandVisualState
+    {
+        Available,
+        Selected,
+        Armed,
+        Blocked,
+        Promoted
+    }
+
+    public static class CombatHudCommandStyleRules
+    {
+        // The existing command atlas reserves row 2, column 2 (zero-based cell 6)
+        // for the bow. Keeping this mapping here avoids adding a new art slot.
+        public const int ShootCommandAtlasIndex = 6;
+
+        public static int AttackCommandAtlasIndex(bool rangedProfile, bool engaged)
+        {
+            return rangedProfile && !engaged
+                ? ShootCommandAtlasIndex
+                : CombatIconCatalog.CombatCommandAttackIndex;
+        }
+
+        public static CombatHudCommandVisualState Resolve(CombatHudCommandView command)
+        {
+            if (command == null || command.Blocked || !command.Enabled)
+            {
+                return CombatHudCommandVisualState.Blocked;
+            }
+            if (command.Armed) return CombatHudCommandVisualState.Armed;
+            if (command.Promoted) return CombatHudCommandVisualState.Promoted;
+            if (command.Selected) return CombatHudCommandVisualState.Selected;
+            return CombatHudCommandVisualState.Available;
+        }
+
+        public static string StateTag(CombatHudCommandVisualState state)
+        {
+            switch (state)
+            {
+                case CombatHudCommandVisualState.Armed: return "ARMED";
+                case CombatHudCommandVisualState.Blocked: return "BLOCK";
+                case CombatHudCommandVisualState.Promoted: return "NEXT";
+                default: return "";
+            }
+        }
+
+        public static string SecondaryLine(CombatHudCommandView command)
+        {
+            if (command == null) return "";
+            CombatHudCommandVisualState state = Resolve(command);
+            string sub = (command.SubLabel ?? "").Trim();
+            string reason = (command.DisabledReason ?? "").Trim().TrimEnd('.');
+            switch (state)
+            {
+                case CombatHudCommandVisualState.Armed:
+                    return StartsWithState(sub, "ARMED") ? sub : "ARMED \u00b7 " + First(sub, "Choose a target");
+                case CombatHudCommandVisualState.Blocked:
+                    return "BLOCKED \u00b7 " + First(reason, sub, "Unavailable");
+                case CombatHudCommandVisualState.Promoted:
+                    return "READY \u00b7 Next combatant";
+                default:
+                    return sub;
+            }
+        }
+
+        private static bool StartsWithState(string value, string state)
+        {
+            return value.StartsWith(state, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string First(params string[] values)
+        {
+            foreach (string value in values)
+            {
+                if (!string.IsNullOrWhiteSpace(value)) return value.Trim();
+            }
+            return "";
+        }
+    }
+
     public sealed class CombatHudLogView
     {
         public string Text;
@@ -752,9 +831,18 @@ namespace AshenHalls
             Image fill = row?.Button?.targetGraphic as Image;
             return row != null
                 && fill != null
-                && fill.color == Hex("151b20", 0.82f)
-                && row.Label.color == Hex("9aa0a1", 0.88f)
-                && row.SubLabel.color == Hex("e39a82", 1f);
+                && fill.color == Hex("201316", 0.94f)
+                && row.Label.color == Hex("e0afa1", 0.96f)
+                && row.SubLabel.color == Hex("f0a08b", 1f)
+                && row.StateTagPanel != null
+                && row.StateTagPanel.gameObject.activeSelf
+                && string.Equals(row.StateTag?.text, "BLOCK", StringComparison.Ordinal);
+        }
+
+        public string CommandStateTagForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            return row?.StateTag == null || !row.StateTag.gameObject.activeSelf ? "" : row.StateTag.text;
         }
 
         public ActionMode? FocusedCommandForTest
@@ -1013,16 +1101,15 @@ namespace AshenHalls
                 commandRows[i].Button.interactable = true;
                 commandRows[i].Label.text = command.Promoted ? (command.Label ?? "").ToUpperInvariant() : command.Label ?? "";
                 commandRows[i].Hotkey.text = command.Hotkey ?? "";
-                commandRows[i].SubLabel.text = command.Promoted
-                    ? "Next combatant"
-                    : command.Enabled ? command.SubLabel ?? "" : command.DisabledReason ?? "";
+                CombatHudCommandVisualState visualState = CombatHudCommandStyleRules.Resolve(command);
+                commandRows[i].SubLabel.text = CombatHudCommandStyleRules.SecondaryLine(command);
                 Sprite icon = UiRuntime.AtlasSprite(command.IconTexture, command.IconSource);
                 commandRows[i].Icon.sprite = icon;
                 commandRows[i].Icon.enabled = icon != null;
                 commandRows[i].IconFallback.gameObject.SetActive(icon == null);
                 commandRows[i].IconFallback.text = CommandFallbackGlyph(command.Mode);
                 bool available = command.Enabled && !command.Blocked;
-                commandRows[i].Icon.color = Color.white.WithAlpha(available ? 0.98f : 0.34f);
+                commandRows[i].Icon.color = Color.white.WithAlpha(available ? 0.98f : 0.60f);
                 bool focused = focusedCommandIndex == i;
                 bool hovered = pointerOwnsCommandContext && hoveredCommandIndex == i;
                 Color accent = command.Promoted || command.Armed
@@ -1041,21 +1128,39 @@ namespace AshenHalls
                 commandRows[i].Hotkey.color = command.Promoted || command.Armed || command.Selected && available
                     ? Hex("080b0d", 1f)
                     : available ? Hex("f3ead7", 1f) : Hex("777c7c", 0.82f);
-                commandRows[i].Label.color = available ? Hex("f3ead7", 1f) : Hex("9aa0a1", 0.88f);
-                commandRows[i].SubLabel.color = command.Blocked
-                    ? Hex("e39a82", 1f)
+                commandRows[i].Label.color = visualState == CombatHudCommandVisualState.Blocked
+                    ? Hex("e0afa1", 0.96f)
+                    : available ? Hex("f3ead7", 1f) : Hex("9aa0a1", 0.88f);
+                commandRows[i].SubLabel.color = visualState == CombatHudCommandVisualState.Blocked
+                    ? Hex("f0a08b", 1f)
                     : available ? command.Promoted ? Hex("d7a84e", 1f) : Hex("c7baa2", 1f) : Hex("8d9495", 0.82f);
-                commandRows[i].StatePip.color = command.Blocked
+                commandRows[i].StatePip.color = visualState == CombatHudCommandVisualState.Blocked
                     ? Hex("b94b56", 0.78f)
                     : available
                     ? accent.WithAlpha(command.Promoted || command.Armed || command.Selected ? 1f : 0.72f)
                     : Hex("777c7c", 0.42f);
-                commandRows[i].StatePip.gameObject.SetActive(command.Blocked || command.Armed || command.Promoted);
+                commandRows[i].StatePip.gameObject.SetActive(
+                    visualState == CombatHudCommandVisualState.Blocked
+                    || visualState == CombatHudCommandVisualState.Armed
+                    || visualState == CombatHudCommandVisualState.Promoted);
+                string stateTag = CombatHudCommandStyleRules.StateTag(visualState);
+                commandRows[i].StateTag.text = stateTag;
+                commandRows[i].StateTagPanel.gameObject.SetActive(!string.IsNullOrWhiteSpace(stateTag));
+                Color stateColor = visualState == CombatHudCommandVisualState.Blocked
+                    ? Hex("b94b56", 1f)
+                    : Hex("d7a84e", 1f);
+                commandRows[i].StateTagPanel.GetComponent<Image>().color = stateColor.WithAlpha(0.96f);
+                commandRows[i].StateTagPanel.GetComponent<Outline>().effectColor = Hex("050708", 0.96f);
+                commandRows[i].StateTag.color = visualState == CombatHudCommandVisualState.Blocked
+                    ? Hex("fff0e8", 1f)
+                    : Hex("080b0d", 1f);
                 commandRows[i].AccentRail.gameObject.SetActive(command.Promoted || command.Armed || command.Selected && available);
                 commandRows[i].AccentRail.color = accent.WithAlpha(
                     command.Promoted || command.Armed || command.Selected && available ? 1f : available ? 0.44f : 0.16f);
                 Image image = commandRows[i].Button.targetGraphic as Image;
-                Color fill = command.Promoted || command.Armed
+                Color fill = visualState == CombatHudCommandVisualState.Blocked
+                    ? Hex("201316", 0.94f)
+                    : command.Promoted || command.Armed
                     ? Hex("352316", 0.94f)
                     : command.Selected && available
                         ? Color.Lerp(Hex("151b20", 0.92f), accent, 0.14f)
@@ -1072,6 +1177,8 @@ namespace AshenHalls
                 commandRows[i].Button.colors = buttonColors;
                 commandRows[i].Outline.effectColor = focused
                     ? Hex("f3ead7", 0.98f)
+                    : visualState == CombatHudCommandVisualState.Blocked
+                        ? Hex("b94b56", 0.58f)
                     : command.Promoted || command.Armed || command.Selected && available
                         ? accent.WithAlpha(0.95f)
                         : available ? Hex("3c4544", 0.34f) : Hex("3c4544", 0.18f);
@@ -1314,6 +1421,17 @@ namespace AshenHalls
             statePipOutline.effectColor = Hex("050708", 0.95f);
             statePipOutline.effectDistance = new Vector2(1f, -1f);
 
+            RectTransform stateTagPanel = AddPanel("State Tag", button.transform, Hex("d7a84e", 0.96f), Hex("050708", 0.96f));
+            stateTagPanel.GetComponent<Image>().raycastTarget = false;
+            stateTagPanel.gameObject.SetActive(false);
+            Text stateTag = AddText("State Tag Label", stateTagPanel, "", 8, Hex("080b0d", 1f), TextAnchor.MiddleCenter);
+            stateTag.fontStyle = FontStyle.Bold;
+            stateTag.resizeTextForBestFit = true;
+            stateTag.resizeTextMinSize = 7;
+            stateTag.resizeTextMaxSize = 8;
+            stateTag.raycastTarget = false;
+            Stretch(stateTag.rectTransform, 2f, 0f);
+
             Image hotkeyBackground = AddImage("Hotkey Keycap", button.transform, Hex("263035", 0.92f));
             hotkeyBackground.raycastTarget = false;
             Outline keyOutline = hotkeyBackground.gameObject.AddComponent<Outline>();
@@ -1338,7 +1456,7 @@ namespace AshenHalls
             relay.Exit = () => ClearHoveredCommand(index);
             relay.Select = () => SetFocusedCommand(index);
             relay.Deselect = () => ClearFocusedCommand(index);
-            return new CommandRow(button.GetComponent<RectTransform>(), button, outline, label, hotkey, sub, iconWell, iconOutline, icon, iconFallback, hotkeyBackground, statePip, accentRail);
+            return new CommandRow(button.GetComponent<RectTransform>(), button, outline, label, hotkey, sub, iconWell, iconOutline, icon, iconFallback, hotkeyBackground, statePip, stateTagPanel, stateTag, accentRail);
         }
 
         private TurnChip CreateTurnChip(Transform parent, int index)
@@ -1490,6 +1608,7 @@ namespace AshenHalls
                 SetLocalRect(commandRows[i].IconWell.rectTransform, new Rect(iconX, iconY, iconSize, iconSize));
                 SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, new Rect(buttons[i].width - 35f, 4f, 29f, 14f));
                 SetLocalRect(commandRows[i].StatePip.rectTransform, new Rect(iconX + iconSize - 8f, iconY + 2f, 8f, 8f));
+                SetLocalRect(commandRows[i].StateTagPanel, new Rect(5f, 4f, 44f, 14f));
                 float labelHeight = compact ? 15f : 17f;
                 SetLocalRect(commandRows[i].Label.rectTransform, new Rect(4f, labelY, buttons[i].width - 8f, labelHeight));
                 commandRows[i].SubLabel.gameObject.SetActive(!compact);
@@ -2053,10 +2172,12 @@ namespace AshenHalls
             public readonly Text IconFallback;
             public readonly Image HotkeyBackground;
             public readonly Image StatePip;
+            public readonly RectTransform StateTagPanel;
+            public readonly Text StateTag;
             public readonly Image AccentRail;
             public ActionMode Mode;
 
-            public CommandRow(RectTransform root, Button button, Outline outline, Text label, Text hotkey, Text subLabel, Image iconWell, Outline iconOutline, Image icon, Text iconFallback, Image hotkeyBackground, Image statePip, Image accentRail)
+            public CommandRow(RectTransform root, Button button, Outline outline, Text label, Text hotkey, Text subLabel, Image iconWell, Outline iconOutline, Image icon, Text iconFallback, Image hotkeyBackground, Image statePip, RectTransform stateTagPanel, Text stateTag, Image accentRail)
             {
                 Root = root;
                 Button = button;
@@ -2070,6 +2191,8 @@ namespace AshenHalls
                 IconFallback = iconFallback;
                 HotkeyBackground = hotkeyBackground;
                 StatePip = statePip;
+                StateTagPanel = stateTagPanel;
+                StateTag = stateTag;
                 AccentRail = accentRail;
             }
         }

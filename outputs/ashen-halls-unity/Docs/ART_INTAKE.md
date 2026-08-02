@@ -3,6 +3,14 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.9.0 combat power contract - automated gates passed; release gates pending
+
+The v2.9 power-art set exact-pins three runtime sheets. `ability-icon-atlas-runtime-v2.9.0.png` is an RGBA 4 by 7 sheet that preserves cells 0-23, maps Sunder, Shadowstep, and Quick Shot to cells 24-26, and keeps cell 27 transparent. `signature-spell-icon-atlas-runtime-v2.9.0.png` remains an RGBA 7 by 8 sheet, preserves cells 0-50, and maps Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse to cells 51-55. `combat-spell-effects-atlas-runtime-v2.9.0.png` is an exact RGBA 1280 by 1280, 4 by 4 sheet with 320-pixel cells, at most 280 by 280 visible content per cell, and at least 20 transparent pixels on every side at alpha greater than 8.
+
+The ability, spell, and effects runtime SHA-256 values are `D36CC925F4560C6D04CE63DE3B31CC2B4DD0B0EAF7DA48A63602595A7F81EF28`, `A2E14C5248B564FB82876DD18D4B1BCA9E86D602B68892CD120C62B74B3DE4D9`, and `F3FE0D14FD6BE218AB64AE177FDA741A4D6F7694BBFF96C89C576CC866D5A92A`. The reviewed provenance set contains thirteen exact files: three runtime PNGs and ten chroma-key, alpha, prompt/design, and validation companions documented by `EARLY_PROGRESSION_V2.9.md` and `COMBAT_EFFECTS_V2.9_ART_HANDOFF.md`. Because `Docs/ArtReferences/` is locally excluded, release integration must promote those thirteen files by exact path; only the three runtime PNGs are package-selected.
+
+Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, and SpriteArtRuntimeSmoke pass with the exact pins and live mappings. The final Windows build, packaged-art integrity gate, built-player visual matrix, and clean-extracted packaged boot remain pending and must not be inferred from the automated art checks.
+
 ## Active v2.8.0 Grand Hearth ambience contract - automated, build, and visual gates passed
 
 `grand-hearth-ambience-atlas-runtime-v2.8.0.png` is the exact-pinned transparent ambience atlas: RGBA 1536 by 1024, 3 by 2, six 512-pixel cells ordered warm hearth light, storm-door rain spill, wall sconce, ember haze, rain-window reflection, and patron contact shadow. Every cell keeps at least 36 transparent pixels on every side at alpha > 8 and the accepted runtime contains zero visible bright-magenta residue.
@@ -162,8 +170,8 @@ Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-r
 
 - Creature, enemy sprite, spell animation, combat terrain, kobold route, kobold boss, kobold cave prop, and kobold combat terrain atlases are currently read as 4 by 4 grids.
 - `character-combat-atlas-runtime-v1.93.0.png` is the expanded transparent 5 by 7 player grid described below.
-- `ability-icon-atlas-runtime-*` is read as a 4 by 2 grid for older sheets, a 4 by 3 grid for v0.73+ sheets, a 4 by 5 grid for the v1.31-v1.99 warrior/rogue/ranger sheet, or the active 4 by 6 v2.0 sheet. In v2.0 cells 20-23 are Rift Pounce, Abyssal Whirl, Soul Rend, and Dread Roar; cells 0-19 remain pixel-identical to v1.97.
-- `signature-spell-icon-atlas-runtime-*` uses the active transparent 7 by 8 v2.0 contract. Cells 0-48 remain pixel-identical to v1.97, cells 49 and 50 are Rift Bolt and Rift Step, and cells 51-55 are transparent expansion slots.
+- `ability-icon-atlas-runtime-*` is read as a 4 by 2 grid for older sheets, a 4 by 3 grid for v0.73+ sheets, a 4 by 5 grid for the v1.31-v1.99 warrior/rogue/ranger sheet, a 4 by 6 grid for v2.0, or the active 4 by 7 v2.9 sheet. Cells 24-26 are Sunder, Shadowstep, and Quick Shot; cell 27 is a transparent reserve; cells 0-23 remain pixel-identical to v2.0.
+- `signature-spell-icon-atlas-runtime-*` uses the active transparent 7 by 8 v2.9 contract. Cells 0-50 remain pixel-identical to v2.0; cells 51-55 are Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse.
 - `lightning-spell-icon-atlas-runtime-*` is an exact transparent 4 by 2 grid. The v1.97 contract maps Arc Spark, Chain Lightning, Arcane Tempest, Thunder Step, and Thunderclap to cells 0, 1, 3, 4, and 5; Storm Cage, Storm Ward, and Thunderhead remain reserved in cells 2, 6, and 7 with distinct forward-compatible symbols.
 - `power-book-state-icon-atlas-runtime-*` is an exact transparent 4 by 3, 256 by 192 grid of 64-pixel UI symbols. It reinforces book interaction and availability states but never replaces the adjacent text.
 - `magic-ui-atlas-runtime-*` is read as a transparent 4 by 4 grid for shared spell schools, utility effects, and formula fallbacks.
@@ -185,7 +193,7 @@ Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-r
 - `world-map-exploration-tile-atlas-runtime-v1.68.0.png` is the active exact 5 by 8, 1280 by 2048 blocked/fallback terrain contract. Cells 0-19 preserve the repaired v1.24.2 bank and cells 20-39 add blocked-terrain variants. This is a deliberate two-bank expansion, not the older irregular 5 by 7 experiment.
 - `unique-item-atlas-runtime-*` is read as a 5 by 4 grid and is checked before generic equipment art.
 - `combat-ui-panel-atlas-runtime-*` is read as a 5 by 4 grid and used as subtle panel chrome/backdrop art.
-- Current active tavern/combat/UI/ability/effect sheets include `tavern-ui-atlas-runtime-v1.5.9.png`, `world-map-ui-atlas-runtime-v1.6.0.png`, `combat-ui-panel-atlas-runtime-v0.72.png`, `ability-icon-atlas-runtime-v2.0.0.png`, `signature-spell-icon-atlas-runtime-v2.0.0.png`, `lightning-spell-icon-atlas-runtime-v1.97.0.png`, `power-book-state-icon-atlas-runtime-v1.97.0.png`, `magic-ui-atlas-runtime-v1.31.0.png`, `spellbook-combat-ui-atlas-runtime-v1.24.0.png`, `combat-spell-effects-atlas-runtime-v0.73.png`, `spell-animation-atlas-runtime-v1.49.0.png`, `combat-command-icon-atlas-runtime-v1.99.0.png`, `combat-hud-ui-atlas-runtime-v0.73.png`, `combat-spell-float-atlas-runtime-v0.73.png`, and `ranger-ability-effect-atlas-runtime-v0.73.png`.
+- Current active tavern/combat/UI/ability/effect sheets include `tavern-ui-atlas-runtime-v1.5.9.png`, `world-map-ui-atlas-runtime-v1.6.0.png`, `combat-ui-panel-atlas-runtime-v0.72.png`, `ability-icon-atlas-runtime-v2.9.0.png`, `signature-spell-icon-atlas-runtime-v2.9.0.png`, `lightning-spell-icon-atlas-runtime-v1.97.0.png`, `power-book-state-icon-atlas-runtime-v1.97.0.png`, `magic-ui-atlas-runtime-v1.31.0.png`, `spellbook-combat-ui-atlas-runtime-v1.24.0.png`, `combat-spell-effects-atlas-runtime-v2.9.0.png`, `spell-animation-atlas-runtime-v1.49.0.png`, `combat-command-icon-atlas-runtime-v1.99.0.png`, `combat-hud-ui-atlas-runtime-v0.73.png`, `combat-spell-float-atlas-runtime-v0.73.png`, and `ranger-ability-effect-atlas-runtime-v0.73.png`.
 - Midgaard town, tile, NPC, and sewer atlases are read as 5 by 4 grids.
 - `npc-portrait-atlas-runtime-*` is read as a transparent 5 by 4 grid.
 - `route-scaffold-atlas-runtime-*`, `faction-banner-atlas-runtime-*`, and `service-scaffold-atlas-runtime-*` are read as 5 by 4 grids.
@@ -241,7 +249,7 @@ uses the wizard row.
 
 ## Ability Icon Atlas Cells
 
-`ability-icon-atlas-runtime-v0.xx.png` is the Combat Skills icon sheet. Older sheets retain their legacy layouts; the current runtime sheet is an exact transparent 4 by 5 grid. Current runtime sheet: `ability-icon-atlas-runtime-v1.97.0.png`, derived from the preserved class-specific chroma-key and alpha sources named `source-ability-warrior-icon-atlas-v1.97.0-*`, `source-ability-rogue-icon-atlas-v1.97.0-*`, and `source-ability-ranger-icon-atlas-v1.97.0-*`.
+`ability-icon-atlas-runtime-v0.xx.png` is the Combat Skills icon sheet. Older sheets retain their legacy layouts; the current runtime sheet is the exact transparent 4 by 7 `ability-icon-atlas-runtime-v2.9.0.png`. It preserves cells 0-23 pixel-for-pixel and appends three generated, deterministically normalized capstone icons with an empty reserve at cell 27.
 
 - Cell 0: Charge.
 - Cell 1: Execute.
@@ -263,10 +271,18 @@ uses the wizard row.
 - Cell 17: Enrage.
 - Cell 18: Hunter Focus.
 - Cell 19: Smoke Bomb.
+- Cell 20: Rift Pounce.
+- Cell 21: Abyssal Whirl.
+- Cell 22: Soul Rend.
+- Cell 23: Dread Roar.
+- Cell 24: Sunder.
+- Cell 25: Shadowstep.
+- Cell 26: Quick Shot.
+- Cell 27: transparent reserve.
 
 ## Signature Spell Icon Atlas Cells
 
-`signature-spell-icon-atlas-runtime-v0.xx.png` is an exact transparent 7 by 7 grid used before generic school art. Current runtime sheet: `signature-spell-icon-atlas-runtime-v1.97.0.png`. It preserves the stronger approved v1.96 cells and replaces the weaker cells from `source-power-book-refresh-icon-atlas-v1.97.0-*`, with deterministic trim, centering, and 22-pixel padding.
+`signature-spell-icon-atlas-runtime-v0.xx.png` is an exact transparent 7 by 8 grid in its current runtime form, `signature-spell-icon-atlas-runtime-v2.9.0.png`. It preserves cells 0-50 pixel-for-pixel and fills the five prior reserve cells with deterministically normalized early-progression art.
 
 The row-major contract follows `FormulaCatalog.All` exactly:
 
@@ -277,6 +293,7 @@ The row-major contract follows `FormulaCatalog.All` exactly:
 - Cells 28-34: Frost Bind (FRB), Thunder Step (VST), Arcane Tempest (AST), Web Snare (WBK), Poison Gas (WBP), Doom Circle (DMC), Sleep (RMS).
 - Cells 35-41: Weaken (RNH), Night Veil (NVL), Bind (RKW), Poison Burst (RPX), Drain Life (INH), Mind Break (RMB), Death Burst (RLM).
 - Cells 42-48: Wither (WTR), Dream Smoke (DSM), Summon Imp (IBD), Summon Lesser Demon (IBF), Pact Brand (PBR), Summon Greater Demon (IBG), Abyssal Ascendance (DFA).
+- Cells 49-55: Rift Bolt (RBT), Rift Step (VRS), Dawn Pulse (DWP), Cinderstorm (CNS), Grave Hook (GRH), Soul Veil (SLV), Ashen Curse (ACR).
 
 Every formula receives one dedicated cell. Generic `spellbook-combat-ui` and `magic-ui` art remains a defensive fallback only.
 

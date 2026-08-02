@@ -2,8 +2,84 @@ using System;
 
 namespace AshenHalls
 {
+    public enum WorldMapCellAccessKind
+    {
+        OpenGround,
+        SoftScenery,
+        WalkableFeature,
+        UseFromBeside,
+        SolidObstacle,
+        BlockedTerrain,
+        EnemyOccupied
+    }
+
+    public enum WorldMapMovementCueKind
+    {
+        OpenTick,
+        UseBracket,
+        StopBar,
+        ThreatDoubleBar
+    }
+
     public static class ExplorationReadabilityRules
     {
+        public static WorldMapCellAccessKind ClassifyCellAccess(
+            int tile,
+            MapObject mapObject,
+            bool hasSoftScenery,
+            bool enemyOccupied)
+        {
+            // Threats are authoritative. Ground and object access are then read
+            // together so barred wall-tile gates can still advertise adjacent use
+            // without implying that the underlying terrain is standable.
+            if (enemyOccupied) return WorldMapCellAccessKind.EnemyOccupied;
+            if (mapObject != null)
+            {
+                if (tile == 1 && ExplorationTraversalRules.CanStandOnObject(mapObject))
+                {
+                    return WorldMapCellAccessKind.WalkableFeature;
+                }
+                // Barred north/south gates are authored into wall terrain but still
+                // resolve when approached. Adjacent-use semantics must outrank the
+                // ground tile so the cue matches input handling.
+                if (ExplorationTraversalRules.CanUseFromAdjacent(mapObject))
+                {
+                    return WorldMapCellAccessKind.UseFromBeside;
+                }
+                return tile == 1
+                    ? WorldMapCellAccessKind.SolidObstacle
+                    : WorldMapCellAccessKind.BlockedTerrain;
+            }
+            if (tile != 1) return WorldMapCellAccessKind.BlockedTerrain;
+            return hasSoftScenery
+                ? WorldMapCellAccessKind.SoftScenery
+                : WorldMapCellAccessKind.OpenGround;
+        }
+
+        public static bool IsWalkableAccess(WorldMapCellAccessKind access)
+        {
+            return access == WorldMapCellAccessKind.OpenGround
+                || access == WorldMapCellAccessKind.SoftScenery
+                || access == WorldMapCellAccessKind.WalkableFeature;
+        }
+
+        public static WorldMapMovementCueKind MovementCueKind(WorldMapCellAccessKind access)
+        {
+            switch (access)
+            {
+                case WorldMapCellAccessKind.OpenGround:
+                case WorldMapCellAccessKind.SoftScenery:
+                case WorldMapCellAccessKind.WalkableFeature:
+                    return WorldMapMovementCueKind.OpenTick;
+                case WorldMapCellAccessKind.UseFromBeside:
+                    return WorldMapMovementCueKind.UseBracket;
+                case WorldMapCellAccessKind.EnemyOccupied:
+                    return WorldMapMovementCueKind.ThreatDoubleBar;
+                default:
+                    return WorldMapMovementCueKind.StopBar;
+            }
+        }
+
         public static float TerrainArtAlpha(int tile, string kind, bool wideView, float noise01)
         {
             kind = kind ?? "";
@@ -91,18 +167,18 @@ namespace AshenHalls
 
         public static float MidgaardPropAlpha(bool wideView, float noise01)
         {
-            // Ambient props should read as real objects, not ghosted decals. Keep
-            // them a step below interactive targets, which render at full opacity.
+            // Decorative street life stays legible while remaining visibly behind
+            // authored buildings, named actors, and movement affordances.
             return wideView
-                ? Lerp(0.98f, 0.995f, noise01)
-                : Lerp(0.995f, 1.00f, noise01);
+                ? Lerp(0.56f, 0.66f, noise01)
+                : Lerp(0.78f, 0.84f, noise01);
         }
 
         public static float BiomePropAlpha(bool wideView, float noise01)
         {
             return wideView
-                ? Lerp(0.60f, 0.72f, noise01)
-                : Lerp(0.96f, 1.00f, noise01);
+                ? Lerp(0.52f, 0.64f, noise01)
+                : Lerp(0.80f, 0.88f, noise01);
         }
 
         public static float DecorativeDensityScale(bool wideView)

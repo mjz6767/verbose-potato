@@ -5,6 +5,14 @@ namespace AshenHalls
     public static class CombatAudioMixRules
     {
         public const int SfxVoiceCount = 8;
+        public const int ScheduledSfxCapacity = 16;
+        public const int ScheduledSfxPriorityAuxiliary = 0;
+        public const int ScheduledSfxPrioritySupporting = 1;
+        public const int ScheduledSfxPrioritySecondaryImpact = 2;
+        public const int ScheduledSfxPriorityPrimaryImpact = 3;
+
+        public const float ScheduledSfxCoalesceWindow = 0.032f;
+        public const float ScheduledSfxCoalescePanDistance = 0.20f;
 
         public static float StereoPanForColumn(int column, int boardWidth)
         {
@@ -132,6 +140,72 @@ namespace AshenHalls
         public static float AuxiliaryLayerVolume(float volume)
         {
             return Clamp(volume * 0.70f, 0f, 0.72f);
+        }
+
+        public static bool ShouldCoalesceScheduledCue(
+            string existingKey,
+            float existingPlayAt,
+            float existingPan,
+            int existingPriority,
+            string incomingKey,
+            float incomingPlayAt,
+            float incomingPan,
+            int incomingPriority)
+        {
+            if (existingPriority >= ScheduledSfxPriorityPrimaryImpact
+                || incomingPriority >= ScheduledSfxPriorityPrimaryImpact)
+            {
+                return false;
+            }
+
+            return string.Equals(existingKey ?? "", incomingKey ?? "", StringComparison.OrdinalIgnoreCase)
+                && Math.Abs(existingPlayAt - incomingPlayAt) <= ScheduledSfxCoalesceWindow
+                && Math.Abs(existingPan - incomingPan) <= ScheduledSfxCoalescePanDistance;
+        }
+
+        public static int SecondaryImpactBeatCount(CombatImpactProfile profile, int reactionCount)
+        {
+            string impact = (profile.ImpactSfx ?? "").Trim().ToLowerInvariant();
+            string cast = (profile.CastSfx ?? "").Trim().ToLowerInvariant();
+            string aftershock = (profile.AftershockSfx ?? "").Trim().ToLowerInvariant();
+            if (impact == "tempest") return 3;
+            if (impact == "meteor") return 2;
+            if (impact == "shock" && cast == "castshock" && aftershock == "resonance") return 2;
+            return reactionCount > 0 && CombatImpactRules.VisualIntensity(profile, reactionCount) >= 3 ? 1 : 0;
+        }
+
+        public static float SecondaryImpactDelay(CombatImpactProfile profile, int index)
+        {
+            int safeIndex = Math.Max(0, Math.Min(2, index));
+            return Clamp(profile.ImpactDelay + 0.055f + safeIndex * 0.050f, 0f, 0.60f);
+        }
+
+        public static float SecondaryImpactPan(float primaryPan, int index)
+        {
+            int safeIndex = Math.Max(0, Math.Min(2, index));
+            float offset = safeIndex == 0 ? -0.24f : safeIndex == 1 ? 0.28f : -0.10f;
+            float direction = primaryPan > 0.18f ? -1f : 1f;
+            return Clamp(primaryPan * 0.58f + offset * direction, -0.72f, 0.72f);
+        }
+
+        public static float SecondaryImpactVolume(CombatImpactProfile profile, int index)
+        {
+            int safeIndex = Math.Max(0, Math.Min(2, index));
+            return Clamp(profile.ImpactVolume * (0.42f - safeIndex * 0.055f), 0.22f, 0.52f);
+        }
+
+        public static float SecondaryImpactPitch(float primaryPitch, int index)
+        {
+            int safeIndex = Math.Max(0, Math.Min(2, index));
+            float offset = safeIndex == 0 ? 0.035f : safeIndex == 1 ? -0.025f : 0.055f;
+            return Clamp(primaryPitch + offset, 0.90f, 1.10f);
+        }
+
+        public static string SecondaryImpactCue(CombatImpactProfile profile, int index)
+        {
+            string impact = (profile.ImpactSfx ?? "").Trim().ToLowerInvariant();
+            if (impact == "meteor" && index > 0) return "impactlow";
+            return string.IsNullOrEmpty(profile.ImpactSfx) ? profile.AftershockSfx : profile.ImpactSfx;
         }
 
         private static float Clamp(float value, float min, float max)

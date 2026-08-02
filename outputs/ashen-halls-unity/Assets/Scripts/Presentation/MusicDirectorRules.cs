@@ -4,10 +4,21 @@ namespace AshenHalls
 {
     public static class MusicDirectorRules
     {
-        public const string Tavern = "tavern";
+        public const string Title = "tavern";
+        public const string Tavern = Title;
+        public const string GrandHearth = "grand-hearth";
         public const string Muster = "muster";
         public const string Victory = "victory";
         public const string Defeat = "defeat";
+
+        public const string GreenShrineTrainingRing = "green-shrine-training-ring";
+        public const string OldQuarryForge = "old-quarry-forge";
+        public const string GloamDeepCrypt = "gloam-deep-crypt";
+        public const string GlassLoreLibrary = "glass-lore-library";
+        public const string DuskMarketHideout = "dusk-market-hideout";
+        public const string RedGateSeal = "red-gate-seal";
+        public const string SaltCisternGate = "salt-cistern-gate";
+        public const string AshFenAncientGrove = "ash-fen-ancient-grove";
 
         public const string CombatGeneric = "combat-generic";
         public const string CombatSewer = "combat-sewer";
@@ -56,7 +67,7 @@ namespace AshenHalls
                 return zone;
             }
 
-            if (zone == "midgaard-grand-hearth") return Tavern;
+            if (zone == "midgaard-grand-hearth") return GrandHearth;
 
             if (zone == "midgaard-city")
             {

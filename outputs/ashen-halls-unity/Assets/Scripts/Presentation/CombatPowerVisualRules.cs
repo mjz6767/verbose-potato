@@ -61,11 +61,17 @@ namespace AshenHalls
             if (IsAbilityVisualKey(key, "abyssalwhirl")) return CombatPowerVisualMotif.Slash;
             if (IsAbilityVisualKey(key, "soulrend")) return CombatPowerVisualMotif.Void;
             if (IsAbilityVisualKey(key, "dreadroar")) return CombatPowerVisualMotif.Ascendance;
+            if (IsAbilityVisualKey(key, "sunder")) return CombatPowerVisualMotif.Guard;
+            if (IsAbilityVisualKey(key, "shadowstep")) return CombatPowerVisualMotif.Shadow;
+            if (IsAbilityVisualKey(key, "quickshot")) return CombatPowerVisualMotif.Volley;
+            if (key == "dawnpulse") return CombatPowerVisualMotif.Holy;
+            if (key == "cinderstorm" || key == "ashencurse") return CombatPowerVisualMotif.Fire;
+            if (key == "gravehook" || key == "soulveil") return CombatPowerVisualMotif.Void;
             if (ContainsAny(key, "seal")) return CombatPowerVisualMotif.Holy;
             if (ContainsAny(key, "ascendance", "transform")) return CombatPowerVisualMotif.Ascendance;
             if (ContainsAny(key, "greatersummon", "castgreatersummon", "castpact", "rift", "encounter")) return CombatPowerVisualMotif.Rift;
             if (ContainsAny(key, "deathburst", "castdeathburst", "death", "curse", "casthex", "void")) return CombatPowerVisualMotif.Void;
-            if (ContainsAny(key, "whirlwind", "execute", "blade", "crit")) return CombatPowerVisualMotif.Slash;
+            if (ContainsAny(key, "whirlwind", "execute", "blade", "crit", "swingheavy")) return CombatPowerVisualMotif.Slash;
             if (ContainsAny(key, "thunderstep", "veilstep")) return CombatPowerVisualMotif.Shock;
             if (ContainsAny(key, "ambush", "eviscerate", "stealth", "veil")) return CombatPowerVisualMotif.Shadow;
             if (ContainsAny(key, "volley", "arrow", "bow", "aimedshot", "pinningshot", "broadhead", "disruptingshot", "scoutmark")) return CombatPowerVisualMotif.Volley;
@@ -88,6 +94,14 @@ namespace AshenHalls
             string terrain = Normalize(formula.Terrain);
             string damage = Normalize(formula.DamageType);
 
+            switch (code)
+            {
+                case "dwp": return "dawnpulse";
+                case "cns": return "cinderstorm";
+                case "grh": return "gravehook";
+                case "slv": return "soulveil";
+                case "acr": return "ashencurse";
+            }
             if (status == "sleep" || code == "rms" || code == "dsm") return "sleepmist";
             if (status == "stealth" || code == "nvl") return "shadowveil";
             if (terrain == "web" || status == "web" || code == "wbk" || code == "rkw") return "websnare";
@@ -113,6 +127,8 @@ namespace AshenHalls
             if (formula == null) return 0.20f;
             if (formula.Code == "MTR") return BeamDuration("meteor");
             if (formula.Code == "FBL") return BeamDuration("fireball");
+            if (formula.Code == "CNS" || formula.Code == "ACR") return BeamDuration("fireball");
+            if (formula.Code == "DWP" || formula.Code == "GRH" || formula.Code == "SLV") return BeamDuration("death");
             if (formula.Effect == "thunderclap") return BeamDuration("thunderclap");
             if (formula.Effect == "teleport") return BeamDuration("arc");
             if (formula.DamageType == "shock") return BeamDuration("lightning");
@@ -144,6 +160,9 @@ namespace AshenHalls
             if (key == "abyssalwhirl") return 0.10f;
             if (key == "soulrend") return 0.18f;
             if (key == "dreadroar") return 0.08f;
+            if (key == "sunder") return 0.18f;
+            if (key == "shadowstep") return 0.22f;
+            if (key == "quickshot") return 0.24f;
             if (ContainsAny(key, "volley")) return BeamDuration("arc");
             if (ContainsAny(key, "aimedshot", "pinningshot", "broadheadshot", "disruptingshot", "scoutmark", "throwknife")) return BeamDuration("shot");
             if (ContainsAny(key, "charge", "execute", "ambush", "eviscerate", "cleave", "shieldbash", "hamstring")) return 0.18f;
@@ -179,6 +198,9 @@ namespace AshenHalls
             if (IsAbilityVisualKey(key, "abyssalwhirl")) return 8;
             if (IsAbilityVisualKey(key, "soulrend")) return 15;
             if (IsAbilityVisualKey(key, "dreadroar")) return 9;
+            if (key == "dawnpulse") return 12;
+            if (key == "cinderstorm" || key == "ashencurse") return 3;
+            if (key == "gravehook" || key == "soulveil") return 11;
             if (ContainsAny(key, "seal")) return 14;
             if (ContainsAny(key, "meteor")) return key.Contains("crater") ? 7 : 6;
             if (ContainsAny(key, "fireball")) return 2;
@@ -260,10 +282,13 @@ namespace AshenHalls
                 : -1;
             layered = secondaryCell >= 0;
             float secondaryScale = layered
-                ? Clamp(1.54f + tier * 0.12f + (float)Math.Sin(t * Math.PI) * 0.24f, 1.54f, 2.18f)
+                ? Clamp(
+                    LayeredImpactBaseScale(motif) + tier * 0.09f + (float)Math.Sin(t * Math.PI) * LayeredImpactPulseScale(motif),
+                    1.54f,
+                    2.18f)
                 : 0f;
             float secondaryOpacity = layered
-                ? Clamp(primaryOpacity * (0.52f + tier * 0.035f), 0.34f, 0.58f)
+                ? Clamp(primaryOpacity * LayeredImpactOpacityMultiplier(motif, tier), 0.34f, 0.58f)
                 : 0f;
             return new CombatImpactArtPlan(
                 primaryCell,
@@ -272,6 +297,12 @@ namespace AshenHalls
                 secondaryCell,
                 secondaryScale,
                 secondaryOpacity);
+        }
+
+        public static CombatImpactArtPlan ReducedMotionImpactArtPlan(string kind, int intensity)
+        {
+            // Reduced Motion is a single local stamp, not a shortened animation.
+            return ImpactArtPlan(kind, intensity, 0f);
         }
 
         public static int AnticipationAtlasCell(CombatPowerVisualMotif motif)
@@ -425,6 +456,94 @@ namespace AshenHalls
                 default:
                     return 0.62f;
             }
+        }
+
+        public static float SemanticImpactOverlayOpacity(
+            CombatPowerVisualMotif motif,
+            int intensity,
+            bool impactArtDrawn,
+            bool reducedMotion)
+        {
+            if (motif == CombatPowerVisualMotif.Generic) return 0f;
+            if (reducedMotion) return IsMartialMotif(motif) ? 0.82f : 0.62f;
+            if (!impactArtDrawn || IsMartialMotif(motif)) return 1f;
+
+            int tier = Math.Max(1, Math.Min(3, intensity));
+            if (tier < 2) return 0f;
+            switch (motif)
+            {
+                case CombatPowerVisualMotif.Shock: return 0.46f;
+                case CombatPowerVisualMotif.Fire:
+                case CombatPowerVisualMotif.Frost: return 0.38f;
+                case CombatPowerVisualMotif.Void:
+                case CombatPowerVisualMotif.Rift:
+                case CombatPowerVisualMotif.Ascendance: return 0.42f;
+                case CombatPowerVisualMotif.Holy:
+                case CombatPowerVisualMotif.Nature: return 0.32f;
+                default: return 0.28f;
+            }
+        }
+
+        public static float ReducedMotionStampScale(CombatPowerVisualMotif motif, int intensity)
+        {
+            int tier = Math.Max(1, Math.Min(3, intensity));
+            float motifScale;
+            switch (motif)
+            {
+                case CombatPowerVisualMotif.Rift:
+                case CombatPowerVisualMotif.Ascendance: motifScale = 1.02f; break;
+                case CombatPowerVisualMotif.Fire:
+                case CombatPowerVisualMotif.Shock: motifScale = 0.96f; break;
+                case CombatPowerVisualMotif.Smoke:
+                case CombatPowerVisualMotif.Shadow: motifScale = 0.86f; break;
+                default: motifScale = 0.90f; break;
+            }
+            return Clamp(motifScale + (tier - 1) * 0.035f, 0.86f, 1.10f);
+        }
+
+        private static float LayeredImpactBaseScale(CombatPowerVisualMotif motif)
+        {
+            switch (motif)
+            {
+                case CombatPowerVisualMotif.Shock: return 1.66f;
+                case CombatPowerVisualMotif.Void:
+                case CombatPowerVisualMotif.Rift:
+                case CombatPowerVisualMotif.Ascendance: return 1.72f;
+                case CombatPowerVisualMotif.Holy: return 1.60f;
+                case CombatPowerVisualMotif.Nature:
+                case CombatPowerVisualMotif.Frost: return 1.56f;
+                default: return 1.62f;
+            }
+        }
+
+        private static float LayeredImpactPulseScale(CombatPowerVisualMotif motif)
+        {
+            switch (motif)
+            {
+                case CombatPowerVisualMotif.Shock: return 0.28f;
+                case CombatPowerVisualMotif.Void:
+                case CombatPowerVisualMotif.Rift: return 0.22f;
+                case CombatPowerVisualMotif.Holy:
+                case CombatPowerVisualMotif.Nature: return 0.14f;
+                default: return 0.18f;
+            }
+        }
+
+        private static float LayeredImpactOpacityMultiplier(CombatPowerVisualMotif motif, int tier)
+        {
+            float baseMultiplier;
+            switch (motif)
+            {
+                case CombatPowerVisualMotif.Fire:
+                case CombatPowerVisualMotif.Shock: baseMultiplier = 0.62f; break;
+                case CombatPowerVisualMotif.Void:
+                case CombatPowerVisualMotif.Rift:
+                case CombatPowerVisualMotif.Ascendance: baseMultiplier = 0.66f; break;
+                case CombatPowerVisualMotif.Holy:
+                case CombatPowerVisualMotif.Nature: baseMultiplier = 0.52f; break;
+                default: baseMultiplier = 0.56f; break;
+            }
+            return baseMultiplier + tier * 0.018f;
         }
 
         private static string Normalize(string value)

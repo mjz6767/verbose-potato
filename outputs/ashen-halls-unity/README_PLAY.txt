@@ -1,6 +1,14 @@
-Ash & Brimstone v2.8.0 - Grand Hearth Atmosphere Candidate
+Ash & Brimstone v2.9.0 - Steel, Sorcery, and Living Roads Candidate
 
-Current package version: v2.8.0. Save schema: v25.
+Current package version: v2.9.0. Save schema: v25.
+
+Steel, Sorcery, and Living Roads v2.9.0: combat now makes its current intent easier to read. Spellbook and Skillbook hover waits for an intentional pause and remains a passive Preview; committed Selection keeps one teal rail, while armed Targeting keeps its distinct gold state. The command palette adds clearer BLOCKED, ARMED, and NEXT tags, stronger unavailable treatment, and the correct sword or bow emblem for the action in hand. Combatants sit more cleanly on the board with contact light, faction rims, normalized footprints, and a restrained active-unit pulse.
+
+Spells and skills now land with a new exact-pinned 4 by 4 effects sheet, layered power-specific impact motifs, better-prioritized sound, and a stable static stamp when Reduced Motion is enabled. Encounter music keeps a coherent faction identity instead of rapidly changing under pressure, while the expanded 53-track original score adds a 60-second title overture, a Grand Hearth reprise, and one calm theme for each authored regional destination.
+
+The world map has stronger grounded buildings, quieter ordinary decoration, clearer movement and adjacent-use cues, edge-safe illustrated landmarks and threat habitats, and ambient citizens that yield visually to the party and authored interactions. Early progression now reaches level 20 on a practical 8,740-XP curve. Sunder, Shadowstep, and Quick Shot extend the martial ladders, while Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse extend the spell ladders with dedicated book icons. Existing campaigns remain compatible and normalize safely at the level cap; save schema remains v25.
+
+Validation status: combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, and SpriteArtRuntimeSmoke pass on the integrated v2.9 candidate. The final Windows build, canonical packaging and clean-extracted boot, built-player visual matrix, physical-controller review, and complete human playthrough remain pending release checks.
 
 Grand Hearth Atmosphere v2.8.0: the opening Town Hall now blends its established floor, six patrons, and fixtures with a dedicated painted ambience layer. Warm firelight reaches into the gathering floor, cool rain light leads back from the east storm doors, the north-east window reflects storm blue, two wall sconces strengthen the room silhouette, ember haze rises over the fire, and each patron gains a grounding contact shadow. The layer is deterministic and presentation-only: room geometry, stable IDs, spawn, runner, exit, guidance, interaction, collision, gameplay, and save schema remain unchanged.
 

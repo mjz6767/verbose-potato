@@ -66,7 +66,7 @@ namespace AshenHalls
                 ObjectType.TrainingGround,
                 "ambforge",
                 "ambgrove",
-                "green-shrine-road",
+                MusicDirectorRules.GreenShrineTrainingRing,
                 "guard"),
             Profile(
                 OldQuarryForge,
@@ -74,7 +74,7 @@ namespace AshenHalls
                 ObjectType.ForgeSite,
                 "ambforge",
                 "ambstone",
-                "old-quarry",
+                MusicDirectorRules.OldQuarryForge,
                 "servicearmor"),
             Profile(
                 GloamDeepCrypt,
@@ -82,7 +82,7 @@ namespace AshenHalls
                 ObjectType.DeepCrypt,
                 "ambruin",
                 "ambcave",
-                MusicDirectorRules.ForgottenRuins,
+                MusicDirectorRules.GloamDeepCrypt,
                 "door"),
             Profile(
                 GlassLoreLibrary,
@@ -90,7 +90,7 @@ namespace AshenHalls
                 ObjectType.LoreLibrary,
                 "ambglass",
                 "ambruin",
-                MusicDirectorRules.ArcaneThreshold,
+                MusicDirectorRules.GlassLoreLibrary,
                 "formula"),
             Profile(
                 DuskMarketHideout,
@@ -98,7 +98,7 @@ namespace AshenHalls
                 ObjectType.FactionCamp,
                 "ambdrum",
                 "ambcamp",
-                MusicDirectorRules.FactionCamp,
+                MusicDirectorRules.DuskMarketHideout,
                 "ambush"),
             Profile(
                 RedGateSeal,
@@ -106,7 +106,7 @@ namespace AshenHalls
                 ObjectType.PortalSeal,
                 "ambgate",
                 "ambglass",
-                "red-gate",
+                MusicDirectorRules.RedGateSeal,
                 "riftseal"),
             Profile(
                 SaltCisternGate,
@@ -114,7 +114,7 @@ namespace AshenHalls
                 ObjectType.DungeonGate,
                 "ambdrip",
                 "ambcave",
-                MusicDirectorRules.UnderstoneThreshold,
+                MusicDirectorRules.SaltCisternGate,
                 "gateopen"),
             Profile(
                 AshFenAncientGrove,
@@ -122,7 +122,7 @@ namespace AshenHalls
                 ObjectType.AncientGrove,
                 "ambgrove",
                 "ambfen",
-                MusicDirectorRules.AncientGrove,
+                MusicDirectorRules.AshFenAncientGrove,
                 "castnature")
         };
 

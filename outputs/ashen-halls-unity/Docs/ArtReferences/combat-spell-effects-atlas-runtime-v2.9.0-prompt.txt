@@ -1,0 +1,25 @@
+Mode: built-in ImageGen, game-production runtime atlas, reference-guided generation
+Reference: combat-spell-effects-atlas-runtime-v0.73.png
+
+Create an exact four-column by four-row combat spell/effect atlas on a perfectly
+uniform #00FF00 chroma background. Preserve the reference atlas's visual cell
+arrangement and runtime meanings while improving silhouette clarity, depth,
+particle layering, and readability at 64-128 pixels. Keep one centered,
+self-contained effect per cell with generous gutters, no cell bleed, no grid,
+text, frames, characters, scenery, floor planes, logos, or watermark.
+
+Displayed rows, left to right:
+1. Ember firebolt; fire impact bloom; descending meteor; meteor impact crown.
+2. Frost shard; ice eruption; chain lightning; thunder nova.
+3. Healing column; holy ward dome; void orb; collapsing void impact.
+4. Binding vines; stone eruption; smoke cloud; martial arrow/target streak.
+
+Art direction: dark-fantasy tactical RPG, hand-painted pixel-art hybrid, crisp
+silhouettes, controlled bloom, luminous cores, darker outer energy, cohesive
+palette, and restrained density so effects do not obscure combatants or tiles.
+Do not use #00FF00 inside the subjects; render nature with moss, olive, amber,
+and pale gold.
+
+Local processing: border-sampled soft chroma removal, green despill, one-pixel
+matte contraction, resize to a divisible 1280-square canvas, then independent
+4x4 cell normalization to a centered 280x280 maximum footprint.

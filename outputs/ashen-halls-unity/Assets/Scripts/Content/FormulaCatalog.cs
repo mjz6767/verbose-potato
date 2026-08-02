@@ -1,8 +1,76 @@
+using System;
+using System.Collections.Generic;
+
 namespace AshenHalls
 {
     public static class FormulaCatalog
     {
         public const int SummonedTreeDuration = 8;
+
+        private static readonly Dictionary<string, int> requiredLevels =
+            new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
+            {
+                ["OIC"] = 1,
+                ["TBQ"] = 1,
+                ["NVC"] = 2,
+                ["OBL"] = 3,
+                ["GBH"] = 4,
+                ["TNC"] = 5,
+                ["LNH"] = 6,
+                ["GBX"] = 7,
+                ["HLC"] = 8,
+                ["SGW"] = 9,
+                ["SRF"] = 10,
+                ["LBC"] = 11,
+                ["DWP"] = 12,
+                ["TBG"] = 13,
+                ["SWR"] = 14,
+                ["SBN"] = 16,
+
+                ["FIF"] = 1,
+                ["RIG"] = 1,
+                ["WBI"] = 2,
+                ["WBF"] = 3,
+                ["RCL"] = 4,
+                ["BTF"] = 5,
+                ["FBL"] = 6,
+                ["RDF"] = 7,
+                ["RSG"] = 8,
+                ["FRB"] = 9,
+                ["RBI"] = 10,
+                ["RLF"] = 11,
+                ["CLT"] = 12,
+                ["MTR"] = 14,
+                ["CNS"] = 15,
+                ["VST"] = 16,
+                ["AST"] = 20,
+
+                ["RKW"] = 1,
+                ["RNH"] = 1,
+                ["WBK"] = 2,
+                ["NVL"] = 3,
+                ["RMS"] = 4,
+                ["INH"] = 5,
+                ["RMB"] = 6,
+                ["WBP"] = 7,
+                ["GRH"] = 8,
+                ["RPX"] = 9,
+                ["DMC"] = 10,
+                ["WTR"] = 11,
+                ["DSM"] = 14,
+                ["RLM"] = 16,
+
+                ["RBT"] = 1,
+                ["IBD"] = 2,
+                ["SLV"] = 4,
+                ["PBR"] = 6,
+                ["IBF"] = 8,
+                ["VRS"] = 10,
+                ["IBG"] = 14,
+                ["DFA"] = 18,
+
+                ["ACR"] = 18
+            };
 
         public static readonly FormulaDef[] All =
         {
@@ -59,61 +127,26 @@ namespace AshenHalls
             new FormulaDef { Code = "IBG", Name = "Summon Greater Demon", Hint = "call a brutal elder demon", School = "pact", Skill = "hex", Mana = 17, Range = 3, Target = "tile", Effect = "summon", SummonRole = "greaterdemon", DamageType = "death", Power = 15, Duration = 4, Arc = true },
             new FormulaDef { Code = "DFA", Name = "Abyssal Ascendance", Hint = "take a greater demon's shape for a few brutal turns", School = "pact", Skill = "hex", Mana = 15, Range = 0, Target = "self", Effect = "transform", DamageType = "death", Power = 4, Duration = 4, Arc = true },
             new FormulaDef { Code = "RBT", Name = "Rift Bolt", Hint = "tear a compact death bolt through the rift", School = "pact", Skill = "hex", Mana = 4, Range = 5, Target = "enemy", Effect = "damage", DamageType = "death", Power = 8 },
-            new FormulaDef { Code = "VRS", Name = "Rift Step", Hint = "cross between two linked rifts", School = "pact", Skill = "hex", Mana = 6, Range = 5, Target = "tile", Effect = "teleport", DamageType = "death", Arc = true }
+            new FormulaDef { Code = "VRS", Name = "Rift Step", Hint = "cross between two linked rifts", School = "pact", Skill = "hex", Mana = 6, Range = 5, Target = "tile", Effect = "teleport", DamageType = "death", Arc = true },
+
+            new FormulaDef { Code = "DWP", Name = "Dawn Pulse", Hint = "heal an ally and echo through nearby friends", School = "mend", Skill = "mend", Mana = 10, Range = 4, Target = "ally", Effect = "heal", DamageType = "light", Power = 11, Splash = true, Arc = true },
+            new FormulaDef { Code = "CNS", Name = "Cinderstorm", Hint = "fiery area burst with a lingering bleed", School = "ember", Skill = "ember", Mana = 11, Range = 5, Target = "enemy", Effect = "damage", DamageType = "fire", Status = "bleed", Power = 16, Duration = 2, Splash = true, Arc = true },
+            new FormulaDef { Code = "GRH", Name = "Grave Hook", Hint = "death strike that binds one enemy", School = "hex", Skill = "hex", Mana = 8, Range = 5, Target = "enemy", Effect = "damage", DamageType = "death", Status = "web", Power = 11, Duration = 2 },
+            new FormulaDef { Code = "SLV", Name = "Soul Veil", Hint = "pact ward that spreads to nearby allies", School = "pact", Skill = "hex", Mana = 10, Range = 4, Target = "ally", Effect = "status", Status = "shield", Duration = 2, Splash = true, Arc = true },
+            new FormulaDef { Code = "ACR", Name = "Ashen Curse", Hint = "splash fire that leaves a weakening hex", School = "ember|hex", Skill = "hex", Mana = 12, Range = 5, Target = "enemy", Effect = "damage", DamageType = "fire", Status = "hex", Power = 14, Duration = 2, Splash = true, Arc = true }
         };
 
         public static int RequiredLevel(FormulaDef formula)
         {
-            if (formula == null) return 1;
-            switch (formula.Code)
-            {
-                case "GBH":
-                case "OIC":
-                case "NVC":
-                case "TBQ":
-                case "FIF":
-                case "WBF":
-                case "WBI":
-                case "RIG":
-                case "WBK":
-                case "RKW":
-                case "IBD":
-                case "RBT":
-                    return 1;
-                case "GBX":
-                case "SGW":
-                case "TNC":
-                case "OBL":
-                case "LNH":
-                case "BTF":
-                case "RCL":
-                case "RDF":
-                case "RSG":
-                case "FRB":
-                case "WBP":
-                case "RMS":
-                case "RNH":
-                case "NVL":
-                case "RPX":
-                case "INH":
-                case "WTR":
-                case "PBR":
-                    return 2;
-                case "IBF":
-                case "SRF":
-                case "CLT":
-                    return 3;
-                case "VST":
-                case "VRS":
-                    return 4;
-                case "IBG":
-                    return 5;
-                case "AST":
-                case "DFA":
-                    return 6;
-                default:
-                    return 3;
-            }
+            if (formula == null) return ProgressionRules.MinimumLevel;
+            return requiredLevels.TryGetValue(formula.Code ?? "", out int required)
+                ? required
+                : ProgressionRules.MaximumLevel;
+        }
+
+        public static bool HasExplicitRequiredLevel(string formulaCode)
+        {
+            return requiredLevels.ContainsKey(formulaCode ?? "");
         }
     }
 }
