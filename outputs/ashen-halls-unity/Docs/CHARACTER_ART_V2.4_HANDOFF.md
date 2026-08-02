@@ -1,6 +1,6 @@
 # Accepted v2.4 NPC and Player Sprite Handoff
 
-These are accepted v2.4 runtime atlases, exact-pinned as `WorldNpcCitizenAtlas` and `PlayerExplorationRoleAtlas`. They expand ambient world population and player exploration silhouettes without replacing named Midgaard NPC identities, NPC portraits, the 35-cell combat character atlas, or the existing mixed world-token atlas. Combined release verification remains pending.
+These are accepted v2.4 runtime atlases, exact-pinned as `WorldNpcCitizenAtlas` and `PlayerExplorationRoleAtlas`. They expand ambient world population and player exploration silhouettes without replacing named Midgaard NPC identities, NPC portraits, the 35-cell combat character atlas, or the existing mixed world-token atlas. Combined automated release verification passes.
 
 ## Delivered NPC files
 
@@ -48,7 +48,7 @@ Both atlases are exact 1536 by 768 RGBA images, arranged as 4 columns by 2 rows 
 
 ## Original integration recommendation and status
 
-Source integration implements the loader, mapping, presentation, and focused coverage described in items 1-7 below; combined test and package execution remains pending.
+Source integration implements the loader, mapping, presentation, and focused coverage described in items 1-7 below; combined test and package execution passes.
 
 1. Add separately named `WorldNpcCitizenAtlas` and `PlayerExplorationRoleAtlas` manifest pins. Do not replace `MidgaardNpcAtlas`, `NpcPortraitAtlas`, `CharacterCombatAtlas`, or `WorldMapTokenSpriteAtlas`.
 2. Load and validate each candidate as an exact 4 by 2 transparent sheet with all eight populated cells and a 20-pixel safe gutter.

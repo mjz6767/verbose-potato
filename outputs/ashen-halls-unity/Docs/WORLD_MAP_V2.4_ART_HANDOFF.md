@@ -1,6 +1,6 @@
 # Accepted v2.4 World-Threat Habitat Art Handoff
 
-This is accepted v2.4 runtime art, exact-pinned as `WorldThreatHabitatAtlas`. It complements the eight v2.3 destination set-pieces by giving roaming factions stationary, illustrated homes while their existing creature tokens continue to patrol independently. Combined release verification remains pending.
+This is accepted v2.4 runtime art, exact-pinned as `WorldThreatHabitatAtlas`. It complements the eight v2.3 destination set-pieces by giving roaming factions stationary, illustrated homes while their existing creature tokens continue to patrol independently. Combined automated release verification passes.
 
 ## Delivered files
 
@@ -34,11 +34,11 @@ Stable row-major indices:
 
 ## Original wiring recommendation and status
 
-Source integration implements items 1-6 below; their combined test and package execution remains pending. Item 7 remains a future, advisory exploration-audio opportunity rather than part of the accepted v2.4 source contract.
+Source integration implements items 1-6 below, and their combined test and package execution passes. Item 7 remains a future, advisory exploration-audio opportunity rather than part of the accepted v2.4 source contract.
 
 1. Add a separately named `WorldThreatHabitatAtlas` manifest pin. Do not replace the v2.3 `WorldAreaSetpieceAtlas`.
 2. Load and validate this atlas as an exact 4 by 2 transparent sheet alongside the existing world-area set-piece texture.
-3. Add a small deterministic presentation rule that maps roaming-threat faction/archetype to indices. Use index 0 for ordinary rats, 1 for plague/mage/cleric rats, 2 for ordinary kobolds, 3 for kobold shamans, 4 for drow, 5 for undead, 6 for demons, and 7 only as a neutral/fallback aftermath site.
+3. Add a small deterministic presentation rule that maps roaming-threat faction/archetype to indices. Use index 0 for ordinary rats, 1 for plague/mage/cleric rats, 2 for ordinary kobolds, 3 for kobold shamans, 4 for drow, 5 for undead, 6 for demons, and 7 only as a neutral/fallback aftermath site, including inactive or defeated homes.
 4. Draw a stationary habitat at each threat's existing `HomeX`/`HomeY`, beneath the mobile roaming-threat token. Suggested scale is approximately 1.35 cells on Region Map and 1.65 cells on Local Map, with bottom-center anchoring and reduced tint when the home is outside the current objective route.
 5. Keep certified safe-road cells clear. A habitat marks patrol territory; it must not silently add encounters, move the home cell, or change save data.
 6. Extend focused rule/runtime coverage for the manifest pin, exact geometry, all eight populated cells, safe gutters, archetype mappings, stable home anchoring, and draw order beneath the creature token.

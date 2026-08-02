@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-Last updated for the v2.4.0 source candidate. Combined verification remains pending; older release sections are retained below as historical records.
+Last updated for the verified v2.4.0 family-playtest candidate. Automated release gates pass; older release sections are retained below as historical records.
 
 ## Active Runtime Art
 
@@ -14,13 +14,13 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 - Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.
 - Journal/scaffold: story cards, NPC portraits, route/dungeon/service/faction scaffold hooks when matching files are present.
 
-## Newly Connected In v2.4.0 - Verification Pending
+## Newly Connected In v2.4.0 - Automated Gates Passed
 
 - Source wiring exact-pins `world-threat-habitat-atlas-runtime-v2.4.0.png`, `world-npc-citizen-atlas-runtime-v2.4.0.png`, and `player-exploration-role-atlas-runtime-v2.4.0.png` as separate 4 by 2, 1536 by 768 transparent contracts with eight populated 384-pixel cells and 20-pixel safe gutters.
 - Active-threat habitats remain stationary at the existing saved home beneath mobile threat tokens and are suppressed on certified safe roads; inactive threats leave the neutral ruined-waystation aftermath cell. They add no encounters and mutate no campaign state.
 - Ambient citizens are deterministic exterior dressing only. Suitable streets and non-safe roads remain eligible, while the Grand Hearth tutorial lane, current guidance, certified safe roads, rooms, water, hazards, entrances, authored sites, and interactables stay clear. Citizens never replace a named NPC or dialogue portrait.
 - Exactly one represented party member uses the dedicated Shield, Pike, Bow, Knife, Mender, Ember, Hex, or Ward atlas cell. Multi-member parties retain the mixed atlas group marker; combat and inventory character art remain unchanged.
-- RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, Windows build/package, clean-extracted packaged boot, and final endpoint visual inspection remain pending for the settled v2.4.0 source.
+- RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, Windows build/package, and clean-extracted packaged boot pass for the settled v2.4.0 source. Final endpoint visual inspection remains a manual release-readiness check.
 
 ## Newly Connected In v1.6.3
 

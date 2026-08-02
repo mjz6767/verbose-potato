@@ -2,9 +2,9 @@
 
 ## Current Candidate
 
-`v2.4.0` is the current family-playtest source candidate for the Midgaard sewer and bounded Old Road slice. It combines a Grand Hearth title/menu and first-spawn sequence, a battlefield-first combat frame with a compact vertical command palette, functional rewards and repeat services at all eight regional destinations, clearer exploration/minimap/road presentation, and bounded party-relative patrol audio. Existing campaign data remains compatible and the save schema remains v25. Combined RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, the Windows build/package, clean-extracted packaged boot, and final 720p/1080 visual verification are pending; this source candidate is not yet a release-verified package. Physical-controller review, subjective travel-audio/title review, and a complete real playthrough remain human release gates. It is not a content-complete game.
+`v2.4.0` is the current verified family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It combines a Grand Hearth title/menu and first-spawn sequence, a battlefield-first combat frame with a compact vertical command palette, functional rewards and repeat services at all eight regional destinations, clearer exploration/minimap/road presentation, and bounded party-relative patrol audio. Existing campaign data remains compatible and the save schema remains v25. Combined RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, the Windows build/package, and clean-extracted packaged boot pass from the settled source. Final 720p/1080 visual review, physical-controller review, subjective travel-audio/title review, and a complete real playthrough remain human release gates. It is not a content-complete game.
 
-## Integrated for v2.4.0 — Verification Pending
+## Integrated for v2.4.0 — Automated Gates Passed
 
 - Combat gives the board materially more of the frame and places Move, Attack, Cast, Guard, Elixir, End Turn, and Skills in a compact vertical illustrated palette. Adaptive emergency cards, a focused information drawer, long target-title best fit, and the 960 by 600 fallback are part of the combined candidate.
 - Green Shrine, Old Quarry, Gloam Deep, Glass Lore, Dusk Market, Red Gate, Salt Cistern, and Ash Fen now grant separate depth-scoped first-visit rewards. Each destination then advertises its actual repeat rest, trade, mana recovery, or inspection state; preexisting v2.3.0 chart/scaffold flags do not consume the new reward.
@@ -12,7 +12,7 @@
 - Three exact transparent 4 by 2 companion atlases add stationary active-faction habitats beneath roaming patrol tokens, neutral ruined-waystation aftermath at defeated homes, deterministic non-interactive citizens on eligible exterior streets and non-safe roads, and role-specific exploration silhouettes for one-member parties. Citizens remain off the opening tutorial route, current guidance, certified safe roads, rooms, hazards, entrances, authored sites, and interactables. Multi-member parties retain the group marker; named NPC identities, combat and inventory art, encounters, safe roads, and saves are unchanged.
 - The title and menu now present the storm-lit Grand Hearth with restrained reveal, weather, forge, and menu beats. Licensed Cinzel Decorative typography supports the title treatment, and New Game places the mustered party inside the authored Grand Hearth before the storm doors lead into Midgaard.
 - Deterministic remote-site staging can place any of the eight authored destinations at a valid interaction approach, then select Local Map or Region Map, Details state, and reward-ready or repeat-service state for capture without importing or modifying a campaign save.
-- Release verification remains open. Run RuleSmoke, focused sprite-art and combat-UI runtime coverage, full RuntimeBoot, the Windows build/package, clean-extracted packaged boot, and final 1280 by 720 plus 1920 by 1080 visual review before promoting v2.4.0.
+- Automated release verification passes: RuleSmoke, focused sprite-art and combat-UI runtime coverage, full RuntimeBoot, the Windows build/package, and clean-extracted packaged boot. Complete the final 1280 by 720 plus 1920 by 1080 visual review and the human checks below before broader release promotion.
 
 ## Integrated for v2.3.0 — Automated Gates Passed
 
@@ -74,7 +74,7 @@
 
 ## Still Needs Validation and Humans
 
-- Run the settled combined v2.4.0 source through RuleSmoke, focused sprite-art and combat-UI runtime checks, full RuntimeBoot, the production Windows build/package, and clean-extracted packaged boot. These gates are pending and must replace this note with exact evidence before release promotion.
+- Automated evidence from the settled combined v2.4.0 source passes RuleSmoke, focused sprite-art and combat-UI runtime checks, full RuntimeBoot, the production Windows build/package, and clean-extracted packaged boot. The build log and release-integrity manifest retain the exact package evidence.
 - Capture the Grand Hearth title and first spawn, compact vertical combat palette and expanded battlefield, and all eight reward-ready/repeat-service regional-site states at 1280 by 720 and 1920 by 1080. The deterministic remote-site staging exists to make the exploration matrix repeatable, but the final combined visual packet is pending.
 - At both endpoint resolutions, move a roaming patrol away from home and confirm its habitat remains fixed beneath the token layer in Local and Region Map, then defeat it and confirm the home becomes neutral ruined-waystation aftermath. Confirm the Grand Hearth tutorial lane, current guidance, certified safe roads, rooms, water, hazards, entrances, authored sites, and interactables remain free of ambient citizens; confirm an eligible non-safe road can still receive ambience; ambient figures offer no interaction; a one-member party uses the correct role silhouette; and a multi-member party retains the established group marker.
 - Repeat the accepted Local Map and Region Map endpoint captures from the clean-extracted packaged player; the equivalent development-player matrix already passes.
@@ -87,7 +87,7 @@
 - A physical controller still needs a human pass for book row navigation, right-stick detail scrolling, targeting resume/cancel, and comfort at both endpoint resolutions.
 - The v1.99 interaction contract still needs a physical mouse/controller handoff check: with the pointer parked over one card or combat command, D-pad/stick movement must leave exactly one truthful focus and prompt. Preview must remain quieter than committed Selection, armed Targeting must remain distinct, unavailable commands must remain focusable for explanation, and Low Resource, No Target, Action Used, Disabled, and Blocked must remain understandable without color.
 - The safe-room choice, defeat retry, and final reward need visual confirmation in the packaged Windows player.
-- One complete real playthrough from a clean-extracted v2.4.0 folder remains the human release gate before calling this broadly shareable; the combined v2.4.0 package and clean-extract gates are still pending.
+- One complete real playthrough from a clean-extracted v2.4.0 folder remains the human release gate before calling this broadly shareable.
 
 ## 15-Minute Family Script
 
