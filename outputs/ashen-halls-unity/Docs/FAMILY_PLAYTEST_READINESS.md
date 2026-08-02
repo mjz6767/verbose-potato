@@ -2,7 +2,7 @@
 
 ## Current Candidate
 
-`v2.7.0` is the current development candidate for the Midgaard sewer and bounded Old Road slice. It adds dedicated Grand Hearth floor and set-piece art without changing the v2.6 Town Hall room, first journey step, gameplay, save data, or save schema v25. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, and six supported-resolution built-player captures pass. Package inventory, clean-extracted packaged boot, physical-controller review, and a complete real playthrough remain pending. The packaged v2.6.0 candidate remains the verified rollback baseline. This is not a content-complete game.
+`v2.7.0` is the current verified family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It adds dedicated Grand Hearth floor and set-piece art without changing the v2.6 Town Hall room, first journey step, gameplay, save data, or save schema v25. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, six supported-resolution built-player captures, canonical package inventory, and clean-extracted packaged boot pass. Physical-controller review and a complete real playthrough remain manual gates. This is not a content-complete game.
 
 ## Grand Hearth Art v2.7 - Automated, Build, and Visual Gates Passed
 
@@ -13,7 +13,8 @@
 - The accepted nine-file source set contains two runtime atlases and seven source/alpha/prompt/validation companions. All nine are deliberately promoted from the locally ignored ArtReferences workspace; only the two runtime PNGs are future package candidates.
 - The 10 by 9 room, continuous 8 by 7 floor, first-spawn cell, storm-door exit, oxblood-and-charcoal tutorial runner, patrons, stable fixture IDs, map-table and road-chest fallbacks, portal/objective/autosave flow, gameplay, and save schema v25 remain unchanged.
 - RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the final Windows build pass. Six captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080; every capture reports `complete=True`, `failure=None`. Visual review accepts one open hall, a continuous oxblood runner and medallion, monumental hearth, open storm doors, six patrons, and a clear route, with no checkerboard seams, magenta residue, square backplates, or cropping.
-- Canonical package inventory, clean-extracted packaged boot, physical-controller review, and a complete New Game -> Muster -> Town Hall -> Midgaard walkthrough remain pending.
+- Canonical package inventory and clean-extracted packaged boot pass from a clean tracked source. The authoritative `QA/v2.7.0-release-integrity/release-integrity-manifest.json` records save v25, `sourceDirty=false`, `sourceStatusEntryCount=0`, `cleanExtractLaunch=true`, `packagedBootMode=batchmode-explore-smoke`, `playerExitCode=0`, `packagedArtCount=82`, and both exact Grand Hearth runtime atlases with their expected hashes.
+- Physical-controller review and a complete New Game -> Muster -> Town Hall -> Midgaard walkthrough remain manual gates.
 
 ## Town Hall Gathering v2.6 - Automated, Visual, and Package Gates Passed
 

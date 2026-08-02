@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-The current v2.7.0 Grand Hearth development candidate passes RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, and six supported-resolution built-player captures. Package inventory, clean-extracted packaged boot, physical-controller review, and a complete human playthrough remain pending. The verified v2.6.0 Town Hall package remains the rollback baseline; older release sections are retained as historical records.
+The verified v2.7.0 Grand Hearth family-playtest candidate passes RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, six supported-resolution built-player captures, canonical package inventory, and clean-extracted packaged boot. Physical-controller review and a complete human playthrough remain manual. `QA/v2.7.0-release-integrity/release-integrity-manifest.json` is authoritative for package evidence; older release sections are retained as historical records.
 
 ## Active Runtime Art
 
@@ -22,7 +22,7 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 - Floor cells 0/1 use the accepted edge-balance ImageGen refinement with updated prompt/validation provenance. Fallback set-piece drawing is footprint-gated and covered by deterministic assertions.
 - The accepted source set contains the two runtime PNGs plus seven source/alpha/prompt/validation companions. These nine exact files are recorded in `GRAND_HEARTH_ART_V2.7_HANDOFF.md` and promoted from the locally ignored ArtReferences folder; only the two runtime PNGs are package candidates.
 - RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the final Windows build pass. Six built-player captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080; all report `complete=True`, `failure=None`. Visual review accepts one open hall, continuous oxblood runner/medallion, monumental hearth, open storm doors, six patrons, and clear route without checkerboard seams, magenta residue, square backplates, or cropping. Stable Town Hall geometry, IDs, portal/objective flow, gameplay, and save schema v25 remain protected.
-- Package inventory, clean-extracted packaged boot, physical-controller review, and full human playthrough remain pending.
+- Canonical package inventory and clean-extracted packaged boot pass from a clean tracked source. The authoritative release-integrity manifest records save v25, zero dirty/status entries, successful batch exploration boot, player exit code 0, 82 packaged art files, and both exact Grand Hearth atlas hashes. Physical-controller review and full human playthrough remain manual.
 
 ## Newly Connected In v2.6.0 - Automated, Visual, and Package Gates Passed
 

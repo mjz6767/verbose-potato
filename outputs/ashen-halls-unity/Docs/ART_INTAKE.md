@@ -3,7 +3,7 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
-## Active v2.7.0 Grand Hearth companion contract - build/visual gates passed
+## Active v2.7.0 Grand Hearth companion contract - automated, visual, and package gates passed
 
 `grand-hearth-floor-atlas-runtime-v2.7.0.png` is the exact-pinned opaque floor atlas: an exact 1536 by 1024 TrueColor 3 by 2 sheet with 512-pixel cells ordered dark civic wood A, dark civic wood B, oxblood-and-charcoal company runner, company runner medallion, heat-darkened Grand Hearth apron, and storm-door threshold. `grand-hearth-setpiece-atlas-runtime-v2.7.0.png` is the exact-pinned transparent set-piece atlas: an exact RGBA 1536 by 1024 3 by 2 sheet with 512-pixel cells and a 32-pixel clear gutter, ordered monumental Grand Hearth, interior storm doors, company register, road-company banner, rain-blue window, and road-company stores.
 
@@ -11,7 +11,7 @@ These sheets are additive to the existing v1.61 Midgaard interior tile and prop 
 
 Floor cells 0/1 use the final edge-balance ImageGen refinement, with the floor prompt and validation record updated to match. Fallback set-piece presentation is restricted to the owning fixture footprint and covered by assertions.
 
-RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the final Windows build pass for v2.7. Six built-player captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080; each reports `complete=True`, `failure=None` and passes visual review without checkerboard seams, magenta residue, backplates, cropping, or route obstruction. Package inventory, clean-extracted packaged boot, physical-controller review, and a complete human playthrough remain pending. The integration preserves the stable room, gameplay, fallback props, and save schema v25.
+RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the final Windows build pass for v2.7. Six built-player captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080; each reports `complete=True`, `failure=None` and passes visual review without checkerboard seams, magenta residue, backplates, cropping, or route obstruction. Canonical package inventory and clean-extracted packaged boot also pass from a clean tracked source. `QA/v2.7.0-release-integrity/release-integrity-manifest.json` is authoritative for the 82-file inventory, batch exploration boot, player exit, and both runtime-atlas hashes. Physical-controller review and a complete human playthrough remain manual. The integration preserves the stable room, gameplay, fallback props, and save schema v25.
 
 ## Active v2.6.0 Town Hall patron reuse contract
 

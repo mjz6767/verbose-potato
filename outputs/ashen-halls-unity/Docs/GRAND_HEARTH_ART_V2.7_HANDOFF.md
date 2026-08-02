@@ -1,6 +1,6 @@
 # Integrated v2.7 Grand Hearth Companion Art Handoff
 
-The v2.7 Grand Hearth floor and set-piece atlases are accepted and runtime-integrated companion art for the playable Town Hall opening. They extend the existing v2.6 room presentation without replacing the shared v1.61 Midgaard interior atlases. Exact manifest pins, fail-closed loaders, deterministic mappings, RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, and six supported-resolution built-player captures pass. Package inventory, clean-extracted packaged boot, physical-controller review, and a full human playthrough remain pending.
+The v2.7 Grand Hearth floor and set-piece atlases are accepted, runtime-integrated, and package-verified companion art for the playable Town Hall opening. They extend the existing v2.6 room presentation without replacing the shared v1.61 Midgaard interior atlases. Exact manifest pins, fail-closed loaders, deterministic mappings, RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, six supported-resolution built-player captures, canonical package inventory, and clean-extracted packaged boot pass. Physical-controller review and a full human playthrough remain manual.
 
 ## Delivered floor files
 
@@ -67,4 +67,6 @@ Passed: exact manifest pins, fail-closed loaders and draw adapters, deterministi
 
 Passed visual evidence: six captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080. Every capture reports `complete=True`, `failure=None`; visual review accepts one open hall, continuous oxblood runner and medallion, monumental hearth, open storm doors, six patrons, and a clear route, with no checkerboard seams, magenta residue, square backplates, or cropping.
 
-Pending: package inventory verification, clean-extracted packaged boot, physical-controller review, and a complete human New Game -> Muster -> Town Hall -> Midgaard playthrough. This handoff does not claim those gates.
+Passed package evidence: canonical BuildAndPackageWindows v2.7.0 completes from a clean tracked source. The authoritative `QA/v2.7.0-release-integrity/release-integrity-manifest.json` records save v25, `sourceDirty=false`, `sourceStatusEntryCount=0`, `cleanExtractLaunch=true`, `packagedBootMode=batchmode-explore-smoke`, `playerExitCode=0`, `packagedArtCount=82`, and both exact Grand Hearth runtime atlases with their expected hashes.
+
+Pending manual gates: physical-controller review and a complete human New Game -> Muster -> Town Hall -> Midgaard playthrough.
