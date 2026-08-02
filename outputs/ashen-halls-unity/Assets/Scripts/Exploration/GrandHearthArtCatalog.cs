@@ -27,6 +27,16 @@ namespace AshenHalls
         public const int SetpieceAtlasRows = 2;
         public const int SetpieceAtlasCellCount = SetpieceAtlasColumns * SetpieceAtlasRows;
 
+        public const int AmbienceAtlasColumns = 3;
+        public const int AmbienceAtlasRows = 2;
+        public const int AmbienceAtlasCellCount = AmbienceAtlasColumns * AmbienceAtlasRows;
+        public const int HearthLightCell = 0;
+        public const int StormDoorLightCell = 1;
+        public const int WallSconceCell = 2;
+        public const int EmberMotesCell = 3;
+        public const int WindowReflectionCell = 4;
+        public const int PatronShadowCell = 5;
+
         public static bool TryFloorChoice(
             MapData map,
             int x,

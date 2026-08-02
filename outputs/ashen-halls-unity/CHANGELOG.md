@@ -2,6 +2,12 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.8.0 - Hearthlight and Stormlight
+
+- Added an exact-pinned 1536 by 1024, 3 by 2 transparent Grand Hearth ambience atlas: warm hearth light, cool storm-door spill, a wrought-iron wall sconce, ember haze, rain-window reflection, and patron contact shadow. Every 512-pixel cell keeps a validated 36-pixel transparent gutter with zero visible magenta residue.
+- Layered the art deterministically between the existing floor, patrons, and fixtures. Region Map opacity is restrained, while Local Map receives stronger warm/cool depth and clearer visual guidance toward the required east-door departure.
+- Preserved the 10 by 9 Town Hall room, 8 by 7 floor, six patrons, stable object IDs, first spawn, company runner, storm-door exit, portal/objective flow, collision, interaction, gameplay, and save schema v25. Built-in ImageGen, local chroma removal, and project atlas normalization are recorded in the v2.8 handoff. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, and the deterministic visual packet pass. Packaging remains the final automated candidate gate.
+
 ## v2.7.0 - Grand Hearth Art Integration
 
 - Exact-pinned two dedicated 1536 by 1024, 3 by 2 Grand Hearth companion atlases. The opaque floor sheet maps dark civic wood A/B, the oxblood-and-charcoal company runner, runner medallion, heat-darkened hearth apron, and storm-door threshold; the transparent set-piece sheet maps the monumental hearth, interior storm doors, company register, road-company banner, rain-blue window, and stores with 32-pixel cell gutters.

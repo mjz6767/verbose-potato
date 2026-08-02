@@ -1,0 +1,29 @@
+{
+  "file": "grand-hearth-ambience-atlas-runtime-v2.8.0.png",
+  "mode": "RGBA",
+  "dimensions": [1536, 1024],
+  "grid": [3, 2],
+  "cellDimensions": [512, 512],
+  "alphaThreshold": 8,
+  "requiredTransparentGutter": 36,
+  "visibleBrightMagentaPixelsAtAlpha9": 0,
+  "sha256": "9e78d112ce4e2ad6069f0754ebc127faae2d6d213278c9abf3c63663bda25f6f",
+  "generatedSourceSha256": "5d0d2687493162359d74374ebaeaf36ceca1aa3b7dea587bbb3ae7811b5dec8f",
+  "alphaSourceSha256": "2157f620320c38fc8c1cea6da2c83a6d60a12f0b5be681a967e3350b09da119a",
+  "rowMajor": [
+    "warm hearth light pool",
+    "storm-door rain light spill",
+    "wrought-iron wall sconce",
+    "ember motes and smoke wisp",
+    "rain-window reflection",
+    "patron contact shadow"
+  ],
+  "cells": [
+    {"cell": 0, "coverageAtAlpha9": 0.311802, "boundsAtAlpha9": [36, 228, 476, 476], "minimumGutter": 36},
+    {"cell": 1, "coverageAtAlpha9": 0.418041, "boundsAtAlpha9": [36, 57, 476, 476], "minimumGutter": 36},
+    {"cell": 2, "coverageAtAlpha9": 0.392929, "boundsAtAlpha9": [101, 36, 410, 476], "minimumGutter": 36},
+    {"cell": 3, "coverageAtAlpha9": 0.173462, "boundsAtAlpha9": [124, 36, 387, 476], "minimumGutter": 36},
+    {"cell": 4, "coverageAtAlpha9": 0.420227, "boundsAtAlpha9": [86, 36, 426, 476], "minimumGutter": 36},
+    {"cell": 5, "coverageAtAlpha9": 0.229591, "boundsAtAlpha9": [37, 283, 476, 476], "minimumGutter": 36}
+  ]
+}

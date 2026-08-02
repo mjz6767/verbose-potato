@@ -92,6 +92,7 @@ namespace AshenHalls.Editor
             "midgaard-interior-tile-atlas-runtime-",
             "grand-hearth-floor-atlas-runtime-",
             "grand-hearth-setpiece-atlas-runtime-",
+            "grand-hearth-ambience-atlas-runtime-",
             "midgaard-npc-atlas-runtime-",
             "midgaard-sewer-atlas-runtime-"
         };

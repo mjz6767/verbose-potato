@@ -3,6 +3,14 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.8.0 Grand Hearth ambience contract - automated, build, and visual gates passed
+
+`grand-hearth-ambience-atlas-runtime-v2.8.0.png` is the exact-pinned transparent ambience atlas: RGBA 1536 by 1024, 3 by 2, six 512-pixel cells ordered warm hearth light, storm-door rain spill, wall sconce, ember haze, rain-window reflection, and patron contact shadow. Every cell keeps at least 36 transparent pixels on every side at alpha > 8 and the accepted runtime contains zero visible bright-magenta residue.
+
+The layer is additive to the v2.7 floor and set-piece sheets. Deterministic presentation places it between established floor, patrons, and fixtures, rotates the storm spill into the east-west departure axis, and reduces Region Map opacity. It introduces no `MapObject`, collision, interaction, save data, or animation state. The accepted source set is the runtime PNG plus generated, alpha, prompt, and validation companions listed in `GRAND_HEARTH_VISUAL_V2.8_HANDOFF.md`; only the runtime PNG may enter the player package.
+
+RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, and the deterministic visual packet pass. Packaging and clean-extracted boot remain the final automated candidate gate. Physical-controller review and a complete human walkthrough remain manual.
+
 ## Active v2.7.0 Grand Hearth companion contract - automated, visual, and package gates passed
 
 `grand-hearth-floor-atlas-runtime-v2.7.0.png` is the exact-pinned opaque floor atlas: an exact 1536 by 1024 TrueColor 3 by 2 sheet with 512-pixel cells ordered dark civic wood A, dark civic wood B, oxblood-and-charcoal company runner, company runner medallion, heat-darkened Grand Hearth apron, and storm-door threshold. `grand-hearth-setpiece-atlas-runtime-v2.7.0.png` is the exact-pinned transparent set-piece atlas: an exact RGBA 1536 by 1024 3 by 2 sheet with 512-pixel cells and a 32-pixel clear gutter, ordered monumental Grand Hearth, interior storm doors, company register, road-company banner, rain-blue window, and road-company stores.

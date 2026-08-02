@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-The verified v2.7.0 Grand Hearth family-playtest candidate passes RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, six supported-resolution built-player captures, canonical package inventory, and clean-extracted packaged boot. Physical-controller review and a complete human playthrough remain manual. `QA/v2.7.0-release-integrity/release-integrity-manifest.json` is authoritative for package evidence; older release sections are retained as historical records.
+The v2.8.0 Grand Hearth atmosphere candidate exact-pins a third companion atlas for deterministic light and grounding. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, six supported-resolution Local/Region captures, and the deterministic visual packet pass. Packaging remains the final automated candidate gate. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained as historical records.
 
 ## Active Runtime Art
 
@@ -8,7 +8,15 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 
 - Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI.
 - Party/enemies: character combat atlas, enemy sprite atlas, creature/combat sprite fallback atlas, enemy roster, boss enemy fallback, Kobold King boss atlas.
-- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, dedicated Grand Hearth floor/set-piece companions, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
+- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, dedicated Grand Hearth floor/set-piece/ambience companions, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
+
+## Newly Connected In v2.8.0 - Automated, Build, and Visual Gates Passed
+
+- `grand-hearth-ambience-atlas-runtime-v2.8.0.png` is the exact-pinned RGBA 1536 by 1024, 3 by 2 atlas for warm hearth light, storm-door rain spill, wall sconce, ember haze, rain-window reflection, and patron contact shadow.
+- All six 512-pixel cells retain at least 36 transparent pixels on every edge at alpha > 8 and contain zero visible bright-magenta residue.
+- Deterministic draw rules place the layer between the established floor, patrons, and fixtures, with reduced Region Map opacity. It introduces no map object, collision, interaction, saved identity, or motion state.
+- The v2.8 handoff records the built-in ImageGen prompt, flat-key removal, normalization, hashes, semantic cell order, and runtime constraints.
+- RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the Windows build pass. Six Local/Region captures under `QA/v2.8.0-grand-hearth` cover 960 by 600, 1280 by 720, and 1920 by 1080; all report `complete=True`, `failure=None`, and the deterministic packet passes. Visual review accepts restrained warm/cool depth, horizontal east-door guidance, readable patrons, continuous runner, and unobstructed fixtures. Package inventory and clean-extracted boot remain candidate gates.
 - Kobold route: route markers, cave props, dedicated kobold combat terrain, boss route art.
 - Combat UI/effects: combat UI, combat UI panel, combat HUD, combat command icons, ability icons, spellbook UI, combat spellbook UI, spellbook open art, magic UI, ember/epic/combat spell effects, spell animation, combat floating text art.
 - Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.

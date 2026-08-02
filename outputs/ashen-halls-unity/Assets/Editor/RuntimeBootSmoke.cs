@@ -16,6 +16,7 @@ namespace AshenHalls.Editor
     public static class RuntimeBootSmoke
     {
         private const string MainScenePath = "Assets/Scenes/Main.unity";
+        private const int DeterministicCampaignSeed = 51510;
 
         public static void Run()
         {
@@ -203,6 +204,13 @@ namespace AshenHalls.Editor
                 InvokePrivate(game, "LateUpdate");
                 AssertMode(game, GameMode.Muster, "New Game reaches Muster");
                 AssertActiveObject("Party Setup Canvas");
+
+                // Runtime smoke must exercise one stable campaign topology.
+                // NewMuster intentionally uses Environment.TickCount for real
+                // campaigns, which otherwise makes the build gate depend on
+                // the millisecond at which Unity happened to start.
+                GameState musterState = GetPrivateField<GameState>(game, "state");
+                musterState.Seed = DeterministicCampaignSeed;
 
                 InvokePrivate(game, "QuickStart");
                 InvokePrivate(game, "LateUpdate");

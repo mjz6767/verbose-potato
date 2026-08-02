@@ -46,6 +46,7 @@ namespace AshenHalls
         public const string MidgaardInteriorTileAtlas = "midgaard-interior-tile-atlas-runtime-v1.61.0.png";
         public const string GrandHearthFloorAtlas = "grand-hearth-floor-atlas-runtime-v2.7.0.png";
         public const string GrandHearthSetpieceAtlas = "grand-hearth-setpiece-atlas-runtime-v2.7.0.png";
+        public const string GrandHearthAmbienceAtlas = "grand-hearth-ambience-atlas-runtime-v2.8.0.png";
         public const string TitleCard = "ash-and-brimstone-title-card-runtime-v1.64.0.png";
         public const string GameIcon = "ash-and-brimstone-icon-runtime-v1.61.0.png";
         public const string RoamingThreatAtlas = "roaming-threat-atlas-runtime-v1.62.0.png";
@@ -96,6 +97,7 @@ namespace AshenHalls
             MidgaardInteriorTileAtlas,
             GrandHearthFloorAtlas,
             GrandHearthSetpieceAtlas,
+            GrandHearthAmbienceAtlas,
             TitleCard,
             GameIcon,
             RoamingThreatAtlas

@@ -2228,7 +2228,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.7.0", VersionInfo.PackageVersion, "package version matches the v2.7 release");
+            AssertEqual("v2.8.0", VersionInfo.PackageVersion, "package version matches the v2.8 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
@@ -2274,14 +2274,15 @@ namespace AshenHalls.Editor
             AssertEqual("midgaard-interior-tile-atlas-runtime-v1.61.0.png", RuntimeArtManifest.MidgaardInteriorTileAtlas, "approved v1.61 interior tile atlas pin");
             AssertEqual("grand-hearth-floor-atlas-runtime-v2.7.0.png", RuntimeArtManifest.GrandHearthFloorAtlas, "approved v2.7 Grand Hearth floor atlas pin");
             AssertEqual("grand-hearth-setpiece-atlas-runtime-v2.7.0.png", RuntimeArtManifest.GrandHearthSetpieceAtlas, "approved v2.7 Grand Hearth set-piece atlas pin");
+            AssertEqual("grand-hearth-ambience-atlas-runtime-v2.8.0.png", RuntimeArtManifest.GrandHearthAmbienceAtlas, "approved v2.8 Grand Hearth ambience atlas pin");
             AssertEqual("ash-and-brimstone-title-card-runtime-v1.64.0.png", RuntimeArtManifest.TitleCard, "approved v1.64 title-card pin");
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(47, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(48, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -2527,12 +2528,14 @@ namespace AshenHalls.Editor
                 Texture2D interiorTiles = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardInteriorTileAtlas);
                 Texture2D grandHearthFloor = LoadApprovedRuntimeAtlas(RuntimeArtManifest.GrandHearthFloorAtlas);
                 Texture2D grandHearthSetpieces = LoadApprovedRuntimeAtlas(RuntimeArtManifest.GrandHearthSetpieceAtlas);
+                Texture2D grandHearthAmbience = LoadApprovedRuntimeAtlas(RuntimeArtManifest.GrandHearthAmbienceAtlas);
                 Texture2D titleCard = LoadApprovedRuntimeAtlas(RuntimeArtManifest.TitleCard);
                 Texture2D gameIcon = LoadApprovedRuntimeAtlas(RuntimeArtManifest.GameIcon);
                 normalizedAtlases.Add(interiorProps);
                 normalizedAtlases.Add(interiorTiles);
                 normalizedAtlases.Add(grandHearthFloor);
                 normalizedAtlases.Add(grandHearthSetpieces);
+                normalizedAtlases.Add(grandHearthAmbience);
                 normalizedAtlases.Add(titleCard);
                 normalizedAtlases.Add(gameIcon);
                 AssertEqual(new Vector2Int(1400, 1120), new Vector2Int(interiorProps.width, interiorProps.height), "v1.61 Midgaard interior-prop dimensions");
@@ -2541,6 +2544,7 @@ namespace AshenHalls.Editor
                 AssertAtlasCellCoverage(interiorTiles, 5, 4, Enumerable.Range(0, 20), 0.99f, 1f, "v1.61 interior terrain");
                 AssertEqual(new Vector2Int(1536, 1024), new Vector2Int(grandHearthFloor.width, grandHearthFloor.height), "v2.7 Grand Hearth floor dimensions");
                 AssertEqual(new Vector2Int(1536, 1024), new Vector2Int(grandHearthSetpieces.width, grandHearthSetpieces.height), "v2.7 Grand Hearth set-piece dimensions");
+                AssertEqual(new Vector2Int(1536, 1024), new Vector2Int(grandHearthAmbience.width, grandHearthAmbience.height), "v2.8 Grand Hearth ambience dimensions");
                 AssertAtlasCellCoverageAtAlpha(
                     grandHearthFloor,
                     GrandHearthArtCatalog.FloorAtlasColumns,
@@ -2569,6 +2573,25 @@ namespace AshenHalls.Editor
                     0,
                     "v2.7 Grand Hearth set-piece");
                 AssertAtlasHasNoVisibleBrightMagenta(grandHearthSetpieces, 8, "v2.7 Grand Hearth set-piece");
+                AssertAtlasCellCoverageAtAlpha(
+                    grandHearthAmbience,
+                    GrandHearthArtCatalog.AmbienceAtlasColumns,
+                    GrandHearthArtCatalog.AmbienceAtlasRows,
+                    Enumerable.Range(0, GrandHearthArtCatalog.AmbienceAtlasCellCount),
+                    1f / (512f * 512f),
+                    0.90f,
+                    8,
+                    "v2.8 Grand Hearth ambience");
+                AssertAtlasCellSafeGutter(
+                    grandHearthAmbience,
+                    GrandHearthArtCatalog.AmbienceAtlasColumns,
+                    GrandHearthArtCatalog.AmbienceAtlasRows,
+                    Enumerable.Range(0, GrandHearthArtCatalog.AmbienceAtlasCellCount),
+                    24,
+                    8,
+                    0,
+                    "v2.8 Grand Hearth ambience");
+                AssertAtlasHasNoVisibleBrightMagenta(grandHearthAmbience, 8, "v2.8 Grand Hearth ambience");
                 AssertEqual(new Vector2Int(1800, 600), new Vector2Int(titleCard.width, titleCard.height), "v1.64 Ash & Brimstone title-card dimensions");
                 AssertAtlasCellCoverage(titleCard, 1, 1, new[] { 0 }, 0.99f, 1f, "v1.64 title card");
                 AssertEqual(new Vector2Int(1254, 1254), new Vector2Int(gameIcon.width, gameIcon.height), "v1.61 Ash & Brimstone game-icon dimensions");
@@ -6064,6 +6087,15 @@ namespace AshenHalls.Editor
             AssertEqual(3, GrandHearthArtCatalog.SetpieceAtlasColumns, "Grand Hearth set-piece atlas has three columns");
             AssertEqual(2, GrandHearthArtCatalog.SetpieceAtlasRows, "Grand Hearth set-piece atlas has two rows");
             AssertEqual(6, GrandHearthArtCatalog.SetpieceAtlasCellCount, "Grand Hearth set-piece atlas has six semantic cells");
+            AssertEqual(3, GrandHearthArtCatalog.AmbienceAtlasColumns, "Grand Hearth ambience atlas has three columns");
+            AssertEqual(2, GrandHearthArtCatalog.AmbienceAtlasRows, "Grand Hearth ambience atlas has two rows");
+            AssertEqual(6, GrandHearthArtCatalog.AmbienceAtlasCellCount, "Grand Hearth ambience atlas has six semantic cells");
+            AssertEqual(0, GrandHearthArtCatalog.HearthLightCell, "Grand Hearth warm light owns ambience cell 0");
+            AssertEqual(1, GrandHearthArtCatalog.StormDoorLightCell, "Grand Hearth storm-door spill owns ambience cell 1");
+            AssertEqual(2, GrandHearthArtCatalog.WallSconceCell, "Grand Hearth wall sconce owns ambience cell 2");
+            AssertEqual(3, GrandHearthArtCatalog.EmberMotesCell, "Grand Hearth embers own ambience cell 3");
+            AssertEqual(4, GrandHearthArtCatalog.WindowReflectionCell, "Grand Hearth rain reflection owns ambience cell 4");
+            AssertEqual(5, GrandHearthArtCatalog.PatronShadowCell, "Grand Hearth patron shadow owns ambience cell 5");
             AssertEqual(0, GrandHearthArtCatalog.SetpieceIndex(MidgaardInteriorRules.GrandHearthFireId), "Grand Hearth fire owns set-piece cell 0");
             AssertEqual(1, GrandHearthArtCatalog.SetpieceIndex(MidgaardInteriorRules.GrandHearthExitId), "Grand Hearth storm doors own set-piece cell 1");
             AssertEqual(2, GrandHearthArtCatalog.SetpieceIndex(MidgaardInteriorRules.GrandHearthRegisterId), "Grand Hearth register owns set-piece cell 2");

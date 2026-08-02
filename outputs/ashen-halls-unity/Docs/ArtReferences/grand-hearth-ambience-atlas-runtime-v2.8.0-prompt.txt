@@ -1,0 +1,21 @@
+Built-in ImageGen prompt (2026-08-02)
+
+Use case: stylized-concept
+Asset type: painted 2D game ambience/decal sprite atlas
+Input images: Image 1 is the approved Grand Hearth set-piece art style reference. Image 2 is the current in-game room composition reference.
+Primary request: create one exact 3-column by 2-row atlas containing six separate atmospheric overlays for the same dark medieval Town Hall Grand Hearth.
+Canvas and grid: landscape 1536x1024 pixels, exactly 3 columns by 2 rows, each cell exactly 512x512. Keep every subject entirely within its own cell with at least 36 pixels empty padding from every cell edge. No divider lines.
+Row-major cell contents:
+1) broad low oval pool of warm amber firelight with subtle irregular feathered painted edges and faint floorboard-facing rays, no fireplace object;
+2) cool rain-blue doorway light spill shaped like a long tapered fan with a few wet reflection streaks, no door object;
+3) compact wrought-iron wall sconce with one small flame and a restrained amber halo, front-facing;
+4) sparse rising ember motes and a delicate warm smoke wisp, compact and readable, no fireplace object;
+5) cool rain-window reflection decal: narrow vertical blue-gray broken light bars and a few rain glints, no window frame;
+6) soft dark oval contact-shadow decal with a slightly irregular painterly edge, no character or object.
+Style/medium: match Image 1 exactly: richly painted dark-fantasy RPG sprite art, crisp readable silhouettes, restrained texture, warm brass and ember orange versus storm blue, no photorealism, no pixel-art enlargement.
+Scene/backdrop: perfectly flat uniform solid #ff00ff chroma-key background in every cell, including all padding and gutters. Background must have no shadows, gradients, texture, floor plane, reflections, lighting variation, or antialias fringe.
+Constraints: no text, no letters, no numbers, no logos, no watermark, no borders, no scenery, no characters, no extra props, no duplicated cell content, do not use bright magenta anywhere in the six subjects. Preserve exact grid and generous padding. Intended for local chroma-key removal and alpha compositing at low opacity over a top-down exploration map.
+
+Post-processing:
+- Removed the border-connected chroma key with the imagegen skill's remove_chroma_key.py helper using --auto-key border --soft-matte --transparent-threshold 12 --opaque-threshold 220 --despill.
+- Normalized each cell with Tools/NormalizeGridAtlas.py to a maximum 440x440 visible box, baseline 476, and alpha threshold 8, guaranteeing at least 36 pixels of transparent gutter.

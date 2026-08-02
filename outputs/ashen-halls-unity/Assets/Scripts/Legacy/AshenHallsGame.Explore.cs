@@ -1537,6 +1537,7 @@ namespace AshenHalls
                 DrawMidgaardPavingDecal(c, x, y, tile, tileKind);
                 DrawExploreTileEdges(c, x, y, tile);
                 DrawExploreDistanceShade(c, vx, vy, viewW, viewH);
+                DrawGrandHearthPatronShadow(c, x, y, tile, guidanceCells);
                 // Authored Town Hall patrons and ambient exterior citizens are
                 // presentation-only. A selected silhouette replaces the
                 // procedural prop for its cell so it stays readable.
@@ -1546,6 +1547,10 @@ namespace AshenHalls
                     DrawExploreBiomeAmbientProp(c, x, y, tile, tileKind);
                 }
             }
+
+            // Non-interactive, deterministic light and atmosphere joins the
+            // room's floor, patrons, and fixtures without changing traversal.
+            DrawGrandHearthAmbience(grid, cell, origin, viewW, viewH);
 
             // Stationary habitat art is anchored to the patrol's persisted home
             // and stays beneath roads, authored sites, mobile threats, and party UI.

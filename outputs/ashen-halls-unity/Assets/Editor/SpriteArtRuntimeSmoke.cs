@@ -119,6 +119,7 @@ namespace AshenHalls.Editor
         {
             Texture2D floorAtlas = GetPrivateField<Texture2D>(game, "grandHearthFloorAtlas");
             Texture2D setpieceAtlas = GetPrivateField<Texture2D>(game, "grandHearthSetpieceAtlas");
+            Texture2D ambienceAtlas = GetPrivateField<Texture2D>(game, "grandHearthAmbienceAtlas");
 
             Assert(floorAtlas != null, "v2.7 Grand Hearth floor atlas loads");
             Assert(floorAtlas.name == RuntimeArtManifest.GrandHearthFloorAtlas,
@@ -139,6 +140,16 @@ namespace AshenHalls.Editor
                 "v2.7 Grand Hearth set-piece atlas uses the exact 3x2 square-cell contract");
             Assert(InvokePrivate<bool>(game, "IsGrandHearthSetpieceAtlas"),
                 "presentation accepts the exact v2.7 Grand Hearth set-piece atlas");
+
+            Assert(ambienceAtlas != null, "v2.8 Grand Hearth ambience atlas loads");
+            Assert(ambienceAtlas.name == RuntimeArtManifest.GrandHearthAmbienceAtlas,
+                "runtime selects the exact approved v2.8 Grand Hearth ambience atlas");
+            Assert(
+                ambienceAtlas.width == GrandHearthArtCatalog.AmbienceAtlasColumns * 512
+                    && ambienceAtlas.height == GrandHearthArtCatalog.AmbienceAtlasRows * 512,
+                "v2.8 Grand Hearth ambience atlas uses the exact 3x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsGrandHearthAmbienceAtlas"),
+                "presentation accepts the exact v2.8 Grand Hearth ambience atlas");
 
             MapObject[] setpieces =
             {

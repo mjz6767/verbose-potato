@@ -1,6 +1,10 @@
-Ash & Brimstone v2.7.0 - Grand Hearth Art Integration Candidate
+Ash & Brimstone v2.8.0 - Grand Hearth Atmosphere Candidate
 
-Current package version: v2.7.0. Save schema: v25.
+Current package version: v2.8.0. Save schema: v25.
+
+Grand Hearth Atmosphere v2.8.0: the opening Town Hall now blends its established floor, six patrons, and fixtures with a dedicated painted ambience layer. Warm firelight reaches into the gathering floor, cool rain light leads back from the east storm doors, the north-east window reflects storm blue, two wall sconces strengthen the room silhouette, ember haze rises over the fire, and each patron gains a grounding contact shadow. The layer is deterministic and presentation-only: room geometry, stable IDs, spawn, runner, exit, guidance, interaction, collision, gameplay, and save schema remain unchanged.
+
+The exact runtime companion is an RGBA 1536 by 1024, 3 by 2 atlas with six 512-pixel cells and a validated 36-pixel transparent gutter. Its row-major cells are hearth light, storm-door spill, wall sconce, ember haze, window reflection, and patron shadow. Built-in ImageGen supplied the painted source; local chroma removal and atlas normalization produced the runtime sheet. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the Windows build, and six built-player Local/Region captures at 960 by 600, 1280 by 720, and 1920 by 1080 pass; the deterministic visual packet also passes. Packaging remains the final automated candidate gate.
 
 Validation status: Unity RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, six built-player captures under `QA/v2.7.0-grand-hearth`, canonical package inventory, and clean-extracted packaged boot pass for v2.7.0. The authoritative `QA/v2.7.0-release-integrity/release-integrity-manifest.json` records save v25, `sourceDirty=false`, `sourceStatusEntryCount=0`, `cleanExtractLaunch=true`, `packagedBootMode=batchmode-explore-smoke`, `playerExitCode=0`, `packagedArtCount=82`, and both exact Grand Hearth runtime atlases with their expected hashes. Physical-controller review and a complete human playthrough remain manual release-readiness checks.
 
