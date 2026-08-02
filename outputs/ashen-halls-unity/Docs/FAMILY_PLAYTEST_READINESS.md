@@ -93,25 +93,16 @@
 - Direct v1.93 in-player evidence covers Local and Region Map at 1280x720 and 1920x1080, all four gate approaches at 1280x720, and east/west gate close-ups at 3200x1800. Every capture log reports `complete=True` with `failure=None`; the deterministic packet, before/after gate comparison, and pending-human-disposition Codex review are retained under `QA/v1.93.0`.
 - The accepted v1.92 ground-material packet, its nine captures, manual signoff, and archive remain retained unchanged under `QA/v1.92.0` and `outputs/AshAndBrimstone-Windows-v1.92.0.zip`.
 
-## Still Needs Validation and Humans
+## Still Needs Human Validation
 
-- Before promoting v2.5, run the growth-aware RuleSmoke and runtime gates, full RuntimeBoot, Windows build/package, and clean-extracted packaged boot from one settled source state. Do not reuse the v2.4 pass claims as v2.5 evidence.
-- Capture `-ashen-growth-smoke` at 960 by 600, 1280 by 720, and 1920 by 1080. Confirm all five tabs fit, the selected member and class talent are truthful, staged values and remaining points agree, Apply and Reset stay visible, and no copy clips or overlaps.
-- In normal exploration, stage several choices across two adventurers, switch members, Reset one draft, close with another unconfirmed, then Apply a valid draft. Confirm only Apply mutates points/stats, the checkpoint is written, save/load preserves the result, and combat keeps Growth read-only. Repeat the flow with mouse, keyboard, and a physical controller.
-- Automated evidence from the settled combined v2.4.0 source passes RuleSmoke, focused sprite-art and combat-UI runtime checks, full RuntimeBoot, the production Windows build/package, and clean-extracted packaged boot. The build log and release-integrity manifest retain the exact package evidence.
-- Capture the Grand Hearth title and first spawn, compact vertical combat palette and expanded battlefield, and all eight reward-ready/repeat-service regional-site states at 1280 by 720 and 1920 by 1080. The deterministic remote-site staging exists to make the exploration matrix repeatable, but the final combined visual packet is pending.
-- At both endpoint resolutions, move a roaming patrol away from home and confirm its habitat remains fixed beneath the token layer in Local and Region Map, then defeat it and confirm the home becomes neutral ruined-waystation aftermath. Confirm the Grand Hearth tutorial lane, current guidance, certified safe roads, rooms, water, hazards, entrances, authored sites, and interactables remain free of ambient citizens; confirm an eligible non-safe road can still receive ambience; ambient figures offer no interaction; a one-member party uses the correct role silhouette; and a multi-member party retains the established group marker.
-- Repeat the accepted Local Map and Region Map endpoint captures from the clean-extracted packaged player; the equivalent development-player matrix already passes.
-- Enter each of the eight site footprints and confirm its exact rail name, ground line, calm music, alternating ambient cues, and inspect sound. Provoke and then evade each faction profile to confirm its intended chase cadence and leash without drawing danger onto certified safe roads.
-- Repeat the six-state v1.99 combat/book visual matrix in the clean-extracted packaged build. The development-player review is clean, while an equivalent packaged-player matrix remains manual evidence to collect.
-- Walk through West from wilderness-left to town-right and East from town-left to wilderness-right, then bump the north and south gates and confirm their visible state agrees with their passability.
-- A real new player still needs to confirm that the Golden Thread is sufficient without reading the README.
-- All three fights need balance feedback from players who do not know the systems.
-- Spell, skill, terrain, and enemy-turn pacing need subjective feel checks.
-- A physical controller still needs a human pass for book row navigation, right-stick detail scrolling, targeting resume/cancel, and comfort at both endpoint resolutions.
-- The v1.99 interaction contract still needs a physical mouse/controller handoff check: with the pointer parked over one card or combat command, D-pad/stick movement must leave exactly one truthful focus and prompt. Preview must remain quieter than committed Selection, armed Targeting must remain distinct, unavailable commands must remain focusable for explanation, and Low Resource, No Target, Action Used, Disabled, and Blocked must remain understandable without color.
-- The safe-room choice, defeat retry, and final reward need visual confirmation in the packaged Windows player.
-- One complete real playthrough from a clean-extracted v2.4.0 folder remains the human release gate before calling this broadly shareable.
+- Complete one real New Game -> Muster -> Town Hall -> Midgaard walkthrough from a clean-extracted v2.6.0 folder. Confirm Objective and NEXT remain on the storm doors until departure, then advance to King Halvard.
+- Cross and circle the entire Grand Hearth gathering floor with keyboard, mouse, and a physical controller. Confirm all six patrons remain visible, walk-through, non-interactive, off the company runner, and unable to obstruct the storm doors.
+- A real new player should follow the Golden Thread without reading the README and report whether leaving Town Hall feels like a clear first journey step.
+- Run a physical-controller pass for book row navigation, right-stick detail scrolling, targeting resume/cancel, pointer-to-controller focus handoff, and comfort at the supported endpoint resolutions.
+- In normal exploration, stage Growth choices across two adventurers, Reset one draft, discard another, then Apply and save/load a valid draft. Confirm combat remains read-only and repeat the flow with the physical controller. The automated Growth capture matrix and package gates already pass.
+- Enter and revisit all eight authored regional sites, then exercise patrol habitat/aftermath, ambient-citizen exclusions, solo-role versus party markers, both Midgaard side gates, and faction chase/leash feel in ordinary play.
+- All three sewer fights still need balance feedback from players unfamiliar with the systems; spell, skill, terrain, audio, and enemy-turn pacing remain subjective checks.
+- Visually confirm the safe-room choice, defeat retry, and final reward during the complete packaged-player walkthrough.
 
 ## 15-Minute Family Script
 
