@@ -135,7 +135,7 @@ World map note v1.20.4: keyboard bumping into a blocking usable object now uses 
 Save note v1.19.6: normal campaigns now save schema v18 with their active content set. Developer labs are intentionally not saved to the normal campaign slot.
 
 Controls:
-- Party Growth v2.5 development preview: press I, select Growth, choose a party member, and stage earned attributes or class-relevant talents. Apply commits and autosaves; Reset or closing discards the draft. During combat the same tab is review-only.
+- Party Growth v2.5: press I, select Growth, choose a party member, and stage earned attributes or class-relevant talents. Apply commits and autosaves; Reset or closing discards the draft. During combat the same tab is review-only.
 - NPC conversations: Enter/Space or Next advances pages. On the final page, click a topic or press 1-4; Esc closes the conversation without choosing.
 - Audio: Tavern Settings and the in-game Menu expose separate SFX and Music volume controls plus Mute All Audio.
 - Opening flow: the title menu leads New Game into Muster, where Quick Start begins immediately or the four-person party can be tuned before its first spawn inside the Grand Hearth.
