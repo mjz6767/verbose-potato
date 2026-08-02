@@ -12,7 +12,7 @@ Scope: make the existing progression loop visible and useful without changing th
 ## Level Rewards
 
 - Level-ups recalculate HP and mana from stats, gear, race, class, and level.
-- Level-ups grant stat points and skill points for Tavern Muster spending.
+- Level-ups grant stat points and skill points. Active campaigns spend them through `I > Growth`; pre-departure Muster retains its existing spending controls.
 - Level-up log lines now name newly unlocked spells or martial abilities.
 
 ## Spell and Ability Learning
