@@ -77,16 +77,16 @@ namespace AshenHalls
             state.Map = GenerateMap(state.Depth, state.Seed);
             InvalidateControllerCaches();
             EnsureWorldLandmarks();
-            PlacePlayerAtExplorationStart();
+            PlacePlayerAtGrandHearthStart();
             lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
             DiscoverCurrentZone(true);
-            PushLog($"The party leaves {HomeTownName}'s gate lamps and enters {GameTitle}: {GameSubtitle}.", Tone.Good);
+            PushLog("Four names gather beneath the Grand Hearth's blackened rafters. Beyond the storm doors, Midgaard waits in the rain.", Tone.Good);
             PushLog(state.ActiveStory, Tone.Normal);
-            PushLog("First steps: follow the gold marker to King's Hall. Move with WASD or arrows; use Space or E beside a marked location.", Tone.Good);
-            ShowBanner("First Steps: King's Hall");
+            PushLog("First steps: cross the company runner and open the storm doors. Move with WASD or arrows; use Space or E beside a marked location.", Tone.Good);
+            ShowBanner("Grand Hearth / First Steps");
             PlaySfx("uiconfirm", 0.55f);
-            QueueSfx("shrine", 0.09f, 0.38f);
-            AutosaveCheckpoint("new party reaches Midgaard");
+            PlaySfx("fire", 0.24f);
+            AutosaveCheckpoint("new party gathers at the Grand Hearth");
         }
 
         private void QuickStart()
@@ -305,9 +305,10 @@ namespace AshenHalls
             {
                 Title = GameTitle,
                 Subtitle = "A warm door before the Old Road",
-                VersionLine = () => $"{PackageVersion} / {BuildStage}",
+                VersionLine = () => $"{PackageVersion} / An Old Road Chronicle",
                 BackdropArt = tavernBackdropArt,
                 TitleArt = titleCardArt,
+                MenuIconAtlas = tavernUiAtlas,
                 HasSavedGame = HasSavedGame,
                 SettingsVisible = () => showTavernSettings,
                 TestingVisible = () => showTavernTesting,
@@ -332,7 +333,8 @@ namespace AshenHalls
                 ToggleReducedMotion = ToggleReducedMotionSetting,
                 BetaLab = StartBetaCombatLab,
                 MartialLab = StartMartialCombatLab,
-                KoboldLab = StartKoboldRouteLab
+                KoboldLab = StartKoboldRouteLab,
+                PlayTitleCue = PlaySfx
             });
             created.SetVisible(false);
             tavernScreen = created;

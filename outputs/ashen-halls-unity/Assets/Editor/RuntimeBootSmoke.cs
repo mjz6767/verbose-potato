@@ -217,7 +217,7 @@ namespace AshenHalls.Editor
                 Assert(explorationHud.NumericPartyVitalRowsForTest == 4, "all four exploration party rows publish numeric HP and MP");
                 ExplorationHudView firstPlayView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
                 Assert(firstPlayView.ObjectiveSummary.IndexOf("King Halvard", StringComparison.OrdinalIgnoreCase) >= 0, "fresh-game objective names King Halvard");
-                Assert(firstPlayView.WaypointLine.IndexOf("King", StringComparison.OrdinalIgnoreCase) >= 0, "fresh-game waypoint points to King's Hall");
+                Assert(firstPlayView.WaypointLine.IndexOf("Storm", StringComparison.OrdinalIgnoreCase) >= 0, "fresh-game waypoint first points to the Grand Hearth storm doors");
                 Assert((firstPlayView.WaypointLine.StartsWith("W / Up | ", StringComparison.Ordinal)
                         || firstPlayView.WaypointLine.StartsWith("S / Down | ", StringComparison.Ordinal)
                         || firstPlayView.WaypointLine.StartsWith("A / Left | ", StringComparison.Ordinal)
@@ -229,8 +229,10 @@ namespace AshenHalls.Editor
                 IReadOnlyList<Point> firstPlayGuidancePath = InvokePrivate<IReadOnlyList<Point>>(game, "CurrentExploreGuidancePath");
                 string firstPlayGuidanceTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName");
                 Assert(firstPlayGuidancePath.Count > 1
-                    && firstPlayGuidanceTarget.IndexOf("King", StringComparison.OrdinalIgnoreCase) >= 0,
-                    "fresh-game HUD and map share one reachable King's Hall guidance plan");
+                    && firstPlayGuidanceTarget.IndexOf("Storm", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "fresh-game HUD and map share one reachable Grand Hearth exit plan");
+                Assert(InvokePrivate<bool>(game, "CurrentExploreGuidanceIsInteriorExit"),
+                    "fresh-game Golden Thread identifies the Grand Hearth storm doors as an interior exit");
                 GameState firstPlayState = GetPrivateField<GameState>(game, "state");
                 Assert(firstPlayGuidancePath[0].X == firstPlayState.PlayerX
                     && firstPlayGuidancePath[0].Y == firstPlayState.PlayerY
@@ -834,6 +836,7 @@ namespace AshenHalls.Editor
             Texture2D gameIconAtlas = GetPrivateField<Texture2D>(game, "gameIconArt");
             Texture2D splashAtlas = GetPrivateField<Texture2D>(game, "splashArt");
             Texture2D tavernBackdropAtlas = GetPrivateField<Texture2D>(game, "tavernBackdropArt");
+            Texture2D tavernUiAtlas = GetPrivateField<Texture2D>(game, "tavernUiAtlas");
             Texture2D roamingThreatAtlas = GetPrivateField<Texture2D>(game, "roamingThreatAtlas");
             Texture2D regionalLandmarkAtlas = GetPrivateField<Texture2D>(game, "worldMapRegionLandmarkAtlas");
             Texture2D areaSetpieceAtlas = GetPrivateField<Texture2D>(game, "worldAreaSetpieceAtlas");
@@ -881,7 +884,13 @@ namespace AshenHalls.Editor
             Assert(gameIconAtlas != null, "Ash & Brimstone emblem art is loaded");
             Assert(gameIconAtlas.name.IndexOf("v1.61.0", StringComparison.OrdinalIgnoreCase) >= 0, "game emblem uses the pinned v1.61 art contract");
             Assert(gameIconAtlas.width == 1254 && gameIconAtlas.height == 1254, "game emblem uses the original square runtime art");
+            Assert(tavernBackdropAtlas != null, "Grand Hearth title painting is loaded");
+            Assert(tavernBackdropAtlas.name.IndexOf("v2.4.0", StringComparison.OrdinalIgnoreCase) >= 0, "title screen uses the pinned Grand Hearth v2.4 painting");
+            Assert(tavernBackdropAtlas.width == 1672 && tavernBackdropAtlas.height == 941, "Grand Hearth title painting keeps its authored widescreen canvas");
             Assert(splashAtlas != null && splashAtlas == tavernBackdropAtlas, "startup uses the same current tavern art in editor and packaged player");
+            Assert(tavernUiAtlas != null, "Grand Hearth menu and fireplace icon atlas is loaded");
+            Assert(tavernUiAtlas.name.IndexOf("v1.5.9", StringComparison.OrdinalIgnoreCase) >= 0, "title choices and the playable hearth reuse the pinned tavern icon contract");
+            Assert(tavernUiAtlas.width == 1402 && tavernUiAtlas.height == 1122, "tavern icon atlas keeps its approved dimensions");
             Assert(InvokePrivate<int>(game, "WorldMapTokenSpriteIndex", "shield") == 1, "shield party token uses its authored shield cell");
             Assert(InvokePrivate<int>(game, "CharacterCombatAtlasIndex", " ", null, "shield") == 0, "legacy blank class still resolves to the warrior sprite");
             Assert(state?.Map != null, "exploration self-test has a generated map");
@@ -896,6 +905,7 @@ namespace AshenHalls.Editor
             Assert(state.Map.SurfaceRoles.Any(raw => ((((ExplorationCellRole)raw) & (ExplorationCellRole.City | ExplorationCellRole.Road)) == (ExplorationCellRole.City | ExplorationCellRole.Road))), "Midgaard contains authored city streets");
             Assert(state.Map.SurfaceMaterials.Any(raw => (ExplorationMaterial)raw == ExplorationMaterial.Forest), "generated world retains blocked forest material independently of passability");
             AssertRegionalRouteCircuit(game, state);
+            AssertRegionalSiteInteractionsRuntime(game, state);
             AssertRegionalSiteAudioRuntime(game, state, soundClips);
             AssertExpandedMapSeedSweep(game);
             MapData legacyMap = new MapData { Width = 4, Height = 3, Depth = 2, StartX = 1, StartY = 1 };
@@ -927,8 +937,11 @@ namespace AshenHalls.Editor
             WorldZone legacySizedZone = InvokePrivate<WorldZone>(game, "ZoneFor", 16, 15, legacySizedMap, 2);
             Assert(legacySizedZone != null && legacySizedZone.Id == "inner-ash-road", "legacy map biome boundaries use serialized dimensions instead of v1.69 fresh-map constants");
             Assert(InvokePrivate<bool>(game, "CanStepExplore", state.PlayerX, state.PlayerY), "party starts on a standable exploration tile");
-            Assert(InvokePrivate<bool>(game, "IsMidgaardCityCell", state.PlayerX, state.PlayerY, state.Map, state.Depth), "party starts inside Midgaard on a fresh game");
-            Assert(Math.Abs(state.PlayerX - state.Map.StartX) <= 3 && Math.Abs(state.PlayerY - state.Map.StartY) <= 3, "party starts near central Midgaard plaza");
+            Point grandHearthSpawn = MidgaardInteriorRules.GrandHearthSpawn(state.Map);
+            Assert(state.PlayerX == grandHearthSpawn.X && state.PlayerY == grandHearthSpawn.Y, "fresh party starts at the authored Grand Hearth company mark");
+            WorldZone startingZone = InvokePrivate<WorldZone>(game, "ZoneFor", state.PlayerX, state.PlayerY, state.Map, state.Depth);
+            Assert(startingZone != null && startingZone.Id == "midgaard-grand-hearth", "fresh party starts inside the dedicated Grand Hearth zone");
+            Assert(state.StoryFlags.Contains(StoryFlags.MidgaardGrandHearthEntered), "fresh party records its Grand Hearth arrival");
             PartyMember defeatedProbe = state.Party[0];
             int defeatedProbeHp = defeatedProbe.Hp;
             defeatedProbe.Hp = 0;
@@ -937,6 +950,14 @@ namespace AshenHalls.Editor
             defeatedProbe.Hp = defeatedProbeHp;
             Assert(InvokePrivate<int>(game, "ReachableExploreTileCount", state.PlayerX, state.PlayerY) >= 12, "party starts in a useful reachable exploration component");
             Assert(InvokePrivate<bool>(game, "ReachableExploreHasUsefulTarget", state.PlayerX, state.PlayerY), "party starts with a reachable useful exploration target");
+            MapObject grandHearthExit = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthExitId);
+            MapObject grandHearthFire = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthFireId);
+            Assert(grandHearthExit != null && grandHearthFire != null, "Grand Hearth has permanent storm doors and a named hearth landmark");
+            Assert(InvokePrivate<bool>(game, "TryUseMidgaardPortal", grandHearthExit), "Grand Hearth storm doors open onto Midgaard");
+            Assert(InvokePrivate<bool>(game, "IsMidgaardCityCell", state.PlayerX, state.PlayerY, state.Map, state.Depth), "Grand Hearth exit lands safely inside Midgaard");
+            Assert(state.StoryFlags.Contains(StoryFlags.MidgaardGrandHearthDeparted), "first departure from the Grand Hearth is recorded");
+            ExplorationHudView cityArrivalView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(cityArrivalView.WaypointLine.IndexOf("King", StringComparison.OrdinalIgnoreCase) >= 0, "Golden Thread retargets King's Hall after leaving the Grand Hearth");
             AssertMidgaardGateTraversal(game, state);
             AssertExplorationMovementProbe(game, state);
 
@@ -961,7 +982,15 @@ namespace AshenHalls.Editor
             {
                 MapObject critical = state.Map.Objects.FirstOrDefault(obj => obj != null && obj.Type == type);
                 Assert(critical != null, $"critical Midgaard target {type} exists");
-                Assert(ExplorationTraversalRules.CanReachObject(routeMask, state.Map, critical), $"critical Midgaard target {type} is reachable");
+                bool criticalInsideGrandHearth = MidgaardInteriorRules.GrandHearthBounds(state.Map)
+                    .Contains(new Vector2Int(critical.X, critical.Y));
+                Point criticalOrigin = criticalInsideGrandHearth
+                    ? MidgaardInteriorRules.GrandHearthSpawn(state.Map)
+                    : new Point(state.PlayerX, state.PlayerY);
+                bool[,] criticalRouteMask = criticalInsideGrandHearth
+                    ? ExplorationTraversalRules.ReachableMask(state.Map, criticalOrigin.X, criticalOrigin.Y)
+                    : routeMask;
+                Assert(ExplorationTraversalRules.CanReachObject(criticalRouteMask, state.Map, critical), $"critical Midgaard target {type} is reachable");
             }
             Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.KingHall) == 1, "Midgaard contains exactly one King's Hall");
             Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.RoyalHerald) == 1, "Midgaard contains exactly one Royal Herald");
@@ -987,7 +1016,14 @@ namespace AshenHalls.Editor
                     contact.Key + " reaches NPC atlas cell " + contact.Value + " through the live world adapter");
                 Assert(
                     ExplorationTraversalRules.CanReachObject(
-                        ExplorationTraversalRules.ReachableMask(state.Map, state.PlayerX, state.PlayerY),
+                        ExplorationTraversalRules.ReachableMask(
+                            state.Map,
+                            MidgaardInteriorRules.GrandHearthBounds(state.Map).Contains(new Vector2Int(placed.X, placed.Y))
+                                ? MidgaardInteriorRules.GrandHearthSpawn(state.Map).X
+                                : state.PlayerX,
+                            MidgaardInteriorRules.GrandHearthBounds(state.Map).Contains(new Vector2Int(placed.X, placed.Y))
+                                ? MidgaardInteriorRules.GrandHearthSpawn(state.Map).Y
+                                : state.PlayerY),
                         state.Map,
                         placed),
                     contact.Key + " has a safe reachable Talk position");
@@ -1721,8 +1757,18 @@ namespace AshenHalls.Editor
                 "all combat commands remain focusable so unavailable reasons are keyboard/controller accessible");
             Assert(hudView.Commands.All(command => hud.CommandSelectedMultiplierForTest(command.Mode) == Color.white),
                 "combat focus never multiplies or darkens the semantic command fill");
-            Assert(hudView.Commands.All(command => hud.CommandIconSizeForTest(command.Mode) >= 56f),
-                "rendered combat command emblems keep their minimum readable size");
+            CombatHudGeometry renderedCombatGeometry = CombatHudScreenLayout.Calculate(Screen.width, Screen.height);
+            bool renderedEndTurnPromotion = hudView.Commands.Any(command => command.Mode == ActionMode.Wait && command.Promoted);
+            Rect[] renderedCommandButtons = CombatHudScreenLayout.CommandButtons(
+                renderedCombatGeometry.Command.width,
+                renderedCombatGeometry.Command.height,
+                hudView.Commands.Count,
+                renderedEndTurnPromotion);
+            float minimumRenderedCommandIcon = renderedCommandButtons.Length == 0
+                ? 0f
+                : renderedCommandButtons.Min(CombatHudScreenLayout.CommandIconSize);
+            Assert(hudView.Commands.All(command => hud.CommandIconSizeForTest(command.Mode) + 0.01f >= minimumRenderedCommandIcon),
+                "rendered vertical combat command emblems match the adaptive readable size for the active window");
             CombatHudCommandView initialAttackCommand = hudView.Commands.First(command => command.Mode == ActionMode.Attack);
             if (InvokePrivate<int>(game, "CountLegalAttackTargets", active) <= 0)
             {
@@ -1731,7 +1777,8 @@ namespace AshenHalls.Editor
                     && hud.CommandUsesBlockedStyleForTest(ActionMode.Attack),
                     "a selected Attack with no legal target stays visibly blocked while remaining focusable");
             }
-            Assert(hudView.TimelineExpanded || hudView.Logs.Count == 2 && hud.VisibleLogCount == 2, "collapsed combat Timeline keeps two recent event rows visible");
+            Assert(hudView.TimelineExpanded || hudView.Logs.Count == 2 && hud.VisibleLogCount == 0,
+                "collapsed combat Timeline keeps recent events in the model while hiding them behind the information drawer");
             EventSystem combatUiEventSystem = EventSystem.current
                 ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
             combatUiEventSystem?.SetSelectedGameObject(null);
@@ -4198,7 +4245,14 @@ namespace AshenHalls.Editor
             };
             HashSet<string> routedZones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             HashSet<string> reachableRoutedZones = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            bool[,] reachable = ExplorationTraversalRules.ReachableMask(state.Map, state.PlayerX, state.PlayerY);
+            Point midgaardOrigin = new Point(state.Map.StartX, state.Map.StartY);
+            MapObject grandHearthDoor = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthDoorId);
+            if (grandHearthDoor != null
+                && MidgaardInteriorRules.TryFindArrival(state.Map, grandHearthDoor, out Point streetLanding))
+            {
+                midgaardOrigin = streetLanding;
+            }
+            bool[,] reachable = ExplorationTraversalRules.ReachableMask(state.Map, midgaardOrigin.X, midgaardOrigin.Y);
 
             for (int y = 0; y < state.Map.Height; y++)
             for (int x = 0; x < state.Map.Width; x++)
@@ -4248,6 +4302,142 @@ namespace AshenHalls.Editor
                 Assert(setpieceIndices.Add(setpieceIndex), $"{site.Name} owns a distinct authored set-piece cell");
             }
             Assert(setpieceIndices.Count == WorldAreaSetpiecePresentationRules.CellCount, "runtime regional sites cover all eight set-piece cells exactly once");
+        }
+
+        private static void AssertRegionalSiteInteractionsRuntime(AshenHallsGame game, GameState state)
+        {
+            List<string> originalFlags = state.StoryFlags;
+            List<InventoryItem> originalInventory = state.Inventory;
+            List<LogEntry> originalLog = state.Log;
+            int originalGold = state.Gold;
+            int originalSupplies = state.Supplies;
+            int originalElixirs = state.Elixirs;
+            int partyCount = state.Party?.Count ?? 0;
+            int[] originalSkillPoints = new int[partyCount];
+            int[] originalHp = new int[partyCount];
+            int[] originalMana = new int[partyCount];
+            for (int i = 0; i < partyCount; i++)
+            {
+                PartyMember member = state.Party[i];
+                if (member == null) continue;
+                originalSkillPoints[i] = member.SkillPoints;
+                originalHp[i] = member.Hp;
+                originalMana[i] = member.Mana;
+            }
+
+            try
+            {
+                state.StoryFlags = new List<string>(originalFlags ?? Enumerable.Empty<string>());
+                state.Inventory = new List<InventoryItem>(originalInventory ?? Enumerable.Empty<InventoryItem>());
+                state.Log = new List<LogEntry>();
+                WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY);
+                Assert(sites.Length == WorldSiteInteractionRules.All.Count, "runtime regional interactions cover every authored site");
+
+                foreach (WorldMapSite site in sites)
+                {
+                    Assert(WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile profile), site.Name + " resolves runtime interaction metadata");
+                    MapObject landmark = state.Map.FindObjectById(WorldSitePresentationRules.LandmarkObjectIdPrefix + site.Id);
+                    Assert(landmark != null, site.Name + " has a runtime interaction landmark");
+
+                    string rewardFlag = WorldSiteInteractionRules.RewardFlag(state.Depth, site.Id);
+                    state.StoryFlags.RemoveAll(flag => string.Equals(flag, rewardFlag, StringComparison.Ordinal));
+                    string sanitizedSiteId = InvokePrivate<string>(game, "SanitizeFlagPart", site.Id);
+                    string legacyChartFlag = "regional_site_" + Math.Max(1, state.Depth) + "_" + sanitizedSiteId + "_charted";
+                    string legacyScaffoldFlag = InvokePrivate<string>(game, "RouteScaffoldFlag", landmark);
+                    if (!state.StoryFlags.Contains(legacyChartFlag)) state.StoryFlags.Add(legacyChartFlag);
+                    if (!string.IsNullOrEmpty(legacyScaffoldFlag) && !state.StoryFlags.Contains(legacyScaffoldFlag))
+                    {
+                        state.StoryFlags.Add(legacyScaffoldFlag);
+                    }
+                    Assert(
+                        !WorldSiteInteractionRules.RewardClaimed(state.StoryFlags, state.Depth, site.Id),
+                        site.Name + " treats v2.3 chart/scaffold flags as history rather than a claimed reward");
+                    Assert(
+                        InvokePrivate<string>(game, "ExploreContextVerb", landmark, 0, 0) == profile.ReadyVerb,
+                        site.Name + " exposes its reward-ready action in the live explore prompt");
+                    string readyHint = InvokePrivate<string>(game, "ObjectHint", landmark);
+                    Assert(
+                        readyHint.Contains("Reward ready")
+                        && readyHint.Contains(profile.ServiceName)
+                        && readyHint.Contains(profile.ReadyStatus),
+                        site.Name + " exposes its ready status and service in the live object hint");
+
+                    state.Gold = 0;
+                    state.Supplies = 0;
+                    state.Elixirs = 0;
+                    foreach (PartyMember member in state.Party.Where(member => member != null))
+                    {
+                        member.Hp = member.MaxHp;
+                        member.Mana = member.MaxMana;
+                    }
+                    int beforeReward = RegionalSiteRewardMetric(profile, state);
+                    Assert(InvokePrivate<bool>(game, "TryResolveRegionalSite", landmark), site.Name + " resolves its live regional interaction");
+                    int afterReward = RegionalSiteRewardMetric(profile, state);
+                    Assert(afterReward > beforeReward, site.Name + " grants its first depth-scoped benefit despite legacy visit flags");
+                    Assert(state.StoryFlags.Count(flag => string.Equals(flag, rewardFlag, StringComparison.Ordinal)) == 1, site.Name + " records exactly one new reward flag");
+                    Assert(
+                        InvokePrivate<string>(game, "ExploreContextVerb", landmark, 0, 0) == profile.RepeatVerb,
+                        site.Name + " changes its live explore action after the reward is claimed");
+                    string repeatHint = InvokePrivate<string>(game, "ObjectHint", landmark);
+                    Assert(
+                        repeatHint.Contains("Repeat service")
+                        && repeatHint.Contains(profile.ServiceName)
+                        && repeatHint.Contains(profile.ClaimedStatus),
+                        site.Name + " exposes its claimed status and repeat service in the live object hint");
+
+                    Assert(InvokePrivate<bool>(game, "TryResolveRegionalSite", landmark), site.Name + " remains safely reusable after its first benefit");
+                    int afterRepeat = RegionalSiteRewardMetric(profile, state);
+                    Assert(afterRepeat == afterReward, site.Name + " repeat service cannot duplicate its first reward");
+                    Assert(state.StoryFlags.Count(flag => string.Equals(flag, rewardFlag, StringComparison.Ordinal)) == 1, site.Name + " repeat service does not duplicate reward state");
+                    InvokePrivate(game, "CloseTransientOverlays");
+                }
+            }
+            finally
+            {
+                state.StoryFlags = originalFlags;
+                state.Inventory = originalInventory;
+                state.Log = originalLog;
+                state.Gold = originalGold;
+                state.Supplies = originalSupplies;
+                state.Elixirs = originalElixirs;
+                for (int i = 0; i < partyCount; i++)
+                {
+                    PartyMember member = state.Party[i];
+                    if (member == null) continue;
+                    member.SkillPoints = originalSkillPoints[i];
+                    member.Hp = originalHp[i];
+                    member.Mana = originalMana[i];
+                }
+                InvokePrivate(game, "CloseTransientOverlays");
+            }
+        }
+
+        private static int RegionalSiteRewardMetric(
+            WorldSiteInteractionProfile profile,
+            GameState state)
+        {
+            switch (profile.RewardKind)
+            {
+                case WorldSiteRewardKind.TrainingInsight:
+                case WorldSiteRewardKind.GlassFormula:
+                    return state.Party == null ? 0 : state.Party.Where(member => member != null).Sum(member => member.SkillPoints);
+                case WorldSiteRewardKind.QuarryMail:
+                    return state.Inventory?.Count ?? 0;
+                case WorldSiteRewardKind.CryptTithe:
+                    return state.Gold;
+                case WorldSiteRewardKind.MarketCache:
+                case WorldSiteRewardKind.CisternStores:
+                    return state.Supplies;
+                case WorldSiteRewardKind.SealEmber:
+                case WorldSiteRewardKind.GroveTonic:
+                    return state.Elixirs;
+                default:
+                    return 0;
+            }
         }
 
         private static void AssertRegionalSiteAudioRuntime(
@@ -4484,22 +4674,27 @@ namespace AshenHalls.Editor
         private static void AssertMidgaardInteriors(AshenHallsGame game, GameState state)
         {
             List<MapObject> portals = state.Map.Objects.Where(MidgaardInteriorRules.IsPortal).ToList();
-            Assert(portals.Count == 8, "Midgaard contains four paired interior doorways");
+            Assert(portals.Count == 10, "Midgaard contains five paired interior doorways");
             Assert(portals.Select(portal => portal.Id).Distinct(StringComparer.Ordinal).Count() == portals.Count, "interior doorway identities are unique");
             Assert(MidgaardInteriorRules.BrokenPortalIds(state.Map).Count == 0, "every Midgaard interior doorway has a valid return target");
             Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.KingHalvard) == 1, "throne room contains exactly one King Halvard NPC");
             Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.ArmorerNpc) == 1, "merchant hall contains exactly one armorer");
             Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.WeaponMerchantNpc) == 1, "merchant hall contains exactly one weaponsmith");
             Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.EnchanterNpc) == 1, "merchant hall contains exactly one runesmith");
+            Assert(state.Map.Objects.Count(obj => obj != null && obj.Id == MidgaardInteriorRules.GrandHearthFireId) == 1, "Grand Hearth contains exactly one named fireplace");
+            Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.TavernKeeper) == 1, "Grand Hearth contains exactly one keeper");
+            Assert(state.Map.Objects.Count(obj => obj != null && obj.Type == ObjectType.OldRoadScout) == 1, "Grand Hearth contains exactly one Old Road scout");
 
             bool[,] exteriorReachable = ExplorationTraversalRules.ReachableMask(state.Map, state.PlayerX, state.PlayerY);
             RectInt throneBounds = MidgaardInteriorRules.ThroneRoomBounds(state.Map);
             RectInt merchantBounds = MidgaardInteriorRules.MerchantHallBounds(state.Map);
+            RectInt grandHearthBounds = MidgaardInteriorRules.GrandHearthBounds(state.Map);
             for (int y = 0; y < state.Map.Height; y++)
             for (int x = 0; x < state.Map.Width; x++)
             {
                 if (!throneBounds.Contains(new Vector2Int(x, y))
-                    && !merchantBounds.Contains(new Vector2Int(x, y)))
+                    && !merchantBounds.Contains(new Vector2Int(x, y))
+                    && !grandHearthBounds.Contains(new Vector2Int(x, y)))
                 {
                     continue;
                 }
@@ -4513,18 +4708,62 @@ namespace AshenHalls.Editor
             MapObject armorer = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.ArmorerNpc);
             MapObject enchanter = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.EnchanterNpc);
             MapObject armorerExit = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.ArmorerExitId);
+            MapObject grandHearthDoor = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthDoorId);
+            MapObject grandHearthExit = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthExitId);
+            MapObject grandHearthFire = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthFireId);
+            MapObject grandHearthMapTable = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthMapTableId);
+            MapObject grandHearthRoadChest = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthRoadChestId);
+            MapObject grandHearthKeeper = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.TavernKeeper);
+            MapObject grandHearthScout = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.OldRoadScout);
+            MapObject grandHearthScholar = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.Scholar);
             Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", throne.X, throne.Y, 1) == 2, "royal throne uses its authored dais terrain");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", throneExit.X, throneExit.Y, 1) == 15, "throne-room doorway uses its royal threshold");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", armorer.X, armorer.Y + 1, 1) == 17, "armorer bay uses its forge floor");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", enchanter.X, enchanter.Y + 1, 1) == 18, "runesmith bay uses its enchantment floor");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", armorerExit.X, armorerExit.Y, 1) == 16, "merchant doorway uses its shop threshold");
+            Point grandHearthSpawn = MidgaardInteriorRules.GrandHearthSpawn(state.Map);
+            Assert(grandHearthDoor != null && grandHearthExit != null
+                && grandHearthDoor.TargetId == grandHearthExit.Id
+                && grandHearthExit.TargetId == grandHearthDoor.Id,
+                "Grand Hearth storm doors form a permanent two-way portal pair");
+            Assert(grandHearthFire != null && grandHearthBounds.Contains(new Vector2Int(grandHearthFire.X, grandHearthFire.Y)), "Grand Hearth fireplace remains inside the authored room");
+            Assert(grandHearthMapTable != null && grandHearthBounds.Contains(new Vector2Int(grandHearthMapTable.X, grandHearthMapTable.Y)), "Grand Hearth keeps an Old Road map table off the tutorial lane");
+            Assert(grandHearthRoadChest != null && grandHearthBounds.Contains(new Vector2Int(grandHearthRoadChest.X, grandHearthRoadChest.Y)), "Grand Hearth keeps a company road chest off the tutorial lane");
+            Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", grandHearthExit.X, grandHearthExit.Y, 1) == 16, "Grand Hearth storm doors use the timber threshold");
+            Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", grandHearthSpawn.X, grandHearthSpawn.Y, 1) == 1, "fresh party company mark uses the blue-and-gold runner");
+            Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", grandHearthBounds.xMin + 4, grandHearthBounds.yMin + 2, 1) == 4, "Grand Hearth surrounds its runner with warm wood floor");
+            Assert(InvokePrivate<int>(game, "MidgaardInteriorPropIconIndex", ObjectType.RoyalLectern, grandHearthMapTable) == 7, "Grand Hearth map table uses the authored cartography desk");
+            Assert(InvokePrivate<int>(game, "MidgaardInteriorPropIconIndex", ObjectType.ProvisionShelf, grandHearthRoadChest) == 17, "Grand Hearth road chest uses the authored blue company chest");
+            Assert(InvokePrivate<string>(game, "ExploreGroundName", grandHearthSpawn.X, grandHearthSpawn.Y) == "Company runner", "Grand Hearth HUD names the starting floor as the company runner");
 
-            foreach (ObjectType type in new[] { ObjectType.KingHalvard, ObjectType.ArmorerNpc, ObjectType.WeaponMerchantNpc, ObjectType.EnchanterNpc })
+            foreach (ObjectType type in new[]
+            {
+                ObjectType.KingHalvard,
+                ObjectType.ArmorerNpc,
+                ObjectType.WeaponMerchantNpc,
+                ObjectType.EnchanterNpc,
+                ObjectType.TavernKeeper,
+                ObjectType.OldRoadScout,
+                ObjectType.Scholar
+            })
             {
                 MapObject npc = state.Map.Objects.Single(obj => obj != null && obj.Type == type);
                 WorldZone zone = InvokePrivate<WorldZone>(game, "ZoneFor", npc.X, npc.Y, state.Map, state.Depth);
                 Assert(zone != null && zone.Danger == 0, type + " stands in a safe interior zone");
             }
+
+            bool[,] grandHearthReachable = ExplorationTraversalRules.ReachableMask(state.Map, grandHearthSpawn.X, grandHearthSpawn.Y);
+            for (int y = 0; y < state.Map.Height; y++)
+            for (int x = 0; x < state.Map.Width; x++)
+            {
+                if (!grandHearthReachable[x, y]) continue;
+                Assert(grandHearthBounds.Contains(new Vector2Int(x, y)), $"Grand Hearth flood fill cannot escape through cell {x},{y}");
+            }
+            Assert(ExplorationTraversalRules.CanReachObject(grandHearthReachable, state.Map, grandHearthExit), "Grand Hearth storm doors are reachable from the company mark");
+            Assert(ExplorationTraversalRules.CanReachObject(grandHearthReachable, state.Map, grandHearthFire), "Grand Hearth fire is reachable from the company mark");
+            Assert(ExplorationTraversalRules.CanReachObject(grandHearthReachable, state.Map, grandHearthKeeper), "Orren is reachable inside the Grand Hearth");
+            Assert(ExplorationTraversalRules.CanReachObject(grandHearthReachable, state.Map, grandHearthScout), "Yara is reachable inside the Grand Hearth");
+            Assert(ExplorationTraversalRules.CanReachObject(grandHearthReachable, state.Map, grandHearthScholar), "the scholar is reachable inside the Grand Hearth");
 
             int oldX = state.PlayerX;
             int oldY = state.PlayerY;

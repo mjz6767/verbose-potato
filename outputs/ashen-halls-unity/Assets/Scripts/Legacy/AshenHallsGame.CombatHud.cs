@@ -822,58 +822,59 @@ namespace AshenHalls
             bool playerTurn = active != null && active.Side == UnitSide.Party;
             CombatHudGeometry geometry = CombatHudScreenLayout.Calculate(Screen.width, Screen.height);
             CombatHudView view = BuildCombatHudView();
-            DrawCombatFallbackChrome(geometry.Top, view);
-            DrawCombatFallbackSide(geometry.Side, view);
-            Rect bar = geometry.Command;
-            DrawRect(bar, Hex("080b0d", 0.98f));
-            DrawBorder(bar, gold.WithAlpha(0.86f), 1);
-
             IReadOnlyList<ActionMode> modes = CombatHudFallbackModes(active);
             bool promoteEndTurn = playerTurn && ShouldPromoteEndTurn(active);
-            Rect[] localButtons = CombatHudScreenLayout.CommandButtons(bar.width, bar.height, modes.Count, promoteEndTurn);
+            Rect palette = geometry.Command;
+            Rect[] localButtons = CombatHudScreenLayout.CommandButtons(palette.width, palette.height, modes.Count, promoteEndTurn);
             string prompt = view.CommandPrompt ?? "Combat HUD recovering...";
             for (int i = 0; i < localButtons.Length && i < view.Commands.Count; i++)
             {
-                Rect hover = OffsetLocalRect(localButtons[i], bar);
+                Rect hover = OffsetLocalRect(localButtons[i], palette);
                 if (!hover.Contains(Event.current.mousePosition)) continue;
                 CombatHudCommandView hovered = view.Commands[i];
                 string detail = hovered.Enabled ? hovered.Tooltip : hovered.DisabledReason;
                 prompt = $"{hovered.Label} [{hovered.Hotkey}]  {detail}";
                 break;
             }
-            float promptRight = bar.xMax - 78f;
-            if (view.CanUndoMove) promptRight -= 122f;
-            if (view.CanCancelTarget) promptRight -= 122f;
-            float promptWidth = Mathf.Max(120f, promptRight - bar.x - 12f);
-            GUI.Label(new Rect(bar.x + 12f, bar.y + 4f, promptWidth, 20f), FitText(prompt, promptWidth, CenterLeftStyle(10, promoteEndTurn ? gold : teal)), CenterLeftStyle(10, promoteEndTurn ? gold : teal));
-            float contextX = bar.xMax - 190f;
+
+            DrawCombatFallbackChrome(geometry.Top, view);
+            DrawCombatFallbackSide(geometry.Side, view);
+            DrawRect(palette, Hex("080b0d", 0.82f));
+            DrawBorder(palette, gold.WithAlpha(0.54f), 1);
+
+            const float statReserve = 238f;
+            float contextX = geometry.Top.x + Mathf.Clamp(geometry.Top.width * 0.28f, 290f, 440f) + 22f;
+            float contextWidth = Mathf.Max(280f, geometry.Top.xMax - statReserve - contextX);
+            Rect promptLocal = CombatHudScreenLayout.CommandPrompt(contextWidth, view.CanUndoMove, view.CanCancelTarget);
+            Rect promptRect = new Rect(contextX + promptLocal.x, geometry.Top.y + promptLocal.y, promptLocal.width, promptLocal.height);
+            GUI.Label(promptRect, FitText(prompt, promptRect.width, CenterLeftStyle(9, promoteEndTurn ? gold : teal)), CenterLeftStyle(9, promoteEndTurn ? gold : teal));
             if (view.CanCancelTarget)
             {
-                Rect cancel = new Rect(contextX, bar.y + 3f, 112f, 21f);
+                Rect local = CombatHudScreenLayout.CancelTargetButton(contextWidth);
+                Rect cancel = new Rect(contextX + local.x, geometry.Top.y + local.y, local.width, local.height);
                 if (GUI.Button(cancel, "Cancel [Esc]", smallButtonStyle)) RunCombatHudCancelTarget();
-                contextX -= 122f;
             }
             if (view.CanUndoMove)
             {
-                Rect undo = new Rect(contextX, bar.y + 3f, 112f, 21f);
+                Rect local = CombatHudScreenLayout.UndoMoveButton(contextWidth, view.CanCancelTarget);
+                Rect undo = new Rect(contextX + local.x, geometry.Top.y + local.y, local.width, local.height);
                 if (GUI.Button(undo, "Undo Move [U]", smallButtonStyle)) RunCombatHudUndoMove();
             }
-            Rect menu = new Rect(bar.xMax - 68f, bar.y + 3f, 58f, 21f);
+            float fallbackTitleWidth = Mathf.Clamp(geometry.Top.width * 0.28f, 290f, 440f);
+            Rect menu = new Rect(geometry.Top.x + fallbackTitleWidth - 56f, geometry.Top.y + 27f, 56f, 18f);
             if (GUI.Button(menu, "Menu", smallButtonStyle)) OpenPauseMenu();
 
             int groupBreakIndex = CombatHudScreenLayout.CommandGroupBreakIndex(localButtons.Length);
             if (groupBreakIndex >= 0)
             {
-                float dividerX = bar.x + (localButtons[groupBreakIndex].xMax + localButtons[groupBreakIndex + 1].xMin) * 0.5f;
-                float dividerY = bar.y + localButtons[0].yMin + 8f;
-                float dividerH = Mathf.Max(24f, localButtons[0].height - 16f);
-                DrawRect(new Rect(dividerX - 1f, dividerY, 2f, dividerH), gold.WithAlpha(0.42f));
+                float dividerY = palette.y + (localButtons[groupBreakIndex].yMax + localButtons[groupBreakIndex + 1].yMin) * 0.5f;
+                DrawRect(new Rect(palette.x + 8f, dividerY - 1f, palette.width - 16f, 2f), gold.WithAlpha(0.34f));
             }
 
             for (int i = 0; i < modes.Count; i++)
             {
                 ActionMode mode = modes[i];
-                Rect button = OffsetLocalRect(localButtons[i], bar);
+                Rect button = OffsetLocalRect(localButtons[i], palette);
                 CombatHudCommandView command = i < view.Commands.Count ? view.Commands[i] : null;
                 bool enabled = command?.Enabled ?? (playerTurn && CombatCommandEnabled(mode, active));
                 bool blocked = command?.Blocked ?? !enabled;
@@ -882,26 +883,29 @@ namespace AshenHalls
                 bool promoted = mode == ActionMode.Wait && promoteEndTurn;
                 bool armed = command?.Armed ?? false;
                 bool emphasized = promoted || armed || selected && visuallyAvailable;
-                DrawRect(button, promoted || armed ? Hex("352316", 0.98f) : selected && visuallyAvailable ? Hex("243033", 0.98f) : Hex("151b20", 0.98f));
-                DrawBorder(button, promoted || armed ? gold : selected && visuallyAvailable ? teal : line, emphasized ? 2 : 1);
-                float iconSize = Mathf.Clamp(button.height - 24f, 56f, 72f);
-                const float iconY = 20f;
-                Rect icon = new Rect(button.x + 10f, button.y + iconY, iconSize, iconSize);
+                DrawRect(button, promoted || armed ? Hex("352316", 0.94f) : selected && visuallyAvailable ? Hex("243033", 0.90f) : Hex("151b20", 0.84f));
+                DrawBorder(button, promoted || armed ? gold : selected && visuallyAvailable ? teal : line.WithAlpha(0.40f), emphasized ? 2 : 1);
+                bool compact = CombatHudScreenLayout.UsesCompactCommandLayout(button);
+                float iconSize = CombatHudScreenLayout.CommandIconSize(button);
+                float iconY = compact ? button.y + 4f : button.y + 6f;
+                Rect icon = new Rect(button.center.x - iconSize * 0.5f, iconY, iconSize, iconSize);
                 DrawActionButtonGlyph(icon, mode, visuallyAvailable, armed);
-                Rect keycap = new Rect(button.x + 10f, button.y + 2f, 38f, 16f);
+                Rect keycap = new Rect(button.xMax - 35f, button.y + 4f, 29f, 14f);
                 DrawRect(keycap, emphasized ? (promoted || armed ? gold : CommandModeAccent(mode)) : Hex("263035"));
                 GUI.Label(keycap, command?.Hotkey ?? "", CenterStyle(8, emphasized ? retroBlack : ink));
-                float textX = icon.xMax + 11f;
-                float textW = Mathf.Max(36f, button.xMax - textX - 8f);
-                float textY = button.y + Mathf.Max(12f, (button.height - 48f) * 0.5f);
                 string label = command?.Label ?? ActionName(mode, active);
                 if (promoted) label = label.ToUpperInvariant();
                 string subLabel = promoted ? "Next combatant" : enabled ? command?.SubLabel ?? ActionButtonSubLabel(mode, active) : command?.DisabledReason ?? DisabledActionReason(mode, active, playerTurn);
                 Color labelColor = visuallyAvailable ? ink : Hex("9aa0a1", 0.88f);
                 Color subColor = blocked ? Hex("e39a82") : visuallyAvailable ? promoted ? gold : Hex("c7baa2") : muted;
-                GUI.Label(new Rect(textX, textY, textW, 25f), FitText(label, textW, CenterLeftStyle(14, labelColor)), CenterLeftStyle(14, labelColor));
-                GUI.Label(new Rect(textX, textY + 26f, textW, 21f), FitText(subLabel, textW, CenterLeftStyle(11, subColor)), CenterLeftStyle(11, subColor));
-                DrawRect(new Rect(button.x, button.yMax - (emphasized ? 5f : 3f), button.width, emphasized ? 5f : 3f), (promoted || armed ? gold : CommandModeAccent(mode)).WithAlpha(emphasized ? 1f : visuallyAvailable ? 0.46f : 0.16f));
+                float labelY = icon.yMax + 1f;
+                float labelHeight = compact ? 15f : 17f;
+                GUI.Label(new Rect(button.x + 4f, labelY, button.width - 8f, labelHeight), FitText(label, button.width - 8f, CenterStyle(compact ? 11 : 12, labelColor)), CenterStyle(compact ? 11 : 12, labelColor));
+                if (!compact)
+                {
+                    GUI.Label(new Rect(button.x + 4f, labelY + labelHeight, button.width - 8f, Mathf.Max(9f, button.yMax - labelY - labelHeight - 2f)), FitText(subLabel, button.width - 8f, CenterStyle(8, subColor)), CenterStyle(8, subColor));
+                }
+                DrawRect(new Rect(button.x, button.yMax - (emphasized ? 4f : 2f), button.width, emphasized ? 4f : 2f), (promoted || armed ? gold : CommandModeAccent(mode)).WithAlpha(emphasized ? 1f : visuallyAvailable ? 0.34f : 0.12f));
                 if (GUI.Button(button, GUIContent.none, GUIStyle.none)) RunCombatHudCommand(mode);
             }
             GUI.enabled = previousGuiEnabled;
@@ -937,19 +941,23 @@ namespace AshenHalls
 
         private void DrawCombatFallbackChrome(Rect rect, CombatHudView view)
         {
-            DrawRect(rect, Hex("080d10", 0.98f));
-            DrawBorder(rect, Hex("3c4544", 0.72f), 1);
-            GUI.Label(new Rect(rect.x + 14f, rect.y + 7f, rect.width * 0.24f, 22f), view.Title ?? GameTitle, CenterLeftStyle(16, ink));
-            GUI.Label(new Rect(rect.x + rect.width * 0.25f, rect.y + 8f, rect.width * 0.38f, 18f), FitText(view.RouteLine, rect.width * 0.38f, CenterStyle(10, muted)), CenterStyle(10, muted));
+            DrawRect(rect, Hex("080d10", 0.86f));
+            DrawBorder(rect, Hex("3c4544", 0.54f), 1);
+            float titleW = Mathf.Clamp(rect.width * 0.28f, 290f, 440f);
+            GUI.Label(new Rect(rect.x + 14f, rect.y + 2f, titleW - 14f, 25f), view.Title ?? GameTitle, CenterLeftStyle(15, ink));
+            GUI.Label(new Rect(rect.x + 15f, rect.y + 27f, titleW - 76f, 14f), FitText(view.RouteLine, titleW - 76f, CenterLeftStyle(9, muted)), CenterLeftStyle(9, muted));
             Color phaseColor = view.ActiveUnit == null ? muted : view.PlayerTurn ? teal : ember;
-            GUI.Label(new Rect(rect.x + rect.width * 0.25f, rect.y + 29f, rect.width * 0.38f, 17f), FitText(view.PhaseLine, rect.width * 0.38f, CenterStyle(10, phaseColor)), CenterStyle(10, phaseColor));
-            const float statW = 72f;
-            const float statGap = 8f;
-            float statsX = rect.xMax - statW * 3f - statGap * 2f - 12f;
-            GUI.Label(new Rect(statsX, rect.y + 8f, statW, 42f), view.RoundLabel ?? "ROUND\n-", CenterStyle(9, gold));
-            GUI.Label(new Rect(statsX + statW + statGap, rect.y + 8f, statW, 42f), view.MoveLabel ?? "MOVE\n-", CenterStyle(9, view.PlayerTurn && view.MovePoints > 0 ? teal : muted));
+            float statW = Screen.width < 1400 ? 62f : 70f;
+            float statGap = Screen.width < 1400 ? 5f : 7f;
+            float statsX = rect.xMax - statW * 3f - statGap * 2f - 10f;
+            float phaseX = rect.x + titleW + 22f;
+            float phaseW = Mathf.Max(280f, statsX - phaseX - 8f);
+            GUI.Label(new Rect(phaseX, rect.y + 5f, phaseW, 16f), FitText(view.PhaseLine, phaseW, CenterStyle(9, phaseColor)), CenterStyle(9, phaseColor));
+            float statH = rect.height - 12f;
+            GUI.Label(new Rect(statsX, rect.y + 6f, statW, statH), view.RoundLabel ?? "ROUND\n-", CenterStyle(9, gold));
+            GUI.Label(new Rect(statsX + statW + statGap, rect.y + 6f, statW, statH), view.MoveLabel ?? "MOVE\n-", CenterStyle(9, view.PlayerTurn && view.MovePoints > 0 ? teal : muted));
             Color actionColor = view.ActiveUnit == null ? muted : view.ActionReady ? teal : view.PlayerTurn ? gold : ember;
-            GUI.Label(new Rect(statsX + (statW + statGap) * 2f, rect.y + 8f, statW, 42f), view.ActionLabel ?? "ACTION\nWAIT", CenterStyle(9, actionColor));
+            GUI.Label(new Rect(statsX + (statW + statGap) * 2f, rect.y + 6f, statW, statH), view.ActionLabel ?? "ACTION\nWAIT", CenterStyle(9, actionColor));
         }
 
         private void DrawCombatFallbackSide(Rect side, CombatHudView view)
@@ -973,7 +981,9 @@ namespace AshenHalls
                 queueText += "\nPLAN  " + view.TacticalLine;
             }
             GUI.Label(queue, queueText, WrapStyle(9, ink));
-            IReadOnlyList<CombatHudLogView> logs = view.Logs ?? Array.Empty<CombatHudLogView>();
+            IReadOnlyList<CombatHudLogView> logs = view.TimelineExpanded
+                ? view.Logs ?? Array.Empty<CombatHudLogView>()
+                : Array.Empty<CombatHudLogView>();
             float y = timeline.y + (view.TimelineExpanded ? 82f : 68f);
             for (int i = 0; i < logs.Count && y < timeline.yMax - 22f; i++)
             {
@@ -1000,21 +1010,38 @@ namespace AshenHalls
             Color accent = unit == null || string.IsNullOrWhiteSpace(unit.AccentHex) ? fallbackAccent : Hex(unit.AccentHex);
             DrawRect(rect, Hex("080b0d", 0.98f));
             DrawBorder(rect, accent.WithAlpha(0.76f), 1);
-            GUI.Label(new Rect(rect.x + 12f, rect.y + 8f, rect.width - 24f, 18f), title, CenterLeftStyle(11, accent));
+            bool showMana = unit != null && unit.MaxMana > 0;
+            CombatHudUnitCardGeometry geometry = CombatHudScreenLayout.UnitCard(rect.width, rect.height, showMana);
+            Rect titleRect = OffsetLocalRect(geometry.Title, rect);
+            GUI.Label(titleRect, FitText(title, titleRect.width, CenterLeftStyle(11, accent)), CenterLeftStyle(11, accent));
             if (unit == null)
             {
-                GUI.Label(new Rect(rect.x + 12f, rect.y + 38f, rect.width - 24f, 20f), "No target selected", CenterLeftStyle(10, muted));
+                GUI.Label(new Rect(rect.x + 12f, titleRect.yMax + 8f, rect.width - 24f, 20f), "No target selected", CenterLeftStyle(10, muted));
                 return;
             }
 
-            GUI.Label(new Rect(rect.x + 12f, rect.y + 31f, rect.width - 24f, 22f), FitText(unit.Name, rect.width - 24f, CenterLeftStyle(15, ink)), CenterLeftStyle(15, ink));
-            GUI.Label(new Rect(rect.x + 12f, rect.y + 56f, rect.width - 24f, 18f), FitText(unit.Header, rect.width - 24f, CenterLeftStyle(10, gold)), CenterLeftStyle(10, gold));
+            Rect portrait = OffsetLocalRect(geometry.Portrait, rect);
+            DrawRect(portrait, Hex("050708", 0.92f));
+            DrawBorder(portrait, accent.WithAlpha(0.72f), 1);
+            if (unit.PortraitTexture == null
+                || !DrawTextureRegionTint(unit.PortraitTexture, Pad(portrait, 3f), unit.PortraitSource, Color.white))
+            {
+                string fallback = string.IsNullOrWhiteSpace(unit.Name) ? "?" : unit.Name.Substring(0, 1).ToUpperInvariant();
+                GUI.Label(portrait, fallback, CenterStyle(18, accent));
+            }
+
+            Rect name = OffsetLocalRect(geometry.Name, rect);
+            Rect header = OffsetLocalRect(geometry.Header, rect);
+            Rect state = OffsetLocalRect(geometry.State, rect);
+            Rect status = OffsetLocalRect(geometry.Status, rect);
+            GUI.Label(name, FitText(unit.Name, name.width, CenterLeftStyle(15, ink)), CenterLeftStyle(15, ink));
+            GUI.Label(header, FitText(unit.Header, header.width, CenterLeftStyle(10, gold)), CenterLeftStyle(10, gold));
             Color stateColor = CombatHudFallbackStateColor(unit.StateTone);
             GUIStyle stateStyle = CenterLeftStyle(9, stateColor);
-            GUI.Label(new Rect(rect.x + 12f, rect.y + 77f, rect.width - 24f, 18f), FitText(unit.StateLine, rect.width - 24f, stateStyle), stateStyle);
-            GUI.Label(new Rect(rect.x + 12f, rect.y + 97f, rect.width - 24f, 34f), unit.StatusLine ?? "", WrapStyle(9, ink));
-            DrawCombatFallbackMeter(new Rect(rect.x + 12f, rect.yMax - 38f, rect.width - 24f, 10f), unit.Hp, unit.MaxHp, blood);
-            if (unit.MaxMana > 0) DrawCombatFallbackMeter(new Rect(rect.x + 12f, rect.yMax - 22f, rect.width - 24f, 8f), unit.Mana, unit.MaxMana, teal);
+            GUI.Label(state, FitText(unit.StateLine, state.width, stateStyle), stateStyle);
+            GUI.Label(status, FitText(unit.StatusLine ?? "", status.width, CenterLeftStyle(9, ink)), CenterLeftStyle(9, ink));
+            DrawCombatFallbackMeter(OffsetLocalRect(geometry.Hp, rect), unit.Hp, unit.MaxHp, blood);
+            if (showMana) DrawCombatFallbackMeter(OffsetLocalRect(geometry.Mana, rect), unit.Mana, unit.MaxMana, teal);
         }
 
         private Color CombatHudFallbackStateColor(CombatHudStateTone tone)
@@ -1042,11 +1069,9 @@ namespace AshenHalls
             if (visualSmokeHideCombatDebug || !betaLabMode || state?.Mode != GameMode.Combat) return;
             CombatUnit active = CurrentUnit();
             bool playerTurn = active != null && active.Side == UnitSide.Party;
-            Rect baseRect = CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Command;
+            Rect baseRect = CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Board;
             if (baseRect.width < 480f) return;
-            // Keep tester controls on their own row above the canonical command
-            // prompt. Sharing that row caused Audio/status/Menu overlap at 1280x720.
-            DrawBetaLabToolbar(new Rect(baseRect.x, baseRect.y - 66f, Mathf.Min(900f, baseRect.width), 30f), active, playerTurn);
+            DrawBetaLabToolbar(new Rect(baseRect.x + 8f, baseRect.y + 8f, Mathf.Min(900f, baseRect.width - 16f), 30f), active, playerTurn);
         }
     }
 }

@@ -4,6 +4,8 @@ namespace AshenHalls
 {
     public static class GameAudioCueRules
     {
+        public const int RoamingThreatHearingRadius = 8;
+
         public static string FootstepFor(ExplorationMaterial material)
         {
             switch (material)
@@ -85,11 +87,40 @@ namespace AshenHalls
             return Clamp(FootstepVolume(material) * 0.38f, 0.18f, 0.32f);
         }
 
-        public static float RoamingThreatPan(int column, int mapWidth)
+        public static bool CanHearRoamingThreat(int distance)
         {
-            if (mapWidth <= 1) return 0f;
-            float normalized = Clamp(column / (float)(mapWidth - 1), 0f, 1f);
-            return (normalized * 2f - 1f) * 0.62f;
+            return distance >= 0 && distance <= RoamingThreatHearingRadius;
+        }
+
+        public static float RoamingThreatDistanceGain(int distance)
+        {
+            if (!CanHearRoamingThreat(distance)) return 0f;
+            if (distance <= 1) return 1f;
+
+            float progress = Clamp(
+                (distance - 1f) / Math.Max(1f, RoamingThreatHearingRadius - 1f),
+                0f,
+                1f);
+            float remaining = 1f - progress;
+            return 0.18f + remaining * remaining * 0.82f;
+        }
+
+        public static float RoamingThreatMovementVolume(float closeVolume, int distance)
+        {
+            return Clamp(closeVolume, 0f, 1.4f) * RoamingThreatDistanceGain(distance);
+        }
+
+        public static float RoamingThreatRelativePan(int threatX, int partyX)
+        {
+            int delta = threatX - partyX;
+            if (delta == 0) return 0f;
+
+            float normalized = Clamp(
+                Math.Abs(delta) / (float)RoamingThreatHearingRadius,
+                0f,
+                1f);
+            float magnitude = (float)Math.Sqrt(normalized) * 0.68f;
+            return delta < 0 ? -magnitude : magnitude;
         }
 
         public static bool SuppressesExplorationAmbience(string cue)
@@ -182,6 +213,7 @@ namespace AshenHalls
         public static string AmbientFor(string zoneId, ObjectType? nearbyLandmark)
         {
             string zone = (zoneId ?? "").Trim().ToLowerInvariant();
+            if (zone == "midgaard-grand-hearth") return "ambhearth";
             if (zone == "midgaard-throne-room") return "ambbell";
             if (zone == "midgaard-merchant-hall")
             {

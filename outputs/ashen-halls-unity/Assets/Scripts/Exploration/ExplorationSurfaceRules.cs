@@ -130,22 +130,38 @@ namespace AshenHalls
 
         public static int PathNeighborMask(MapData map, int x, int y)
         {
+            ExplorationCellRole roles = RolesAt(map, x, y);
+            bool roadWidth = (roles & (ExplorationCellRole.Road | ExplorationCellRole.Bridge)) != 0;
+            return NeighborMask(map, x, y, roadWidth);
+        }
+
+        public static int PathConnectorNeighborMask(MapData map, int x, int y)
+        {
+            return NeighborMask(map, x, y, false);
+        }
+
+        private static int NeighborMask(MapData map, int x, int y, bool roadWidthOnly)
+        {
             int mask = 0;
-            if (IsPassablePath(map, x, y - 1)) mask |= 1;
-            if (IsPassablePath(map, x + 1, y)) mask |= 2;
-            if (IsPassablePath(map, x, y + 1)) mask |= 4;
-            if (IsPassablePath(map, x - 1, y)) mask |= 8;
+            if (IsPassablePath(map, x, y - 1, roadWidthOnly)) mask |= 1;
+            if (IsPassablePath(map, x + 1, y, roadWidthOnly)) mask |= 2;
+            if (IsPassablePath(map, x, y + 1, roadWidthOnly)) mask |= 4;
+            if (IsPassablePath(map, x - 1, y, roadWidthOnly)) mask |= 8;
             return mask;
         }
 
-        private static bool IsPassablePath(MapData map, int x, int y)
+        private static bool IsPassablePath(MapData map, int x, int y, bool roadWidthOnly)
         {
             if (!InBounds(map, x, y) || map.Tiles == null) return false;
             int index = y * map.Width + x;
+            ExplorationCellRole roles = RolesAt(map, x, y);
+            bool matchingPath = roadWidthOnly
+                ? (roles & (ExplorationCellRole.Road | ExplorationCellRole.Bridge)) != 0
+                : IsPath(roles);
             return index >= 0
                 && index < map.Tiles.Count
                 && map.Tiles[index] == 1
-                && IsPath(RolesAt(map, x, y));
+                && matchingPath;
         }
 
         public static float SmoothBoundaryOffset(int coordinate, int salt, float amplitude)

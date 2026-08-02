@@ -56,6 +56,8 @@ namespace AshenHalls
                 return zone;
             }
 
+            if (zone == "midgaard-grand-hearth") return Tavern;
+
             if (zone == "midgaard-city")
             {
                 if (!hasLandmark) return zone;

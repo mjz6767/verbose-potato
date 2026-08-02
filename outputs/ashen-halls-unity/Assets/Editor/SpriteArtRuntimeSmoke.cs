@@ -37,6 +37,7 @@ namespace AshenHalls.Editor
                 AshenHallsGame game = UnityEngine.Object.FindFirstObjectByType<AshenHallsGame>();
                 Assert(game != null, "AshenHallsGame exists in Main scene");
                 InvokePrivate(game, "Awake");
+                AssertV24WorldMapAtlasesAndMappings(game);
 
                 Texture2D characterAtlas = GetPrivateField<Texture2D>(game, "characterCombatAtlas");
                 Assert(characterAtlas != null, "player character atlas loads");
@@ -111,6 +112,116 @@ namespace AshenHalls.Editor
             {
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             }
+        }
+
+        private static void AssertV24WorldMapAtlasesAndMappings(AshenHallsGame game)
+        {
+            Texture2D habitatAtlas = GetPrivateField<Texture2D>(game, "worldThreatHabitatAtlas");
+            Texture2D citizenAtlas = GetPrivateField<Texture2D>(game, "worldNpcCitizenAtlas");
+            Texture2D playerRoleAtlas = GetPrivateField<Texture2D>(game, "playerExplorationRoleAtlas");
+
+            Assert(habitatAtlas != null, "v2.4 world-threat habitat atlas loads");
+            Assert(habitatAtlas.name == RuntimeArtManifest.WorldThreatHabitatAtlas, "runtime selects the exact approved v2.4 habitat atlas");
+            Assert(habitatAtlas.width == 1536 && habitatAtlas.height == 768, "v2.4 habitat atlas uses the exact 4x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsWorldThreatHabitatAtlas"), "presentation accepts the exact v2.4 habitat atlas");
+
+            Assert(citizenAtlas != null, "v2.4 ambient-citizen atlas loads");
+            Assert(citizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "runtime selects the exact approved v2.4 citizen atlas");
+            Assert(citizenAtlas.width == 1536 && citizenAtlas.height == 768, "v2.4 citizen atlas uses the exact 4x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsWorldNpcCitizenAtlas"), "presentation accepts the exact v2.4 citizen atlas");
+
+            Assert(playerRoleAtlas != null, "v2.4 player exploration-role atlas loads");
+            Assert(playerRoleAtlas.name == RuntimeArtManifest.PlayerExplorationRoleAtlas, "runtime selects the exact approved v2.4 player-role atlas");
+            Assert(playerRoleAtlas.width == 1536 && playerRoleAtlas.height == 768, "v2.4 player-role atlas uses the exact 4x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsPlayerExplorationRoleAtlas"), "presentation accepts the exact v2.4 player-role atlas");
+
+            Dictionary<string, int> habitatCells = new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                { "rat", 0 },
+                { "ratmage", 1 },
+                { "kobold", 2 },
+                { "koboldshaman", 3 },
+                { "drow", 4 },
+                { "undead", 5 },
+                { "demon", 6 },
+                { "waystation", 7 }
+            };
+            foreach (KeyValuePair<string, int> habitat in habitatCells)
+            {
+                Assert(
+                    WorldThreatHabitatPresentationRules.ArchetypeIndex(habitat.Key) == habitat.Value,
+                    habitat.Key + " uses v2.4 habitat cell " + habitat.Value);
+            }
+            Assert(
+                WorldThreatHabitatPresentationRules.AtlasIndex("unknown", RoamingThreatFaction.Kobolds)
+                    == WorldThreatHabitatPresentationRules.KoboldAmbushCampIndex,
+                "unknown kobold archetypes retain the faction habitat fallback");
+            Assert(
+                WorldThreatHabitatPresentationRules.AtlasIndex((RoamingThreatDefinition)null)
+                    == WorldThreatHabitatPresentationRules.RuinedRoadWaystationIndex,
+                "missing threats retain the neutral waystation habitat fallback");
+            Assert(WorldThreatHabitatPresentationRules.DrawsBeneathRoamingThreatToken, "habitats remain beneath mobile threat tokens");
+            Assert(
+                !WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, true),
+                "habitat art never occupies a certified safe road");
+
+            string[] roleTokenOrder =
+            {
+                "shield", "pike", "bow", "knife", "mender", "ember", "hex", "ward"
+            };
+            for (int index = 0; index < roleTokenOrder.Length; index++)
+            {
+                string role = roleTokenOrder[index];
+                Assert(ExplorationCharacterArtCatalog.PlayerRoleIndex(role) == index, role + " uses player exploration cell " + index);
+                Assert(ExplorationCharacterArtCatalog.PlayerTokenIndex(1, role) == index, "single " + role + " uses the dedicated player atlas");
+            }
+            Assert(
+                ExplorationCharacterArtCatalog.PlayerTokenIndex(4, "shield")
+                    == ExplorationCharacterArtCatalog.PartyGroupBypassIndex,
+                "multi-character parties bypass the single-role atlas");
+            Assert(ExplorationCharacterArtCatalog.UsesPartyGroupToken(4), "multi-character parties preserve their group token");
+            Assert(ExplorationArtRules.PartyTokenRole(4, "shield") == "party", "live party-token selection preserves the group fallback role");
+            Assert(InvokePrivate<int>(game, "WorldMapTokenSpriteIndex", "party") == 0, "the legacy mixed atlas retains its party-group fallback cell");
+            Assert(ExplorationCharacterArtCatalog.PlayerTokenIndex(1, "unknown") < 0, "unknown solo roles fall through to the mixed token atlas");
+
+            AmbientCitizenProfession[] citizenOrder =
+            {
+                AmbientCitizenProfession.Lamplighter,
+                AmbientCitizenProfession.Fishmonger,
+                AmbientCitizenProfession.Tailor,
+                AmbientCitizenProfession.Mason,
+                AmbientCitizenProfession.Apothecary,
+                AmbientCitizenProfession.RoadPilgrim,
+                AmbientCitizenProfession.Gravedigger,
+                AmbientCitizenProfession.CaravanGuide
+            };
+            for (int index = 0; index < citizenOrder.Length; index++)
+            {
+                Assert(
+                    ExplorationCharacterArtCatalog.CitizenAtlasIndex(citizenOrder[index]) == index,
+                    citizenOrder[index] + " uses ambient-citizen cell " + index);
+                Assert(
+                    ExplorationCharacterArtCatalog.CitizenProfessionAt(index) == citizenOrder[index],
+                    "ambient-citizen cell " + index + " round-trips its profession");
+            }
+            int firstCitizen = ExplorationCharacterArtCatalog.AmbientCitizenIndex("old-quarry", 24680, 17, 9);
+            int repeatedCitizen = ExplorationCharacterArtCatalog.AmbientCitizenIndex("old-quarry", 24680, 17, 9);
+            Assert(firstCitizen == repeatedCitizen && firstCitizen >= 0, "ambient citizen selection is stable for a world coordinate");
+            Assert(
+                !ExplorationCharacterArtCatalog.ShouldPlaceAmbientCitizen(
+                    "midgaard-grand-hearth",
+                    24680,
+                    17,
+                    9,
+                    true,
+                    false,
+                    false,
+                    false,
+                    false),
+                "ambient citizens stay off the Grand Hearth tutorial lane");
+            Assert(
+                !ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, false, true),
+                "ambient citizens never occupy an interactable object's cell");
         }
 
         private static T GetPrivateField<T>(object target, string fieldName)

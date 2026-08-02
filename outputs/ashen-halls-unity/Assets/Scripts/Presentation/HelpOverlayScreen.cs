@@ -105,7 +105,8 @@ namespace AshenHalls
                         "Q: Location Details. Tab: toggle Local/Region Map.",
                         "I: Party and inventory. J: Journal. C: spell reference.",
                         "P or Esc: Menu for save, load, settings, return, or new game.",
-                        "Midgaard starts the sewer contract: speak with the king, gather supplies, then clear the rat den.",
+                        "The Grand Hearth is the first room: follow NEXT to its storm doors, then follow gold through Midgaard to King Halvard.",
+                        "Midgaard begins the sewer contract: speak with the king, gather supplies, then clear the rat den.",
                         "East and west gates are pass-through roads. North and south gates are sealed for now.",
                         "If a path feels blocked, bump the object or use Space/E beside it."
                     }
@@ -159,7 +160,7 @@ namespace AshenHalls
             string[] normal =
             {
                 "Continue appears when a campaign save exists.",
-                "Begin the Old Road starts immediately with the default four-person party.",
+                "Begin the Old Road gathers the default four-person party inside the Grand Hearth.",
                 "Customize Party opens the muster screen for deeper setup.",
                 "Settings controls audio volume and reduced motion.",
                 "F5 saves and F9 loads during gameplay. Esc opens the gameplay menu."

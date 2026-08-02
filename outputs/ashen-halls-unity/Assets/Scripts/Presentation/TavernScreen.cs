@@ -13,6 +13,7 @@ namespace AshenHalls
         public Func<string> VersionLine;
         public Texture2D BackdropArt;
         public Texture2D TitleArt;
+        public Texture2D MenuIconAtlas;
         public Func<bool> HasSavedGame;
         public Func<bool> SettingsVisible;
         public Func<bool> TestingVisible;
@@ -38,6 +39,7 @@ namespace AshenHalls
         public Action BetaLab;
         public Action MartialLab;
         public Action KoboldLab;
+        public Action<string, float> PlayTitleCue;
     }
 
     public readonly struct TavernScreenGeometry
@@ -46,13 +48,15 @@ namespace AshenHalls
         public readonly Rect Menu;
         public readonly Rect Settings;
         public readonly Rect Testing;
+        public readonly Rect Chronicle;
 
-        public TavernScreenGeometry(Rect title, Rect menu, Rect settings, Rect testing)
+        public TavernScreenGeometry(Rect title, Rect menu, Rect settings, Rect testing, Rect chronicle)
         {
             Title = title;
             Menu = menu;
             Settings = settings;
             Testing = testing;
+            Chronicle = chronicle;
         }
 
         public bool Fits(float width, float height)
@@ -60,7 +64,8 @@ namespace AshenHalls
             return FitsRect(Title, width, height)
                 && FitsRect(Menu, width, height)
                 && FitsRect(Settings, width, height)
-                && FitsRect(Testing, width, height);
+                && FitsRect(Testing, width, height)
+                && FitsRect(Chronicle, width, height);
         }
 
         private static bool FitsRect(Rect rect, float width, float height)
@@ -73,65 +78,59 @@ namespace AshenHalls
     {
         public static TavernScreenGeometry Calculate(float width, float height, bool saveExists)
         {
-            float titleW = Mathf.Clamp(width * 0.36f, 500f, 690f);
-            float titleY = Mathf.Clamp(height * 0.075f, 48f, 92f);
+            float titleW = Mathf.Clamp(width * 0.40f, 500f, 700f);
+            float titleY = Mathf.Clamp(height * 0.06f, 34f, 76f);
             Rect title = new Rect(
-                Mathf.Clamp(width * 0.045f, 30f, 92f),
+                Mathf.Clamp(width * 0.042f, 30f, 82f),
                 titleY,
                 titleW,
                 titleW / 3f);
 
-            float menuW = Mathf.Clamp(width * 0.28f, 400f, 520f);
-            float menuH = saveExists ? 414f : 356f;
-            float menuX = Mathf.Clamp(width - menuW - Mathf.Clamp(width * 0.07f, 42f, 112f), 24f, width - menuW - 24f);
-            float menuY = Mathf.Clamp(height * 0.20f, 96f, 170f);
+            float menuW = Mathf.Clamp(width * 0.29f, 356f, 438f);
+            float menuH = saveExists ? 430f : 374f;
+            float menuX = Mathf.Clamp(
+                width - menuW - Mathf.Clamp(width * 0.045f, 36f, 80f),
+                24f,
+                width - menuW - 24f);
+            float menuY = Mathf.Clamp(height * 0.19f, 106f, 176f);
             Rect menu = new Rect(menuX, menuY, menuW, menuH);
-            if (menu.yMax > height - 88f) menu.y = Mathf.Max(72f, height - menu.height - 88f);
+            if (menu.yMax > height - 48f) menu.y = Mathf.Max(64f, height - menu.height - 48f);
 
-            float settingsW = 360f;
-            float settingsH = 328f;
-            float settingsX = menu.x - settingsW - 18f;
-            if (settingsX < 24f) settingsX = Mathf.Clamp(menu.x, 24f, width - settingsW - 24f);
-            float settingsY = settingsX < menu.x ? menu.y + 24f : Mathf.Min(menu.yMax + 12f, height - settingsH - 32f);
-            Rect settings = new Rect(settingsX, Mathf.Max(24f, settingsY), settingsW, settingsH);
+            float settingsW = Mathf.Clamp(menuW + 18f, 374f, 456f);
+            float settingsH = 352f;
+            float settingsX = Mathf.Clamp(menu.x + (menu.width - settingsW) * 0.5f, 24f, width - settingsW - 24f);
+            float settingsY = Mathf.Clamp(menu.y + 18f, 24f, height - settingsH - 32f);
+            Rect settings = new Rect(settingsX, settingsY, settingsW, settingsH);
 
-            float testingW = Mathf.Clamp(width - 96f, 360f, 560f);
-            float testingX = menu.x + menu.width * 0.5f - testingW * 0.5f;
-            float testingY = menu.yMax + 14f;
-            if (testingY + 132f > height - 36f)
-            {
-                float sideX = menu.x - testingW - 18f;
-                if (sideX >= 24f)
-                {
-                    testingX = sideX;
-                    testingY = Mathf.Clamp(menu.yMax - 132f, 24f, height - 168f);
-                }
-                else
-                {
-                    testingY = Mathf.Clamp(height - 168f, 24f, height - 168f);
-                }
-            }
-            Rect testing = new Rect(testingX, Mathf.Max(24f, testingY), testingW, 132f);
-            return new TavernScreenGeometry(title, menu, settings, testing);
+            float testingW = Mathf.Clamp(width * 0.43f, 430f, 620f);
+            float testingX = Mathf.Clamp(width * 0.045f, 32f, 88f);
+            float testingY = Mathf.Clamp(height - 174f, 24f, height - 156f);
+            Rect testing = new Rect(testingX, testingY, testingW, 132f);
+
+            float chronicleW = Mathf.Clamp(width * 0.39f, 390f, 640f);
+            float chronicleX = Mathf.Clamp(width * 0.045f, 32f, 88f);
+            float chronicleY = Mathf.Clamp(height - 120f, title.yMax + 24f, height - 106f);
+            Rect chronicle = new Rect(chronicleX, chronicleY, chronicleW, 82f);
+            return new TavernScreenGeometry(title, menu, settings, testing, chronicle);
         }
 
         public static IReadOnlyList<Rect> ButtonRects(bool saveExists, float menuWidth)
         {
             List<Rect> rects = new List<Rect>();
-            float y = 122f;
-            float gap = 10f;
+            float y = 116f;
+            float gap = 8f;
             float buttonW = menuWidth - 48f;
             if (saveExists)
             {
-                rects.Add(new Rect(24f, y, buttonW, 48f));
-                y += 58f;
+                rects.Add(new Rect(24f, y, buttonW, 52f));
+                y += 60f;
             }
 
-            rects.Add(new Rect(24f, y, buttonW, 64f));
-            y += 64f + gap;
-            rects.Add(new Rect(24f, y, buttonW, 42f));
-            y += 42f + gap;
-            rects.Add(new Rect(24f, y, buttonW, 42f));
+            rects.Add(new Rect(24f, y, buttonW, 58f));
+            y += 58f + gap;
+            rects.Add(new Rect(24f, y, buttonW, 48f));
+            y += 48f + gap;
+            rects.Add(new Rect(24f, y, buttonW, 48f));
             return rects;
         }
 
@@ -140,18 +139,30 @@ namespace AshenHalls
             return new Rect(24f, menuHeight - 50f, menuWidth - 48f, 34f);
         }
 
-        public static IReadOnlyList<Rect> StormWindowRects(float width, float height)
+        public static IReadOnlyList<Rect> StormWindowRects(
+            float width,
+            float height,
+            float artWidth,
+            float artHeight)
         {
-            // These regions sit wholly inside the painted panes of the 16:9
-            // tavern backdrop. Keeping weather inside them preserves the sense
-            // that the party is sheltered while the storm remains alive outside.
-            return new[]
+            TitleBackdropProjection projection = TitleScreenPresentationRules.ProjectBackdrop(
+                width,
+                height,
+                artWidth,
+                artHeight);
+            Rect[] normalizedArtWindows =
             {
-                new Rect(width * 0.494f, height * 0.132f, width * 0.064f, height * 0.244f),
-                new Rect(width * 0.620f, height * 0.102f, width * 0.056f, height * 0.270f),
-                new Rect(width * 0.724f, height * 0.104f, width * 0.060f, height * 0.264f),
-                new Rect(width * 0.900f, height * 0.040f, width * 0.090f, height * 0.310f)
+                new Rect(0.594f, 0.145f, 0.140f, 0.165f),
+                new Rect(0.570f, 0.315f, 0.074f, 0.435f),
+                new Rect(0.646f, 0.315f, 0.082f, 0.445f),
+                new Rect(0.730f, 0.318f, 0.066f, 0.437f)
             };
+            Rect[] projected = new Rect[normalizedArtWindows.Length];
+            for (int i = 0; i < normalizedArtWindows.Length; i++)
+            {
+                projected[i] = projection.ProjectNormalized(normalizedArtWindows[i]);
+            }
+            return projected;
         }
     }
 
@@ -228,20 +239,57 @@ namespace AshenHalls
         }
     }
 
+    internal sealed class TavernMenuFocusRelay : MonoBehaviour, IPointerEnterHandler, ISelectHandler
+    {
+        public TavernScreen Owner;
+        public int ChoiceIndex;
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            Owner?.FocusMenuChoice(ChoiceIndex, true, true);
+        }
+
+        public void OnSelect(BaseEventData eventData)
+        {
+            Owner?.FocusMenuChoice(ChoiceIndex, true, false);
+        }
+    }
+
     public sealed class TavernScreen : MonoBehaviour
     {
+        private sealed class TitleChoiceVisual
+        {
+            public TitleMenuChoiceKind Kind;
+            public Button Button;
+            public Image Icon;
+            public Text Cursor;
+            public RectTransform FocusRule;
+            public Text Label;
+        }
+
         private TavernScreenBindings bindings;
         private Canvas canvas;
+        private RectTransform backdropRect;
+        private RectTransform atmosphereLayer;
         private RectTransform titlePanel;
         private RectTransform menuPanel;
         private RectTransform settingsPanel;
         private RectTransform testingPanel;
+        private RectTransform chroniclePanel;
         private RectTransform stormLayer;
+        private CanvasGroup menuCanvasGroup;
+        private CanvasGroup chronicleCanvasGroup;
+        private Image openingVeil;
+        private Image colorGrade;
+        private Image hearthGlow;
+        private Image gateGlow;
         private Image titleArtImage;
         private readonly List<RectTransform> stormWindows = new List<RectTransform>();
         private readonly List<Image> lightningFlashes = new List<Image>();
         private readonly List<RectTransform> rainDrops = new List<RectTransform>();
         private readonly List<Image> titleEmbers = new List<Image>();
+        private readonly List<Image> atmosphereEmbers = new List<Image>();
+        private readonly List<TitleChoiceVisual> titleChoices = new List<TitleChoiceVisual>();
         private Text ashShadowText;
         private Text ashGlowText;
         private Text ashText;
@@ -262,6 +310,8 @@ namespace AshenHalls
         private Text settingsStateText;
         private Text testingTitleText;
         private Text testingHintText;
+        private Text chronicleEyebrowText;
+        private Text chronicleBodyText;
         private Text audioButtonText;
         private Text sfxVolumeText;
         private Text musicVolumeText;
@@ -290,11 +340,38 @@ namespace AshenHalls
         private float titleAnimationStartedAt;
         private bool titleMotionInitialized;
         private bool lastTitleReducedMotion;
+        private float previousTitleElapsed;
+        private bool revealStrikePlayed;
+        private bool revealChimePlayed;
+        private int focusedMenuChoice = -1;
+        private float lastMenuFocusCueAt = -10f;
+        private Vector2 menuRestPosition;
+        private Sprite softGlowSprite;
 
         private void Update()
         {
             UpdateStormMotion();
             UpdateTitleAnimation();
+            UpdateOpeningPresentation();
+            UpdateMenuFocusPresentation();
+            UpdateAtmosphereMotion();
+        }
+
+        private void OnDestroy()
+        {
+            if (softGlowSprite == null) return;
+            Texture2D texture = softGlowSprite.texture;
+            if (Application.isPlaying)
+            {
+                Destroy(softGlowSprite);
+                if (texture != null) Destroy(texture);
+            }
+            else
+            {
+                DestroyImmediate(softGlowSprite);
+                if (texture != null) DestroyImmediate(texture);
+            }
+            softGlowSprite = null;
         }
 
         public void Bind(TavernScreenBindings screenBindings)
@@ -331,11 +408,13 @@ namespace AshenHalls
             testingButtonText.text = testingVisible ? "Hide Beta Testing" : "Beta Testing";
             continueButtonText.text = "Continue the Old Road";
             newGameButtonText.text = saveExists ? "Begin a New Company" : "Begin the Old Road";
+            menuPanel.gameObject.SetActive(!settingsVisible);
             settingsPanel.gameObject.SetActive(settingsVisible);
             testingPanel.gameObject.SetActive(devVisible && testingVisible);
+            chroniclePanel.gameObject.SetActive(!settingsVisible && !testingVisible);
             menuHintText.text = saveExists
-                ? "The fire is banked. Your company can take up the road again."
-                : "Gather a company by the fire, then step into the storm.";
+                ? "The Grand Hearth still burns. Take up the road again."
+                : "Gather your company beneath the old rafters, then face the storm.";
             versionText.text = bindings.VersionLine == null ? "" : bindings.VersionLine();
 
             bool muted = bindings.AudioMuted != null && bindings.AudioMuted();
@@ -358,6 +437,7 @@ namespace AshenHalls
             titleGlowText.text = brimstoneLine;
             titleText.text = brimstoneLine;
             subtitleText.text = SmallCaps(bindings.Subtitle);
+            ConfigureMenuNavigation(saveExists);
         }
 
         private void Build()
@@ -377,10 +457,32 @@ namespace AshenHalls
             Stretch(baseImage.rectTransform);
             if (bindings?.BackdropArt != null)
             {
-                Image backdrop = AddImage("Tavern Backdrop", canvas.transform, Color.white);
-                Stretch(backdrop.rectTransform);
+                Image backdrop = AddImage("Grand Hearth Backdrop", canvas.transform, Color.white);
+                backdropRect = backdrop.rectTransform;
                 backdrop.sprite = Sprite.Create(bindings.BackdropArt, new Rect(0, 0, bindings.BackdropArt.width, bindings.BackdropArt.height), new Vector2(0.5f, 0.5f), 100f);
                 backdrop.preserveAspect = false;
+            }
+
+            atmosphereLayer = new GameObject("Grand Hearth Atmosphere", typeof(RectTransform)).GetComponent<RectTransform>();
+            atmosphereLayer.SetParent(canvas.transform, false);
+            Stretch(atmosphereLayer);
+            softGlowSprite = CreateSoftGlowSprite();
+            hearthGlow = AddImage("Hearth Bloom", atmosphereLayer, Hex("f07a2f", 0.08f));
+            hearthGlow.raycastTarget = false;
+            hearthGlow.sprite = softGlowSprite;
+            hearthGlow.preserveAspect = true;
+            gateGlow = AddImage("Storm Gate Bloom", atmosphereLayer, Hex("6ba9d3", 0.045f));
+            gateGlow.raycastTarget = false;
+            gateGlow.sprite = softGlowSprite;
+            gateGlow.preserveAspect = true;
+            for (int i = 0; i < 22; i++)
+            {
+                Image ember = AddImage(
+                    "Grand Hearth Ember " + i,
+                    atmosphereLayer,
+                    Hex(i % 5 == 0 ? "fff0a1" : i % 2 == 0 ? "f7a54a" : "d85428", 0f));
+                ember.raycastTarget = false;
+                atmosphereEmbers.Add(ember);
             }
 
             stormLayer = new GameObject("Storm Beyond The Glass", typeof(RectTransform)).GetComponent<RectTransform>();
@@ -419,8 +521,12 @@ namespace AshenHalls
                     rainDrops.Add(dropRect);
                 }
             }
-            Image shade = AddImage("Tavern Color Grade", canvas.transform, Hex("030405", 0.14f));
-            Stretch(shade.rectTransform);
+            colorGrade = AddImage("Grand Hearth Color Grade", canvas.transform, Hex("030405", 0.16f));
+            colorGrade.raycastTarget = false;
+            Stretch(colorGrade.rectTransform);
+            openingVeil = AddImage("Opening Shadow Veil", canvas.transform, Hex("010203", 0.94f));
+            openingVeil.raycastTarget = false;
+            Stretch(openingVeil.rectTransform);
 
             titlePanel = AddImage("Title Area", canvas.transform, Hex("020304", 0.02f)).rectTransform;
             if (bindings?.TitleArt != null)
@@ -476,12 +582,34 @@ namespace AshenHalls
             subtitleText.raycastTarget = false;
             versionText = AddText("Version", canvas.transform, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleRight);
 
-            menuPanel = AddPanel("Menu", canvas.transform, Hex("090a09", 0.88f), Hex("c69248", 0.72f));
-            menuEyebrowText = AddText("Menu Eyebrow", menuPanel, "MIDGAARD  /  THE OLD ROAD", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            chroniclePanel = AddPanel("Old Road Chronicle", canvas.transform, Hex("060707", 0.68f), Hex("8e6a34", 0.54f));
+            chronicleCanvasGroup = chroniclePanel.gameObject.AddComponent<CanvasGroup>();
+            chronicleEyebrowText = AddText(
+                "Chronicle Eyebrow",
+                chroniclePanel,
+                "FROM THE ANNALS OF MIDGAARD",
+                10,
+                Hex("d7a84e", 1f),
+                TextAnchor.MiddleLeft);
+            chronicleEyebrowText.font = UiRuntime.TitleFont ?? font;
+            chronicleEyebrowText.fontStyle = FontStyle.Normal;
+            chronicleBodyText = AddText(
+                "Chronicle Line",
+                chroniclePanel,
+                TitleScreenPresentationRules.ChronicleLines[0],
+                14,
+                Hex("f3ead7", 1f),
+                TextAnchor.MiddleLeft);
+            chronicleBodyText.font = UiRuntime.DialogueFont ?? font;
+            chronicleBodyText.fontStyle = FontStyle.Italic;
+
+            menuPanel = AddPanel("Title Menu", canvas.transform, Hex("070808", 0.79f), Hex("c69248", 0.78f));
+            menuCanvasGroup = menuPanel.gameObject.AddComponent<CanvasGroup>();
+            menuEyebrowText = AddText("Menu Eyebrow", menuPanel, "MIDGAARD CHRONICLE  /  BOOK I", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
             menuEyebrowText.font = UiRuntime.DialogueFont ?? font;
             menuEyebrowText.fontStyle = FontStyle.Normal;
-            menuTitleText = AddText("Menu Title", menuPanel, "The Brimstone Hearth", 24, Hex("e7c477", 1f), TextAnchor.MiddleLeft);
-            menuTitleText.font = UiRuntime.DialogueEmphasisFont ?? font;
+            menuTitleText = AddText("Menu Title", menuPanel, "The Grand Hearth", 24, Hex("e7c477", 1f), TextAnchor.MiddleLeft);
+            menuTitleText.font = UiRuntime.TitleFont ?? font;
             menuTitleText.fontStyle = FontStyle.Normal;
             menuHintText = AddText("Menu Hint", menuPanel, "", 12, Hex("e8dfcf", 1f), TextAnchor.UpperLeft);
             menuHintText.font = UiRuntime.DialogueFont ?? font;
@@ -490,12 +618,32 @@ namespace AshenHalls
             menuRuleGlow.GetComponent<Image>().raycastTarget = false;
             menuRuleCore = AddImage("Menu Rule Core", menuPanel, Hex("d7a84e", 0.68f)).rectTransform;
             menuRuleCore.GetComponent<Image>().raycastTarget = false;
-            continueButton = AddButton("Continue", menuPanel, "Continue", bindings?.Continue, true);
-            continueButtonText = continueButton.GetComponentInChildren<Text>();
-            newGameButton = AddButton("New Game", menuPanel, "New Game", bindings?.NewGame, true);
-            newGameButtonText = newGameButton.GetComponentInChildren<Text>();
-            settingsButton = AddButton("Settings", menuPanel, "Settings", bindings?.ToggleSettings, false);
-            quitButton = AddButton("Exit Game", menuPanel, "Leave Game", bindings?.Quit, false);
+            continueButton = AddTitleChoiceButton(
+                "Continue",
+                "Continue",
+                TitleMenuChoiceKind.Continue,
+                bindings?.Continue,
+                true);
+            continueButtonText = titleChoices[titleChoices.Count - 1].Label;
+            newGameButton = AddTitleChoiceButton(
+                "New Game",
+                "New Game",
+                TitleMenuChoiceKind.NewGame,
+                bindings?.NewGame,
+                true);
+            newGameButtonText = titleChoices[titleChoices.Count - 1].Label;
+            settingsButton = AddTitleChoiceButton(
+                "Settings",
+                "Settings",
+                TitleMenuChoiceKind.Settings,
+                bindings?.ToggleSettings,
+                false);
+            quitButton = AddTitleChoiceButton(
+                "Exit Game",
+                "Leave Game",
+                TitleMenuChoiceKind.Exit,
+                bindings?.Quit,
+                false);
             testingButton = AddButton("Beta Testing", menuPanel, "Beta Testing", bindings?.ToggleTesting, false);
             testingButtonText = testingButton.GetComponentInChildren<Text>();
 
@@ -535,11 +683,32 @@ namespace AshenHalls
             TavernScreenGeometry geometry = TavernScreenLayout.Calculate(Screen.width, Screen.height, saveExists);
             SetScreenRect(titlePanel, geometry.Title);
             SetScreenRect(menuPanel, geometry.Menu);
+            menuRestPosition = menuPanel.anchoredPosition;
             SetScreenRect(settingsPanel, geometry.Settings);
             SetScreenRect(testingPanel, geometry.Testing);
+            SetScreenRect(chroniclePanel, geometry.Chronicle);
             SetScreenRect(versionText.rectTransform, new Rect(Screen.width - 476f, Screen.height - 42f, 430f, 20f));
+            float artWidth = bindings?.BackdropArt == null ? 16f : bindings.BackdropArt.width;
+            float artHeight = bindings?.BackdropArt == null ? 9f : bindings.BackdropArt.height;
+            TitleBackdropProjection backdropProjection = TitleScreenPresentationRules.ProjectBackdrop(
+                Screen.width,
+                Screen.height,
+                artWidth,
+                artHeight);
+            SetScreenRect(backdropRect, backdropProjection.CoverRect);
+            SetScreenRect(atmosphereLayer, new Rect(0f, 0f, Screen.width, Screen.height));
             SetScreenRect(stormLayer, new Rect(0f, 0f, Screen.width, Screen.height));
-            IReadOnlyList<Rect> windowRects = TavernScreenLayout.StormWindowRects(Screen.width, Screen.height);
+            SetLocalRect(
+                hearthGlow.rectTransform,
+                backdropProjection.ProjectNormalized(new Rect(-0.055f, 0.26f, 0.46f, 0.76f)));
+            SetLocalRect(
+                gateGlow.rectTransform,
+                backdropProjection.ProjectNormalized(new Rect(0.49f, 0.08f, 0.37f, 0.82f)));
+            IReadOnlyList<Rect> windowRects = TavernScreenLayout.StormWindowRects(
+                Screen.width,
+                Screen.height,
+                artWidth,
+                artHeight);
             for (int i = 0; i < stormWindows.Count && i < windowRects.Count; i++)
             {
                 SetLocalRect(stormWindows[i], windowRects[i]);
@@ -577,6 +746,8 @@ namespace AshenHalls
             SetLocalRect(menuRuleGlow, new Rect(24f, 65f, geometry.Menu.width - 48f, 5f));
             SetLocalRect(menuRuleCore, new Rect(24f, 67f, geometry.Menu.width - 48f, 1f));
             SetLocalRect(menuHintText.rectTransform, new Rect(30f, 76f, geometry.Menu.width - 60f, 38f));
+            SetLocalRect(chronicleEyebrowText.rectTransform, new Rect(18f, 9f, geometry.Chronicle.width - 36f, 18f));
+            SetLocalRect(chronicleBodyText.rectTransform, new Rect(18f, 28f, geometry.Chronicle.width - 36f, 42f));
 
             IReadOnlyList<Rect> buttons = TavernScreenLayout.ButtonRects(saveExists, geometry.Menu.width);
             int buttonIndex = 0;
@@ -618,7 +789,7 @@ namespace AshenHalls
         private void ConfigureForgedTitleLayer(Text text, int minSize, int maxSize)
         {
             ConfigureTitleLayer(text, minSize, maxSize);
-            text.font = UiRuntime.DialogueEmphasisFont ?? font;
+            text.font = UiRuntime.TitleFont ?? UiRuntime.DialogueEmphasisFont ?? font;
             text.fontStyle = FontStyle.Normal;
         }
 
@@ -654,6 +825,9 @@ namespace AshenHalls
         {
             titleAnimationStartedAt = Time.unscaledTime;
             titleMotionInitialized = false;
+            previousTitleElapsed = 0f;
+            revealStrikePlayed = false;
+            revealChimePlayed = false;
         }
 
         private void UpdateTitleAnimation()
@@ -674,6 +848,27 @@ namespace AshenHalls
 
             float elapsed = reduced ? TavernTitleAnimationRules.RevealDuration : Time.unscaledTime - titleAnimationStartedAt;
             TavernTitleAnimationFrame frame = TavernTitleAnimationRules.Evaluate(elapsed, reduced);
+            if (TitleScreenPresentationRules.CrossedCue(
+                    previousTitleElapsed,
+                    elapsed,
+                    TitleScreenPresentationRules.RevealStrikeAt,
+                    reduced,
+                    revealStrikePlayed))
+            {
+                revealStrikePlayed = true;
+                bindings?.PlayTitleCue?.Invoke("impactlow", 0.14f);
+            }
+            if (TitleScreenPresentationRules.CrossedCue(
+                    previousTitleElapsed,
+                    elapsed,
+                    TitleScreenPresentationRules.RevealChimeAt,
+                    reduced,
+                    revealChimePlayed))
+            {
+                revealChimePlayed = true;
+                bindings?.PlayTitleCue?.Invoke("uiconfirm", 0.16f);
+            }
+            previousTitleElapsed = elapsed;
             float ashAlpha = Mathf.Clamp01(frame.FaceAlpha * 1.18f);
             Color ashFaceColor = Color.Lerp(Hex("a44c2a", ashAlpha), Hex("e7c477", ashAlpha), ashAlpha);
             Color faceColor = Color.Lerp(Hex("b9552b", frame.FaceAlpha), Hex("fff0d0", frame.FaceAlpha), frame.FaceAlpha);
@@ -761,6 +956,306 @@ namespace AshenHalls
                 float distance = 0.052f + (i % 3) * 0.012f;
                 flash.color = Hex("c7e7ff", lightning * distance);
             }
+        }
+
+        private void UpdateOpeningPresentation()
+        {
+            if (canvas == null || !canvas.gameObject.activeInHierarchy) return;
+            bool reduced = bindings?.ReducedMotion != null && bindings.ReducedMotion();
+            float elapsed = reduced
+                ? TavernTitleAnimationRules.RevealDuration
+                : Mathf.Max(0f, Time.unscaledTime - titleAnimationStartedAt);
+            TitleOpeningFrame frame = TitleScreenPresentationRules.Evaluate(elapsed, reduced);
+
+            if (openingVeil != null)
+            {
+                openingVeil.color = Hex("010203", (1f - frame.BackdropReveal) * 0.94f);
+            }
+            if (menuCanvasGroup != null)
+            {
+                menuCanvasGroup.alpha = frame.MenuAlpha;
+                bool menuInteractive = TitleScreenPresentationRules.MenuInteractive(frame);
+                menuCanvasGroup.interactable = menuInteractive;
+                menuCanvasGroup.blocksRaycasts = menuInteractive;
+                menuPanel.anchoredPosition = menuRestPosition + new Vector2(0f, -frame.MenuRise);
+            }
+            if (chronicleCanvasGroup != null)
+            {
+                chronicleCanvasGroup.alpha = frame.ChronicleAlpha
+                    * TitleScreenPresentationRules.ChronicleCycleAlpha(elapsed, reduced);
+            }
+            if (colorGrade != null)
+            {
+                colorGrade.color = Hex("030405", frame.VignetteAlpha * 0.27f);
+            }
+            if (hearthGlow != null)
+            {
+                hearthGlow.color = Hex("f07a2f", 0.038f + frame.HearthPulse * 0.075f);
+            }
+            if (gateGlow != null)
+            {
+                float gateBreath = reduced ? 0.034f : 0.028f + Mathf.Sin(elapsed * 0.37f + 1.2f) * 0.010f;
+                gateGlow.color = Hex("6ba9d3", Mathf.Max(0.012f, gateBreath));
+            }
+
+            int chronicleIndex = TitleScreenPresentationRules.ChronicleIndex(elapsed, reduced);
+            IReadOnlyList<string> lines = TitleScreenPresentationRules.ChronicleLines;
+            if (chronicleBodyText != null && chronicleIndex >= 0 && chronicleIndex < lines.Count)
+            {
+                string nextLine = lines[chronicleIndex];
+                if (!string.Equals(chronicleBodyText.text, nextLine, StringComparison.Ordinal))
+                {
+                    chronicleBodyText.text = nextLine;
+                }
+            }
+        }
+
+        private void UpdateAtmosphereMotion()
+        {
+            if (atmosphereLayer == null || canvas == null || !canvas.gameObject.activeInHierarchy) return;
+            bool reduced = bindings?.ReducedMotion != null && bindings.ReducedMotion();
+            float now = Time.unscaledTime;
+            for (int i = 0; i < atmosphereEmbers.Count; i++)
+            {
+                Image ember = atmosphereEmbers[i];
+                if (ember == null) continue;
+                bool visible = !reduced;
+                if (ember.gameObject.activeSelf != visible) ember.gameObject.SetActive(visible);
+                if (!visible) continue;
+
+                float phase = Mathf.Repeat(now * (0.038f + (i % 5) * 0.006f) + i * 0.137f, 1f);
+                float lane = Mathf.Repeat(i * 0.283f, 1f);
+                float x = Screen.width * (0.025f + lane * 0.43f)
+                    + Mathf.Sin(now * 0.61f + i * 1.73f) * Screen.width * 0.006f;
+                float y = Screen.height * (0.84f - phase * 0.66f);
+                float size = 1.5f + (i % 4) * 0.75f;
+                SetLocalRect(ember.rectTransform, new Rect(x, y, size, size));
+                float life = Mathf.Sin(phase * Mathf.PI);
+                float hearthBias = 1f - lane * 0.48f;
+                ember.color = Hex(
+                    i % 5 == 0 ? "fff0a1" : i % 2 == 0 ? "f7a54a" : "d85428",
+                    life * hearthBias * 0.34f);
+            }
+        }
+
+        private void UpdateMenuFocusPresentation()
+        {
+            if (titleChoices.Count == 0 || canvas == null || !canvas.gameObject.activeInHierarchy) return;
+            float pulse = 0.78f + Mathf.Sin(Time.unscaledTime * 4.1f) * 0.18f;
+            for (int i = 0; i < titleChoices.Count; i++)
+            {
+                TitleChoiceVisual visual = titleChoices[i];
+                if (visual?.Button == null) continue;
+                bool selected = visual.Button.gameObject.activeInHierarchy && i == focusedMenuChoice;
+                if (visual.Cursor != null)
+                {
+                    visual.Cursor.color = Hex("ffd06a", selected ? pulse : 0f);
+                    visual.Cursor.rectTransform.localScale = Vector3.one * (selected ? 0.94f + pulse * 0.08f : 0.9f);
+                }
+                if (visual.Icon != null)
+                {
+                    visual.Icon.color = selected ? Color.white : Hex("c7b692", 0.72f);
+                }
+                if (visual.FocusRule != null)
+                {
+                    Image ruleImage = visual.FocusRule.GetComponent<Image>();
+                    if (ruleImage != null) ruleImage.color = Hex("d7a84e", selected ? 0.72f : 0.14f);
+                }
+                if (visual.Label != null)
+                {
+                    visual.Label.color = selected ? Hex("fff0d0", 1f) : Hex("e4dac7", 0.92f);
+                }
+            }
+        }
+
+        internal void FocusMenuChoice(int choiceIndex, bool playCue, bool requestSelection)
+        {
+            if (choiceIndex < 0 || choiceIndex >= titleChoices.Count) return;
+            TitleChoiceVisual visual = titleChoices[choiceIndex];
+            if (visual?.Button == null || !visual.Button.gameObject.activeInHierarchy || !visual.Button.interactable) return;
+            bool changed = focusedMenuChoice != choiceIndex;
+            focusedMenuChoice = choiceIndex;
+            if (requestSelection && EventSystem.current != null
+                && EventSystem.current.currentSelectedGameObject != visual.Button.gameObject)
+            {
+                EventSystem.current.SetSelectedGameObject(visual.Button.gameObject);
+            }
+            if (changed && playCue && Time.unscaledTime - lastMenuFocusCueAt >= 0.08f)
+            {
+                lastMenuFocusCueAt = Time.unscaledTime;
+                bindings?.PlayTitleCue?.Invoke("uitab", 0.18f);
+            }
+        }
+
+        private void ConfigureMenuNavigation(bool saveExists)
+        {
+            if (settingsPanel != null && settingsPanel.gameObject.activeSelf)
+            {
+                if (EventSystem.current != null && closeSettingsButton != null)
+                {
+                    EventSystem.current.SetSelectedGameObject(closeSettingsButton.gameObject);
+                }
+                return;
+            }
+            if (testingPanel != null && testingPanel.gameObject.activeSelf)
+            {
+                if (EventSystem.current != null && betaLabButton != null)
+                {
+                    EventSystem.current.SetSelectedGameObject(betaLabButton.gameObject);
+                }
+                return;
+            }
+
+            List<int> active = new List<int>();
+            for (int i = 0; i < titleChoices.Count; i++)
+            {
+                Button button = titleChoices[i]?.Button;
+                if (button != null && button.gameObject.activeSelf && button.interactable) active.Add(i);
+            }
+            if (active.Count == 0) return;
+            for (int i = 0; i < active.Count; i++)
+            {
+                int choiceIndex = active[i];
+                Button button = titleChoices[choiceIndex].Button;
+                Navigation navigation = button.navigation;
+                navigation.mode = Navigation.Mode.Explicit;
+                navigation.selectOnUp = titleChoices[active[(i - 1 + active.Count) % active.Count]].Button;
+                navigation.selectOnDown = titleChoices[active[(i + 1) % active.Count]].Button;
+                button.navigation = navigation;
+            }
+
+            if (!active.Contains(focusedMenuChoice))
+            {
+                int newGamePosition = active.FindIndex(index => titleChoices[index].Kind == TitleMenuChoiceKind.NewGame);
+                focusedMenuChoice = saveExists || newGamePosition < 0 ? active[0] : active[newGamePosition];
+            }
+            if (canvas != null && canvas.gameObject.activeInHierarchy && EventSystem.current != null)
+            {
+                GameObject selected = EventSystem.current.currentSelectedGameObject;
+                bool selectionIsTitleChoice = titleChoices.Exists(choice => choice?.Button != null && choice.Button.gameObject == selected && choice.Button.gameObject.activeInHierarchy);
+                if (!selectionIsTitleChoice)
+                {
+                    EventSystem.current.SetSelectedGameObject(titleChoices[focusedMenuChoice].Button.gameObject);
+                }
+            }
+        }
+
+        private Button AddTitleChoiceButton(
+            string name,
+            string label,
+            TitleMenuChoiceKind kind,
+            Action action,
+            bool hero)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+            go.transform.SetParent(menuPanel, false);
+            Image background = go.GetComponent<Image>();
+            background.color = hero ? Hex("20140f", 0.96f) : Hex("101312", 0.94f);
+            Outline outline = go.AddComponent<Outline>();
+            outline.effectColor = hero ? Hex("c69248", 0.46f) : Hex("7a6952", 0.24f);
+            outline.effectDistance = new Vector2(1f, -1f);
+
+            Button button = go.GetComponent<Button>();
+            button.targetGraphic = background;
+            ColorBlock colors = button.colors;
+            colors.normalColor = background.color;
+            colors.highlightedColor = hero ? Hex("3c2518", 1f) : Hex("232a27", 1f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.pressedColor = Hex("080a09", 1f);
+            colors.fadeDuration = 0.10f;
+            button.colors = colors;
+            if (action != null) button.onClick.AddListener(() => action());
+
+            Text cursor = AddText("Forge Cursor", go.transform, "\u25C6", 17, Hex("ffd06a", 0f), TextAnchor.MiddleCenter);
+            cursor.font = UiRuntime.TitleFont ?? font;
+            cursor.raycastTarget = false;
+            SetLocalRect(cursor.rectTransform, new Rect(7f, 7f, 18f, 38f));
+
+            Image iconFrame = AddImage("Relic Icon Backplate", go.transform, Hex("060707", 0.72f));
+            iconFrame.raycastTarget = false;
+            SetLocalRect(iconFrame.rectTransform, new Rect(30f, 6f, 44f, 40f));
+            Outline iconOutline = iconFrame.gameObject.AddComponent<Outline>();
+            iconOutline.effectColor = Hex("8e6a34", 0.34f);
+            iconOutline.effectDistance = new Vector2(1f, -1f);
+
+            Image icon = AddImage("Relic Icon", go.transform, Hex("c7b692", 0.72f));
+            icon.raycastTarget = false;
+            int iconIndex = TitleScreenPresentationRules.MenuIconIndex(kind);
+            if (bindings?.MenuIconAtlas != null && iconIndex >= 0)
+            {
+                float cellWidth = bindings.MenuIconAtlas.width / 5f;
+                float cellHeight = bindings.MenuIconAtlas.height / 4f;
+                int column = iconIndex % 5;
+                int row = iconIndex / 5;
+                icon.sprite = UiRuntime.AtlasSprite(
+                    bindings.MenuIconAtlas,
+                    new Rect(column * cellWidth, row * cellHeight, cellWidth, cellHeight));
+                icon.preserveAspect = true;
+            }
+            SetLocalRect(icon.rectTransform, new Rect(33f, 8f, 38f, 36f));
+
+            Text text = AddText("Label", go.transform, label, hero ? 15 : 14, Hex("e4dac7", 0.92f), TextAnchor.MiddleLeft);
+            text.font = UiRuntime.DialogueEmphasisFont ?? font;
+            text.fontStyle = FontStyle.Normal;
+            text.raycastTarget = false;
+            text.rectTransform.anchorMin = Vector2.zero;
+            text.rectTransform.anchorMax = Vector2.one;
+            text.rectTransform.offsetMin = new Vector2(86f, 4f);
+            text.rectTransform.offsetMax = new Vector2(-14f, -4f);
+
+            Image focusRule = AddImage("Focused Forge Rule", go.transform, Hex("d7a84e", 0.14f));
+            focusRule.raycastTarget = false;
+            RectTransform focusRuleRect = focusRule.rectTransform;
+            focusRuleRect.anchorMin = new Vector2(0f, 0f);
+            focusRuleRect.anchorMax = new Vector2(1f, 0f);
+            focusRuleRect.pivot = new Vector2(0.5f, 0f);
+            focusRuleRect.offsetMin = new Vector2(30f, 3f);
+            focusRuleRect.offsetMax = new Vector2(-12f, 5f);
+
+            int choiceIndex = titleChoices.Count;
+            TavernMenuFocusRelay relay = go.AddComponent<TavernMenuFocusRelay>();
+            relay.Owner = this;
+            relay.ChoiceIndex = choiceIndex;
+            titleChoices.Add(new TitleChoiceVisual
+            {
+                Kind = kind,
+                Button = button,
+                Icon = icon,
+                Cursor = cursor,
+                FocusRule = focusRuleRect,
+                Label = text
+            });
+            return button;
+        }
+
+        private static Sprite CreateSoftGlowSprite()
+        {
+            const int size = 64;
+            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Grand Hearth Soft Glow",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            Color[] pixels = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float nx = (x + 0.5f) / size * 2f - 1f;
+                    float ny = (y + 0.5f) / size * 2f - 1f;
+                    float distance = Mathf.Sqrt(nx * nx + ny * ny);
+                    float alpha = Mathf.Pow(Mathf.Clamp01(1f - distance), 2.25f);
+                    pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+                }
+            }
+            texture.SetPixels(pixels);
+            texture.Apply(false, true);
+            Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+            sprite.name = "Grand Hearth Soft Glow";
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
         }
 
         private Button AddButton(string name, Transform parent, string label, Action action, bool hero)

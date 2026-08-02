@@ -107,6 +107,8 @@ namespace AshenHalls.Editor
             ValidateApprovedRuntimeArtIsLatest(projectRoot);
             RuleSmokeTests.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build rule smoke tests passed.");
+            SpriteArtRuntimeSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build sprite-art runtime smoke passed.");
             RuntimeBootSmoke.RunCombatUiOrThrow();
             Debug.Log(VersionInfo.ProductName + " build combat UI runtime smoke passed.");
             RuntimeBootSmoke.RunOrThrow();
@@ -234,15 +236,22 @@ namespace AshenHalls.Editor
 
             string thirdPartyNoticesPath = Path.Combine(projectRoot, "Docs", "THIRD_PARTY_NOTICES.txt");
             string fontLicensePath = Path.Combine(projectRoot, "Docs", "OFL-LibreBaskerville.txt");
+            string titleFontLicensePath = Path.Combine(projectRoot, "Docs", "OFL-CinzelDecorative.txt");
             if (!File.Exists(thirdPartyNoticesPath)
-                || !File.ReadAllText(thirdPartyNoticesPath).Contains("Libre Baskerville"))
+                || !File.ReadAllText(thirdPartyNoticesPath).Contains("Libre Baskerville")
+                || !File.ReadAllText(thirdPartyNoticesPath).Contains("Cinzel Decorative"))
             {
-                throw new BuildFailedException("Third-party notices must identify the bundled Libre Baskerville fonts.");
+                throw new BuildFailedException("Third-party notices must identify the bundled Libre Baskerville and Cinzel Decorative fonts.");
             }
             if (!File.Exists(fontLicensePath)
                 || !File.ReadAllText(fontLicensePath).Contains("SIL OPEN FONT LICENSE Version 1.1"))
             {
                 throw new BuildFailedException("The Libre Baskerville OFL 1.1 license text is missing.");
+            }
+            if (!File.Exists(titleFontLicensePath)
+                || !File.ReadAllText(titleFontLicensePath).Contains("SIL OPEN FONT LICENSE Version 1.1"))
+            {
+                throw new BuildFailedException("The Cinzel Decorative OFL 1.1 license text is missing.");
             }
         }
 

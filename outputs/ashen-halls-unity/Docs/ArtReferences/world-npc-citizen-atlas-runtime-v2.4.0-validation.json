@@ -1,0 +1,232 @@
+{
+  "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+  "output": "Docs\\ArtReferences\\world-npc-citizen-atlas-runtime-v2.4.0.png",
+  "grid": [
+    4,
+    2
+  ],
+  "cellSize": 384,
+  "padding": 20,
+  "atlasSize": [
+    1536,
+    768
+  ],
+  "cells": [
+    {
+      "index": 0,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        354,
+        556
+      ],
+      "sourceBounds": [
+        45,
+        73,
+        293,
+        488
+      ],
+      "runtimeBounds": [
+        89,
+        20,
+        295,
+        364
+      ],
+      "size": [
+        206,
+        344
+      ]
+    },
+    {
+      "index": 1,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 1,
+      "sourceRegion": [
+        354,
+        0,
+        707,
+        556
+      ],
+      "sourceBounds": [
+        26,
+        66,
+        266,
+        489
+      ],
+      "runtimeBounds": [
+        478,
+        20,
+        673,
+        364
+      ],
+      "size": [
+        195,
+        344
+      ]
+    },
+    {
+      "index": 2,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 2,
+      "sourceRegion": [
+        707,
+        0,
+        1021,
+        556
+      ],
+      "sourceBounds": [
+        3,
+        77,
+        255,
+        489
+      ],
+      "runtimeBounds": [
+        855,
+        20,
+        1065,
+        364
+      ],
+      "size": [
+        210,
+        344
+      ]
+    },
+    {
+      "index": 3,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 3,
+      "sourceRegion": [
+        1021,
+        0,
+        1414,
+        556
+      ],
+      "sourceBounds": [
+        3,
+        51,
+        309,
+        489
+      ],
+      "runtimeBounds": [
+        1224,
+        20,
+        1464,
+        364
+      ],
+      "size": [
+        240,
+        344
+      ]
+    },
+    {
+      "index": 4,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 4,
+      "sourceRegion": [
+        0,
+        556,
+        354,
+        1112
+      ],
+      "sourceBounds": [
+        45,
+        27,
+        290,
+        453
+      ],
+      "runtimeBounds": [
+        93,
+        404,
+        291,
+        748
+      ],
+      "size": [
+        198,
+        344
+      ]
+    },
+    {
+      "index": 5,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 5,
+      "sourceRegion": [
+        354,
+        556,
+        707,
+        1112
+      ],
+      "sourceBounds": [
+        26,
+        50,
+        265,
+        453
+      ],
+      "runtimeBounds": [
+        474,
+        404,
+        678,
+        748
+      ],
+      "size": [
+        204,
+        344
+      ]
+    },
+    {
+      "index": 6,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 6,
+      "sourceRegion": [
+        707,
+        556,
+        1060,
+        1112
+      ],
+      "sourceBounds": [
+        22,
+        33,
+        255,
+        455
+      ],
+      "runtimeBounds": [
+        865,
+        404,
+        1055,
+        748
+      ],
+      "size": [
+        190,
+        344
+      ]
+    },
+    {
+      "index": 7,
+      "source": "Docs\\ArtReferences\\source-world-npc-citizen-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 7,
+      "sourceRegion": [
+        1060,
+        556,
+        1414,
+        1112
+      ],
+      "sourceBounds": [
+        31,
+        43,
+        268,
+        456
+      ],
+      "runtimeBounds": [
+        1245,
+        404,
+        1442,
+        748
+      ],
+      "size": [
+        197,
+        344
+      ]
+    }
+  ]
+}

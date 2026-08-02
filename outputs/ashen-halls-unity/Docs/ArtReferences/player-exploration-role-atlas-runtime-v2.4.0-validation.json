@@ -1,0 +1,232 @@
+{
+  "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+  "output": "Docs\\ArtReferences\\player-exploration-role-atlas-runtime-v2.4.0.png",
+  "grid": [
+    4,
+    2
+  ],
+  "cellSize": 384,
+  "padding": 20,
+  "atlasSize": [
+    1536,
+    768
+  ],
+  "cells": [
+    {
+      "index": 0,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        350,
+        561
+      ],
+      "sourceBounds": [
+        34,
+        142,
+        339,
+        491
+      ],
+      "runtimeBounds": [
+        41,
+        20,
+        342,
+        364
+      ],
+      "size": [
+        301,
+        344
+      ]
+    },
+    {
+      "index": 1,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 1,
+      "sourceRegion": [
+        350,
+        0,
+        701,
+        561
+      ],
+      "sourceBounds": [
+        75,
+        55,
+        283,
+        491
+      ],
+      "runtimeBounds": [
+        494,
+        20,
+        658,
+        364
+      ],
+      "size": [
+        164,
+        344
+      ]
+    },
+    {
+      "index": 2,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 2,
+      "sourceRegion": [
+        701,
+        0,
+        1034,
+        561
+      ],
+      "sourceBounds": [
+        31,
+        135,
+        273,
+        488
+      ],
+      "runtimeBounds": [
+        842,
+        20,
+        1078,
+        364
+      ],
+      "size": [
+        236,
+        344
+      ]
+    },
+    {
+      "index": 3,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 3,
+      "sourceRegion": [
+        1034,
+        0,
+        1402,
+        561
+      ],
+      "sourceBounds": [
+        3,
+        160,
+        277,
+        491
+      ],
+      "runtimeBounds": [
+        1207,
+        26,
+        1481,
+        357
+      ],
+      "size": [
+        274,
+        331
+      ]
+    },
+    {
+      "index": 4,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 4,
+      "sourceRegion": [
+        0,
+        561,
+        350,
+        1122
+      ],
+      "sourceBounds": [
+        81,
+        40,
+        327,
+        441
+      ],
+      "runtimeBounds": [
+        86,
+        404,
+        297,
+        748
+      ],
+      "size": [
+        211,
+        344
+      ]
+    },
+    {
+      "index": 5,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 5,
+      "sourceRegion": [
+        350,
+        561,
+        701,
+        1122
+      ],
+      "sourceBounds": [
+        56,
+        93,
+        286,
+        442
+      ],
+      "runtimeBounds": [
+        462,
+        404,
+        689,
+        748
+      ],
+      "size": [
+        227,
+        344
+      ]
+    },
+    {
+      "index": 6,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 6,
+      "sourceRegion": [
+        701,
+        561,
+        1031,
+        1122
+      ],
+      "sourceBounds": [
+        34,
+        80,
+        261,
+        442
+      ],
+      "runtimeBounds": [
+        852,
+        404,
+        1068,
+        748
+      ],
+      "size": [
+        216,
+        344
+      ]
+    },
+    {
+      "index": 7,
+      "source": "Docs\\ArtReferences\\source-player-exploration-role-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 7,
+      "sourceRegion": [
+        1031,
+        561,
+        1402,
+        1122
+      ],
+      "sourceBounds": [
+        3,
+        74,
+        296,
+        442
+      ],
+      "runtimeBounds": [
+        1207,
+        404,
+        1481,
+        748
+      ],
+      "size": [
+        274,
+        344
+      ]
+    }
+  ]
+}

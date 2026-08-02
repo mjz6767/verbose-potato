@@ -1,0 +1,22 @@
+Built-in ImageGen prompt used for the candidate v2.4.0 world-threat habitat atlas
+
+Use case: stylized-concept
+Asset type: transparent-ready companion game environment atlas for roaming-threat habitats on a dark-fantasy tactical CRPG world map
+Primary request: Generate a brand-new atlas of exactly eight distinct isometric pixel-art encounter habitats arranged in a strict 4-column by 2-row grid. The approved v2.3 world-area set-piece atlas is a style and scale reference only; do not copy its subjects or edit it.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background across the entire canvas for local background removal. One uniform color only, with no gradient, texture, reflections, floor plane, shadow, or lighting variation in the background.
+Style/medium: match the reference's richly detailed hand-painted 32-bit pixel art, three-quarter top-down isometric view, crisp silhouettes, grounded medieval dark fantasy, restrained highlights, readable at 64-128 pixels.
+Composition/framing: exact row-major order, four equal cells across and two equal cells down. Center one complete habitat in each cell, similar size and bottom-center ground anchor. Keep at least 12% clear gutter around every habitat. No subject may touch or overlap another cell.
+Row 1 cell 1: Rat Warren - collapsed sewer mouth in an earth mound, gnawed supply crates, torn burlap, bones, rusty cage fragments, dirty amber lantern.
+Row 1 cell 2: Plague-Bell Midden - crooked small bell frame, refuse heap, cracked apothecary jars, wax-sealed bundles, sickly yellow-green incense, rat-faction territory without visible creatures.
+Row 1 cell 3: Kobold Ambush Camp - low hide lean-tos, sharpened stake barricade, sling-stone baskets, a small smoke-free cook brazier, ochre clan pennants without writing.
+Row 1 cell 4: Kobold Shaman Totem Yard - compact stone-and-bone totems, copper charms, chalk ritual circle, blue-green coals, crude timber screen.
+Row 2 cell 1: Drow Moon-Silk Watchpost - blackwood lookout canopy, restrained violet lanterns, crossbow rest, dark silk signal pennants, pale mushroom edge growth.
+Row 2 cell 2: Undead Ossuary - cracked funerary arch, stacked bone cairns, iron grave fence, cold blue votive flames, dead vines.
+Row 2 cell 3: Demon Breach - compact fractured basalt fissure structure, fused chains, ember-orange ward runes, scorched standing stones, no smoke crossing the cell gutter.
+Row 2 cell 4: Ruined Road Waystation - broken stone shelter and toll barrier, overturned handcart, weathered supply chest, extinguished camp ring and one warm lantern; neutral reusable encounter aftermath.
+Color palette: soot black, aged stone, dark oak, dirty ochre, tarnished teal, restrained violet, cold grave blue, ember orange, muted moss. Each cell has a clear dominant accent while sharing one coherent atlas style.
+Constraints: exactly eight habitats and no extras; strict 4x2 grid; no text, labels, letters, numbers, borders, frames, cell dividers, people, characters, visible creatures, logos, watermark, UI chrome, or square backplates. Keep all subjects opaque with crisp edges. Do not use #ff00ff or bright magenta anywhere in the subjects. No cast shadow, contact shadow, or reflection outside each habitat's own structure. Flat removable chroma-key background only.
+
+Generation mode: default built-in ImageGen tool with the approved v2.3 set-piece atlas supplied as a style-reference image.
+Generated source: exec-6789afcb-beb9-45f5-ac01-b8ff905c84cf.png
+Post-processing: imagegen skill chroma-key removal helper with border auto-key, soft matte, and despill; then BuildRuntimeIconAtlas.py adaptive-grid normalization to an exact 4x2 grid with 384-pixel cells and 20-pixel safe padding.

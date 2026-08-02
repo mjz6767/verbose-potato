@@ -3,6 +3,16 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.4.0 world-map companion contracts
+
+`world-threat-habitat-atlas-runtime-v2.4.0.png` is the approved exact transparent habitat atlas. Its stable row-major cells are Rat Warren, Plague-Bell Midden, Kobold Ambush Camp, Kobold Shaman Totem Yard, Drow Moon-Silk Watchpost, Undead Ossuary, Demon Breach, and Ruined Road Waystation. Runtime presentation anchors one stationary illustration at each threat's existing `HomeX`/`HomeY`, beneath its independently moving token, and suppresses habitat art on certified safe roads. It does not create encounters, move a home, or alter save data.
+
+`world-npc-citizen-atlas-runtime-v2.4.0.png` is the approved exact transparent ambient-citizen atlas. Its stable row-major cells are Human lamplighter, Ashling fishmonger, Dusk-elf tailor, Stoneborn mason, Fenkin apothecary, Human road pilgrim, Ashling gravedigger, and Dusk-elf caravan guide. Citizens are coordinate-stable, district-appropriate, non-interactive exterior ambience. They stay off the Grand Hearth tutorial lane, certified safe roads, guidance routes, entrances, and cells with interactables, and they never impersonate a named NPC or dialogue portrait.
+
+`player-exploration-role-atlas-runtime-v2.4.0.png` is the approved exact transparent solo exploration atlas. Its stable row-major cells are Shield, Pike, Bow, Knife, Mender, Ember, Hex, and Ward. Exactly one represented party member uses this sheet; multi-member parties retain the mixed world-token atlas's group marker, and the mixed sheet remains the fallback. This atlas does not replace race/class combat sprites or inventory portraits.
+
+All three sheets are exact 1536 by 768 RGBA images arranged as 4 columns by 2 rows of 384-pixel square cells, with zero alpha in the outer 20 pixels of every cell and no visible bright-magenta key residue. The reviewed authoring and provenance set is the fifteen exact files named in `WORLD_MAP_V2.4_ART_HANDOFF.md` and `CHARACTER_ART_V2.4_HANDOFF.md`. Those files must be deliberately promoted despite any local `.git/info/exclude`; only the three normalized runtime PNGs are copied into the player package.
+
 ## Active v2.3.0 regional set-piece contract
 
 `world-area-setpiece-atlas-runtime-v2.3.0.png` is the approved exact 4 by 2 transparent regional set-piece atlas. It is 1536 by 768 pixels with 384-pixel cells and at least 20 pixels of transparent gutter around every illustrated subject. Row-major cells are Green Shrine Training Ring, Old Quarry Forge, Gloam Deep Crypt, Glass Lore Library, Dusk Market Hideout, Red Gate Seal, Salt Cistern Gate, and Ash Fen Ancient Grove. Subjects share a bottom-center ground anchor and are drawn as large map illustrations at both Local and Region scales; do not bake labels, route strokes, selection frames, square backplates, or ambience marks into replacement art.
@@ -23,6 +33,13 @@ authoring artifacts in the local/source archive; add promoted PNGs by exact
 filename and never use a broad repository add for an art pass.
 Promoted runtime PNGs live directly in `Docs/ArtReferences/`; nested
 authoring folders are never copied into a player package.
+
+An accepted handoff may explicitly promote a reviewed provenance set as an
+exception to the default runtime-only checkpoint. For v2.4.0, force-add the
+fifteen exact habitat, citizen, and player-role files named by the two handoff
+documents; do not broadly add the locally excluded ArtReferences folder. The
+twelve source, alpha, prompt, and validation companions remain source-only,
+while the three normalized runtime PNGs remain package-selected.
 
 `Tools/BuildAndPackageWindows.ps1` treats `Docs/PACKAGED_ART.txt` as the
 authoritative packaged PNG inventory. Its default release path requires
@@ -73,6 +90,9 @@ Use these prefixes when creating replacement or expansion atlases:
 - `world-map-progression-overlay-atlas-runtime-v0.xx.png`
 - `world-map-ui-atlas-runtime-v0.xx.png`
 - `world-area-setpiece-atlas-runtime-vX.XX.X.png`
+- `world-threat-habitat-atlas-runtime-vX.XX.X.png`
+- `world-npc-citizen-atlas-runtime-vX.XX.X.png`
+- `player-exploration-role-atlas-runtime-vX.XX.X.png`
 - `world-map-token-sprite-atlas-runtime-vX.XX.X.png`
 - `midgaard-town-atlas-runtime-v0.xx.png`
 - `midgaard-tile-atlas-runtime-v0.xx.png`
@@ -126,12 +146,15 @@ Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-r
 - `roaming-threat-atlas-runtime-*` is a transparent 5 by 4 grid. The v1.62.0 contract reserves cells 0-19 for rat, ratfolk, kobold, demon, drow, undead, elite, boss-escort, and encounter-marker silhouettes; keep each figure centered with a common foot baseline and clear gutters.
 - `world-map-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by exploration/map command buttons.
 - `world-area-setpiece-atlas-runtime-v2.3.0.png` is an exact transparent 4 by 2, 1536 by 768 grid of eight large regional illustrations. Its stable row-major order follows the active v2.3.0 regional set-piece contract above; each 384-pixel cell keeps a bottom-center anchor and at least 20 pixels of clear gutter.
+- `world-threat-habitat-atlas-runtime-v2.4.0.png` is an exact transparent 4 by 2, 1536 by 768 grid of eight bottom-anchored threat homes. Each 384-pixel cell keeps a 20-pixel clear gutter; visible coverage at alpha 8 remains between 46% and 51%.
+- `world-npc-citizen-atlas-runtime-v2.4.0.png` is an exact transparent 4 by 2, 1536 by 768 grid of eight ambient professions. Each 384-pixel cell keeps a 20-pixel clear gutter; visible coverage at alpha 8 remains between 26% and 34%.
+- `player-exploration-role-atlas-runtime-v2.4.0.png` is an exact transparent 4 by 2, 1536 by 768 grid of eight solo exploration roles. Each 384-pixel cell keeps a 20-pixel clear gutter; visible coverage at alpha 8 remains between 22% and 43%.
 - `tavern-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by the tavern/title menu buttons.
 - `combat-command-icon-atlas-runtime-v1.99.0.png` is the active exact 5 by 4, 1280 by 1024 transparent command contract. Every cell is 256 by 256 with at least 18 pixels of transparent gutter; the live Move, Attack, Cast, Guard, Elixir, End Turn, and Skills mappings remain at cells 0, 1, 2, 3, 4, 5, and 7. The large unframed silhouettes are authored for 56-72 pixel HUD presentation, so do not bake button frames, text, keycaps, or interaction-state rails into replacement art.
 - Current active world/Midgaard/combat terrain sheets: `world-map-material-atlas-runtime-v1.92.0.png`, `world-map-exploration-tile-atlas-runtime-v1.68.0.png`, `world-map-overlay-atlas-runtime-v0.80.png`, `world-map-progression-overlay-atlas-runtime-v0.63.png`, `combat-terrain-atlas-runtime-v1.5.8.png`, `midgaard-tile-atlas-runtime-v1.6.3.png`, `midgaard-city-prop-atlas-runtime-v1.29.0.png`, `midgaard-gate-atlas-runtime-v1.93.0.png`, and `midgaard-wall-atlas-runtime-v1.91.0.png`.
 - `midgaard-gate-atlas-runtime-v1.93.0.png` is the active exact 5 by 4, 1280 by 1024 gate contract. Cells 0 and 1 preserve the approved front-view sealed/open variants; cells 6 and 7 are a compact wall-aligned West/East pair with two low bastions above and below an open horizontal passage. Runtime maps sealed north and south to cell 0, West to cell 6, and East to cell 7. Side-gate cells must keep local bounds near 62 by 224 pixels, at least 16 pixels of gutter, a fully transparent local-y 104-151 road band, an exact horizontal visible-RGB/alpha mirror, and the authored town-side mass bias that distinguishes West from East. Do not replace them with a front-elevation facade or horizontal wall wings.
 - `midgaard-wall-atlas-runtime-v1.91.0.png` is the active exact 5 by 4, 1280 by 1024 wall contract. Cells 0-3 are north, south, west, and east straight runs; cells 4-7 are the four inward-facing corners; cells 8 and 9 are horizontal and vertical structural accents. Continuous foundations and gate joins are renderer-owned: horizontal foundations are 0.56 cells in Local Map and 0.52 in Region Map, while vertical foundations are 0.36 / 0.34 to fit the narrower authored masonry. Open east/west gates inherit the narrow vertical join only above and below the travel lane; their underlying straight-wall tile is suppressed and no sill may cross the road. Replacement art must preserve these connection directions and avoid opaque square-cell backgrounds.
-- `world-map-token-sprite-atlas-runtime-v1.91.0.png` is the active exact 5 by 4, 1280 by 1024 token contract. Cell 0 is the compact near-portrait group marker; cells 1-8 remain the shield, bow, knife, mender, ember, hex, ward, and pike role markers. Keep the group silhouette centered, vertically readable, and inside the shared safe gutter rather than returning to a wide horizontal lineup.
+- `world-map-token-sprite-atlas-runtime-v1.91.0.png` is the active exact 5 by 4, 1280 by 1024 mixed-token contract. Cell 0 is the compact near-portrait group marker; cells 1-8 remain the shield, bow, knife, mender, ember, hex, ward, and pike role fallbacks. The dedicated v2.4 player-role atlas now supplies exact one-member exploration silhouettes, while this mixed sheet retains multi-member group ownership and fallback coverage. Keep the group silhouette centered, vertically readable, and inside the shared safe gutter rather than returning to a wide horizontal lineup.
 - `world-map-material-atlas-runtime-v1.92.0.png` is the active exact 8 by 8, 2048 by 2048 passable-ground contract. Each semantic material owns four adjacent 256-pixel variants. Cells 0-15 contain the coherent v1.92 civic families and cells 28-31 contain the matched packed-dirt approach bank; cells 16-27 and 32-63 remain pixel-identical to v1.68.
 - `world-map-exploration-tile-atlas-runtime-v1.68.0.png` is the active exact 5 by 8, 1280 by 2048 blocked/fallback terrain contract. Cells 0-19 preserve the repaired v1.24.2 bank and cells 20-39 add blocked-terrain variants. This is a deliberate two-bank expansion, not the older irregular 5 by 7 experiment.
 - `unique-item-atlas-runtime-*` is read as a 5 by 4 grid and is checked before generic equipment art.
@@ -808,7 +831,7 @@ Token atlas:
 - Cell 18: Caravan.
 - Cell 19: Cave entrance.
 
-Local and Region Map use cell 0 for a multi-member group and cells 1-8 for a one-member party according to its role.
+Local and Region Map use the dedicated v2.4 player-role atlas for exactly one represented party member in Shield, Pike, Bow, Knife, Mender, Ember, Hex, and Ward order. Multi-member parties continue to use mixed-token cell 0; mixed-token cells 1-8 remain role fallbacks only.
 
 ## Story Card Atlas Cells
 

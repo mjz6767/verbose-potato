@@ -9,6 +9,13 @@ namespace AshenHalls
     {
         public const string KingHallDoorId = "midgaard-king-hall-door";
         public const string ThroneRoomExitId = "midgaard-throne-room-exit";
+        public const string GrandHearthDoorId = "midgaard-grand-hearth-door";
+        public const string GrandHearthExitId = "midgaard-grand-hearth-exit";
+        public const string GrandHearthFireId = "midgaard-grand-hearth-fire";
+        public const string GrandHearthCargoId = "midgaard-grand-hearth-cargo";
+        public const string GrandHearthWindowId = "midgaard-grand-hearth-window";
+        public const string GrandHearthMapTableId = "midgaard-grand-hearth-map-table";
+        public const string GrandHearthRoadChestId = "midgaard-grand-hearth-road-chest";
         public const string ArmorerDoorId = "midgaard-armorer-door";
         public const string ArmorerExitId = "midgaard-armorer-exit";
         public const string WeaponDoorId = "midgaard-weapons-door";
@@ -30,19 +37,39 @@ namespace AshenHalls
             return new RectInt(left, 1, 10, 8);
         }
 
+        public static RectInt GrandHearthBounds(MapData map)
+        {
+            int height = map?.Height ?? WorldMapGenerationRules.Height;
+            return new RectInt(2, Mathf.Max(1, height - 10), 9, 8);
+        }
+
+        public static Point GrandHearthSpawn(MapData map)
+        {
+            RectInt room = GrandHearthBounds(map);
+            return new Point(room.xMin + 4, room.yMin + room.height / 2);
+        }
+
+        public static Point GrandHearthExit(MapData map)
+        {
+            RectInt room = GrandHearthBounds(map);
+            return new Point(room.xMax - 1, room.yMin + room.height / 2);
+        }
+
         public static bool IsInteriorCell(MapData map, int x, int y)
         {
             if (map == null || map.Depth != 1) return false;
             Vector2Int point = new Vector2Int(x, y);
             return ThroneRoomBounds(map).Contains(point)
-                || MerchantHallBounds(map).Contains(point);
+                || MerchantHallBounds(map).Contains(point)
+                || GrandHearthBounds(map).Contains(point);
         }
 
         public static bool IsReservedCell(MapData map, int x, int y)
         {
             if (map == null || map.Depth != 1) return false;
             return IsInsideReservation(ThroneRoomBounds(map), x, y)
-                || IsInsideReservation(MerchantHallBounds(map), x, y);
+                || IsInsideReservation(MerchantHallBounds(map), x, y)
+                || IsInsideReservation(GrandHearthBounds(map), x, y);
         }
 
         private static bool IsInsideReservation(RectInt room, int x, int y)

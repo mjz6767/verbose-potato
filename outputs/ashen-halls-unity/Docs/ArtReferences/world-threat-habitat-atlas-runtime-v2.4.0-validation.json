@@ -1,0 +1,232 @@
+{
+  "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+  "output": "Docs\\ArtReferences\\world-threat-habitat-atlas-runtime-v2.4.0.png",
+  "grid": [
+    4,
+    2
+  ],
+  "cellSize": 384,
+  "padding": 20,
+  "atlasSize": [
+    1536,
+    768
+  ],
+  "cells": [
+    {
+      "index": 0,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        444,
+        444
+      ],
+      "sourceBounds": [
+        21,
+        70,
+        424,
+        423
+      ],
+      "runtimeBounds": [
+        20,
+        41,
+        364,
+        342
+      ],
+      "size": [
+        344,
+        301
+      ]
+    },
+    {
+      "index": 1,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 1,
+      "sourceRegion": [
+        444,
+        0,
+        887,
+        444
+      ],
+      "sourceBounds": [
+        17,
+        40,
+        414,
+        424
+      ],
+      "runtimeBounds": [
+        404,
+        25,
+        748,
+        358
+      ],
+      "size": [
+        344,
+        333
+      ]
+    },
+    {
+      "index": 2,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 2,
+      "sourceRegion": [
+        887,
+        0,
+        1330,
+        444
+      ],
+      "sourceBounds": [
+        9,
+        28,
+        410,
+        425
+      ],
+      "runtimeBounds": [
+        788,
+        21,
+        1132,
+        362
+      ],
+      "size": [
+        344,
+        341
+      ]
+    },
+    {
+      "index": 3,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 3,
+      "sourceRegion": [
+        1330,
+        0,
+        1774,
+        444
+      ],
+      "sourceBounds": [
+        8,
+        53,
+        406,
+        425
+      ],
+      "runtimeBounds": [
+        1172,
+        31,
+        1516,
+        353
+      ],
+      "size": [
+        344,
+        322
+      ]
+    },
+    {
+      "index": 4,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 4,
+      "sourceRegion": [
+        0,
+        444,
+        444,
+        887
+      ],
+      "sourceBounds": [
+        33,
+        3,
+        408,
+        402
+      ],
+      "runtimeBounds": [
+        30,
+        404,
+        353,
+        748
+      ],
+      "size": [
+        323,
+        344
+      ]
+    },
+    {
+      "index": 5,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 5,
+      "sourceRegion": [
+        444,
+        444,
+        887,
+        887
+      ],
+      "sourceBounds": [
+        17,
+        17,
+        421,
+        396
+      ],
+      "runtimeBounds": [
+        404,
+        414,
+        748,
+        737
+      ],
+      "size": [
+        344,
+        323
+      ]
+    },
+    {
+      "index": 6,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 6,
+      "sourceRegion": [
+        887,
+        444,
+        1328,
+        887
+      ],
+      "sourceBounds": [
+        17,
+        22,
+        410,
+        397
+      ],
+      "runtimeBounds": [
+        788,
+        412,
+        1132,
+        740
+      ],
+      "size": [
+        344,
+        328
+      ]
+    },
+    {
+      "index": 7,
+      "source": "Docs\\ArtReferences\\source-world-threat-habitat-atlas-v2.4.0-alpha.png",
+      "sourceIndex": 7,
+      "sourceRegion": [
+        1328,
+        444,
+        1774,
+        887
+      ],
+      "sourceBounds": [
+        3,
+        26,
+        419,
+        398
+      ],
+      "runtimeBounds": [
+        1172,
+        422,
+        1516,
+        730
+      ],
+      "size": [
+        344,
+        308
+      ]
+    }
+  ]
+}

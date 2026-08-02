@@ -36,6 +36,8 @@ namespace AshenHalls
         public const string MidgaardWeaponEnchanted = "midgaard_weapon_enchanted";
         public const string MidgaardRoyalHeraldMet = "midgaard_royal_herald_met";
         public const string MidgaardOldRoadScoutMet = "midgaard_old_road_scout_met";
+        public const string MidgaardGrandHearthEntered = "midgaard_grand_hearth_entered";
+        public const string MidgaardGrandHearthDeparted = "midgaard_grand_hearth_departed";
         public const string MidgaardThroneRoomEntered = "midgaard_throne_room_entered";
         public const string MidgaardMerchantHallEntered = "midgaard_merchant_hall_entered";
 

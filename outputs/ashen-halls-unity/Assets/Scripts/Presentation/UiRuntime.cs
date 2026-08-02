@@ -10,10 +10,12 @@ namespace AshenHalls
     {
         public const string DialogueFontResource = "Fonts/LibreBaskerville-Regular";
         public const string DialogueEmphasisFontResource = "Fonts/LibreBaskerville-SemiBold";
+        public const string TitleFontResource = "Fonts/CinzelDecorative-Regular";
 
         private static Font defaultFont;
         private static Font dialogueFont;
         private static Font dialogueEmphasisFont;
+        private static Font titleFont;
         private static readonly Dictionary<string, Sprite> atlasSprites = new Dictionary<string, Sprite>();
         private static EventSystem ensuredEventSystem;
 
@@ -50,6 +52,19 @@ namespace AshenHalls
                         ?? DialogueFont;
                 }
                 return dialogueEmphasisFont;
+            }
+        }
+
+        public static Font TitleFont
+        {
+            get
+            {
+                if (titleFont == null)
+                {
+                    titleFont = LoadBundledFont(TitleFontResource, "title display")
+                        ?? DialogueEmphasisFont;
+                }
+                return titleFont;
             }
         }
 

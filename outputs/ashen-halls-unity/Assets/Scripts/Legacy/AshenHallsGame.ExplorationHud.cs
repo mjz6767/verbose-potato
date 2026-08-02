@@ -959,6 +959,20 @@ namespace AshenHalls
             }
             if (hasRegionalSite)
             {
+                if (TryRegionalSiteAt(
+                        state.Map,
+                        state.PlayerX,
+                        state.PlayerY,
+                        out WorldMapSite site)
+                    && WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
+                {
+                    bool rewardClaimed = WorldSiteInteractionRules.RewardClaimed(
+                        state.StoryFlags,
+                        state.Depth,
+                        site.Id);
+                    string status = rewardClaimed ? "SERVICE" : "REWARD READY";
+                    return $"{status} / {interaction.ServiceName} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
+                }
                 return $"{zone.Title} landmark / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
             }
             return $"{zone.Title} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";

@@ -31,5 +31,23 @@ namespace AshenHalls
         {
             return wideView ? 0.78f : 0.82f;
         }
+
+        public static bool FitsViewport(
+            float artXMin,
+            float artYMin,
+            float artXMax,
+            float artYMax,
+            float viewportXMin,
+            float viewportYMin,
+            float viewportXMax,
+            float viewportYMax,
+            float safeInset)
+        {
+            safeInset = safeInset < 0f ? 0f : safeInset;
+            return artXMin >= viewportXMin + safeInset
+                && artYMin >= viewportYMin + safeInset
+                && artXMax <= viewportXMax - safeInset
+                && artYMax <= viewportYMax - safeInset;
+        }
     }
 }

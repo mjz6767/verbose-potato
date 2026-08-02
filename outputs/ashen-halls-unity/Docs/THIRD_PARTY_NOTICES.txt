@@ -51,3 +51,13 @@ Copyright 2012 The Libre Baskerville Project Authors
 The bundled Libre Baskerville Regular and SemiBold font files are licensed under
 the SIL Open Font License, Version 1.1. The complete copyright and license text
 is included in OFL-LibreBaskerville.txt.
+
+Cinzel Decorative
+-----------------
+
+Copyright 2012 The Cinzel Project Authors (Natanael Gama)
+(https://github.com/google/fonts/tree/main/ofl/cinzeldecorative)
+
+The bundled Cinzel Decorative Regular font file is licensed under the SIL Open
+Font License, Version 1.1. The complete copyright and license text is included
+in OFL-CinzelDecorative.txt.

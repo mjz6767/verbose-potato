@@ -54,6 +54,31 @@ namespace AshenHalls
             return quiet ? 0.18f : 0.22f;
         }
 
+        public static bool ShouldUseStrongObjectFrame(
+            bool wideView,
+            bool objective,
+            bool current,
+            bool hovered,
+            bool adjacent,
+            bool persistentLocalType)
+        {
+            if (objective || current || hovered || adjacent) return true;
+            return !wideView && persistentLocalType;
+        }
+
+        public static float JunctionMarkerAlpha(
+            bool hasJunction,
+            bool waypoint,
+            bool charted,
+            bool nearby)
+        {
+            if (!hasJunction) return 0f;
+            if (waypoint) return 0.76f;
+            if (nearby) return 0.42f;
+            if (charted) return 0.26f;
+            return 0.10f;
+        }
+
         public static bool IsDetailedCell(int distanceToParty, bool wideView)
         {
             return distanceToParty <= (wideView ? 7 : 8);

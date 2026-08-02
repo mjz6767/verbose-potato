@@ -12,6 +12,14 @@ namespace AshenHalls
             "blue-and-gold banners, old stone, warm braziers, and the royal writ",
             "King Halvard receives the party here before the Old Road opens.");
 
+        private static readonly WorldZone GrandHearth = Zone(
+            "midgaard-grand-hearth",
+            "Grand Hearth",
+            "last fire before the Old Road",
+            0,
+            "blackened timber, an old stone hearth, rain-blue windows, and a company runner",
+            "Every road-company begins here: four names at the fire, one storm-bright door, and Midgaard waiting beyond.");
+
         private static readonly WorldZone MerchantHall = Zone(
             "midgaard-merchant-hall",
             "Merchant Hall",
@@ -114,6 +122,7 @@ namespace AshenHalls
             switch (id ?? "")
             {
                 case "midgaard-throne-room": return ThroneRoom;
+                case "midgaard-grand-hearth": return GrandHearth;
                 case "midgaard-merchant-hall": return MerchantHall;
                 case "midgaard-city": return MidgaardCity;
                 case "midgaard-road": return MidgaardRoad;

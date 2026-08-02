@@ -1,0 +1,17 @@
+Ash & Brimstone - Grand Hearth title backdrop
+Generated with OpenAI's built-in image generation tool.
+
+Use case: stylized-concept
+Asset type: full-screen 16:9 Unity opening title-screen background for a dark-fantasy party RPG
+Input images: Image 1 is a style, palette, pixel-density, and material-quality reference only; create a brand-new scene and do not edit or copy its composition or characters.
+Primary request: Create an original grand title tableau called the Brimstone Hearth: the last warm medieval inn inside Midgaard before four adventurers take the Old Road into a storm. It should feel like a loving homage to late-1980s and 1990s computer RPG title screens, elevated with modern cinematic lighting and material readability.
+Scene/backdrop: a monumental timber-and-stone tavern hall at night; a deep hearth and iron brazier glow on the left; rain lashes tall windows and an open arched doorway near the center-right; beyond the door, wet cobbles lead toward a distant gate tower. Four small, mostly silhouetted adventurers stand together near the threshold, seen from behind, secondary to the environment.
+Style/medium: premium hand-crafted 32-bit pixel art with crisp pixel clusters, richly detailed medieval materials, readable silhouettes, restrained modern bloom, and no painterly blur or photorealism. Match Image 1's pixel-art finish and warm-amber-versus-storm-blue identity without reusing its people or layout.
+Composition/framing: exact wide 16:9 landscape. Reserve the upper-left 42% as a deliberately calm, dark stone-and-timber title zone with low detail and strong contrast for a large logo. Reserve the rightmost 27% from roughly 30% to 86% height as a calm dark carved-wood-and-shadow menu zone with minimal figures and no bright focal objects. Keep the strongest story focal point in the middle: hearthlight catching the four departing silhouettes and the rain-bright road beyond. Maintain safe margins around every edge.
+Lighting/mood: ember-orange firelight, candle gold, deep charcoal, tarnished teal, and cold rain blue; subtle lightning beyond the doorway; solemn anticipation, fellowship, mystery, and the sense of opening an old campaign tome.
+Materials/textures: blackened oak, old iron straps, wet stone, smoke-dark masonry, worn rugs, rain-streaked glass, leather packs, ash and floating sparks near the hearth.
+Constraints: background artwork only; no text, letters, numbers, title, logo, menu, UI, frames, buttons, captions, watermark, modern objects, close-up faces, copied characters, or recognizable third-party game imagery. Do not overcrowd either safe zone. Exactly four small adventurer silhouettes and no large foreground character.
+
+Runtime file: title-backdrop-runtime-v2.4.0.png
+Source dimensions: 1672 x 941
+SHA-256: 85408C7B952228483A67B4814451A096D9EED6AD4593018588109ADB084B0853

@@ -1,0 +1,23 @@
+Built-in ImageGen prompt used for the candidate v2.4.0 world-NPC citizen atlas
+
+Use case: stylized-concept
+Asset type: companion full-body world-NPC sprite atlas for Ash & Brimstone
+Input images: Image 1 is the authoritative Midgaard NPC world-sprite style reference. Match its classic CRPG pixel density, compact proportions, dark outline, three-quarter-front camera, warm upper-left light, shared foot baseline, and tiny hard-edged muted-moss oval contact base. Image 2 is a race-appearance reference only for dusk elves, stoneborn, fenkin, and ashlings. Generate new characters; do not edit or copy existing identities.
+Primary request: create exactly eight distinct isolated full-body civilian/adventuring NPC sprites in a strict 4-column by 2-row grid, row-major order.
+Row 1 cell 1: human woman lamplighter, weathered teal hooded oilskin, leather gloves, short unlit lantern pole and small oil flask, practical neutral stance.
+Row 1 cell 2: ashling man fishmonger, warm brown skin, blue knit cap, rolled sleeves, worn ivory apron, one compact wicker fish basket held low.
+Row 1 cell 3: dusk-elf woman tailor, gray-lilac skin, silver hair braided back, charcoal-and-plum work dress, brass shears and folded teal cloth.
+Row 1 cell 4: stoneborn man mason, stone-gray skin and broad build, ochre work vest, leather apron, small square-headed hammer and trowel.
+Row 2 cell 1: fenkin apothecary, muted moss-green reptilian features, layered brown-and-teal robe, herb satchel and one corked amber bottle.
+Row 2 cell 2: human woman road pilgrim, cream hood, faded blue cloak, short walking staff with simple bronze ring, small bedroll.
+Row 2 cell 3: ashling man gravedigger, dark russet coat, wrapped scarf, work gloves, short iron spade resting upright; solemn neutral stance.
+Row 2 cell 4: dusk-elf woman caravan guide, gray-lilac skin, white hair under a green travel hood, dark road leathers, map tube and compact walking staff.
+Scene/backdrop: perfectly flat uniform solid #ff00ff chroma-key background across the entire canvas. No dividers, panels, scenery, floor plane, soft shadows, gradients, texture, reflections, or lighting variation. Do not use #ff00ff anywhere in the sprites.
+Style/medium: richly detailed hand-placed 32-bit pixel art matching the Midgaard reference, compact readable silhouettes, crisp hard-edged pixel clusters, modest material detail, no painterly smoothing.
+Composition/framing: exact 4x2 alignment; one full-body NPC centered in each equal cell; identical apparent height and head scale; three-quarter-front camera; shared lower-center foot baseline; generous empty gutter; all props fully inside their own cells. Use only the same tiny flat hard-edged muted-moss oval contact base seen in the reference.
+Color palette: muted Midgaard blue, moss, charcoal, worn brown, ivory, ochre, restrained plum, tarnished bronze; role accents must remain readable at 48-64 pixels.
+Constraints: exactly eight NPCs and no extras; specified race, profession, prop, and row-major order must be unambiguous; no words, letters, numbers, labels, logos, borders, UI, watermark, buildings, furniture, large spell effects, mounts, creatures, portraits, busts, dramatic poses, or cropped feet/equipment. No duplicate faces.
+
+Generation mode: default built-in ImageGen tool with the approved Midgaard NPC and character-combat atlases supplied as style/race references.
+Generated source: exec-93f5c57a-7d21-48ca-927f-f4db2e15b225.png
+Post-processing: imagegen skill chroma-key removal helper with border auto-key, soft matte, and despill; then BuildRuntimeIconAtlas.py adaptive-grid normalization to an exact 4x2 grid with 384-pixel cells and 20-pixel safe padding.

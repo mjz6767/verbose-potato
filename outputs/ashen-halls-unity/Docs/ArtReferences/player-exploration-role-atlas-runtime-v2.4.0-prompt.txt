@@ -1,0 +1,24 @@
+Built-in ImageGen prompt used for the candidate v2.4.0 player exploration-role atlas
+
+Use case: stylized-concept
+Asset type: dedicated playable-role exploration sprite atlas for Ash & Brimstone
+Input images: Image 1 is the authoritative world-map token style and scale reference. Image 2 is the authoritative player equipment and class-detail reference. Generate new figures; do not edit or copy individual existing sprites.
+Primary request: create exactly eight distinct isolated full-body playable adventurer sprites in a strict 4-column by 2-row grid, one for every exploration role in this exact row-major order.
+Row 1 cell 1: Shield - sturdy medium-armored defender, blue-and-muted-gold surcoat, straight sword held low, round shield forward, compact guarded stance.
+Row 1 cell 2: Pike - practical brigandine sentinel, long steel spear kept fully within the cell, small buckler, teal-brown road cloak, upright watchful stance.
+Row 1 cell 3: Bow - green-hooded ranger, recurved longbow held diagonally, compact quiver, layered leather armor, ready but neutral stance.
+Row 1 cell 4: Knife - charcoal-hooded rogue, two short daggers held low, dark leather coat, restrained plum sash, compact crouched-ready silhouette.
+Row 2 cell 1: Mender - ivory-and-teal healer robes, modest mail at shoulders, sun-ring staff, small satchel of bandages, calm upright stance.
+Row 2 cell 2: Ember - russet-and-umber battle mage, short ember-tipped staff with only a tiny contained orange glow, layered travel robe, confident neutral stance.
+Row 2 cell 3: Hex - black-and-deep-violet warlock coat, crescent rod with small indigo crystal, leather spell satchel, controlled neutral stance; no bright magenta.
+Row 2 cell 4: Ward - white-and-aged-gold heavy guardian, closed helm, compact kite shield and war hammer, planted defensive stance.
+Character identity: role-first and race-neutral at tiny map scale. Partially obscure faces with helmets, hoods, or shadow; do not add pronounced elf ears, scales, stone skin, or other race-specific traits. Each sprite must work for any player-selected race.
+Scene/backdrop: perfectly flat uniform solid #ff00ff chroma-key background across the entire canvas. No dividers, panels, scenery, floor plane, soft shadows, gradients, texture, reflections, or lighting variation. Do not use #ff00ff anywhere in the sprites.
+Style/medium: richly detailed hand-placed 32-bit classic CRPG pixel art matching the references, compact slightly stocky proportions, crisp dark outline and hard-edged pixel clusters, three-quarter-front camera, warm upper-left light, readable at 48-64 pixels.
+Composition/framing: exact 4x2 alignment; one complete full-body player sprite centered in each equal cell; identical apparent height and head scale; shared lower-center foot baseline; generous empty gutter; all weapons and props entirely inside their own cell. Use only a tiny flat hard-edged muted-moss oval contact base, matching the references.
+Color palette: steel, charcoal, leather brown, muted Midgaard blue, moss green, ivory, tarnished gold, russet, restrained deep violet and teal. Strong silhouette separation without neon saturation.
+Constraints: exactly eight playable figures and no extras; role, weapon, and row-major order unambiguous; no words, letters, numbers, labels, logos, borders, UI, health bars, watermark, buildings, mounts, creatures, portraits, busts, giant spell effects, dramatic action poses, duplicated figures, cropped feet, or cropped weapons.
+
+Generation mode: default built-in ImageGen tool with the approved world-map token and character-combat atlases supplied as style/equipment references.
+Generated source: exec-cd74f8c6-6183-4a74-9dcf-28f78240b701.png
+Post-processing: imagegen skill chroma-key removal helper with border auto-key, soft matte, and despill; then BuildRuntimeIconAtlas.py adaptive-grid normalization to an exact 4x2 grid with 384-pixel cells and 20-pixel safe padding.

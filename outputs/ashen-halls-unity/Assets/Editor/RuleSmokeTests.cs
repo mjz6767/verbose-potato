@@ -73,6 +73,7 @@ namespace AshenHalls.Editor
             TavernScreenLayoutFitsSupportedResolutions();
             TavernStormRegionsStayOutsideTheRoom();
             TavernTitleAnimationIsReadableAndMotionSafe();
+            GrandHearthTitlePresentationIsDeterministicAndMotionSafe();
             PartySetupScreenLayoutFitsSupportedResolutions();
             ExplorationHudScreenLayoutFitsSupportedResolutions();
             ExplorationGuidanceRulesKeepTheGoldenThreadActionable();
@@ -80,6 +81,7 @@ namespace AshenHalls.Editor
             WorldMapGenerationRulesDefineNamedJunctionCircuit();
             WorldMapGenerationRulesDefineRegionalSites();
             WorldAreaTemplateRulesDefineDistinctRegionalSites();
+            WorldSiteInteractionRulesDefineDepthScopedServices();
             WorldSitePresentationRulesDefineDistinctAudioIdentity();
             MidgaardDistrictRulesDefineAuthoredWards();
             RouteChartRulesTrackDiscoveredJunctionsAndBearings();
@@ -88,6 +90,8 @@ namespace AshenHalls.Editor
             WorldMapRegionLandmarkCatalogIsSemantic();
             WorldMapRegionMarkerCatalogIsSemantic();
             WorldAreaSetpieceCatalogIsSemantic();
+            V24WorldMapCharacterArtRulesAreStable();
+            ExplorationMiniMapPresentationRulesReserveSemanticMarkers();
             ApprovedV130WorldMapAtlasesMatchRuntimeContracts();
             ExplorationArtRulesMapSemanticTilesAndScale();
             ExplorationSurfaceRulesPreserveAuthoredMapStructure();
@@ -136,6 +140,7 @@ namespace AshenHalls.Editor
             ExplorationTraversalBlocksObjectOverlap();
             ExplorationTraversalCertifiesConnectedTargets();
             MidgaardInteriorPortalsRemainPaired();
+            GrandHearthInteriorContractIsStable();
             RoamingThreatsTelegraphAndPathAroundTerrain();
             CombatCommandPresentationExposesSixCommands();
             CombatInputRoutingKeepsHudFocusAuthoritative();
@@ -926,6 +931,8 @@ namespace AshenHalls.Editor
                 {
                     TavernScreenGeometry geometry = TavernScreenLayout.Calculate(size.x, size.y, saveExists);
                     AssertEqual(true, geometry.Fits(size.x, size.y), $"tavern layout fits {size.x}x{size.y} save={saveExists}");
+                    AssertEqual(false, TitleScreenPresentationRules.Overlaps(geometry.Title, geometry.Menu, 10f), $"tavern title and menu keep a readable gutter {size.x}x{size.y} save={saveExists}");
+                    AssertEqual(false, TitleScreenPresentationRules.Overlaps(geometry.Chronicle, geometry.Menu, 8f), $"tavern chronicle and menu keep a readable gutter {size.x}x{size.y} save={saveExists}");
                     AssertEqual(false, geometry.Testing.Overlaps(geometry.Menu), $"tavern testing panel does not overlap menu {size.x}x{size.y} save={saveExists}");
                     AssertEqual(TavernMenuRules.NormalChoiceCount(saveExists), TavernScreenLayout.ButtonRects(saveExists, geometry.Menu.width).Count, "tavern button count mirrors menu rules");
                     Rect testingButton = TavernScreenLayout.TestingButtonRect(geometry.Menu.width, geometry.Menu.height);
@@ -946,18 +953,18 @@ namespace AshenHalls.Editor
 
             foreach (Vector2Int size in sizes)
             {
-                IReadOnlyList<Rect> windows = TavernScreenLayout.StormWindowRects(size.x, size.y);
+                IReadOnlyList<Rect> windows = TavernScreenLayout.StormWindowRects(size.x, size.y, 1672f, 941f);
                 AssertEqual(4, windows.Count, $"tavern storm uses four painted-glass regions at {size.x}x{size.y}");
                 for (int i = 0; i < windows.Count; i++)
                 {
                     Rect window = windows[i];
                     AssertEqual(
                         true,
-                        window.xMin >= size.x * 0.47f
-                            && window.xMax <= size.x
+                        window.xMin >= size.x * 0.54f
+                            && window.xMax <= size.x * 0.82f
                             && window.yMin >= 0f
-                            && window.yMax <= size.y * 0.42f,
-                        $"tavern weather region {i} remains within the exterior glass band at {size.x}x{size.y}");
+                            && window.yMax <= size.y * 0.78f,
+                        $"Grand Hearth weather region {i} remains within the painted storm doorway at {size.x}x{size.y}");
                     for (int other = i + 1; other < windows.Count; other++)
                     {
                         AssertEqual(
@@ -997,6 +1004,32 @@ namespace AshenHalls.Editor
                 AssertEqual(true, frame.UnderlineProgress >= 0f && frame.UnderlineProgress <= 1f, "title line progress remains bounded");
                 AssertEqual(true, frame.EmberIntensity >= 0f && frame.EmberIntensity <= 0.65f, "title ember intensity remains bounded");
             }
+        }
+
+        private static void GrandHearthTitlePresentationIsDeterministicAndMotionSafe()
+        {
+            TitleOpeningFrame opening = TitleScreenPresentationRules.Evaluate(0f, false);
+            TitleOpeningFrame menuReveal = TitleScreenPresentationRules.Evaluate(1.05f, false);
+            TitleOpeningFrame settled = TitleScreenPresentationRules.Evaluate(3f, false);
+            TitleOpeningFrame reduced = TitleScreenPresentationRules.Evaluate(0f, true);
+
+            AssertEqual(true, opening.BackdropReveal < 0.02f, "Grand Hearth opening begins beneath the shadow veil");
+            AssertEqual(false, TitleScreenPresentationRules.MenuInteractive(opening), "hidden Grand Hearth menu cannot accept pointer or submit input");
+            AssertEqual(true, menuReveal.MenuAlpha > 0.75f, "Grand Hearth menu arrives promptly after the title strike");
+            AssertEqual(true, settled.ChronicleAlpha > 0.99f, "Grand Hearth chronicle settles fully legible");
+            AssertEqual(true, TitleScreenPresentationRules.MenuInteractive(settled), "settled Grand Hearth menu accepts navigation input");
+            AssertEqual(1f, reduced.BackdropReveal, "reduced motion reveals the Grand Hearth immediately");
+            AssertEqual(1f, reduced.MenuAlpha, "reduced motion reveals the title menu immediately");
+            AssertEqual(true, TitleScreenPresentationRules.MenuInteractive(reduced), "reduced motion keeps the title menu immediately usable");
+            AssertEqual(0f, reduced.MenuRise, "reduced motion removes menu travel");
+            AssertEqual(true, TitleScreenPresentationRules.CrossedCue(0.1f, 0.3f, TitleScreenPresentationRules.RevealStrikeAt, false, false), "Grand Hearth forge strike crosses once");
+            AssertEqual(false, TitleScreenPresentationRules.CrossedCue(0.1f, 0.3f, TitleScreenPresentationRules.RevealStrikeAt, true, false), "reduced motion suppresses the title strike cue");
+            AssertEqual(false, TitleScreenPresentationRules.CrossedCue(0.1f, 0.3f, TitleScreenPresentationRules.RevealStrikeAt, false, true), "played title strike cues do not repeat");
+            AssertEqual(4, TitleScreenPresentationRules.ChronicleLines.Count, "Grand Hearth chronicle has four old-road verses");
+            AssertEqual(2, TitleScreenPresentationRules.MenuIconIndex(TitleMenuChoiceKind.NewGame), "Grand Hearth new-game relic icon is pinned");
+
+            TitleBackdropProjection cover = TitleScreenPresentationRules.ProjectBackdrop(1280f, 720f, 1672f, 941f);
+            AssertEqual(true, cover.CoverRect.width >= 1280f && cover.CoverRect.height >= 720f, "Grand Hearth painting covers a 16:9 screen without letterboxing");
         }
 
         private static void PartySetupScreenLayoutFitsSupportedResolutions()
@@ -1779,6 +1812,90 @@ namespace AshenHalls.Editor
             return false;
         }
 
+        private static void WorldSiteInteractionRulesDefineDepthScopedServices()
+        {
+            int width = WorldMapGenerationRules.Width;
+            int height = WorldMapGenerationRules.Height;
+            int startX = WorldMapGenerationRules.StartX(width);
+            int startY = WorldMapGenerationRules.StartY(height);
+            WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(width, height, startX, startY);
+            IReadOnlyList<WorldSiteInteractionProfile> profiles = WorldSiteInteractionRules.All;
+
+            AssertEqual(8, profiles.Count, "regional interaction rules cover all eight authored sites");
+            AssertEqual(
+                string.Join("|", sites.Select(site => site.Id).OrderBy(id => id)),
+                string.Join("|", profiles.Select(profile => profile.SiteId).OrderBy(id => id)),
+                "regional interaction profiles match the stable authored site identities exactly");
+            AssertEqual(8, profiles.Select(profile => profile.ServiceName).Distinct().Count(), "every regional site owns a distinct service name");
+            AssertEqual(8, profiles.Select(profile => profile.ReadyStatus).Distinct().Count(), "every regional site owns distinct ready-state copy");
+            AssertEqual(8, profiles.Select(profile => profile.ClaimedStatus).Distinct().Count(), "every regional site owns distinct completed-state copy");
+            AssertEqual(8, profiles.Select(profile => profile.RewardSummary).Distinct().Count(), "every regional site explains a distinct first reward");
+            AssertEqual(8, profiles.Select(profile => profile.RepeatSummary).Distinct().Count(), "every regional site explains a distinct repeat service");
+            AssertEqual(8, profiles.Select(profile => profile.RewardKind).Distinct().Count(), "every regional site resolves one explicit reward implementation");
+
+            HashSet<string> rewardFlags = new HashSet<string>(StringComparer.Ordinal);
+            foreach (WorldSiteInteractionProfile profile in profiles)
+            {
+                AssertEqual(true, WorldSiteInteractionRules.TryGet(profile.SiteId, out WorldSiteInteractionProfile resolved), profile.SiteId + " resolves its interaction profile");
+                AssertEqual(profile, resolved, profile.SiteId + " interaction lookup returns its canonical shared profile");
+                AssertEqual(false, string.IsNullOrWhiteSpace(profile.ServiceName), profile.SiteId + " service name is player-facing");
+                AssertEqual(false, string.IsNullOrWhiteSpace(profile.ReadyVerb), profile.SiteId + " publishes a reward-ready explore verb");
+                AssertEqual(false, string.IsNullOrWhiteSpace(profile.RepeatVerb), profile.SiteId + " publishes a repeat-service explore verb");
+                AssertEqual(false, profile.ReadyVerb == profile.RepeatVerb, profile.SiteId + " visibly distinguishes first reward from repeat service");
+                AssertEqual(profile.ReadyVerb, WorldSiteInteractionRules.ContextVerb(profile, false), profile.SiteId + " resolves its ready explore verb");
+                AssertEqual(profile.RepeatVerb, WorldSiteInteractionRules.ContextVerb(profile, true), profile.SiteId + " resolves its repeat explore verb");
+                AssertEqual(
+                    true,
+                    profile.IsInformationalRepeat
+                    || profile.RepeatSupplyCost > 0
+                    || profile.RepeatGoldCost > 0,
+                    profile.SiteId + " repeat mutation has an explicit resource cost");
+                AssertEqual(
+                    !profile.IsInformationalRepeat,
+                    profile.RequiresExplicitRepeatUse,
+                    profile.SiteId + " mutating repeat services require an explicit use action");
+                AssertEqual(
+                    true,
+                    profile.RepeatSupplies == 0 || profile.RepeatGoldCost > 0,
+                    profile.SiteId + " cannot generate repeat supplies without payment");
+
+                string depthOneFlag = WorldSiteInteractionRules.RewardFlag(1, profile.SiteId);
+                string depthTwoFlag = WorldSiteInteractionRules.RewardFlag(2, profile.SiteId);
+                string chartFlag = WorldSiteInteractionRules.ChartFlag(1, profile.SiteId);
+                AssertEqual(true, depthOneFlag.StartsWith(WorldSiteInteractionRules.RewardFlagPrefix, StringComparison.Ordinal), profile.SiteId + " uses the new regional reward namespace");
+                AssertEqual(false, depthOneFlag.Contains("-"), profile.SiteId + " reward flag is serialization-safe");
+                AssertEqual(false, depthOneFlag == depthTwoFlag, profile.SiteId + " reward state is scoped by map depth");
+                AssertEqual(
+                    "regional_site_1_" + profile.SiteId.Replace('-', '_') + "_charted",
+                    chartFlag,
+                    profile.SiteId + " retains its stable v2.3 chart identity for minimap discovery");
+                AssertEqual(true, rewardFlags.Add(depthOneFlag), profile.SiteId + " depth-one reward flag is unique");
+                AssertEqual(true, rewardFlags.Add(depthTwoFlag), profile.SiteId + " depth-two reward flag is unique");
+
+                List<string> upgradedFlags = new List<string>
+                {
+                    chartFlag,
+                    "route_scaffold_1_" + profile.SiteId.Replace('-', '_') + "_visited"
+                };
+                AssertEqual(
+                    false,
+                    WorldSiteInteractionRules.RewardClaimed(upgradedFlags, 1, profile.SiteId),
+                    profile.SiteId + " legacy v2.3 chart/scaffold flags do not skip the new reward");
+                upgradedFlags.Add(depthOneFlag);
+                AssertEqual(
+                    true,
+                    WorldSiteInteractionRules.RewardClaimed(upgradedFlags, 1, profile.SiteId),
+                    profile.SiteId + " recognizes only its new depth-scoped reward flag");
+            }
+
+            AssertEqual(false, WorldSiteInteractionRules.TryGet("not-an-authored-site", out _), "unknown regional sites do not inherit an unrelated service");
+            AssertEqual("Use", WorldSiteInteractionRules.ContextVerb(null, false), "missing site metadata retains a safe generic verb");
+            AssertEqual(
+                WorldSiteInteractionRules.RewardFlag(1, "red-gate-seal"),
+                WorldSiteInteractionRules.RewardFlag(0, "Red Gate Seal"),
+                "reward flag generation clamps invalid depth and normalizes authored identity");
+        }
+
         private static void MidgaardDistrictRulesDefineAuthoredWards()
         {
             AssertEqual(ExplorationMaterial.KeepStone, MidgaardDistrictRules.MaterialAtOffset(0, -7), "royal approach uses formal keep stone");
@@ -1851,6 +1968,13 @@ namespace AshenHalls.Editor
             AssertEqual(true, closeWall > closeRoad, "walls remain stronger than passable ground");
             AssertEqual(true, ExplorationReadabilityRules.InteractiveObjectBackdropAlpha(false, true) >= 0.20f, "framed targets receive a restrained contrast backing");
             AssertEqual(0f, ExplorationReadabilityRules.InteractiveObjectBackdropAlpha(false, false), "ordinary actors do not sit on rectangular UI plinths");
+            AssertEqual(false, ExplorationReadabilityRules.ShouldUseStrongObjectFrame(true, false, false, false, false, true), "wide-map object types do not keep permanent strong frames");
+            AssertEqual(true, ExplorationReadabilityRules.ShouldUseStrongObjectFrame(false, false, false, false, false, true), "local-map semantic objects retain persistent interaction frames");
+            AssertEqual(true, ExplorationReadabilityRules.ShouldUseStrongObjectFrame(true, true, false, false, false, false), "wide-map objectives own strong frames");
+            AssertEqual(true, ExplorationReadabilityRules.ShouldUseStrongObjectFrame(true, false, false, true, false, false), "wide-map hover owns a strong frame");
+            AssertEqual(0f, ExplorationReadabilityRules.JunctionMarkerAlpha(false, false, false, false), "clearing cells without authored junctions draw no junction glyph");
+            AssertEqual(true, ExplorationReadabilityRules.JunctionMarkerAlpha(true, true, true, false) > ExplorationReadabilityRules.JunctionMarkerAlpha(true, false, true, false), "active waypoint junctions outrank charted junctions");
+            AssertEqual(true, ExplorationReadabilityRules.JunctionMarkerAlpha(true, false, false, true) > ExplorationReadabilityRules.JunctionMarkerAlpha(true, false, false, false), "nearby junctions outrank distant uncharted junctions");
             AssertEqual(true, ExplorationReadabilityRules.DecorativeDensityScale(true) < ExplorationReadabilityRules.DecorativeDensityScale(false), "region map uses fewer decorative props");
             AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(false, 0f) >= 0.80f, "close-map ambient city props remain solid and visible");
             AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 0f) >= 0.82f, "close-map biome props remain solid and visible");
@@ -2018,6 +2142,71 @@ namespace AshenHalls.Editor
             AssertEqual(true, WorldAreaSetpiecePresentationRules.MapScale(true) >= 2f, "region-map set-pieces remain prominent landmarks");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.BaselineFraction(false) > WorldAreaSetpiecePresentationRules.BaselineFraction(true), "local set-pieces keep their authored ground baseline");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.BaselineFraction(true) > 0.70f && WorldAreaSetpiecePresentationRules.BaselineFraction(false) < 0.90f, "set-piece baselines stay inside their map cells");
+            AssertEqual(true, WorldAreaSetpiecePresentationRules.FitsViewport(12f, 12f, 28f, 28f, 0f, 0f, 40f, 40f, 2f), "fully visible authored set-pieces keep their large presentation");
+            AssertEqual(false, WorldAreaSetpiecePresentationRules.FitsViewport(-2f, 12f, 14f, 28f, 0f, 0f, 40f, 40f, 2f), "edge-crossing authored set-pieces use the compact fallback");
+            AssertEqual(false, WorldAreaSetpiecePresentationRules.FitsViewport(2f, 12f, 18f, 28f, 0f, 0f, 40f, 40f, 3f), "set-piece safe inset prevents near-edge clipping");
+        }
+
+        private static void V24WorldMapCharacterArtRulesAreStable()
+        {
+            AssertEqual(4, WorldThreatHabitatPresentationRules.Columns, "v2.4 habitat atlas columns");
+            AssertEqual(2, WorldThreatHabitatPresentationRules.Rows, "v2.4 habitat atlas rows");
+            AssertEqual(8, WorldThreatHabitatPresentationRules.CellCount, "v2.4 habitat atlas cell count");
+            AssertEqual(0, WorldThreatHabitatPresentationRules.ArchetypeIndex("rats"), "rat patrols use the warren habitat");
+            AssertEqual(1, WorldThreatHabitatPresentationRules.ArchetypeIndex("ratcleric"), "plague patrols use the bell midden habitat");
+            AssertEqual(2, WorldThreatHabitatPresentationRules.ArchetypeIndex("kobolds"), "kobold patrols use the ambush camp habitat");
+            AssertEqual(3, WorldThreatHabitatPresentationRules.ArchetypeIndex("koboldshaman"), "kobold shamans use the totem-yard habitat");
+            AssertEqual(4, WorldThreatHabitatPresentationRules.FactionIndex(RoamingThreatFaction.Drow), "drow patrols use the watchpost habitat");
+            AssertEqual(5, WorldThreatHabitatPresentationRules.FactionIndex(RoamingThreatFaction.Undead), "undead patrols use the ossuary habitat");
+            AssertEqual(6, WorldThreatHabitatPresentationRules.FactionIndex(RoamingThreatFaction.Demons), "demon patrols use the breach habitat");
+            AssertEqual(7, WorldThreatHabitatPresentationRules.ArchetypeIndex("waystation"), "neutral aftermath uses the ruined waystation habitat");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.DrawsBeneathRoamingThreatToken, "habitats remain below mobile patrol tokens");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.BottomCenterPivotY == 1f, "habitats keep a GUI bottom-center anchor");
+            AssertEqual(false, WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, true), "habitats stay off certified safe roads");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, false), "valid threat homes receive habitat art");
+
+            string[] roles = { "shield", "pike", "bow", "knife", "mender", "ember", "hex", "ward" };
+            for (int index = 0; index < roles.Length; index++)
+            {
+                AssertEqual(index, ExplorationCharacterArtCatalog.PlayerRoleIndex(roles[index]), roles[index] + " exploration-role atlas cell");
+                AssertEqual(index, ExplorationCharacterArtCatalog.PlayerTokenIndex(1, roles[index]), "single " + roles[index] + " uses the dedicated role atlas");
+            }
+            AssertEqual(-1, ExplorationCharacterArtCatalog.PlayerRoleIndex("party"), "party group never impersonates a solo role");
+            AssertEqual(-1, ExplorationCharacterArtCatalog.PlayerTokenIndex(4, "shield"), "multi-member party bypasses the solo role atlas");
+            AssertEqual(true, ExplorationCharacterArtCatalog.UsesPartyGroupToken(4), "multi-member party preserves the existing group token");
+
+            for (int index = 0; index < ExplorationCharacterArtCatalog.CitizenCellCount; index++)
+            {
+                AmbientCitizenProfession profession = ExplorationCharacterArtCatalog.CitizenProfessionAt(index);
+                AssertEqual(index, ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession), "ambient citizen profession round-trips cell " + index);
+            }
+            AssertEqual(
+                ExplorationCharacterArtCatalog.AmbientCitizenIndex("Wharf Market", 9471, 23, 17),
+                ExplorationCharacterArtCatalog.AmbientCitizenIndex("Wharf Market", 9471, 23, 17),
+                "ambient citizen placement is deterministic");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(true, false, false, false, false), "ambient citizens stay off the tutorial lane");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, true, false, false, false), "ambient citizens stay off certified safe roads");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, true, false, false), "ambient citizens stay off guidance routes");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, true, false), "ambient citizens keep entrances clear");
+            AssertEqual(false, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, false, true), "ambient citizens never become interactable-cell impostors");
+            AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(false, false, false, false, false), "ordinary non-interactive ambience remains eligible");
+        }
+
+        private static void ExplorationMiniMapPresentationRulesReserveSemanticMarkers()
+        {
+            AssertEqual(false, ExplorationMiniMapPresentationRules.ShouldShowAuthoredSite(false, false, 12, 8), "unknown distant authored sites stay hidden on the minimap");
+            AssertEqual(true, ExplorationMiniMapPresentationRules.ShouldShowAuthoredSite(true, false, 12, 8), "discovered authored sites remain useful minimap anchors");
+            AssertEqual(true, ExplorationMiniMapPresentationRules.ShouldShowAuthoredSite(false, false, 8, 8), "nearby authored sites appear at the reveal boundary");
+            AssertEqual(true, ExplorationMiniMapPresentationRules.ShouldShowAuthoredSite(false, true, 20, 8), "the current authored site is always represented");
+
+            AssertEqual(false, ExplorationMiniMapPresentationRules.ShouldShowPatrol(false, 2, 2, true, 1, 8), "inactive patrols never receive minimap markers");
+            AssertEqual(false, ExplorationMiniMapPresentationRules.ShouldShowPatrol(true, 3, 2, true, 1, 8), "patrols on another depth stay off the minimap");
+            AssertEqual(true, ExplorationMiniMapPresentationRules.ShouldShowPatrol(true, 2, 2, false, 8, 8), "active nearby patrols appear at the reveal boundary");
+            AssertEqual(false, ExplorationMiniMapPresentationRules.ShouldShowPatrol(true, 2, 2, false, 9, 8), "unalerted patrols beyond reveal remain hidden");
+            AssertEqual(true, ExplorationMiniMapPresentationRules.ShouldShowPatrol(true, 2, 2, true, 14, 8), "alerted pursuing patrols remain visible beyond reveal");
+
+            AssertEqual(true, ExplorationMiniMapPresentationRules.MarkerPixels(ExplorationMiniMapMarkerKind.CurrentSite) > ExplorationMiniMapPresentationRules.MarkerPixels(ExplorationMiniMapMarkerKind.AuthoredSite), "current sites receive stronger minimap markers");
+            AssertEqual(true, ExplorationMiniMapPresentationRules.MarkerPixels(ExplorationMiniMapMarkerKind.AlertedPatrol) > ExplorationMiniMapPresentationRules.MarkerPixels(ExplorationMiniMapMarkerKind.Patrol), "alerted patrols receive stronger minimap markers");
         }
 
         private static void ApprovedV130WorldMapAtlasesMatchRuntimeContracts()
@@ -2025,7 +2214,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.3.0", VersionInfo.PackageVersion, "package version matches the v2.3 release");
+            AssertEqual("v2.4.0", VersionInfo.PackageVersion, "package version matches the v2.4 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
@@ -2035,7 +2224,8 @@ namespace AshenHalls.Editor
             AssertEqual("magic-ui-atlas-runtime-v1.31.0.png", RuntimeArtManifest.MagicUiAtlas, "approved v1.31 magic UI atlas pin");
             AssertEqual("spell-animation-atlas-runtime-v1.49.0.png", RuntimeArtManifest.SpellAnimationAtlas, "approved v1.49 spell animation atlas pin");
             AssertEqual("combat-spell-effects-atlas-runtime-v0.73.png", RuntimeArtManifest.EpicSpellEffectsAtlas, "approved epic spell effects atlas pin");
-            AssertEqual("tavern-backdrop-runtime-v1.49.0.png", RuntimeArtManifest.TavernBackdrop, "approved v1.49 tavern backdrop pin");
+            AssertEqual("title-backdrop-runtime-v2.4.0.png", RuntimeArtManifest.TavernBackdrop, "approved v2.4 Grand Hearth title backdrop pin");
+            AssertEqual("tavern-ui-atlas-runtime-v1.5.9.png", RuntimeArtManifest.TavernUiAtlas, "approved v1.5.9 Grand Hearth relic atlas pin");
             AssertEqual("midgaard-gate-atlas-runtime-v1.93.0.png", RuntimeArtManifest.MidgaardGateAtlas, "approved v1.93 gate atlas pin");
             AssertEqual("midgaard-wall-atlas-runtime-v1.91.0.png", RuntimeArtManifest.MidgaardWallAtlas, "approved v1.91 wall atlas pin");
             AssertEqual("world-map-exploration-tile-atlas-runtime-v1.68.0.png", RuntimeArtManifest.WorldMapExplorationTileAtlas, "approved v1.68 exploration terrain pin");
@@ -2050,12 +2240,15 @@ namespace AshenHalls.Editor
             AssertEqual("world-map-region-landmark-atlas-runtime-v1.65.0.png", RuntimeArtManifest.WorldMapRegionLandmarkAtlas, "approved v1.65 regional landmark atlas pin");
             AssertEqual("world-map-region-marker-atlas-runtime-v2.2.0.png", RuntimeArtManifest.WorldMapRegionMarkerAtlas, "approved v2.2 regional marker atlas pin");
             AssertEqual("world-area-setpiece-atlas-runtime-v2.3.0.png", RuntimeArtManifest.WorldAreaSetpieceAtlas, "approved v2.3 world-area set-piece atlas pin");
+            AssertEqual("world-threat-habitat-atlas-runtime-v2.4.0.png", RuntimeArtManifest.WorldThreatHabitatAtlas, "approved v2.4 roaming-threat habitat atlas pin");
+            AssertEqual("player-exploration-role-atlas-runtime-v2.4.0.png", RuntimeArtManifest.PlayerExplorationRoleAtlas, "approved v2.4 player exploration-role atlas pin");
             AssertEqual("midgaard-town-atlas-runtime-v1.29.0.png", RuntimeArtManifest.MidgaardTownAtlas, "approved v1.29 town atlas pin");
             AssertEqual("midgaard-tile-atlas-runtime-v1.6.3.png", RuntimeArtManifest.MidgaardTileAtlas, "approved v1.6.3 Midgaard terrain pin");
             AssertEqual("midgaard-city-prop-atlas-runtime-v1.29.0.png", RuntimeArtManifest.MidgaardCityPropAtlas, "approved v1.29 city prop atlas pin");
             AssertEqual("midgaard-street-life-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardStreetLifeAtlas, "approved v1.50 street-life atlas pin");
             AssertEqual("midgaard-paving-decal-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardPavingDecalAtlas, "approved v1.50 paving-decal atlas pin");
             AssertEqual("midgaard-npc-atlas-runtime-v1.93.0.png", RuntimeArtManifest.MidgaardNpcAtlas, "approved v1.93 NPC atlas pin");
+            AssertEqual("world-npc-citizen-atlas-runtime-v2.4.0.png", RuntimeArtManifest.WorldNpcCitizenAtlas, "approved v2.4 ambient-citizen atlas pin");
             AssertEqual("route-scaffold-atlas-runtime-v1.30.0.png", RuntimeArtManifest.RouteScaffoldAtlas, "approved v1.30 route scaffold atlas pin");
             AssertEqual("kobold-route-atlas-runtime-v1.30.0.png", RuntimeArtManifest.KoboldRouteAtlas, "approved v1.30 kobold route atlas pin");
             AssertEqual("midgaard-sewer-atlas-runtime-v1.30.0.png", RuntimeArtManifest.MidgaardSewerAtlas, "approved v1.30 sewer atlas pin");
@@ -2069,10 +2262,10 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(41, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(45, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -2285,6 +2478,25 @@ namespace AshenHalls.Editor
                     AssertEqual(true, bounds.y >= 30 && bounds.y <= 39, "v2.3 world-area set-piece cell " + cell + " keeps bounded top padding");
                     AssertEqual(true, bounds.height >= 306 && bounds.height <= 324, "v2.3 world-area set-piece cell " + cell + " keeps a substantial landmark silhouette");
                 }
+
+                Texture2D threatHabitats = LoadApprovedRuntimeAtlas(RuntimeArtManifest.WorldThreatHabitatAtlas);
+                Texture2D ambientCitizens = LoadApprovedRuntimeAtlas(RuntimeArtManifest.WorldNpcCitizenAtlas);
+                Texture2D playerRoles = LoadApprovedRuntimeAtlas(RuntimeArtManifest.PlayerExplorationRoleAtlas);
+                normalizedAtlases.Add(threatHabitats);
+                normalizedAtlases.Add(ambientCitizens);
+                normalizedAtlases.Add(playerRoles);
+                AssertEqual(new Vector2Int(1536, 768), new Vector2Int(threatHabitats.width, threatHabitats.height), "v2.4 threat-habitat dimensions");
+                AssertEqual(new Vector2Int(1536, 768), new Vector2Int(ambientCitizens.width, ambientCitizens.height), "v2.4 ambient-citizen dimensions");
+                AssertEqual(new Vector2Int(1536, 768), new Vector2Int(playerRoles.width, playerRoles.height), "v2.4 player-role dimensions");
+                AssertAtlasCellCoverageAtAlpha(threatHabitats, 4, 2, Enumerable.Range(0, 8), 0.46f, 0.51f, 8, "v2.4 threat habitat");
+                AssertAtlasCellCoverageAtAlpha(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 0.26f, 0.34f, 8, "v2.4 ambient citizen");
+                AssertAtlasCellCoverageAtAlpha(playerRoles, 4, 2, Enumerable.Range(0, 8), 0.22f, 0.43f, 8, "v2.4 player role");
+                AssertAtlasCellSafeGutter(threatHabitats, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 threat habitat");
+                AssertAtlasCellSafeGutter(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 ambient citizen");
+                AssertAtlasCellSafeGutter(playerRoles, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 player role");
+                AssertAtlasHasNoVisibleBrightMagenta(threatHabitats, 8, "v2.4 threat habitat");
+                AssertAtlasHasNoVisibleBrightMagenta(ambientCitizens, 8, "v2.4 ambient citizen");
+                AssertAtlasHasNoVisibleBrightMagenta(playerRoles, 8, "v2.4 player role");
 
                 Texture2D streetLife = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardStreetLifeAtlas);
                 Texture2D pavingDecals = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardPavingDecalAtlas);
@@ -2597,6 +2809,63 @@ namespace AshenHalls.Editor
                     throw new InvalidOperationException($"{label} cell {cell} coverage: expected {minimum:P0}-{maximum:P0}, got {fraction:P1}");
                 }
             }
+        }
+
+        private static void AssertAtlasCellCoverageAtAlpha(
+            Texture2D texture,
+            int columns,
+            int rows,
+            IEnumerable<int> cells,
+            float minimum,
+            float maximum,
+            byte visibleAlphaThreshold,
+            string label)
+        {
+            AssertEqual(true, texture != null, label + " atlas loads");
+            AssertEqual(true, visibleAlphaThreshold > 0, label + " visibility threshold is positive");
+            AssertEqual(0, texture.width % columns, label + " atlas width divides into whole cells");
+            AssertEqual(0, texture.height % rows, label + " atlas height divides into whole cells");
+            Color32[] pixels = texture.GetPixels32();
+            int cellWidth = texture.width / columns;
+            int cellHeight = texture.height / rows;
+            foreach (int cell in cells)
+            {
+                AssertEqual(true, cell >= 0 && cell < columns * rows, label + " cell index " + cell + " is in range");
+                int column = cell % columns;
+                int row = cell / columns;
+                int visible = 0;
+                for (int localY = 0; localY < cellHeight; localY++)
+                {
+                    int topY = row * cellHeight + localY;
+                    int pixelY = texture.height - 1 - topY;
+                    int offset = pixelY * texture.width + column * cellWidth;
+                    for (int localX = 0; localX < cellWidth; localX++)
+                    {
+                        if (pixels[offset + localX].a >= visibleAlphaThreshold) visible++;
+                    }
+                }
+
+                float fraction = visible / (float)(cellWidth * cellHeight);
+                if (fraction < minimum || fraction > maximum)
+                {
+                    throw new InvalidOperationException(
+                        $"{label} cell {cell} coverage at alpha {visibleAlphaThreshold}+: expected {minimum:P0}-{maximum:P0}, got {fraction:P1}");
+                }
+            }
+        }
+
+        private static void AssertAtlasHasNoVisibleBrightMagenta(
+            Texture2D texture,
+            byte visibleAlphaThreshold,
+            string label)
+        {
+            AssertEqual(true, texture != null, label + " atlas loads for chroma inspection");
+            int residue = texture.GetPixels32().Count(pixel =>
+                pixel.a >= visibleAlphaThreshold
+                && pixel.r >= 248
+                && pixel.g <= 8
+                && pixel.b >= 248);
+            AssertEqual(0, residue, label + " has no visible bright-magenta residue");
         }
 
         private static void AssertAtlasCellSolidCore(Texture2D texture, int columns, int rows, IEnumerable<int> cells, float minimumSolidFraction, string label)
@@ -3156,8 +3425,10 @@ namespace AshenHalls.Editor
             ExplorationSurfaceRules.SetRoles(map, 2, 1, ExplorationCellRole.Road);
             ExplorationSurfaceRules.SetRoles(map, 3, 1, ExplorationCellRole.Trail);
             AssertEqual(2, ExplorationSurfaceRules.PathNeighborMask(map, 1, 1), "road mask connects east");
-            AssertEqual(10, ExplorationSurfaceRules.PathNeighborMask(map, 2, 1), "road mask connects east and west");
+            AssertEqual(8, ExplorationSurfaceRules.PathNeighborMask(map, 2, 1), "road-width mask does not expand through an adjacent trail cell");
+            AssertEqual(10, ExplorationSurfaceRules.PathConnectorNeighborMask(map, 2, 1), "thin connector mask lets a trail terminate cleanly at the road");
             AssertEqual(8, ExplorationSurfaceRules.PathNeighborMask(map, 3, 1), "trail mask connects west");
+            AssertEqual(8, ExplorationSurfaceRules.PathConnectorNeighborMask(map, 3, 1), "trail connector retains its road meeting");
 
             map.Tiles[6] = 0;
             ExplorationSurfaceRules.RepairConsistency(map);
@@ -3179,15 +3450,20 @@ namespace AshenHalls.Editor
                 new Vector2Int(1920, 1080),
                 new Vector2Int(2048, 1152)
             };
+            float[] minimumTileSizes = { 70f, 96f, 118f, 128f };
 
-            foreach (Vector2Int size in sizes)
+            for (int sizeIndex = 0; sizeIndex < sizes.Length; sizeIndex++)
             {
+                Vector2Int size = sizes[sizeIndex];
                 CombatHudGeometry geometry = CombatHudScreenLayout.Calculate(size.x, size.y);
                 AssertEqual(true, geometry.Fits(size.x, size.y), $"combat HUD layout fits {size.x}x{size.y}");
-                AssertEqual(true, Mathf.Abs(geometry.Side.yMax - (size.y - 12f)) < 0.01f, $"combat side rail uses the full available frame height at {size.x}x{size.y}");
-                AssertEqual(true, geometry.Command.height >= 128f, $"combat command deck has room for a responsive icon-first row at {size.x}x{size.y}");
-                AssertEqual(true, geometry.Side.width <= size.x * 0.28f, $"combat rail leaves the battlefield at least seventy-two percent of the frame at {size.x}x{size.y}");
-                AssertEqual(true, geometry.Command.width >= size.x * 0.60f, $"combat command deck retains a useful tactical width at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Top.height >= 50f && geometry.Top.height <= 56f, $"combat top ribbon stays compact and readable at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Command.width >= 96f && geometry.Command.width <= 112f, $"combat commands use the compact vertical palette at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Side.width <= size.x * 0.22f, $"combat dossier leaves the battlefield as the visual hero at {size.x}x{size.y}");
+                Rect grid = CombatHudScreenLayout.BoardInner(geometry.Board, 12, 8);
+                float tileSize = Mathf.Min(grid.width / 12f, grid.height / 8f);
+                AssertEqual(true, tileSize >= minimumTileSizes[sizeIndex], $"combat battlefield preserves large tiles at {size.x}x{size.y} ({tileSize:0.0}px)");
+                AssertEqual(true, grid.width * grid.height >= size.x * size.y * 0.50f, $"combat battlefield owns at least half the frame at {size.x}x{size.y}");
                 foreach (bool promoteEndTurn in new[] { false, true })
                 {
                     Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, promoteEndTurn);
@@ -3195,14 +3471,14 @@ namespace AshenHalls.Editor
                     foreach (Rect button in buttons)
                     {
                         AssertEqual(true, button.xMin >= 0f && button.yMin >= 0f && button.xMax <= geometry.Command.width && button.yMax <= geometry.Command.height, $"combat command button fits {size.x}x{size.y} promoted={promoteEndTurn}");
-                        float iconSize = Mathf.Clamp(button.height - 24f, 56f, 72f);
-                        AssertEqual(true, iconSize >= 56f, $"combat command art remains readable at {size.x}x{size.y}");
-                        AssertEqual(true, 20f + iconSize <= button.height - 4f, $"combat command art clears its keycap band and state rail at {size.x}x{size.y}");
+                        AssertEqual(true, button.width >= 56f && button.height >= 80f, $"combat command keeps a generous pointer and controller target at {size.x}x{size.y}");
+                        float iconSize = CombatHudScreenLayout.CommandIconSize(button);
+                        AssertEqual(true, iconSize >= 52f, $"combat command art remains readable at {size.x}x{size.y}");
+                        AssertEqual(true, 6f + iconSize + 27f <= button.height, $"combat command art clears its compact label stack at {size.x}x{size.y}");
                     }
-                    AssertEqual(true, buttons[3].xMin - buttons[2].xMax > buttons[2].xMin - buttons[1].xMax, $"targeted and instant command groups stay visually separated at {size.x}x{size.y}");
-                    AssertEqual(promoteEndTurn, buttons[5].width > buttons[4].width, $"end turn width promotion is intentional at {size.x}x{size.y}");
+                    AssertEqual(true, buttons[3].yMin - buttons[2].yMax > buttons[2].yMin - buttons[1].yMax, $"targeted and instant command groups stay visually separated at {size.x}x{size.y}");
+                    AssertEqual(promoteEndTurn, buttons[5].height > buttons[4].height, $"end turn height promotion is intentional at {size.x}x{size.y}");
                 }
-                float commandRowY = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, false)[0].yMin;
                 foreach (int commandCount in new[] { 0, 1, 4, 6 })
                 {
                     Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, commandCount, false);
@@ -3215,26 +3491,24 @@ namespace AshenHalls.Editor
                             $"data-driven combat command button fits {size.x}x{size.y} count={commandCount}");
                     }
                 }
+                float contextWidth = Mathf.Max(420f, geometry.Top.width * 0.45f);
                 foreach (bool showUndoMove in new[] { false, true })
                 foreach (bool showCancelTarget in new[] { false, true })
                 {
-                    Rect prompt = CombatHudScreenLayout.CommandPrompt(geometry.Command.width, showUndoMove, showCancelTarget);
-                    Rect undo = CombatHudScreenLayout.UndoMoveButton(geometry.Command.width, showCancelTarget);
-                    Rect cancel = CombatHudScreenLayout.CancelTargetButton(geometry.Command.width);
-                    AssertEqual(true, prompt.xMin >= 0f && prompt.xMax <= geometry.Command.width && prompt.yMin >= 0f && prompt.yMax <= geometry.Command.height, $"combat prompt fits {size.x}x{size.y} undo={showUndoMove} cancel={showCancelTarget}");
-                    AssertEqual(true, prompt.yMax <= commandRowY, $"combat prompt clears the command-button row at {size.x}x{size.y} undo={showUndoMove} cancel={showCancelTarget}");
+                    Rect prompt = CombatHudScreenLayout.CommandPrompt(contextWidth, showUndoMove, showCancelTarget);
+                    Rect undo = CombatHudScreenLayout.UndoMoveButton(contextWidth, showCancelTarget);
+                    Rect cancel = CombatHudScreenLayout.CancelTargetButton(contextWidth);
+                    AssertEqual(true, prompt.xMin >= 0f && prompt.xMax <= contextWidth && prompt.yMin >= 0f && prompt.yMax <= geometry.Top.height, $"combat prompt fits the top ribbon at {size.x}x{size.y} undo={showUndoMove} cancel={showCancelTarget}");
                     if (showUndoMove)
                     {
-                        AssertEqual(true, undo.xMin >= 0f && undo.xMax <= geometry.Command.width && undo.yMin >= 0f && undo.yMax <= geometry.Command.height, $"undo control fits {size.x}x{size.y}");
+                        AssertEqual(true, undo.xMin >= 0f && undo.xMax <= contextWidth && undo.yMin >= 0f && undo.yMax <= geometry.Top.height, $"undo control fits {size.x}x{size.y}");
                         AssertEqual(true, prompt.xMax <= undo.xMin, $"undo control does not overlap the combat prompt at {size.x}x{size.y}");
-                        AssertEqual(true, undo.yMax <= commandRowY, $"undo control clears the command-button row at {size.x}x{size.y}");
                     }
                     if (showCancelTarget)
                     {
-                        AssertEqual(true, cancel.xMin >= 0f && cancel.xMax <= geometry.Command.width && cancel.yMin >= 0f && cancel.yMax <= geometry.Command.height, $"cancel control fits {size.x}x{size.y}");
+                        AssertEqual(true, cancel.xMin >= 0f && cancel.xMax <= contextWidth && cancel.yMin >= 0f && cancel.yMax <= geometry.Top.height, $"cancel control fits {size.x}x{size.y}");
                         Rect leftmost = showUndoMove ? undo : cancel;
                         AssertEqual(true, prompt.xMax <= leftmost.xMin, $"target cancel controls do not overlap the combat prompt at {size.x}x{size.y}");
-                        AssertEqual(true, cancel.yMax <= commandRowY, $"cancel control clears the command-button row at {size.x}x{size.y}");
                     }
                     if (showUndoMove && showCancelTarget)
                     {
@@ -3245,8 +3519,8 @@ namespace AshenHalls.Editor
                 CombatHudScreenLayout.SidePanels(geometry.Side, false, out Rect active, out Rect target, out Rect timeline);
                 AssertEqual(true, active.yMin >= 0f && target.yMin >= active.yMax && timeline.yMin >= target.yMax && timeline.yMax <= geometry.Side.height, $"combat side collapsed fits {size.x}x{size.y}");
                 float collapsedTimelineHeight = timeline.height;
-                AssertEqual(true, Mathf.Abs(timeline.yMax - geometry.Side.height) < 0.01f, $"collapsed active, target, and timeline panels fill the full side rail at {size.x}x{size.y}");
-                AssertEqual(true, collapsedTimelineHeight >= 190f, $"collapsed combat timeline keeps initiative chips, tactical read, and two event rows at {size.x}x{size.y}");
+                AssertEqual(true, geometry.Side.height - timeline.yMax >= 100f, $"collapsed combat dossier leaves deliberate breathing room at {size.x}x{size.y}");
+                AssertEqual(true, collapsedTimelineHeight >= 126f && collapsedTimelineHeight <= 154f, $"collapsed combat timeline shows initiative without reserving event-log space at {size.x}x{size.y}");
                 foreach (bool showMana in new[] { false, true })
                 {
                     CombatHudUnitCardGeometry activeCard = CombatHudScreenLayout.UnitCard(active.width, active.height, showMana);
@@ -3261,14 +3535,32 @@ namespace AshenHalls.Editor
                 }
                 CombatHudScreenLayout.SidePanels(geometry.Side, true, out active, out target, out timeline);
                 AssertEqual(true, active.yMin >= 0f && target.yMin >= active.yMax && timeline.yMin >= target.yMax && timeline.yMax <= geometry.Side.height, $"combat side expanded fits {size.x}x{size.y}");
-                AssertEqual(true, Mathf.Abs(timeline.yMax - geometry.Side.height) < 0.01f, $"expanded active, target, and timeline panels fill the full side rail at {size.x}x{size.y}");
-                AssertEqual(true, timeline.height >= 190f && timeline.height >= collapsedTimelineHeight + 60f, $"expanded combat timeline is materially larger at {size.x}x{size.y}");
+                AssertEqual(true, timeline.height >= 284f && timeline.height >= collapsedTimelineHeight + 120f, $"expanded combat timeline becomes the intentional information drawer at {size.x}x{size.y}");
                 foreach (bool showMana in new[] { false, true })
                 {
                     AssertEqual(true, CombatHudScreenLayout.UnitCard(active.width, active.height, showMana).Fits(active.width, active.height), $"expanded active card rows do not overlap at {size.x}x{size.y} mana={showMana}");
                     AssertEqual(true, CombatHudScreenLayout.UnitCard(target.width, target.height, showMana).Fits(target.width, target.height), $"expanded target card rows do not overlap at {size.x}x{size.y} mana={showMana}");
                 }
             }
+
+            CombatHudGeometry compactGeometry = CombatHudScreenLayout.Calculate(960f, 600f);
+            AssertEqual(true, compactGeometry.Fits(960f, 600f), "combat HUD remains bounded at the project's compact 960x600 window size");
+            Rect[] compactButtons = CombatHudScreenLayout.CommandButtons(
+                compactGeometry.Command.width,
+                compactGeometry.Command.height,
+                6,
+                false);
+            foreach (Rect button in compactButtons)
+            {
+                AssertEqual(true, CombatHudScreenLayout.UsesCompactCommandLayout(button), "compact combat window switches commands to the single-label layout");
+                float iconSize = CombatHudScreenLayout.CommandIconSize(button);
+                float labelBottom = 4f + iconSize + 1f + 15f;
+                AssertEqual(true, labelBottom <= button.height - 3f, "compact combat command art and label stay inside their hit target");
+            }
+            CombatHudScreenLayout.SidePanels(compactGeometry.Side, false, out Rect compactActive, out Rect compactTarget, out Rect compactTimeline);
+            AssertEqual(true, CombatHudScreenLayout.UnitCard(compactActive.width, compactActive.height, true).Fits(compactActive.width, compactActive.height), "compact fallback active card keeps portrait, text, and meters separated");
+            AssertEqual(true, CombatHudScreenLayout.UnitCard(compactTarget.width, compactTarget.height, true).Fits(compactTarget.width, compactTarget.height), "compact fallback target card keeps portrait, text, and meters separated");
+            AssertEqual(true, compactTimeline.yMax <= compactGeometry.Side.height, "compact dossier remains bounded beneath the adaptive unit cards");
         }
 
         private static void PauseMenuLayoutFitsSupportedResolutions()
@@ -4457,13 +4749,28 @@ namespace AshenHalls.Editor
             AssertEqual(true, GameAudioCueRules.SuppressesExplorationAmbience("ratchitter"), "rat alerts preserve foreground breathing room");
             AssertEqual(true, GameAudioCueRules.SuppressesExplorationAmbience("wayfind"), "discovery stingers preserve foreground breathing room");
             AssertEqual(true, GameAudioCueRules.SuppressesExplorationAmbience("gateopen"), "landmark interactions preserve foreground breathing room");
-            AssertEqual(0f, GameAudioCueRules.RoamingThreatPan(0, 1), "single-column threat audio stays centered");
-            AssertEqual(true, GameAudioCueRules.RoamingThreatPan(0, 20) < -0.60f, "west threats sound west");
-            AssertEqual(true, GameAudioCueRules.RoamingThreatPan(19, 20) > 0.60f, "east threats sound east");
+            AssertEqual(8, GameAudioCueRules.RoamingThreatHearingRadius, "roaming patrol audio has a bounded hearing radius");
+            AssertEqual(false, GameAudioCueRules.CanHearRoamingThreat(-1), "invalid patrol distances stay silent");
+            AssertEqual(true, GameAudioCueRules.CanHearRoamingThreat(0), "overlapping patrol audio remains audible");
+            AssertEqual(true, GameAudioCueRules.CanHearRoamingThreat(GameAudioCueRules.RoamingThreatHearingRadius), "patrol steps remain faintly audible at the hearing edge");
+            AssertEqual(false, GameAudioCueRules.CanHearRoamingThreat(GameAudioCueRules.RoamingThreatHearingRadius + 1), "remote patrol steps are inaudible beyond the hearing edge");
+            AssertEqual(0f, GameAudioCueRules.RoamingThreatRelativePan(6, 6), "patrol audio directly north or south stays centered");
+            AssertEqual(true, GameAudioCueRules.RoamingThreatRelativePan(7, 6) > 0f, "a patrol east of the party sounds right");
+            AssertEqual(true, GameAudioCueRules.RoamingThreatRelativePan(5, 6) < 0f, "a patrol west of the party sounds left");
             AssertEqual(
-                -GameAudioCueRules.RoamingThreatPan(3, 20),
-                GameAudioCueRules.RoamingThreatPan(16, 20),
-                "threat stereo placement is symmetric");
+                -GameAudioCueRules.RoamingThreatRelativePan(3, 8),
+                GameAudioCueRules.RoamingThreatRelativePan(13, 8),
+                "party-relative patrol stereo placement is symmetric");
+            AssertEqual(true, GameAudioCueRules.RoamingThreatRelativePan(100, 0) <= 0.68f, "distant horizontal patrol placement stays inside the world mix");
+            float closePatrolGain = GameAudioCueRules.RoamingThreatDistanceGain(1);
+            float middlePatrolGain = GameAudioCueRules.RoamingThreatDistanceGain(4);
+            float edgePatrolGain = GameAudioCueRules.RoamingThreatDistanceGain(GameAudioCueRules.RoamingThreatHearingRadius);
+            AssertEqual(1f, closePatrolGain, "adjacent patrol movement keeps its calibrated close gain");
+            AssertEqual(true, closePatrolGain > middlePatrolGain && middlePatrolGain > edgePatrolGain, "patrol movement fades monotonically with distance");
+            AssertEqual(true, edgePatrolGain > 0f && edgePatrolGain <= 0.18f, "hearing-edge patrol movement is present but faint");
+            AssertEqual(0f, GameAudioCueRules.RoamingThreatDistanceGain(GameAudioCueRules.RoamingThreatHearingRadius + 1), "inaudible patrol movement has zero gain");
+            AssertEqual(0.28f, GameAudioCueRules.RoamingThreatMovementVolume(0.28f, 1), "close faction steps preserve their authored gain");
+            AssertEqual(0f, GameAudioCueRules.RoamingThreatMovementVolume(0.28f, GameAudioCueRules.RoamingThreatHearingRadius + 1), "remote faction steps cannot enter the SFX mix");
 
             AssertEqual("ambbell", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.TempleHealer), "temple district uses bell ambience");
             AssertEqual("ambforge", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.Armorer), "armorer district uses forge ambience");
@@ -5504,6 +5811,58 @@ namespace AshenHalls.Editor
             interior.TargetId = "missing-door";
             AssertEqual(false, MidgaardInteriorRules.HasValidTarget(map, interior), "missing portal target is rejected");
             AssertEqual(MidgaardInteriorRules.ThroneRoomExitId, MidgaardInteriorRules.BrokenPortalIds(map).Single(), "broken portal reports its stable identity");
+        }
+
+        private static void GrandHearthInteriorContractIsStable()
+        {
+            Vector2Int[] sizes =
+            {
+                new Vector2Int(58, 46),
+                new Vector2Int(50, 32),
+                new Vector2Int(46, 30)
+            };
+            foreach (Vector2Int size in sizes)
+            {
+                MapData map = new MapData
+                {
+                    Width = size.x,
+                    Height = size.y,
+                    Depth = 1,
+                    StartX = WorldMapGenerationRules.StartX(size.x),
+                    StartY = WorldMapGenerationRules.StartY(size.y)
+                };
+                RectInt room = MidgaardInteriorRules.GrandHearthBounds(map);
+                Point spawn = MidgaardInteriorRules.GrandHearthSpawn(map);
+                Point exit = MidgaardInteriorRules.GrandHearthExit(map);
+                AssertEqual(true, room.xMin >= 1 && room.yMin >= 1 && room.xMax < size.x && room.yMax < size.y, $"Grand Hearth room fits supported map {size.x}x{size.y}");
+                AssertEqual(true, room.Contains(new Vector2Int(spawn.X, spawn.Y)), $"Grand Hearth spawn stays inside room {size.x}x{size.y}");
+                AssertEqual(true, room.Contains(new Vector2Int(exit.X, exit.Y)), $"Grand Hearth exit stays inside room {size.x}x{size.y}");
+                AssertEqual(room.xMax - 1, exit.X, $"Grand Hearth storm doors remain on the east wall {size.x}x{size.y}");
+                AssertEqual(false, room.Overlaps(MidgaardInteriorRules.ThroneRoomBounds(map)), $"Grand Hearth remains separate from the throne room {size.x}x{size.y}");
+                AssertEqual(false, room.Overlaps(MidgaardInteriorRules.MerchantHallBounds(map)), $"Grand Hearth remains separate from the merchant hall {size.x}x{size.y}");
+                AssertEqual(true, MidgaardInteriorRules.IsReservedCell(map, spawn.X, spawn.Y), $"Grand Hearth spawn is protected from procedural landmarks {size.x}x{size.y}");
+            }
+
+            MapData portalMap = new MapData
+            {
+                Width = 8,
+                Height = 6,
+                Depth = 1,
+                Tiles = Enumerable.Repeat(1, 48).ToList(),
+                SurfaceMaterials = Enumerable.Repeat((int)ExplorationMaterial.KeepStone, 48).ToList(),
+                SurfaceRoles = Enumerable.Repeat((int)ExplorationCellRole.Room, 48).ToList(),
+                Objects = new List<MapObject>()
+            };
+            MapObject exterior = new MapObject(2, 2, ObjectType.Tavern, MidgaardInteriorRules.GrandHearthDoorId, MidgaardInteriorRules.GrandHearthExitId);
+            MapObject interior = new MapObject(5, 3, ObjectType.InteriorDoor, MidgaardInteriorRules.GrandHearthExitId, MidgaardInteriorRules.GrandHearthDoorId);
+            portalMap.Objects.Add(exterior);
+            portalMap.Objects.Add(interior);
+            AssertEqual(true, MidgaardInteriorRules.HasValidTarget(portalMap, exterior), "Grand Hearth exterior storm doors resolve the interior exit");
+            AssertEqual(true, MidgaardInteriorRules.HasValidTarget(portalMap, interior), "Grand Hearth interior storm doors resolve the Midgaard doorway");
+            AssertEqual(0, MidgaardInteriorRules.BrokenPortalIds(portalMap).Count, "Grand Hearth portal pair is complete");
+            AssertEqual("Grand Hearth", WorldZoneCatalog.For("midgaard-grand-hearth", 1).Name, "Grand Hearth has a dedicated player-facing zone");
+            AssertEqual(MusicDirectorRules.Tavern, MusicDirectorRules.ExploreTrackKey("midgaard-grand-hearth", ObjectType.Tavern, true, false), "Grand Hearth continues the title overture");
+            AssertEqual("ambhearth", GameAudioCueRules.AmbientFor("midgaard-grand-hearth", null), "Grand Hearth uses the hearth ambience bed");
         }
 
         private static void RoamingThreatsTelegraphAndPathAroundTerrain()

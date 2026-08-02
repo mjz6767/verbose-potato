@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-Last updated for v1.6.3.
+Last updated for the v2.4.0 source candidate. Combined verification remains pending; older release sections are retained below as historical records.
 
 ## Active Runtime Art
 
@@ -8,11 +8,19 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 
 - Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI.
 - Party/enemies: character combat atlas, enemy sprite atlas, creature/combat sprite fallback atlas, enemy roster, boss enemy fallback, Kobold King boss atlas.
-- World map: world environment/object fallback, world-map ground tiles, landmarks, overlays, progression overlays, token sprites, props, quest world objects, Midgaard town/tile/NPC/sewer sheets.
+- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, non-interactive citizens, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
 - Kobold route: route markers, cave props, dedicated kobold combat terrain, boss route art.
 - Combat UI/effects: combat UI, combat UI panel, combat HUD, combat command icons, ability icons, spellbook UI, combat spellbook UI, spellbook open art, magic UI, ember/epic/combat spell effects, spell animation, combat floating text art.
 - Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.
 - Journal/scaffold: story cards, NPC portraits, route/dungeon/service/faction scaffold hooks when matching files are present.
+
+## Newly Connected In v2.4.0 - Verification Pending
+
+- Source wiring exact-pins `world-threat-habitat-atlas-runtime-v2.4.0.png`, `world-npc-citizen-atlas-runtime-v2.4.0.png`, and `player-exploration-role-atlas-runtime-v2.4.0.png` as separate 4 by 2, 1536 by 768 transparent contracts with eight populated 384-pixel cells and 20-pixel safe gutters.
+- Threat habitats remain stationary at the existing saved home beneath mobile threat tokens and are suppressed on certified safe roads. They add no encounters and mutate no campaign state.
+- Ambient citizens are deterministic exterior dressing only. They stay off the Grand Hearth tutorial lane, roads, guidance, entrances, and interactables and never replace a named NPC or dialogue portrait.
+- Exactly one represented party member uses the dedicated Shield, Pike, Bow, Knife, Mender, Ember, Hex, or Ward atlas cell. Multi-member parties retain the mixed atlas group marker; combat and inventory character art remain unchanged.
+- RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, Windows build/package, clean-extracted packaged boot, and final endpoint visual inspection remain pending for the settled v2.4.0 source.
 
 ## Newly Connected In v1.6.3
 

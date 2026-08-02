@@ -2770,6 +2770,7 @@ namespace AshenHalls
             foreach (MapObject mapObject in state.Map.Objects)
             {
                 if (mapObject == null) continue;
+                if (TryRegionalSite(state.Map, mapObject, out _)) continue;
                 bool near = Distance(mapObject.X, mapObject.Y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius;
                 bool important = IsCurrentMidgaardObjective(mapObject) || mapObject.Type == ObjectType.Stairs || mapObject.Type == ObjectType.Encounter || IsRouteScaffoldObject(mapObject.Type);
                 if (!near && !important) continue;
@@ -2777,6 +2778,13 @@ namespace AshenHalls
                 Rect dotRect = new Rect(map.x + mapObject.X * sx + sx * 0.5f - dot * 0.5f, map.y + mapObject.Y * sy + sy * 0.5f - dot * 0.5f, dot, dot);
                 DrawRect(dotRect, ObjectColor(mapObject.Type).WithAlpha(important ? 0.96f : 0.70f));
             }
+
+            // Draw from lowest to highest presentation priority so current sites and
+            // alerted patrols remain legible when markers share a compact cell.
+            DrawExploreMiniMapAuthoredSites(map, sx, sy, scale, currentOnly: false);
+            DrawExploreMiniMapPatrols(map, sx, sy, scale, alertedOnly: false);
+            DrawExploreMiniMapAuthoredSites(map, sx, sy, scale, currentOnly: true);
+            DrawExploreMiniMapPatrols(map, sx, sy, scale, alertedOnly: true);
 
             int viewW = Mathf.Min(ExploreViewportWidth(), state.Map.Width);
             int viewH = Mathf.Min(ExploreViewportHeight(), state.Map.Height);
@@ -2788,6 +2796,103 @@ namespace AshenHalls
             Rect party = new Rect(map.x + state.PlayerX * sx + sx * 0.5f - 3f, map.y + state.PlayerY * sy + sy * 0.5f - 3f, 6f, 6f);
             DrawRect(party, teal);
             DrawBorder(Pad(party, -1f), cursorWhite.WithAlpha(0.86f), 1);
+        }
+
+        private void DrawExploreMiniMapAuthoredSites(
+            Rect map,
+            float sx,
+            float sy,
+            float scale,
+            bool currentOnly)
+        {
+            WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY);
+            bool hasCurrentSite = TryRegionalSiteAt(state.Map, state.PlayerX, state.PlayerY, out WorldMapSite currentSite);
+            foreach (WorldMapSite site in sites)
+            {
+                int distance = Distance(site.X, site.Y, state.PlayerX, state.PlayerY);
+                bool current = hasCurrentSite && string.Equals(site.Id, currentSite.Id, StringComparison.Ordinal);
+                if (current != currentOnly) continue;
+                bool discovered = HasStoryFlag(WorldSiteInteractionRules.ChartFlag(state.Depth, site.Id));
+                if (!ExplorationMiniMapPresentationRules.ShouldShowAuthoredSite(
+                        discovered,
+                        current,
+                        distance,
+                        ExploreRevealRadius))
+                {
+                    continue;
+                }
+
+                ExplorationMiniMapMarkerKind kind = current
+                    ? ExplorationMiniMapMarkerKind.CurrentSite
+                    : ExplorationMiniMapMarkerKind.AuthoredSite;
+                float markerSize = ExplorationMiniMapPresentationRules.MarkerPixels(kind) * scale;
+                Rect marker = new Rect(
+                    map.x + (site.X + 0.5f) * sx - markerSize * 0.5f,
+                    map.y + (site.Y + 0.5f) * sy - markerSize * 0.5f,
+                    markerSize,
+                    markerSize);
+                Color accent = current
+                    ? gold
+                    : ZoneDangerColor(ZoneFor(site.X, site.Y, state.Map, state.Depth));
+                DrawRect(marker, Hex("020303", 0.96f));
+                DrawPixelCross(Pad(marker, markerSize * 0.22f), accent.WithAlpha(0.96f));
+                DrawBorder(
+                    Pad(marker, current ? -2f * scale : -1f * scale),
+                    (current ? cursorWhite : accent).WithAlpha(current ? 0.88f : 0.64f),
+                    1);
+            }
+        }
+
+        private void DrawExploreMiniMapPatrols(
+            Rect map,
+            float sx,
+            float sy,
+            float scale,
+            bool alertedOnly)
+        {
+            if (state.RoamingThreats == null) return;
+            foreach (RoamingThreat threat in state.RoamingThreats)
+            {
+                if (threat == null) continue;
+                if (threat.Alerted != alertedOnly) continue;
+                int distance = Distance(threat.X, threat.Y, state.PlayerX, state.PlayerY);
+                if (!ExplorationMiniMapPresentationRules.ShouldShowPatrol(
+                        threat.Active,
+                        threat.Depth,
+                        state.Depth,
+                        threat.Alerted,
+                        distance,
+                        ExploreRevealRadius))
+                {
+                    continue;
+                }
+
+                ExplorationMiniMapMarkerKind kind = threat.Alerted
+                    ? ExplorationMiniMapMarkerKind.AlertedPatrol
+                    : ExplorationMiniMapMarkerKind.Patrol;
+                float markerSize = ExplorationMiniMapPresentationRules.MarkerPixels(kind) * scale;
+                Rect marker = new Rect(
+                    map.x + (threat.X + 0.5f) * sx - markerSize * 0.5f,
+                    map.y + (threat.Y + 0.5f) * sy - markerSize * 0.5f,
+                    markerSize,
+                    markerSize);
+                Color accent = threat.Alerted ? blood : RoamingThreatFallbackColor(threat);
+                DrawRect(marker, Hex("020303", 0.98f));
+                if (threat.Alerted)
+                {
+                    DrawPixelCross(Pad(marker, markerSize * 0.20f), accent.WithAlpha(0.98f));
+                    DrawBorder(Pad(marker, -1f * scale), cursorWhite.WithAlpha(0.76f), 1);
+                }
+                else
+                {
+                    DrawRect(Pad(marker, markerSize * 0.28f), accent.WithAlpha(0.92f));
+                    DrawBorder(marker, accent.WithAlpha(0.68f), 1);
+                }
+            }
         }
 
         private void DrawPartyGrowthChip(Rect rect)
@@ -5760,7 +5865,7 @@ namespace AshenHalls
         private bool TryResolveRegionalSite(MapObject obj)
         {
             if (!TryRegionalSite(state?.Map, obj, out WorldMapSite site)) return false;
-            string visitedFlag = $"regional_site_{Mathf.Max(1, state.Depth)}_{SanitizeFlagPart(site.Id)}_charted";
+            string visitedFlag = WorldSiteInteractionRules.ChartFlag(state.Depth, site.Id);
             bool firstVisit = !HasStoryFlag(visitedFlag);
             if (firstVisit)
             {
@@ -5769,13 +5874,195 @@ namespace AshenHalls
                 AwardWorldExperience(10 + state.Depth * 2, site.Name + " charted");
                 PushLog(site.Name + " is added to the party's road chart. " + site.Summary, Tone.Good);
             }
-            else
+
+            if (!WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
             {
                 PushLog(site.Summary, Tone.Normal);
+            }
+            else
+            {
+                string rewardFlag = WorldSiteInteractionRules.RewardFlag(state.Depth, site.Id);
+                bool rewardClaimed = WorldSiteInteractionRules.RewardClaimed(
+                    state.StoryFlags,
+                    state.Depth,
+                    site.Id);
+                if (!rewardClaimed)
+                {
+                    if (TryApplyWorldSiteFirstReward(interaction, out string rewardDetail))
+                    {
+                        SetStoryFlag(rewardFlag);
+                        PushLog(
+                            interaction.ServiceName + ": "
+                            + WorldSiteInteractionRules.Status(interaction, false) + " "
+                            + rewardDetail,
+                            Tone.Good);
+                        AutosaveCheckpoint(interaction.ServiceName + " reward claimed");
+                    }
+                    else
+                    {
+                        PushLog(
+                            interaction.ServiceName + ": " + rewardDetail
+                            + " The reward remains available.",
+                            Tone.Warn);
+                    }
+                }
+                else
+                {
+                    ApplyWorldSiteRepeatService(interaction);
+                }
             }
             ShowBanner(site.Name);
             PlaySfx(WorldSitePresentationRules.InspectCueFor(site.Id), 0.68f);
             return true;
+        }
+
+        private bool TryApplyWorldSiteFirstReward(
+            WorldSiteInteractionProfile profile,
+            out string detail)
+        {
+            detail = "No reward profile is available.";
+            if (profile == null) return false;
+            switch (profile.RewardKind)
+            {
+                case WorldSiteRewardKind.TrainingInsight:
+                {
+                    PartyMember recipient = LeastTrainedLivingPartyMember(false);
+                    if (recipient == null)
+                    {
+                        detail = "No living hero can complete the lesson.";
+                        return false;
+                    }
+                    recipient.SkillPoints += 1;
+                    detail = profile.RewardSummary + " " + recipient.Name + " receives the lesson.";
+                    return true;
+                }
+                case WorldSiteRewardKind.QuarryMail:
+                {
+                    EnsureInventoryList();
+                    InventoryItem mail = CreateWorldSiteQuarryMail();
+                    state.Inventory.Add(mail);
+                    ShowLootPanel(mail, 0, 0, 0, "Added to the pack for deliberate equipping.", "Quarry Forge");
+                    detail = profile.RewardSummary;
+                    return true;
+                }
+                case WorldSiteRewardKind.CryptTithe:
+                {
+                    int tithe = 14 + Mathf.Max(1, state.Depth) * 2;
+                    state.Gold += tithe;
+                    detail = profile.RewardSummary + " Gold +" + tithe + ".";
+                    return true;
+                }
+                case WorldSiteRewardKind.GlassFormula:
+                {
+                    PartyMember recipient = LeastTrainedLivingPartyMember(true)
+                        ?? LeastTrainedLivingPartyMember(false);
+                    if (recipient == null)
+                    {
+                        detail = "No living hero can preserve the formula.";
+                        return false;
+                    }
+                    recipient.SkillPoints += 1;
+                    detail = profile.RewardSummary + " " + recipient.Name + " records the translation.";
+                    return true;
+                }
+                case WorldSiteRewardKind.MarketCache:
+                    state.Supplies += 2;
+                    detail = profile.RewardSummary + " Supplies +2.";
+                    return true;
+                case WorldSiteRewardKind.SealEmber:
+                    state.Elixirs += 1;
+                    detail = profile.RewardSummary + " Elixirs +1.";
+                    return true;
+                case WorldSiteRewardKind.CisternStores:
+                    state.Supplies += 1;
+                    state.Gold += 6;
+                    detail = profile.RewardSummary + " Supplies +1 / gold +6.";
+                    return true;
+                case WorldSiteRewardKind.GroveTonic:
+                    state.Elixirs += 1;
+                    RestoreLivingParty(8, 5);
+                    detail = profile.RewardSummary + " Elixirs +1.";
+                    return true;
+                default:
+                    detail = "No supported reward is available.";
+                    return false;
+            }
+        }
+
+        private void ApplyWorldSiteRepeatService(WorldSiteInteractionProfile profile)
+        {
+            if (profile == null) return;
+            string status = WorldSiteInteractionRules.Status(profile, true);
+            if (profile.IsInformationalRepeat)
+            {
+                PushLog(profile.ServiceName + ": " + status + " " + profile.RepeatSummary, Tone.Normal);
+                return;
+            }
+
+            bool recoveryService = profile.RepeatHealing > 0 || profile.RepeatMana > 0;
+            bool recoveryNeeded = !recoveryService || WorldSiteRecoveryNeeded(profile);
+            if (recoveryService && !recoveryNeeded)
+            {
+                PushLog(profile.ServiceName + ": " + status + " The living party is already fully prepared.", Tone.Normal);
+                return;
+            }
+            if (state.Supplies < profile.RepeatSupplyCost)
+            {
+                PushLog(profile.ServiceName + ": " + status + " The service needs " + profile.RepeatSupplyCost + " supply.", Tone.Warn);
+                return;
+            }
+            if (state.Gold < profile.RepeatGoldCost)
+            {
+                PushLog(profile.ServiceName + ": " + status + " The service needs " + profile.RepeatGoldCost + " gold.", Tone.Warn);
+                return;
+            }
+
+            state.Supplies -= profile.RepeatSupplyCost;
+            state.Gold -= profile.RepeatGoldCost;
+            state.Supplies += profile.RepeatSupplies;
+            if (recoveryService)
+            {
+                RestoreLivingParty(profile.RepeatHealing, profile.RepeatMana);
+            }
+            PushLog(profile.ServiceName + ": " + profile.RepeatSummary, Tone.Good);
+            AutosaveCheckpoint(profile.ServiceName + " service used");
+        }
+
+        private PartyMember LeastTrainedLivingPartyMember(bool requireSpell)
+        {
+            if (state?.Party == null) return null;
+            return state.Party
+                .Where(member => member != null
+                    && member.Hp > 0
+                    && (!requireSpell || !string.IsNullOrWhiteSpace(member.Spell)))
+                .OrderBy(member => member.SkillPoints)
+                .ThenBy(member => member.Id ?? "", StringComparer.Ordinal)
+                .FirstOrDefault();
+        }
+
+        private bool WorldSiteRecoveryNeeded(WorldSiteInteractionProfile profile)
+        {
+            if (profile == null || state?.Party == null) return false;
+            return state.Party.Any(member => member != null
+                && member.Hp > 0
+                && (profile.RepeatHealing > 0 && member.Hp < member.MaxHp
+                    || profile.RepeatMana > 0 && member.Mana < member.MaxMana));
+        }
+
+        private InventoryItem CreateWorldSiteQuarryMail()
+        {
+            return new InventoryItem
+            {
+                Mark = "quarry",
+                Material = "worked iron",
+                Trait = "guarding",
+                Slot = "armor",
+                Form = "ring mail",
+                Bonus = 2,
+                HealthBonus = 1,
+                Rarity = "site reward",
+                DisplayName = "+2 quarry worked iron ring mail"
+            };
         }
 
         private void ResolveRouteScaffoldTile(MapObject obj)
@@ -14432,13 +14719,15 @@ namespace AshenHalls
                 float exploreBottom = exploreHud.Command.yMin - 6f * scale;
                 return new Rect(5f * scale, exploreTop, Screen.width - 10f * scale, Mathf.Max(360f * scale, exploreBottom - exploreTop));
             }
+            if (state != null && state.Mode == GameMode.Combat)
+            {
+                return CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Board;
+            }
 
             float sideW = CombatHudScreenLayout.SideRailWidth(Screen.width);
             bool chrome = state != null && (state.Mode == GameMode.Explore || state.Mode == GameMode.Combat || state.Mode == GameMode.Defeat || state.Mode == GameMode.Victory);
             float top = chrome ? 78f : 12f;
-            float bottom = state != null && state.Mode == GameMode.Combat
-                ? Screen.height - CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Command.yMin + 6f
-                : state != null && state.Mode == GameMode.Explore ? 112f : 28f;
+            float bottom = state != null && state.Mode == GameMode.Explore ? 112f : 28f;
             return new Rect(12f, top, Screen.width - sideW - 36f, Mathf.Max(320f, Screen.height - top - bottom));
         }
 
@@ -14447,6 +14736,10 @@ namespace AshenHalls
             if (state != null && state.Mode == GameMode.Explore)
             {
                 return ExplorationHudScreenLayout.Calculate(Screen.width, Screen.height, !exploreHudCollapsed).Side;
+            }
+            if (state != null && state.Mode == GameMode.Combat)
+            {
+                return CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Side;
             }
 
             float sideW = CombatHudScreenLayout.SideRailWidth(Screen.width);
@@ -14496,22 +14789,13 @@ namespace AshenHalls
 
         private Rect CombatBoardInnerRect(Rect outer)
         {
-            // The migrated HUD owns the top and command chrome; the board only needs its frame inset.
-            Rect inner = new Rect(outer.x + 14f, outer.y + 14f, outer.width - 28f, outer.height - 28f);
-            float aspect = (float)CombatW / CombatH;
-            if (inner.width / inner.height > aspect)
+            if (betaLabMode && !visualSmokeHideCombatDebug && state?.Mode == GameMode.Combat)
             {
-                float width = inner.height * aspect;
-                inner.x += (inner.width - width) / 2f;
-                inner.width = width;
+                const float debugToolbarReserve = 38f;
+                outer.y += debugToolbarReserve;
+                outer.height = Mathf.Max(1f, outer.height - debugToolbarReserve);
             }
-            else
-            {
-                float height = inner.width / aspect;
-                inner.y += (inner.height - height) / 2f;
-                inner.height = height;
-            }
-            return inner;
+            return CombatHudScreenLayout.BoardInner(outer, CombatW, CombatH);
         }
 
         private void ShowBanner(string text)

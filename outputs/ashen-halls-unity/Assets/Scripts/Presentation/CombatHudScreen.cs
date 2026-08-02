@@ -114,24 +114,31 @@ namespace AshenHalls
     public readonly struct CombatHudGeometry
     {
         public readonly Rect Top;
-        public readonly Rect Side;
         public readonly Rect Command;
+        public readonly Rect Board;
+        public readonly Rect Side;
 
-        public CombatHudGeometry(Rect top, Rect side, Rect command)
+        public CombatHudGeometry(Rect top, Rect command, Rect board, Rect side)
         {
             Top = top;
-            Side = side;
             Command = command;
+            Board = board;
+            Side = side;
         }
 
         public bool Fits(float width, float height)
         {
             return FitsRect(Top, width, height)
-                && FitsRect(Side, width, height)
                 && FitsRect(Command, width, height)
-                && Top.yMax <= Side.yMin
-                && Side.yMax <= height - 8f
-                && Command.yMin >= height - 170f;
+                && FitsRect(Board, width, height)
+                && FitsRect(Side, width, height)
+                && Top.yMax <= Command.yMin
+                && Mathf.Abs(Command.yMin - Board.yMin) < 0.01f
+                && Mathf.Abs(Board.yMin - Side.yMin) < 0.01f
+                && Mathf.Abs(Command.yMax - Board.yMax) < 0.01f
+                && Mathf.Abs(Board.yMax - Side.yMax) < 0.01f
+                && Command.xMax <= Board.xMin
+                && Board.xMax <= Side.xMin;
         }
 
         private static bool FitsRect(Rect rect, float width, float height)
@@ -196,32 +203,63 @@ namespace AshenHalls
     {
         public static float SideRailWidth(float width)
         {
-            return Mathf.Clamp(width * 0.22f, 344f, 420f);
+            return Mathf.Clamp(width * 0.17f, 272f, 326f);
+        }
+
+        public static float CommandPaletteWidth(float width)
+        {
+            return Mathf.Clamp(width * 0.06f, 96f, 112f);
+        }
+
+        public static float TopPanelHeight(float height)
+        {
+            return Mathf.Clamp(height * 0.05f, 50f, 56f);
         }
 
         public static CombatHudGeometry Calculate(float width, float height)
         {
+            const float outer = 8f;
+            const float gap = 8f;
+            float topH = TopPanelHeight(height);
+            Rect top = new Rect(outer, outer, width - outer * 2f, topH);
+            float contentY = top.yMax + gap;
+            float contentH = Mathf.Max(320f, height - contentY - outer);
+            float commandW = CommandPaletteWidth(width);
             float sideW = SideRailWidth(width);
-            Rect top = new Rect(12f, 10f, width - 24f, 58f);
-            Rect side = new Rect(width - sideW - 12f, 78f, sideW, Mathf.Max(280f, height - 90f));
-            float commandHeight = CommandPanelHeight(height);
-            Rect command = new Rect(12f, height - commandHeight - 12f, side.x - 24f, commandHeight);
-            return new CombatHudGeometry(top, side, command);
+            Rect command = new Rect(outer, contentY, commandW, contentH);
+            Rect side = new Rect(width - sideW - outer, contentY, sideW, contentH);
+            float boardX = command.xMax + gap;
+            Rect board = new Rect(boardX, contentY, Mathf.Max(320f, side.xMin - gap - boardX), contentH);
+            return new CombatHudGeometry(top, command, board, side);
         }
 
-        public static float CommandPanelHeight(float screenHeight)
+        public static Rect BoardInner(Rect outer, int columns, int rows)
         {
-            return Mathf.Clamp(screenHeight * 0.14f, 128f, 154f);
+            Rect inner = new Rect(outer.x + 14f, outer.y + 14f, outer.width - 28f, outer.height - 28f);
+            float aspect = Mathf.Max(1f, columns) / Mathf.Max(1f, rows);
+            if (inner.width / inner.height > aspect)
+            {
+                float fittedWidth = inner.height * aspect;
+                inner.x += (inner.width - fittedWidth) * 0.5f;
+                inner.width = fittedWidth;
+            }
+            else
+            {
+                float fittedHeight = inner.width / aspect;
+                inner.y += (inner.height - fittedHeight) * 0.5f;
+                inner.height = fittedHeight;
+            }
+            return inner;
         }
 
         public static Rect[] CommandButtons(float width, bool promoteEndTurn)
         {
-            return CommandButtons(width, 104f, 6, promoteEndTurn);
+            return CommandButtons(width, 640f, 6, promoteEndTurn);
         }
 
         public static Rect[] CommandButtons(float width, int commandCount, bool promoteEndTurn)
         {
-            return CommandButtons(width, 104f, commandCount, promoteEndTurn);
+            return CommandButtons(width, 640f, commandCount, promoteEndTurn);
         }
 
         public static Rect[] CommandButtons(float width, float panelHeight, bool promoteEndTurn)
@@ -231,26 +269,27 @@ namespace AshenHalls
 
         public static Rect[] CommandButtons(float width, float panelHeight, int commandCount, bool promoteEndTurn)
         {
-            const float padding = 8f;
-            const float gap = 7f;
-            const float groupGap = 16f;
+            const float padding = 6f;
+            const float gap = 5f;
+            const float groupGap = 11f;
             commandCount = Mathf.Max(0, commandCount);
             if (commandCount == 0) return Array.Empty<Rect>();
 
-            float endTurnBonus = promoteEndTurn ? Mathf.Clamp(width * 0.09f, 60f, 120f) : 0f;
+            float endTurnBonus = promoteEndTurn ? 10f : 0f;
             int groupBreakIndex = CommandGroupBreakIndex(commandCount);
             int ordinaryGaps = commandCount - 1 - (groupBreakIndex >= 0 ? 1 : 0);
-            float gapsWidth = gap * ordinaryGaps + (groupBreakIndex >= 0 ? groupGap : 0f);
-            float buttonW = Mathf.Max(72f, (width - padding * 2f - endTurnBonus - gapsWidth) / commandCount);
-            float buttonY = 36f;
-            float buttonH = Mathf.Max(66f, panelHeight - buttonY - 10f);
+            float gapsHeight = gap * ordinaryGaps + (groupBreakIndex >= 0 ? groupGap : 0f);
+            float availableHeight = Mathf.Max(1f, panelHeight - padding * 2f - gapsHeight - endTurnBonus);
+            float buttonH = Mathf.Min(96f, availableHeight / commandCount);
+            float groupHeight = buttonH * commandCount + gapsHeight + endTurnBonus;
+            float buttonW = Mathf.Max(56f, width - padding * 2f);
             Rect[] rects = new Rect[commandCount];
-            float x = padding;
+            float y = Mathf.Max(padding, (panelHeight - groupHeight) * 0.5f);
             for (int i = 0; i < commandCount; i++)
             {
-                float w = i == commandCount - 1 && promoteEndTurn ? buttonW + endTurnBonus : buttonW;
-                rects[i] = new Rect(x, buttonY, w, buttonH);
-                if (i + 1 < commandCount) x += w + (i == groupBreakIndex ? groupGap : gap);
+                float h = i == commandCount - 1 && promoteEndTurn ? buttonH + endTurnBonus : buttonH;
+                rects[i] = new Rect(padding, y, buttonW, h);
+                if (i + 1 < commandCount) y += h + (i == groupBreakIndex ? groupGap : gap);
             }
             return rects;
         }
@@ -260,11 +299,27 @@ namespace AshenHalls
             return commandCount >= 4 ? Mathf.Min(2, commandCount - 2) : -1;
         }
 
+        public static bool UsesCompactCommandLayout(Rect button)
+        {
+            return button.height < 86f;
+        }
+
+        public static float CommandIconSize(Rect button)
+        {
+            bool compact = UsesCompactCommandLayout(button);
+            float labelReserve = compact ? 27f : 38f;
+            float available = Mathf.Min(button.width - 20f, button.height - labelReserve);
+            float minimum = compact
+                ? Mathf.Clamp(button.height - labelReserve, 18f, 42f)
+                : 52f;
+            return Mathf.Clamp(available, minimum, 58f);
+        }
+
         public static Rect CommandPrompt(float width, bool showUndoMove, bool showCancelTarget)
         {
             int contextButtons = (showUndoMove ? 1 : 0) + (showCancelTarget ? 1 : 0);
-            float reserved = 24f + contextButtons * 138f;
-            return new Rect(18f, 5f, Mathf.Max(120f, width - reserved - 6f), 25f);
+            float reserved = 12f + contextButtons * 102f;
+            return new Rect(8f, 21f, Mathf.Max(120f, width - reserved), 18f);
         }
 
         public static Rect UndoMoveButton(float width, bool showCancelTarget)
@@ -279,25 +334,25 @@ namespace AshenHalls
 
         private static Rect ContextButton(float width, int slotFromRight)
         {
-            return new Rect(width - 142f - slotFromRight * 138f, 4f, 132f, 25f);
+            return new Rect(width - 100f - slotFromRight * 102f, 20f, 96f, 19f);
         }
 
         public static void SidePanels(Rect side, bool timelineExpanded, out Rect active, out Rect target, out Rect timeline)
         {
-            float gap = 10f;
-            float minimumCards = timelineExpanded ? 300f : 340f;
-            float maximumTimeline = Mathf.Min(
-                timelineExpanded ? 480f : 310f,
-                Mathf.Max(
-                    timelineExpanded ? 240f : 190f,
-                    side.height - gap * 2f - minimumCards));
-            float timelineH = Mathf.Clamp(
-                side.height * (timelineExpanded ? 0.50f : 0.38f),
-                timelineExpanded ? 240f : 190f,
-                maximumTimeline);
-            float availableCardH = Mathf.Max(0f, side.height - timelineH - gap * 2f);
-            float activeH = availableCardH * 0.54f;
-            float targetH = availableCardH - activeH;
+            const float gap = 8f;
+            float activeH = Mathf.Clamp(side.height * 0.26f, 166f, 198f);
+            float targetH = Mathf.Clamp(side.height * 0.235f, 150f, 182f);
+            float timelineH = timelineExpanded
+                ? Mathf.Clamp(side.height * 0.46f, 284f, 420f)
+                : Mathf.Clamp(side.height * 0.19f, 126f, 154f);
+            float total = activeH + targetH + timelineH + gap * 2f;
+            if (total > side.height)
+            {
+                float over = total - side.height;
+                float cardSpace = activeH + targetH;
+                activeH -= over * (activeH / cardSpace);
+                targetH -= over * (targetH / cardSpace);
+            }
 
             active = new Rect(0f, 0f, side.width, activeH);
             target = new Rect(0f, active.yMax + gap, side.width, targetH);
@@ -500,12 +555,23 @@ namespace AshenHalls
             {
                 if (!HasRenderableGeometry || commandPanel == null) return false;
                 Rect rect = commandPanel.rect;
-                float minimumWidth = Mathf.Min(420f, Mathf.Max(160f, Screen.width * 0.30f));
-                return commandPanel.gameObject.activeInHierarchy
-                    && rect.width >= minimumWidth
-                    && rect.height >= 54f
-                    && expectedCommandCount > 0
-                    && VisibleCommandCount == expectedCommandCount;
+                if (!commandPanel.gameObject.activeInHierarchy
+                    || rect.width < 88f
+                    || rect.height < 320f
+                    || expectedCommandCount <= 0)
+                {
+                    return false;
+                }
+
+                int visible = 0;
+                foreach (CommandRow row in commandRows)
+                {
+                    if (row?.Root == null || !row.Root.gameObject.activeInHierarchy) continue;
+                    Rect hitTarget = row.Root.rect;
+                    if (hitTarget.width < 56f || hitTarget.height < 56f) return false;
+                    visible++;
+                }
+                return visible == expectedCommandCount;
             }
         }
         public bool IsSuppressedByImguiFallback => IsVisible
@@ -686,7 +752,7 @@ namespace AshenHalls
             Image fill = row?.Button?.targetGraphic as Image;
             return row != null
                 && fill != null
-                && fill.color == Hex("151b20", 0.96f)
+                && fill.color == Hex("151b20", 0.82f)
                 && row.Label.color == Hex("9aa0a1", 0.88f)
                 && row.SubLabel.color == Hex("e39a82", 1f);
         }
@@ -881,7 +947,7 @@ namespace AshenHalls
                 Color phaseAccent = view.ActiveUnit == null
                     ? Hex("b7aa90", 1f)
                     : view.PlayerTurn ? Hex("58b7a5", 1f) : Hex("c65c3b", 1f);
-                if (phaseFill != null) phaseFill.color = Color.Lerp(Hex("0a1114", 0.88f), phaseAccent, 0.12f);
+                if (phaseFill != null) phaseFill.color = Color.Lerp(Hex("0a1114", 0.72f), phaseAccent, 0.10f);
                 Outline phaseOutline = phaseBackplate.GetComponent<Outline>();
                 if (phaseOutline != null) phaseOutline.effectColor = phaseAccent.WithAlpha(0.58f);
             }
@@ -963,10 +1029,10 @@ namespace AshenHalls
                     ? Hex("d7a84e", 1f)
                     : CommandAccent(command.Mode);
                 commandRows[i].IconWell.color = command.Promoted || command.Armed
-                    ? Hex("211809", 0.98f)
+                    ? Hex("211809", 0.94f)
                     : command.Selected && available
-                        ? Color.Lerp(Hex("080b0d", 0.98f), accent, 0.18f)
-                        : Color.Lerp(Hex("080b0d", 0.96f), accent, available ? 0.08f : 0.02f);
+                        ? Color.Lerp(Hex("080b0d", 0.92f), accent, 0.18f)
+                        : Color.Lerp(Hex("080b0d", 0.84f), accent, available ? 0.08f : 0.02f);
                 commandRows[i].IconOutline.effectColor = accent.WithAlpha(
                     command.Promoted || command.Armed || command.Selected && available ? 0.95f : focused || hovered ? 0.82f : available ? 0.56f : 0.22f);
                 commandRows[i].HotkeyBackground.color = command.Promoted || command.Armed || command.Selected && available
@@ -990,10 +1056,10 @@ namespace AshenHalls
                     command.Promoted || command.Armed || command.Selected && available ? 1f : available ? 0.44f : 0.16f);
                 Image image = commandRows[i].Button.targetGraphic as Image;
                 Color fill = command.Promoted || command.Armed
-                    ? Hex("352316", 0.98f)
+                    ? Hex("352316", 0.94f)
                     : command.Selected && available
-                        ? Color.Lerp(Hex("151b20", 0.98f), accent, 0.14f)
-                        : Hex("151b20", 0.96f);
+                        ? Color.Lerp(Hex("151b20", 0.92f), accent, 0.14f)
+                        : Hex("151b20", 0.82f);
                 if (image != null) image.color = fill;
                 ColorBlock buttonColors = commandRows[i].Button.colors;
                 // Button colors are multipliers. Keep semantic fill on the Image so
@@ -1008,7 +1074,7 @@ namespace AshenHalls
                     ? Hex("f3ead7", 0.98f)
                     : command.Promoted || command.Armed || command.Selected && available
                         ? accent.WithAlpha(0.95f)
-                        : available ? Hex("3c4544", 0.86f) : Hex("3c4544", 0.42f);
+                        : available ? Hex("3c4544", 0.34f) : Hex("3c4544", 0.18f);
                 float outlineSize = focused ? 3f : command.Promoted || command.Armed || command.Selected && available ? 2f : 1f;
                 commandRows[i].Outline.effectDistance = new Vector2(outlineSize, -outlineSize);
             }
@@ -1034,7 +1100,7 @@ namespace AshenHalls
             IReadOnlyList<CombatHudLogView> logs = view.Logs ?? Array.Empty<CombatHudLogView>();
             int visibleLogs = view.TimelineExpanded
                 ? Mathf.Min(logRows.Count, logs.Count)
-                : Mathf.Min(2, logs.Count);
+                : 0;
             for (int i = 0; i < logRows.Count; i++)
             {
                 bool visible = i < visibleLogs;
@@ -1067,21 +1133,21 @@ namespace AshenHalls
             canvasGroup = canvas.gameObject.AddComponent<CanvasGroup>();
             Stretch(canvas.GetComponent<RectTransform>());
 
-            topPanel = AddPanel("Top Chrome", canvas.transform, Hex("10161b", 0.88f), Hex("3c4544", 0.72f));
-            phaseBackplate = AddPanel("Phase Backplate", topPanel, Hex("0a1114", 0.72f), Hex("3c4544", 0.42f));
-            roundStatBackplate = AddPanel("Round Backplate", topPanel, Hex("151b20", 0.88f), Hex("d7a84e", 0.42f));
-            moveStatBackplate = AddPanel("Move Backplate", topPanel, Hex("151b20", 0.88f), Hex("58b7a5", 0.42f));
-            actionStatBackplate = AddPanel("Action Backplate", topPanel, Hex("151b20", 0.88f), Hex("58b7a5", 0.42f));
-            titleText = AddText("Title", topPanel, VersionInfo.ProductName, 23, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
+            topPanel = AddPanel("Top Chrome", canvas.transform, Hex("10161b", 0.82f), Hex("3c4544", 0.54f));
+            phaseBackplate = AddPanel("Phase Backplate", topPanel, Hex("0a1114", 0.64f), Hex("3c4544", 0.36f));
+            roundStatBackplate = AddPanel("Round Backplate", topPanel, Hex("151b20", 0.78f), Hex("d7a84e", 0.34f));
+            moveStatBackplate = AddPanel("Move Backplate", topPanel, Hex("151b20", 0.78f), Hex("58b7a5", 0.34f));
+            actionStatBackplate = AddPanel("Action Backplate", topPanel, Hex("151b20", 0.78f), Hex("58b7a5", 0.34f));
+            titleText = AddText("Title", topPanel, VersionInfo.ProductName, 21, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             titleText.resizeTextForBestFit = true;
             titleText.resizeTextMinSize = 14;
-            titleText.resizeTextMaxSize = 23;
-            routeText = AddText("Route", topPanel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
-            phaseText = AddText("Phase", topPanel, "", 13, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
+            titleText.resizeTextMaxSize = 21;
+            routeText = AddText("Route", topPanel, "", 9, Hex("b7aa90", 0.94f), TextAnchor.MiddleLeft);
+            phaseText = AddText("Phase", topPanel, "", 11, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
             phaseText.fontStyle = FontStyle.Bold;
             phaseText.resizeTextForBestFit = true;
-            phaseText.resizeTextMinSize = 10;
-            phaseText.resizeTextMaxSize = 13;
+            phaseText.resizeTextMinSize = 9;
+            phaseText.resizeTextMaxSize = 11;
             roundStatText = AddText("Round", topPanel, "", 10, Hex("d7a84e", 1f), TextAnchor.MiddleCenter);
             moveStatText = AddText("Move", topPanel, "", 10, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
             actionStatText = AddText("Action", topPanel, "", 10, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
@@ -1089,10 +1155,10 @@ namespace AshenHalls
             moveStatText.fontStyle = FontStyle.Bold;
             actionStatText.fontStyle = FontStyle.Bold;
 
-            sidePanel = AddPanel("Combat Side", canvas.transform, Hex("0e1114", 0.08f), Hex("0e1114", 0f));
-            activePanel = AddPanel("Active", sidePanel, Hex("1a2026", 0.96f), Hex("58b7a5", 0.82f));
-            targetPanel = AddPanel("Target", sidePanel, Hex("1a2026", 0.96f), Hex("b94b56", 0.82f));
-            timelinePanel = AddPanel("Timeline", sidePanel, Hex("1a2026", 0.96f), Hex("d7a84e", 0.82f));
+            sidePanel = AddPanel("Combat Side", canvas.transform, Hex("0e1114", 0.04f), Hex("0e1114", 0f));
+            activePanel = AddPanel("Active", sidePanel, Hex("151c21", 0.86f), Hex("58b7a5", 0.62f));
+            targetPanel = AddPanel("Target", sidePanel, Hex("151c21", 0.86f), Hex("b94b56", 0.62f));
+            timelinePanel = AddPanel("Timeline", sidePanel, Hex("151c21", 0.84f), Hex("d7a84e", 0.58f));
             BuildUnitCard(activePanel, out activeTitle, out activeName, out activeHeader, out activeState, out activeStatus, out activePortrait, out activePortraitFallback, out activeHpFill, out activeManaFill);
             BuildUnitCard(targetPanel, out targetTitle, out targetName, out targetHeader, out targetState, out targetStatus, out targetPortrait, out targetPortraitFallback, out targetHpFill, out targetManaFill);
             timelineTitle = AddText("Timeline Title", timelinePanel, "Timeline", 18, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
@@ -1110,22 +1176,25 @@ namespace AshenHalls
             tacticalPlanText.resizeTextMaxSize = 10;
             for (int i = 0; i < 5; i++) logRows.Add(CreateLogRow(timelinePanel, i));
 
-            commandPanel = AddPanel("Command Bar", canvas.transform, Hex("080b0d", 0.94f), Hex("3c4544", 0.82f));
-            commandPromptBackplate = AddPanel("Command Prompt Backplate", commandPanel, Hex("11191d", 0.90f), Hex("3c4544", 0.38f));
+            commandPanel = AddPanel("Command Palette", canvas.transform, Hex("080b0d", 0.72f), Hex("3c4544", 0.46f));
+            commandPromptBackplate = AddPanel("Command Prompt Backplate", topPanel, Hex("11191d", 0.42f), Hex("3c4544", 0.20f));
             commandPromptRail = AddImage("Command Prompt Rail", commandPromptBackplate, Hex("58b7a5", 0.92f)).rectTransform;
-            commandPromptText = AddText("Command Prompt", commandPanel, "", 12, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
+            commandPromptText = AddText("Command Prompt", topPanel, "", 10, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
             commandPromptText.fontStyle = FontStyle.Bold;
             commandPromptText.resizeTextForBestFit = true;
-            commandPromptText.resizeTextMinSize = 10;
-            commandPromptText.resizeTextMaxSize = 12;
-            undoMoveButton = AddButton("Undo Move", commandPanel, "Undo Move  [U]", () => bindings?.UndoMove?.Invoke(), false);
+            commandPromptText.resizeTextMinSize = 8;
+            commandPromptText.resizeTextMaxSize = 10;
+            undoMoveButton = AddButton("Undo Move", topPanel, "Undo Move  [U]", () => bindings?.UndoMove?.Invoke(), false);
             undoMoveText = undoMoveButton.GetComponentInChildren<Text>();
             undoMoveText.fontSize = 9;
             undoMoveText.color = Hex("f3ead7", 1f);
             undoMoveButton.gameObject.SetActive(false);
-            cancelTargetButton = AddButton("Cancel Target", commandPanel, "Cancel Target  [Esc]", () => bindings?.CancelTarget?.Invoke(), false);
+            cancelTargetButton = AddButton("Cancel Target", topPanel, "Cancel Target  [Esc]", () => bindings?.CancelTarget?.Invoke(), false);
             cancelTargetText = cancelTargetButton.GetComponentInChildren<Text>();
             cancelTargetText.fontSize = 9;
+            cancelTargetText.resizeTextForBestFit = true;
+            cancelTargetText.resizeTextMinSize = 7;
+            cancelTargetText.resizeTextMaxSize = 9;
             cancelTargetText.color = Hex("f3ead7", 1f);
             cancelTargetButton.gameObject.SetActive(false);
             commandDivider = AddImage("Command Group Divider", commandPanel, Hex("d7a84e", 0.42f)).rectTransform;
@@ -1167,6 +1236,9 @@ namespace AshenHalls
         {
             title = AddText("Title", panel, "", 18, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
             title.fontStyle = FontStyle.Bold;
+            title.resizeTextForBestFit = true;
+            title.resizeTextMinSize = 9;
+            title.resizeTextMaxSize = 18;
             RectTransform portraitFrame = AddPanel("Portrait Frame", panel, Hex("080b0d", 0.94f), Hex("3c4544", 0.72f));
             portrait = AddImage("Portrait", portraitFrame, Color.white);
             portrait.preserveAspect = true;
@@ -1214,16 +1286,16 @@ namespace AshenHalls
             Button button = AddButton("Command " + index, parent, "", () => RunCommand(index), true);
             Outline outline = button.GetComponent<Outline>();
             Text label = button.GetComponentInChildren<Text>();
-            label.alignment = TextAnchor.MiddleLeft;
-            label.fontSize = 15;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.fontSize = 13;
             label.resizeTextForBestFit = true;
-            label.resizeTextMinSize = 11;
-            label.resizeTextMaxSize = 15;
+            label.resizeTextMinSize = 10;
+            label.resizeTextMaxSize = 13;
             label.horizontalOverflow = HorizontalWrapMode.Wrap;
             label.verticalOverflow = VerticalWrapMode.Truncate;
             label.raycastTarget = false;
 
-            Image iconWell = AddImage("Icon Well", button.transform, Hex("080b0d", 0.96f));
+            Image iconWell = AddImage("Icon Well", button.transform, Hex("080b0d", 0.86f));
             iconWell.raycastTarget = false;
             Outline iconOutline = iconWell.gameObject.AddComponent<Outline>();
             iconOutline.effectColor = Hex("3c4544", 0.72f);
@@ -1252,10 +1324,10 @@ namespace AshenHalls
             hotkey.raycastTarget = false;
             Stretch(hotkey.rectTransform, 1f, 1f);
 
-            Text sub = AddText("Sub", button.transform, "", 11, Hex("c7baa2", 1f), TextAnchor.MiddleLeft);
+            Text sub = AddText("Sub", button.transform, "", 9, Hex("c7baa2", 0.92f), TextAnchor.MiddleCenter);
             sub.resizeTextForBestFit = true;
-            sub.resizeTextMinSize = 10;
-            sub.resizeTextMaxSize = 12;
+            sub.resizeTextMinSize = 8;
+            sub.resizeTextMaxSize = 9;
             sub.raycastTarget = false;
             Image accentRail = AddImage("Accent Rail", button.transform, Hex("58b7a5", 1f));
             accentRail.raycastTarget = false;
@@ -1313,26 +1385,43 @@ namespace AshenHalls
             SetScreenRect(sidePanel, geometry.Side);
             SetScreenRect(commandPanel, geometry.Command);
 
-            float statW = Screen.width < 1240 ? 62f : 76f;
-            float statGap = Screen.width < 1240 ? 5f : 8f;
+            float statW = Screen.width < 1400 ? 62f : 70f;
+            float statGap = Screen.width < 1400 ? 5f : 7f;
             float statsW = statW * 3f + statGap * 2f;
             float statsX = geometry.Top.width - statsW - 10f;
-            float titleX = 18f;
-            float titleW = Mathf.Max(220f, statsX - titleX - 16f);
-            SetLocalRect(titleText.rectTransform, new Rect(titleX, 6f, titleW * 0.36f, 27f));
-            SetLocalRect(routeText.rectTransform, new Rect(titleX + 2f, 34f, titleW * 0.62f, 18f));
-            Rect phaseRect = new Rect(titleX + titleW * 0.40f, 8f, titleW * 0.58f, 42f);
-            Rect roundRect = new Rect(statsX, 8f, statW, 42f);
-            Rect moveRect = new Rect(statsX + statW + statGap, 8f, statW, 42f);
-            Rect actionRect = new Rect(statsX + (statW + statGap) * 2f, 8f, statW, 42f);
+            float titleX = 14f;
+            float titleW = Mathf.Clamp(geometry.Top.width * 0.28f, 290f, 440f);
+            float phaseX = titleX + titleW + 8f;
+            float phaseW = Mathf.Max(280f, statsX - phaseX - 8f);
+            SetLocalRect(titleText.rectTransform, new Rect(titleX, 2f, titleW, 25f));
+            SetLocalRect(routeText.rectTransform, new Rect(titleX + 1f, 27f, titleW - 2f, 14f));
+            Rect phaseRect = new Rect(phaseX, 5f, phaseW, geometry.Top.height - 10f);
+            float statH = geometry.Top.height - 12f;
+            Rect roundRect = new Rect(statsX, 6f, statW, statH);
+            Rect moveRect = new Rect(statsX + statW + statGap, 6f, statW, statH);
+            Rect actionRect = new Rect(statsX + (statW + statGap) * 2f, 6f, statW, statH);
             SetLocalRect(phaseBackplate, phaseRect);
-            SetLocalRect(phaseText.rectTransform, PadLocal(phaseRect, 6f, 3f));
+            SetLocalRect(phaseText.rectTransform, new Rect(phaseRect.x + 8f, phaseRect.y + 1f, phaseRect.width - 16f, 18f));
             SetLocalRect(roundStatBackplate, roundRect);
             SetLocalRect(moveStatBackplate, moveRect);
             SetLocalRect(actionStatBackplate, actionRect);
             SetLocalRect(roundStatText.rectTransform, PadLocal(roundRect, 3f, 2f));
             SetLocalRect(moveStatText.rectTransform, PadLocal(moveRect, 3f, 2f));
             SetLocalRect(actionStatText.rectTransform, PadLocal(actionRect, 3f, 2f));
+
+            Rect commandPromptLocal = CombatHudScreenLayout.CommandPrompt(phaseRect.width, showUndoMove, showCancelTarget);
+            Rect commandPrompt = new Rect(
+                phaseRect.x + commandPromptLocal.x,
+                phaseRect.y + commandPromptLocal.y,
+                commandPromptLocal.width,
+                commandPromptLocal.height);
+            SetLocalRect(commandPromptBackplate, new Rect(commandPrompt.x - 5f, commandPrompt.y - 1f, commandPrompt.width + 7f, commandPrompt.height + 2f));
+            SetLocalRect(commandPromptRail, new Rect(0f, 0f, 3f, commandPrompt.height + 2f));
+            SetLocalRect(commandPromptText.rectTransform, commandPrompt);
+            Rect undoLocal = CombatHudScreenLayout.UndoMoveButton(phaseRect.width, showCancelTarget);
+            Rect cancelLocal = CombatHudScreenLayout.CancelTargetButton(phaseRect.width);
+            SetLocalRect(undoMoveButton.GetComponent<RectTransform>(), new Rect(phaseRect.x + undoLocal.x, phaseRect.y + undoLocal.y, undoLocal.width, undoLocal.height));
+            SetLocalRect(cancelTargetButton.GetComponent<RectTransform>(), new Rect(phaseRect.x + cancelLocal.x, phaseRect.y + cancelLocal.y, cancelLocal.width, cancelLocal.height));
 
             CombatHudScreenLayout.SidePanels(geometry.Side, timelineExpanded, out Rect active, out Rect target, out Rect timeline);
             SetLocalRect(activePanel, active);
@@ -1365,10 +1454,11 @@ namespace AshenHalls
             SetLocalRect(tacticalPlanPanel, new Rect(10f, 124f, timeline.width - 20f, 30f));
             SetLocalRect(tacticalPlanPanel.Find("Accent").GetComponent<RectTransform>(), new Rect(0f, 0f, 4f, 30f));
             SetLocalRect(tacticalPlanText.rectTransform, new Rect(11f, 3f, timeline.width - 43f, 24f));
+            tacticalPlanPanel.gameObject.SetActive(timelineExpanded);
             const float logY = 160f;
-            int layoutLogCount = timelineExpanded ? 5 : 2;
+            const int layoutLogCount = 5;
             float availableLogHeight = Mathf.Max(20f, timeline.height - logY - 8f);
-            float logGap = timelineExpanded ? 4f : 5f;
+            const float logGap = 4f;
             float logH = Mathf.Clamp(
                 (availableLogHeight - logGap * (layoutLogCount - 1)) / layoutLogCount,
                 12f,
@@ -1382,32 +1472,32 @@ namespace AshenHalls
             }
 
             Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, commandCount, promoteEndTurn);
-            Rect commandPrompt = CombatHudScreenLayout.CommandPrompt(geometry.Command.width, showUndoMove, showCancelTarget);
-            SetLocalRect(commandPromptBackplate, new Rect(commandPrompt.x - 8f, 3f, commandPrompt.width + 10f, 29f));
-            SetLocalRect(commandPromptRail, new Rect(0f, 0f, 4f, 29f));
-            SetLocalRect(commandPromptText.rectTransform, commandPrompt);
-            SetLocalRect(undoMoveButton.GetComponent<RectTransform>(), CombatHudScreenLayout.UndoMoveButton(geometry.Command.width, showCancelTarget));
-            SetLocalRect(cancelTargetButton.GetComponent<RectTransform>(), CombatHudScreenLayout.CancelTargetButton(geometry.Command.width));
             int groupBreakIndex = CombatHudScreenLayout.CommandGroupBreakIndex(buttons.Length);
             commandDivider.gameObject.SetActive(groupBreakIndex >= 0);
             if (groupBreakIndex >= 0)
             {
-                float dividerX = (buttons[groupBreakIndex].xMax + buttons[groupBreakIndex + 1].xMin) * 0.5f - 1f;
-                SetLocalRect(commandDivider, new Rect(dividerX, buttons[0].yMin + 8f, 2f, Mathf.Max(24f, buttons[0].height - 16f)));
+                float dividerY = (buttons[groupBreakIndex].yMax + buttons[groupBreakIndex + 1].yMin) * 0.5f - 1f;
+                SetLocalRect(commandDivider, new Rect(8f, dividerY, geometry.Command.width - 16f, 2f));
             }
             for (int i = 0; i < commandRows.Count && i < buttons.Length; i++)
             {
                 SetLocalRect(commandRows[i].Root, buttons[i]);
-                float iconSize = Mathf.Clamp(buttons[i].height - 24f, 56f, 72f);
-                float textX = 10f + iconSize + 11f;
-                const float iconY = 20f;
-                float textY = Mathf.Max(12f, (buttons[i].height - 48f) * 0.5f);
-                SetLocalRect(commandRows[i].IconWell.rectTransform, new Rect(10f, iconY, iconSize, iconSize));
-                SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, new Rect(10f, 2f, 38f, 16f));
-                SetLocalRect(commandRows[i].StatePip.rectTransform, new Rect(10f + iconSize - 9f, iconY + 3f, 8f, 8f));
-                SetLocalRect(commandRows[i].Label.rectTransform, new Rect(textX, textY - 2f, Mathf.Max(36f, buttons[i].width - textX - 9f), 28f));
-                SetLocalRect(commandRows[i].SubLabel.rectTransform, new Rect(textX, textY + 27f, Mathf.Max(36f, buttons[i].width - textX - 9f), 19f));
-                const float railHeight = 4f;
+                bool compact = CombatHudScreenLayout.UsesCompactCommandLayout(buttons[i]);
+                float iconSize = CombatHudScreenLayout.CommandIconSize(buttons[i]);
+                float iconX = (buttons[i].width - iconSize) * 0.5f;
+                float iconY = compact ? 4f : 6f;
+                float labelY = iconY + iconSize + 1f;
+                SetLocalRect(commandRows[i].IconWell.rectTransform, new Rect(iconX, iconY, iconSize, iconSize));
+                SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, new Rect(buttons[i].width - 35f, 4f, 29f, 14f));
+                SetLocalRect(commandRows[i].StatePip.rectTransform, new Rect(iconX + iconSize - 8f, iconY + 2f, 8f, 8f));
+                float labelHeight = compact ? 15f : 17f;
+                SetLocalRect(commandRows[i].Label.rectTransform, new Rect(4f, labelY, buttons[i].width - 8f, labelHeight));
+                commandRows[i].SubLabel.gameObject.SetActive(!compact);
+                if (!compact)
+                {
+                    SetLocalRect(commandRows[i].SubLabel.rectTransform, new Rect(4f, labelY + labelHeight, buttons[i].width - 8f, Mathf.Max(9f, buttons[i].height - labelY - labelHeight - 2f)));
+                }
+                const float railHeight = 3f;
                 SetLocalRect(commandRows[i].AccentRail.rectTransform, new Rect(0f, buttons[i].height - railHeight, buttons[i].width, railHeight));
             }
         }
@@ -1560,8 +1650,8 @@ namespace AshenHalls
             if (fill != null)
             {
                 fill.color = emphasized
-                    ? Color.Lerp(Hex("11171c", 0.96f), accent, 0.12f)
-                    : Hex("11171c", 0.86f);
+                    ? Color.Lerp(Hex("11171c", 0.84f), accent, 0.12f)
+                    : Hex("11171c", 0.74f);
             }
             Outline outline = backplate.GetComponent<Outline>();
             if (outline != null) outline.effectColor = accent.WithAlpha(emphasized ? 0.72f : 0.30f);
@@ -1678,12 +1768,12 @@ namespace AshenHalls
                 if (fill != null)
                 {
                     fill.color = Color.Lerp(
-                        Hex("11191d", 0.92f),
+                        Hex("11191d", 0.48f),
                         color,
-                        contextualIndex >= 0 ? 0.11f : 0.06f);
+                        contextualIndex >= 0 ? 0.10f : 0.05f);
                 }
                 Outline outline = commandPromptBackplate.GetComponent<Outline>();
-                if (outline != null) outline.effectColor = color.WithAlpha(contextualIndex >= 0 ? 0.58f : 0.34f);
+                if (outline != null) outline.effectColor = color.WithAlpha(contextualIndex >= 0 ? 0.42f : 0.20f);
             }
         }
 

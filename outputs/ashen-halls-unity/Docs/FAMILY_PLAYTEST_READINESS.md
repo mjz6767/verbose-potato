@@ -2,7 +2,17 @@
 
 ## Current Candidate
 
-`v2.3.0` is the current family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It builds on v2.2.0 with eight illustrated regional set-pieces, exact site identity and ambience, faction-specific patrol behavior, a clearer route hierarchy, and a height-aware exploration rail and command bar. Existing campaign data remains compatible and the save schema remains v25. Unity RuleSmoke, full RuntimeBoot, the Windows build/package, clean-extracted packaged boot, and four direct-player Local/Region Map captures pass. Physical-controller review, subjective travel-audio review, and a complete real playthrough remain human release gates. It is not a content-complete game.
+`v2.4.0` is the current family-playtest source candidate for the Midgaard sewer and bounded Old Road slice. It combines a Grand Hearth title/menu and first-spawn sequence, a battlefield-first combat frame with a compact vertical command palette, functional rewards and repeat services at all eight regional destinations, clearer exploration/minimap/road presentation, and bounded party-relative patrol audio. Existing campaign data remains compatible and the save schema remains v25. Combined RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, the Windows build/package, clean-extracted packaged boot, and final 720p/1080 visual verification are pending; this source candidate is not yet a release-verified package. Physical-controller review, subjective travel-audio/title review, and a complete real playthrough remain human release gates. It is not a content-complete game.
+
+## Integrated for v2.4.0 — Verification Pending
+
+- Combat gives the board materially more of the frame and places Move, Attack, Cast, Guard, Elixir, End Turn, and Skills in a compact vertical illustrated palette. Adaptive emergency cards, a focused information drawer, long target-title best fit, and the 960 by 600 fallback are part of the combined candidate.
+- Green Shrine, Old Quarry, Gloam Deep, Glass Lore, Dusk Market, Red Gate, Salt Cistern, and Ash Fen now grant separate depth-scoped first-visit rewards. Each destination then advertises its actual repeat rest, trade, mana recovery, or inspection state; preexisting v2.3.0 chart/scaffold flags do not consume the new reward.
+- Exploration uses quieter ordinary-object framing, clearer road/trail hierarchy, semantic waypoint, authored-site, active-threat, and alerted-threat minimap states, compact fallbacks for edge-clipped set-pieces, and exact current-site labels. Patrol steps attenuate to silence outside a bounded hearing radius and pan from the party's position.
+- Three exact transparent 4 by 2 companion atlases add stationary faction habitats beneath roaming patrol tokens, deterministic non-interactive exterior citizens away from tutorial and travel lanes, and role-specific exploration silhouettes for one-member parties. Multi-member parties retain the group marker; named NPC identities, combat and inventory art, encounters, safe roads, and saves are unchanged.
+- The title and menu now present the storm-lit Grand Hearth with restrained reveal, weather, forge, and menu beats. Licensed Cinzel Decorative typography supports the title treatment, and New Game places the mustered party inside the authored Grand Hearth before the storm doors lead into Midgaard.
+- Deterministic remote-site staging can place any of the eight authored destinations at a valid interaction approach, then select Local Map or Region Map, Details state, and reward-ready or repeat-service state for capture without importing or modifying a campaign save.
+- Release verification remains open. Run RuleSmoke, focused sprite-art and combat-UI runtime coverage, full RuntimeBoot, the Windows build/package, clean-extracted packaged boot, and final 1280 by 720 plus 1920 by 1080 visual review before promoting v2.4.0.
 
 ## Integrated for v2.3.0 — Automated Gates Passed
 
@@ -64,6 +74,9 @@
 
 ## Still Needs Validation and Humans
 
+- Run the settled combined v2.4.0 source through RuleSmoke, focused sprite-art and combat-UI runtime checks, full RuntimeBoot, the production Windows build/package, and clean-extracted packaged boot. These gates are pending and must replace this note with exact evidence before release promotion.
+- Capture the Grand Hearth title and first spawn, compact vertical combat palette and expanded battlefield, and all eight reward-ready/repeat-service regional-site states at 1280 by 720 and 1920 by 1080. The deterministic remote-site staging exists to make the exploration matrix repeatable, but the final combined visual packet is pending.
+- At both endpoint resolutions, move a roaming patrol away from home and confirm its habitat remains fixed beneath the token layer in Local and Region Map. Confirm the Grand Hearth tutorial lane, certified safe roads, guidance routes, entrances, and interactables remain free of ambient citizens; ambient figures offer no interaction; a one-member party uses the correct role silhouette; and a multi-member party retains the established group marker.
 - Repeat the accepted Local Map and Region Map endpoint captures from the clean-extracted packaged player; the equivalent development-player matrix already passes.
 - Enter each of the eight site footprints and confirm its exact rail name, ground line, calm music, alternating ambient cues, and inspect sound. Provoke and then evade each faction profile to confirm its intended chase cadence and leash without drawing danger onto certified safe roads.
 - Repeat the six-state v1.99 combat/book visual matrix in the clean-extracted packaged build. The development-player review is clean, while an equivalent packaged-player matrix remains manual evidence to collect.
@@ -74,18 +87,18 @@
 - A physical controller still needs a human pass for book row navigation, right-stick detail scrolling, targeting resume/cancel, and comfort at both endpoint resolutions.
 - The v1.99 interaction contract still needs a physical mouse/controller handoff check: with the pointer parked over one card or combat command, D-pad/stick movement must leave exactly one truthful focus and prompt. Preview must remain quieter than committed Selection, armed Targeting must remain distinct, unavailable commands must remain focusable for explanation, and Low Resource, No Target, Action Used, Disabled, and Blocked must remain understandable without color.
 - The safe-room choice, defeat retry, and final reward need visual confirmation in the packaged Windows player.
-- One complete real playthrough from a clean-extracted v2.3.0 folder remains the human release gate before calling this broadly shareable; the automated v2.3.0 clean-extract exploration boot passes independently.
+- One complete real playthrough from a clean-extracted v2.4.0 folder remains the human release gate before calling this broadly shareable; the combined v2.4.0 package and clean-extract gates are still pending.
 
 ## 15-Minute Family Script
 
 1. Unzip the package and launch `AshAndBrimstone.exe`.
-2. Select New Game, inspect Party Setup, then use Quick Start. Do not read the README; follow the persistent NEXT instruction.
-3. Enter King's Hall, accept Halvard's writ, and follow NEXT to Broken Sluice.
+2. Watch the Grand Hearth opening, select New Game, complete Muster, and begin the Old Road. Do not read the README; follow the persistent NEXT instruction.
+3. Follow NEXT through the Grand Hearth storm doors, enter King's Hall, accept Halvard's writ, and continue to Broken Sluice.
 4. Use Move, Attack or Shoot, one Skill, one Spell, Guard, Elixir when available, and End Turn. Confirm Cast/Skills show category art before arming and the exact power art while targeting.
 5. Clear Foul Runoff and choose one recovery-room item.
 6. Enter Cistern Den and decide whether the final room feels fair.
 7. Return to Borin, claim the reward, and open the Journal.
-8. Continue onto the outer road, compare Local and Region Map at one illustrated destination, and confirm its name and sound identity match the artwork.
+8. Continue onto the outer road, compare Local and Region Map at one illustrated destination, claim its first reward, revisit its repeat service, confirm its name and sound identity match the artwork, and check that a nearby patrol's habitat stays anchored while the patrol moves.
 9. In a second run, deliberately lose a fight and test Tavern > Continue.
 
 ## Feedback Questions

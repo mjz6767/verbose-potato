@@ -2883,6 +2883,7 @@ namespace AshenHalls
             worldMapRegionLandmarkAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapRegionLandmarkAtlas, 0.20f, "world map regional landmarks", 0.16f);
             worldMapRegionMarkerAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapRegionMarkerAtlas, 0.20f, "world map regional markers", 0.12f);
             worldAreaSetpieceAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldAreaSetpieceAtlas, 0.20f, "world area set-pieces", 0.12f);
+            LoadV24WorldMapArtAtlases();
             worldMapOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapOverlayAtlas, 0.20f, "world map overlays", 0.04f)
                 ?? LoadLatestExternalPngWithAlpha("world-map-overlay-atlas-runtime-", "", 0.20f, "world map overlays", 0.04f);
             worldMapProgressionOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapProgressionOverlayAtlas, 0.20f, "world map progression overlays", 0.04f)
@@ -2909,7 +2910,8 @@ namespace AshenHalls
             splashArt = tavernBackdropArt
                 ?? titleCardArt
                 ?? LoadLatestExternalPng("splash-title-reference-", "splash-title-reference-v0.27.png");
-            tavernUiAtlas = LoadLatestExternalPng("tavern-ui-atlas-runtime-", "tavern-ui-atlas-runtime-v0.49.png");
+            tavernUiAtlas = LoadExternalPng(RuntimeArtManifest.TavernUiAtlas)
+                ?? LoadLatestExternalPng("tavern-ui-atlas-runtime-", "tavern-ui-atlas-runtime-v0.49.png");
             inventoryConsumableAtlas = LoadLatestExternalPng("inventory-consumable-atlas-runtime-", "inventory-consumable-atlas-runtime-v0.50.png");
             combatCommandIconAtlas = LoadApprovedExternalPngWithAlpha(
                     RuntimeArtManifest.CombatCommandIconAtlas,
@@ -2992,6 +2994,7 @@ namespace AshenHalls
             ValidateSpriteAtlasAlpha(worldMapRegionLandmarkAtlas, "world map regional landmarks", 0.20f, 0.16f);
             ValidateSpriteAtlasAlpha(worldMapRegionMarkerAtlas, "world map regional markers", 0.20f, 0.12f);
             ValidateSpriteAtlasAlpha(worldAreaSetpieceAtlas, "world area set-pieces", 0.20f, 0.12f);
+            ValidateV24WorldMapArtContracts();
             ValidateSpriteAtlasAlpha(worldMapOverlayAtlas, "world map overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapProgressionOverlayAtlas, "world map progression overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapUiAtlas, "world map UI icons", 0.20f, 0.10f);
@@ -3677,6 +3680,12 @@ namespace AshenHalls
 
         private bool TryDrawWorldObjectIcon(Rect rect, ObjectType type, MapObject obj, Color tint)
         {
+            if (obj != null
+                && string.Equals(obj.Id, MidgaardInteriorRules.GrandHearthFireId, StringComparison.Ordinal)
+                && TryDrawTavernUiAtlasIcon(rect, 0, tint))
+            {
+                return true;
+            }
             WorldMapArtSpec spec = WorldMapArtSpecFor(type, obj);
             GateOrientation? gate = GetGateOrientation(obj, type);
             if (gate.HasValue)
@@ -3818,13 +3827,17 @@ namespace AshenHalls
                 case ObjectType.InteriorDoor:
                     return obj != null && obj.Id == MidgaardInteriorRules.ThroneRoomExitId ? 1 : 16;
                 case ObjectType.RoyalThrone: return 0;
-                case ObjectType.RoyalBanner: return 3;
-                case ObjectType.RoyalLectern: return 2;
+                case ObjectType.RoyalBanner:
+                    return obj != null && obj.Id == MidgaardInteriorRules.GrandHearthWindowId ? 9 : 3;
+                case ObjectType.RoyalLectern:
+                    return obj != null && obj.Id == MidgaardInteriorRules.GrandHearthMapTableId ? 7 : 2;
                 case ObjectType.RoyalBrazier: return 4;
                 case ObjectType.ArmorDisplay: return 11;
                 case ObjectType.WeaponDisplay: return 12;
                 case ObjectType.EnchantmentTable: return 14;
-                case ObjectType.ProvisionShelf: return 15;
+                case ObjectType.ProvisionShelf:
+                    if (obj != null && obj.Id == MidgaardInteriorRules.GrandHearthCargoId) return 19;
+                    return obj != null && obj.Id == MidgaardInteriorRules.GrandHearthRoadChestId ? 17 : 15;
                 case ObjectType.MerchantCounter: return 13;
                 default: return -1;
             }
@@ -5171,14 +5184,17 @@ namespace AshenHalls
 
         private bool TryDrawExplorePartyToken(Rect rect, string role, Color color, string sigil)
         {
-            int index = WorldMapTokenSpriteIndex(role);
-            if (index < 0 || !IsWorldMapTokenSpriteAtlas()) return false;
+            int roleIndex = ExplorationCharacterArtCatalog.PlayerRoleIndex(role);
+            int legacyIndex = WorldMapTokenSpriteIndex(role);
+            bool canUseDedicatedRole = roleIndex >= 0 && IsPlayerExplorationRoleAtlas();
+            bool canUseLegacyToken = legacyIndex >= 0 && IsWorldMapTokenSpriteAtlas();
+            if (!canUseDedicatedRole && !canUseLegacyToken) return false;
             float shadowHeight = Mathf.Max(3f, rect.height * 0.075f);
             Rect shadow = new Rect(rect.x + rect.width * 0.18f, rect.yMax - shadowHeight - rect.height * 0.02f, rect.width * 0.64f, shadowHeight);
             DrawRect(shadow, Hex("020303", 0.86f));
             WorldMapArtSpec spec = new WorldMapArtSpec(1.02f, new Vector2(0.5f, 1f), new Vector2(0f, 0.01f), true);
-            if (!TryDrawWorldMapTokenSpriteAtlasIcon(rect, index, Color.white, spec)) return false;
-            return true;
+            if (canUseDedicatedRole && TryDrawPlayerExplorationRoleAtlasIcon(rect, roleIndex, Color.white, spec)) return true;
+            return canUseLegacyToken && TryDrawWorldMapTokenSpriteAtlasIcon(rect, legacyIndex, Color.white, spec);
         }
 
         private int WorldMapTokenSpriteIndex(string role)

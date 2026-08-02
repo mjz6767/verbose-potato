@@ -2,6 +2,16 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.4.0 - The Grand Hearth Opens
+
+- Reframed combat around a materially larger battlefield and a compact vertical command palette. The decision ribbon, active/target dossiers, initiative drawer, adaptive emergency controls, long target-title best fit, and 960 by 600 fallback keep commands readable without surrendering the board.
+- Turned all eight authored regional destinations into functional stops. Green Shrine, Old Quarry, Gloam Deep, Glass Lore, Dusk Market, Red Gate, Salt Cistern, and Ash Fen each grant one depth-scoped first-visit reward and expose an honest repeat service or inspection state without suppressing rewards for campaigns that already charted them in v2.3.0.
+- Refined exploration readability with quieter ordinary-object framing, clearer roads and trails, semantic waypoint/site/threat minimap states, compact edge-safe landmark fallbacks, and more truthful region/site labels. Roaming-patrol movement now fades outside a bounded hearing radius and pans relative to the party instead of the map edge.
+- Added three exact transparent 4 by 2 world-map atlases. Stationary faction habitats remain at each roaming threat's saved home beneath its moving token; deterministic non-interactive citizens add district-appropriate exterior ambience away from the Grand Hearth tutorial lane, roads, entrances, and interactables; and single-member parties receive role-specific exploration silhouettes while multi-member parties retain the established group marker. Named NPC and dialogue identities, combat and inventory art, encounters, safe roads, and saves are unchanged.
+- Rebuilt the opening around the Grand Hearth. The title and menu use the authored storm-lit hearth painting, restrained reveal and sound beats, clearer relic-led choices, and the licensed Cinzel Decorative face; New Game now gathers the party inside an authored Grand Hearth interior before its first departure into Midgaard.
+- Added deterministic remote-site capture staging for each authored destination so Local Map, Region Map, Details, reward-ready, and repeat-service presentation can be placed directly for visual review without altering campaign saves.
+- Combined v2.4.0 verification is pending: RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, the Windows build/package, clean-extracted packaged boot, and final 720p/1080 visual review must be rerun against the settled release source. Existing campaign data remains compatible; save schema remains v25.
+
 ## v2.3.0 - Landmarks in the Gloam
 
 - Gave all eight outer-road destinations their own large illustrated set-piece instead of asking small repeated props to carry the whole location. Green Shrine's training ring, Old Quarry's forge, Gloam Deep's crypt, Glass Lore's library, Dusk Market's hideout, Red Gate's seal, Salt Cistern's gate, and Ash Fen's ancient grove occupy stable cells in a new exact 4 by 2 transparent atlas and keep consistent ground anchors at both map scales.

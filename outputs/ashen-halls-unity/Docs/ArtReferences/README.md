@@ -2,6 +2,8 @@
 
 These images are original generated reference sheets for the v0.24.0 graphics direction. They are not copied game assets and should be treated as concept material.
 
+Later versioned entries in this folder also include approved live runtime assets and their preserved generation, cleanup, prompt, and validation provenance. `Docs/ART_INTAKE.md` and `RuntimeArtManifest` define which exact files are active and package-selected.
+
 ## Files
 
 - `enemy-sprites-reference-v0.24.png`: enemy silhouette direction, with special attention to kobold-like raiders, slingers, shamans, shieldbearers, and deeper-halls variants.
@@ -24,6 +26,10 @@ These images are original generated reference sheets for the v0.24.0 graphics di
 - `magic-ui-atlas-runtime-v0.43.png`: generated 4x4 runtime atlas for spell icons, terrain obstacles, and combat command glyphs.
 - `item-icon-atlas-runtime-v0.43.png`: generated 5x4 runtime atlas for weapons, armor, potions, elixirs, coins, scrolls, rings, boots, and helms.
 - `enemy-roster-atlas-runtime-v0.43.png`: generated 5x4 runtime enemy roster atlas for kobolds, rats, ratfolk classes, drow classes, demons, shade, and bone priest portraits.
+- `title-backdrop-runtime-v2.4.0.png`: original Grand Hearth opening tableau selected for the v2.4 title screen, with a calm upper-left logo field, storm-lit doorway, four departing adventurers, and a dark right-side menu field. The full generation brief and checksum are recorded in `title-backdrop-runtime-v2.4.0-prompt.txt`.
+- `world-threat-habitat-atlas-runtime-v2.4.0.png`: approved exact 4x2 world-map habitat sheet in stable Rat Warren, Plague-Bell Midden, Kobold Ambush Camp, Kobold Shaman Totem Yard, Drow Moon-Silk Watchpost, Undead Ossuary, Demon Breach, and Ruined Road Waystation order. Full provenance is recorded in `Docs/WORLD_MAP_V2.4_ART_HANDOFF.md` and the adjacent prompt and validation files.
+- `world-npc-citizen-atlas-runtime-v2.4.0.png`: approved exact 4x2 ambient-citizen sheet in stable lamplighter, fishmonger, tailor, mason, apothecary, road pilgrim, gravedigger, and caravan guide order. These are non-interactive ambience rather than named dialogue identities.
+- `player-exploration-role-atlas-runtime-v2.4.0.png`: approved exact 4x2 solo exploration sheet in stable shield, pike, bow, knife, mender, ember, hex, and ward order. Multi-member parties retain the established group marker; full provenance for both character sheets is recorded in `Docs/CHARACTER_ART_V2.4_HANDOFF.md`.
 
 ## Usage Notes
 
