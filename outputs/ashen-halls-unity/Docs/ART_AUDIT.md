@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-Last updated for the verified v2.6.0 Town Hall family-playtest candidate. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the Windows build, direct Local/Region visual review at 1280 by 720 and 1920 by 1080, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained below as historical records.
+The current v2.7.0 Grand Hearth development candidate passes RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, and six supported-resolution built-player captures. Package inventory, clean-extracted packaged boot, physical-controller review, and a complete human playthrough remain pending. The verified v2.6.0 Town Hall package remains the rollback baseline; older release sections are retained as historical records.
 
 ## Active Runtime Art
 
@@ -8,11 +8,21 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 
 - Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI.
 - Party/enemies: character combat atlas, enemy sprite atlas, creature/combat sprite fallback atlas, enemy roster, boss enemy fallback, Kobold King boss atlas.
-- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
+- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, dedicated Grand Hearth floor/set-piece companions, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
 - Kobold route: route markers, cave props, dedicated kobold combat terrain, boss route art.
 - Combat UI/effects: combat UI, combat UI panel, combat HUD, combat command icons, ability icons, spellbook UI, combat spellbook UI, spellbook open art, magic UI, ember/epic/combat spell effects, spell animation, combat floating text art.
 - Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.
 - Journal/scaffold: story cards, NPC portraits, route/dungeon/service/faction scaffold hooks when matching files are present.
+
+## Newly Connected In v2.7.0 - Automated, Build, and Visual Gates Passed
+
+- `grand-hearth-floor-atlas-runtime-v2.7.0.png` is the exact-pinned 1536 by 1024 TrueColor 3 by 2 atlas with 512-pixel cells: dark civic wood A/B, oxblood-and-charcoal company runner, company runner medallion, heat-darkened hearth apron, and storm threshold.
+- `grand-hearth-setpiece-atlas-runtime-v2.7.0.png` is the exact-pinned RGBA 1536 by 1024 3 by 2 atlas with a 32-pixel transparent cell gutter: monumental Grand Hearth, interior storm doors, company register, road-company banner, rain-blue window, and stores.
+- Exact loaders, validation guards, deterministic floor selection, fixture mappings, and live draw adapters are connected. The two sheets are additive companions; the shared v1.61 Midgaard interior tile and prop atlases remain the fail-closed fallback.
+- Floor cells 0/1 use the accepted edge-balance ImageGen refinement with updated prompt/validation provenance. Fallback set-piece drawing is footprint-gated and covered by deterministic assertions.
+- The accepted source set contains the two runtime PNGs plus seven source/alpha/prompt/validation companions. These nine exact files are recorded in `GRAND_HEARTH_ART_V2.7_HANDOFF.md` and promoted from the locally ignored ArtReferences folder; only the two runtime PNGs are package candidates.
+- RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the final Windows build pass. Six built-player captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080; all report `complete=True`, `failure=None`. Visual review accepts one open hall, continuous oxblood runner/medallion, monumental hearth, open storm doors, six patrons, and clear route without checkerboard seams, magenta residue, square backplates, or cropping. Stable Town Hall geometry, IDs, portal/objective flow, gameplay, and save schema v25 remain protected.
+- Package inventory, clean-extracted packaged boot, physical-controller review, and full human playthrough remain pending.
 
 ## Newly Connected In v2.6.0 - Automated, Visual, and Package Gates Passed
 

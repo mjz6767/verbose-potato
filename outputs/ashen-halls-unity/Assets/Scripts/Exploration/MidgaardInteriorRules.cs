@@ -35,6 +35,9 @@ namespace AshenHalls
         public const string GrandHearthWindowId = "midgaard-grand-hearth-window";
         public const string GrandHearthMapTableId = "midgaard-grand-hearth-map-table";
         public const string GrandHearthRoadChestId = "midgaard-grand-hearth-road-chest";
+        public const string GrandHearthRegisterId = "midgaard-grand-hearth-register";
+        public const string GrandHearthBannerId = "midgaard-grand-hearth-banner";
+        public const string GrandHearthShelvesId = "midgaard-grand-hearth-shelves";
         public const string ArmorerDoorId = "midgaard-armorer-door";
         public const string ArmorerExitId = "midgaard-armorer-exit";
         public const string WeaponDoorId = "midgaard-weapons-door";

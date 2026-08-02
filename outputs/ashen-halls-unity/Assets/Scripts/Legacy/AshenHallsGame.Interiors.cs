@@ -15,7 +15,6 @@ namespace AshenHalls
         private const string GrandHearthKeeperId = "midgaard-grand-hearth-orren";
         private const string GrandHearthScoutId = "midgaard-grand-hearth-yara";
         private const string GrandHearthScholarId = "midgaard-grand-hearth-scholar";
-        private const string GrandHearthRegisterId = "midgaard-grand-hearth-register";
 
         private RectInt ThroneRoomBounds(MapData map)
         {
@@ -213,11 +212,11 @@ namespace AshenHalls
                 MidgaardInteriorRules.GrandHearthDoorId);
             UpsertNamedMapObject(map, grandHearth.xMin + 2, grandHearth.yMin + 2, ObjectType.Tavern, MidgaardInteriorRules.GrandHearthFireId);
             UpsertNamedMapObject(map, grandHearth.xMin + 3, grandHearth.yMin + 2, ObjectType.TavernKeeper, GrandHearthKeeperId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 4, grandHearth.yMin + 1, ObjectType.RoyalLectern, GrandHearthRegisterId);
-            UpsertNamedMapObject(map, grandHearth.xMin + 3, grandHearth.yMin, ObjectType.RoyalBanner, "midgaard-grand-hearth-banner");
+            UpsertNamedMapObject(map, grandHearth.xMin + 4, grandHearth.yMin + 1, ObjectType.RoyalLectern, MidgaardInteriorRules.GrandHearthRegisterId);
+            UpsertNamedMapObject(map, grandHearth.xMin + 3, grandHearth.yMin, ObjectType.RoyalBanner, MidgaardInteriorRules.GrandHearthBannerId);
             UpsertNamedMapObject(map, grandHearth.xMax - 3, grandHearth.yMin, ObjectType.RoyalBanner, MidgaardInteriorRules.GrandHearthWindowId);
             UpsertNamedMapObject(map, grandHearth.xMax - 3, grandHearth.yMin + 1, ObjectType.Scholar, GrandHearthScholarId);
-            UpsertNamedMapObject(map, grandHearth.xMax - 2, grandHearth.yMin + 1, ObjectType.ProvisionShelf, "midgaard-grand-hearth-shelves");
+            UpsertNamedMapObject(map, grandHearth.xMax - 2, grandHearth.yMin + 1, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthShelvesId);
             UpsertNamedMapObject(map, grandHearth.xMax - 3, grandHearth.yMin + 5, ObjectType.OldRoadScout, GrandHearthScoutId);
             UpsertNamedMapObject(map, grandHearth.xMin + 2, grandHearth.yMin + 5, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthCargoId);
             UpsertNamedMapObject(map, grandHearth.xMin + 4, grandHearth.yMin + 6, ObjectType.RoyalLectern, MidgaardInteriorRules.GrandHearthMapTableId);
@@ -454,7 +453,7 @@ namespace AshenHalls
             if (obj.Id == MidgaardInteriorRules.GrandHearthWindowId) return "Rain-blue window";
             if (obj.Id == MidgaardInteriorRules.GrandHearthMapTableId) return "Old Road map table";
             if (obj.Id == MidgaardInteriorRules.GrandHearthRoadChestId) return "Company road chest";
-            if (obj.Id == GrandHearthRegisterId) return "Company register";
+            if (obj.Id == MidgaardInteriorRules.GrandHearthRegisterId) return "Company register";
             switch (obj.Type)
             {
                 case ObjectType.InteriorDoor:
@@ -491,7 +490,7 @@ namespace AshenHalls
             if (obj.Id == MidgaardInteriorRules.GrandHearthWindowId) return "stormlight over Midgaard's gate";
             if (obj.Id == MidgaardInteriorRules.GrandHearthMapTableId) return "weathered routes, quarry marks, and unfinished journeys";
             if (obj.Id == MidgaardInteriorRules.GrandHearthRoadChestId) return "keepsakes left by companies that found the way home";
-            if (obj.Id == GrandHearthRegisterId) return "old company names, sealed routes, and unfinished oaths";
+            if (obj.Id == MidgaardInteriorRules.GrandHearthRegisterId) return "old company names, sealed routes, and unfinished oaths";
             switch (obj.Type)
             {
                 case ObjectType.InteriorDoor: return "leave this interior";

@@ -37,6 +37,7 @@ namespace AshenHalls.Editor
                 AshenHallsGame game = UnityEngine.Object.FindFirstObjectByType<AshenHallsGame>();
                 Assert(game != null, "AshenHallsGame exists in Main scene");
                 InvokePrivate(game, "Awake");
+                AssertV27GrandHearthAtlasesAndMappings(game);
                 AssertV24WorldMapAtlasesAndMappings(game);
 
                 Texture2D characterAtlas = GetPrivateField<Texture2D>(game, "characterCombatAtlas");
@@ -112,6 +113,63 @@ namespace AshenHalls.Editor
             {
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             }
+        }
+
+        private static void AssertV27GrandHearthAtlasesAndMappings(AshenHallsGame game)
+        {
+            Texture2D floorAtlas = GetPrivateField<Texture2D>(game, "grandHearthFloorAtlas");
+            Texture2D setpieceAtlas = GetPrivateField<Texture2D>(game, "grandHearthSetpieceAtlas");
+
+            Assert(floorAtlas != null, "v2.7 Grand Hearth floor atlas loads");
+            Assert(floorAtlas.name == RuntimeArtManifest.GrandHearthFloorAtlas,
+                "runtime selects the exact approved v2.7 Grand Hearth floor atlas");
+            Assert(
+                floorAtlas.width == GrandHearthArtCatalog.FloorAtlasColumns * 512
+                    && floorAtlas.height == GrandHearthArtCatalog.FloorAtlasRows * 512,
+                "v2.7 Grand Hearth floor atlas uses the exact 3x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsGrandHearthFloorAtlas"),
+                "presentation accepts the exact v2.7 Grand Hearth floor atlas");
+
+            Assert(setpieceAtlas != null, "v2.7 Grand Hearth set-piece atlas loads");
+            Assert(setpieceAtlas.name == RuntimeArtManifest.GrandHearthSetpieceAtlas,
+                "runtime selects the exact approved v2.7 Grand Hearth set-piece atlas");
+            Assert(
+                setpieceAtlas.width == GrandHearthArtCatalog.SetpieceAtlasColumns * 512
+                    && setpieceAtlas.height == GrandHearthArtCatalog.SetpieceAtlasRows * 512,
+                "v2.7 Grand Hearth set-piece atlas uses the exact 3x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsGrandHearthSetpieceAtlas"),
+                "presentation accepts the exact v2.7 Grand Hearth set-piece atlas");
+
+            MapObject[] setpieces =
+            {
+                new MapObject(0, 0, ObjectType.Tavern, MidgaardInteriorRules.GrandHearthFireId),
+                new MapObject(0, 0, ObjectType.InteriorDoor, MidgaardInteriorRules.GrandHearthExitId),
+                new MapObject(0, 0, ObjectType.RoyalLectern, MidgaardInteriorRules.GrandHearthRegisterId),
+                new MapObject(0, 0, ObjectType.RoyalBanner, MidgaardInteriorRules.GrandHearthBannerId),
+                new MapObject(0, 0, ObjectType.RoyalBanner, MidgaardInteriorRules.GrandHearthWindowId),
+                new MapObject(0, 0, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthCargoId),
+                new MapObject(0, 0, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthShelvesId)
+            };
+            int[] expectedCells = { 0, 1, 2, 3, 4, 5, 5 };
+            for (int index = 0; index < setpieces.Length; index++)
+            {
+                MapObject setpiece = setpieces[index];
+                Assert(
+                    GrandHearthArtCatalog.SetpieceIndex(setpiece.Id) == expectedCells[index],
+                    setpiece.Id + " owns Grand Hearth set-piece cell " + expectedCells[index]);
+                Assert(
+                    InvokePrivate<int>(game, "GrandHearthSetpieceAtlasIndex", setpiece) == expectedCells[index],
+                    setpiece.Id + " reaches Grand Hearth set-piece cell " + expectedCells[index] + " through the live draw adapter");
+            }
+            Assert(
+                InvokePrivate<int>(game, "GrandHearthSetpieceAtlasIndex", (MapObject)null) < 0,
+                "missing fixtures cannot borrow Grand Hearth set-piece art");
+            Assert(
+                InvokePrivate<int>(
+                    game,
+                    "GrandHearthSetpieceAtlasIndex",
+                    new MapObject(0, 0, ObjectType.ProvisionShelf, MidgaardInteriorRules.GrandHearthRoadChestId)) < 0,
+                "company road chest keeps its established prop atlas through the live draw adapter");
         }
 
         private static void AssertV24WorldMapAtlasesAndMappings(AshenHallsGame game)

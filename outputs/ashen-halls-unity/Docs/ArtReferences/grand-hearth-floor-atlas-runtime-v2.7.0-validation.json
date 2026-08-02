@@ -1,0 +1,36 @@
+{
+  "generationMode": "built-in OpenAI ImageGen",
+  "source": "Docs\\ArtReferences\\source-grand-hearth-floor-atlas-v2.7.0-generated.png",
+  "output": "Docs\\ArtReferences\\grand-hearth-floor-atlas-runtime-v2.7.0.png",
+  "sourceSha256": "90fa4b00e74929a490dfc2b5db89a0d8f15fedb6b605db58e7a2cc9db93dc5a4",
+  "outputSha256": "90fa4b00e74929a490dfc2b5db89a0d8f15fedb6b605db58e7a2cc9db93dc5a4",
+  "grid": [3, 2],
+  "cellSize": 512,
+  "atlasSize": [1536, 1024],
+  "pixelFormat": "TrueColor RGB, 8-bit, fully opaque at runtime",
+  "rowMajorCells": [
+    "warm dark-oak hearthwood A",
+    "warm dark-oak hearthwood B",
+    "oxblood-charcoal company runner",
+    "company runner civic medallion",
+    "dark hearthstone apron",
+    "rain-wet storm threshold"
+  ],
+  "cells": [
+    { "index": 0, "mean": 0.0972344, "entropy": 0.795037, "uniqueColors": 10179 },
+    { "index": 1, "mean": 0.1032250, "entropy": 0.808165, "uniqueColors": 10863 },
+    { "index": 2, "mean": 0.0700575, "entropy": 0.733159, "uniqueColors": 19316 },
+    { "index": 3, "mean": 0.0758967, "entropy": 0.736945, "uniqueColors": 24903 },
+    { "index": 4, "mean": 0.0868438, "entropy": 0.761859, "uniqueColors": 22362 },
+    { "index": 5, "mean": 0.0938928, "entropy": 0.738486, "uniqueColors": 33525 }
+  ],
+  "checks": {
+    "exactDimensions": true,
+    "exactCellGeometry": true,
+    "allCellsFullyOpaque": true,
+    "allCellsPopulated": true,
+    "visibleBrightMagentaPixels": 0,
+    "woodEdgeBalanceReviewed": true,
+    "visualInspection": "accepted after edge-balance refinement"
+  }
+}

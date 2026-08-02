@@ -1,0 +1,178 @@
+{
+  "source": "Docs\\ArtReferences\\source-grand-hearth-setpiece-atlas-v2.7.0-alpha.png",
+  "output": "Docs\\ArtReferences\\grand-hearth-setpiece-atlas-runtime-v2.7.0.png",
+  "grid": [
+    3,
+    2
+  ],
+  "cellSize": 512,
+  "padding": 32,
+  "atlasSize": [
+    1536,
+    1024
+  ],
+  "cells": [
+    {
+      "index": 0,
+      "source": "Docs\\ArtReferences\\source-grand-hearth-setpiece-atlas-v2.7.0-alpha.png",
+      "sourceIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        576,
+        512
+      ],
+      "sourceBounds": [
+        60,
+        68,
+        574,
+        475
+      ],
+      "runtimeBounds": [
+        32,
+        78,
+        480,
+        433
+      ],
+      "size": [
+        448,
+        355
+      ]
+    },
+    {
+      "index": 1,
+      "source": "Docs\\ArtReferences\\source-grand-hearth-setpiece-atlas-v2.7.0-alpha.png",
+      "sourceIndex": 1,
+      "sourceRegion": [
+        576,
+        0,
+        1072,
+        512
+      ],
+      "sourceBounds": [
+        79,
+        65,
+        494,
+        458
+      ],
+      "runtimeBounds": [
+        560,
+        59,
+        975,
+        452
+      ],
+      "size": [
+        415,
+        393
+      ]
+    },
+    {
+      "index": 2,
+      "source": "Docs\\ArtReferences\\source-grand-hearth-setpiece-atlas-v2.7.0-alpha.png",
+      "sourceIndex": 2,
+      "sourceRegion": [
+        1072,
+        0,
+        1536,
+        512
+      ],
+      "sourceBounds": [
+        94,
+        108,
+        383,
+        474
+      ],
+      "runtimeBounds": [
+        1135,
+        73,
+        1424,
+        439
+      ],
+      "size": [
+        289,
+        366
+      ]
+    },
+    {
+      "index": 3,
+      "source": "Docs\\ArtReferences\\source-grand-hearth-setpiece-atlas-v2.7.0-alpha.png",
+      "sourceIndex": 3,
+      "sourceRegion": [
+        0,
+        512,
+        512,
+        1024
+      ],
+      "sourceBounds": [
+        236,
+        28,
+        395,
+        423
+      ],
+      "runtimeBounds": [
+        176,
+        570,
+        335,
+        965
+      ],
+      "size": [
+        159,
+        395
+      ]
+    },
+    {
+      "index": 4,
+      "source": "Docs\\ArtReferences\\source-grand-hearth-setpiece-atlas-v2.7.0-alpha.png",
+      "sourceIndex": 4,
+      "sourceRegion": [
+        512,
+        512,
+        1017,
+        1024
+      ],
+      "sourceBounds": [
+        96,
+        53,
+        372,
+        415
+      ],
+      "runtimeBounds": [
+        630,
+        587,
+        906,
+        949
+      ],
+      "size": [
+        276,
+        362
+      ]
+    },
+    {
+      "index": 5,
+      "source": "Docs\\ArtReferences\\source-grand-hearth-setpiece-atlas-v2.7.0-alpha.png",
+      "sourceIndex": 5,
+      "sourceRegion": [
+        1017,
+        512,
+        1536,
+        1024
+      ],
+      "sourceBounds": [
+        3,
+        112,
+        411,
+        410
+      ],
+      "runtimeBounds": [
+        1076,
+        619,
+        1484,
+        917
+      ],
+      "size": [
+        408,
+        298
+      ]
+    }
+  ]
+}

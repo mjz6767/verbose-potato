@@ -90,6 +90,8 @@ namespace AshenHalls.Editor
             "midgaard-paving-decal-atlas-runtime-",
             "midgaard-interior-prop-atlas-runtime-",
             "midgaard-interior-tile-atlas-runtime-",
+            "grand-hearth-floor-atlas-runtime-",
+            "grand-hearth-setpiece-atlas-runtime-",
             "midgaard-npc-atlas-runtime-",
             "midgaard-sewer-atlas-runtime-"
         };

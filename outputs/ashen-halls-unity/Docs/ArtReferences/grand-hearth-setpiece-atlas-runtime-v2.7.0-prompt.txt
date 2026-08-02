@@ -1,0 +1,24 @@
+Generation mode: built-in OpenAI ImageGen
+
+Reference images:
+- title-backdrop-runtime-v2.4.0.png
+- tavern-ui-atlas-runtime-v1.5.9.png
+
+Prompt:
+
+Use case: stylized-concept
+Asset type: production transparent game-prop atlas for the Town Hall / Grand Hearth starting room in Ash & Brimstone
+Input images: Image 1 is the accepted Grand Hearth title-painting style, materials, and warm-hearth/cold-storm palette reference; Image 2 is the existing Tavern UI atlas pixel-art scale and clean sprite-silhouette reference.
+Primary request: Create one exact 3-column by 2-row atlas of six separate dark-fantasy architectural props on a perfectly flat solid #ff00ff chroma-key background for local background removal. Finished canvas 1536 by 1024 pixels, six equal 512 by 512 cells, boundaries exactly at x=512, x=1024, and y=512.
+Style/medium: richly detailed painterly pixel-art game sprites matching the existing exploration art, crisp readable silhouettes at small map scale.
+View/composition: near-front tactical game-object view with a slightly elevated camera, consistent with Image 2; one centered object per cell; all objects fully contained; bottom-center ground anchor; at least 32 pixels of pure background around every cell edge; no object crosses a cell boundary.
+Lighting/mood: soot-dark wood and stone, strong warm ember highlights at the hearth, restrained cool storm-blue highlights at the doors and window.
+Color palette: soot black, dark chestnut oak, dark basalt, ember orange, tarnished brass, oxblood cloth, storm blue; do not use any bright magenta inside the objects.
+Cell order, row-major:
+0. Monumental wide masonry Grand Hearth fireplace, roaring contained fire, iron fire basket, soot-dark stone surround, heavy oak mantel, a few candles and mugs, one small original road-company shield; no lion or fleur-de-lis; designed to visually span about 1.45 map cells.
+1. Tall double Town Hall storm doors in a heavy timber-and-stone surround, doors visibly open inward around a cool rain-blue passage, iron braces and wet lower boards; no character and no exterior building.
+2. Road-company register lectern with open ledger, quill, small candle, dark oak and restrained oxblood-and-brass civic cloth; no readable writing.
+3. Long narrow road-company wall banner, oxblood red and charcoal with an original abstract road-and-flame emblem in tarnished brass; no letters, no lion, no fleur-de-lis.
+4. Tall arched Town Hall window in timber-and-stone framing, rain-streaked blue glass and distant lightning glow, no scenery extending beyond the frame.
+5. Compact road-company stores: low shelving with sealed jars, folded blankets, rope, one crate and one travel sack; coherent single silhouette, no loose pieces near the cell edges.
+Chroma-key constraints: the background must be exactly one uniform #ff00ff color with no shadows, gradients, texture, reflections, floor plane, fog, glow, or lighting variation. No cast shadows or contact shadows on the background. Keep crisp edges and generous padding. No transparent checkerboard, no black backplates, no labels, no grid strokes, no captions, no text, no logos, no watermark, no characters.

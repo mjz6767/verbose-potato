@@ -1,0 +1,51 @@
+Generation mode: built-in OpenAI ImageGen
+
+Reference images:
+- title-backdrop-runtime-v2.4.0.png
+- midgaard-interior-tile-atlas-runtime-v1.61.0.png
+
+Prompt:
+
+Use case: stylized-concept
+Asset type: production game environment tile atlas for Ash & Brimstone exploration
+Input images: Image 1 is the accepted Grand Hearth title-painting style and palette reference; Image 2 is the existing Midgaard interior tile-atlas rendering-scale and top-down texture reference.
+Primary request: Create one exact 3-column by 2-row atlas of six square, edge-to-edge environment tiles for the Town Hall / Grand Hearth starting room. The finished canvas should be 1536 by 1024 pixels, with six equal 512 by 512 cells and cell boundaries exactly at x=512, x=1024, and y=512.
+Style/medium: richly detailed dark-fantasy painterly pixel-art game textures, compatible with the existing atlas, designed to remain readable when each cell is rendered at small map-tile scale.
+View/composition: strict 90-degree top-down orthographic surface view in every cell; each tile fills its entire cell; no scene perspective, no upright objects, no captions, no index numbers, no grid strokes, no gutters, no outer margin.
+Lighting/mood: warm ember light from the west-side hearth balanced by cool storm-blue light near the door; restrained baked lighting that stays inside each cell.
+Color palette: soot black, dark chestnut oak, oxblood red, ember orange, tarnished brass, storm blue; avoid bright royal blue as the dominant carpet color.
+Cell order, row-major:
+0. Seamless warm dark-oak hearthwood plank floor variant A, worn and hand-pegged, no focal object.
+1. Seamless warm dark-oak hearthwood plank floor variant B, subtly different boards and scuffs, no focal object.
+2. Horizontally seamless oxblood-red and charcoal company-runner carpet center tile, thin tarnished-brass trim only along the top and bottom edges, absolutely no left or right end border.
+3. The same horizontally seamless company runner with one centered circular civic medallion: an original abstract road-and-flame symbol, no letters, no royal lion, no fleur-de-lis.
+4. Seamless dark basalt and fieldstone hearth apron, lightly ash-dusted with sparse ember scorch marks, but no active flame, furniture, fireplace, tools, or raised object.
+5. Rain-darkened timber-and-stone storm-door threshold, cool blue puddled reflections and a few inward muddy boot tracks, but no door, character, furniture, or raised object.
+Technical constraints: every cell must read as a flat walkable ground surface; preserve clean square cell boundaries; no cross-cell bleed; no bevelled icon frames; no UI; no text; no logos; no watermark; no characters; no props; no walls; no doors; no empty or black cells.
+
+Refinement pass
+
+Generation mode: built-in OpenAI ImageGen edit
+
+Reference images:
+- grand-hearth-floor-atlas-runtime-v2.7.0.png (edit target)
+- title-backdrop-runtime-v2.4.0.png (palette/style reference only)
+
+Prompt:
+
+Edit Image 1 as a production-ready environment tile atlas. Image 2 is palette/style reference only.
+
+Keep the exact 1536x1024 canvas and exact 3-column by 2-row grid of 512x512 cells. Keep cell boundaries exactly x=512, x=1024, y=512. Preserve cells 2, 3, 4, and 5 in their existing positions, identity, orientation, and visual design: oxblood runner, runner medallion, hearthstone apron, and rain-wet storm threshold.
+
+Refine only top-row cells 0 and 1. They must remain two distinct warm dark-oak, top-down, flat walkable plank-floor variants, but make both truly tileable and edge-balanced:
+- no directional light gradient inside either cell
+- no bright left edge, dark right edge, spotlight, vignette, large shadow patch, or cell-sized lighting cue
+- matching average brightness and color between the two variants
+- opposite edges within each cell should meet seamlessly when repeated
+- avoid strong features touching an edge unless they continue naturally at the opposite edge
+- subtle board, peg, wear, and scuff variation only
+- low-contrast soot-dark chestnut palette, compatible with the existing room and title painting
+- readable when downscaled to one tactical map cell
+- no objects, furniture, walls, carpet, captions, grid strokes, gutters, borders, symbols, text, logos, or watermark in cells 0 and 1
+
+Do not introduce perspective or upright elements. Every cell remains a strict 90-degree top-down ground surface. Preserve the atlas as a clean six-cell game asset, with no cross-cell bleed and no outer margin.

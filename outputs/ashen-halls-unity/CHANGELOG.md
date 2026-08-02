@@ -2,6 +2,12 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.7.0 - Grand Hearth Art Integration
+
+- Exact-pinned two dedicated 1536 by 1024, 3 by 2 Grand Hearth companion atlases. The opaque floor sheet maps dark civic wood A/B, the oxblood-and-charcoal company runner, runner medallion, heat-darkened hearth apron, and storm-door threshold; the transparent set-piece sheet maps the monumental hearth, interior storm doors, company register, road-company banner, rain-blue window, and stores with 32-pixel cell gutters.
+- Added fail-closed loading and deterministic draw adapters while retaining the shared v1.61 Midgaard interior tile/prop sheets as fallbacks. Fallback set-pieces are footprint-gated and assertion-covered. The accepted nine-file source set contains the two runtime PNGs plus seven source, alpha, prompt, and validation companions; only the two runtime atlases are package candidates. An edge-balance ImageGen refinement updates floor cells 0/1 and their prompt/validation provenance.
+- Preserved the stable 10 by 9 Town Hall room, 8 by 7 open floor, spawn/exit, oxblood-and-charcoal tutorial runner, fixture and patron positions, portal/objective/autosave flow, gameplay, and save schema v25. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the final Windows build pass. Six built-player captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080; all report `complete=True`, `failure=None` and visually accept one open hall, continuous runner/medallion, monumental hearth, open storm doors, six patrons, and clear route without checkerboard seams, magenta residue, backplates, or cropping. Package inventory, clean-extracted packaged boot, physical-controller review, and a complete human playthrough remain pending.
+
 ## v2.6.0 - Town Hall Gathering
 
 - New Game -> Muster now places the company inside Town Hall's expanded 10 by 9 Grand Hearth chamber. The continuous 8 by 7 gathering floor preserves the original spawn, storm-door exit, clear company runner, stable room/object identities, cartography table, blue company road chest, and portal flow.

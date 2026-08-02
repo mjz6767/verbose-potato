@@ -2962,6 +2962,7 @@ namespace AshenHalls
                 ?? LoadLatestExternalPngWithAlpha("midgaard-interior-prop-atlas-runtime-", "", 0.20f, "Midgaard interior props", 0.10f);
             midgaardInteriorTileAtlas = LoadExternalPng(RuntimeArtManifest.MidgaardInteriorTileAtlas)
                 ?? LoadLatestExternalPng("midgaard-interior-tile-atlas-runtime-", "");
+            LoadGrandHearthArt();
             ConfigureExplorationTerrainTextures();
             explorationAtlasCellUsable.Clear();
             exploreArtMetrics.Clear();
@@ -2975,6 +2976,7 @@ namespace AshenHalls
             ConfigureExplorationTerrainTexture(worldMapMaterialAtlas);
             ConfigureExplorationTerrainTexture(midgaardTileAtlas);
             ConfigureExplorationTerrainTexture(midgaardInteriorTileAtlas);
+            ConfigureExplorationTerrainTexture(grandHearthFloorAtlas);
         }
 
         private void ConfigureExplorationTerrainTexture(Texture2D texture)
@@ -3680,6 +3682,7 @@ namespace AshenHalls
 
         private bool TryDrawWorldObjectIcon(Rect rect, ObjectType type, MapObject obj, Color tint)
         {
+            if (TryDrawGrandHearthSetpieceAtlasIcon(rect, obj, tint)) return true;
             if (obj != null
                 && string.Equals(obj.Id, MidgaardInteriorRules.GrandHearthFireId, StringComparison.Ordinal)
                 && TryDrawTavernUiAtlasIcon(rect, 0, tint))
@@ -3989,6 +3992,7 @@ namespace AshenHalls
 
         private bool TryDrawExploreEnvironmentTile(Rect rect, int x, int y, int tile, string kind)
         {
+            if (TryDrawGrandHearthFloorTile(rect, x, y, tile)) return true;
             int interiorTileIndex = MidgaardInteriorTileAtlasIndex(x, y, tile);
             if (interiorTileIndex >= 0
                 && TryDrawMidgaardInteriorTileAtlasIcon(

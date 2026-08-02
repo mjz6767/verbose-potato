@@ -1,6 +1,14 @@
-Ash & Brimstone v2.6.0 - Town Hall Gathering Candidate
+Ash & Brimstone v2.7.0 - Grand Hearth Art Integration Candidate
 
-Validation status: Unity RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the Windows build, direct built-player Local/Region review at 1280 by 720 and 1920 by 1080, canonical packaging, and clean-extracted packaged boot pass for v2.6.0. The release-integrity record reports `sourceDirty=false`, `cleanExtractLaunch=true`, `playerExitCode=0`, and 80 packaged art PNGs; it binds the exact final source revision and package hashes. Physical-controller review and a complete human playthrough remain manual release-readiness checks.
+Current package version: v2.7.0. Save schema: v25.
+
+Validation status: Unity RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, and six built-player captures under `QA/v2.7.0-grand-hearth` pass for the v2.7.0 Grand Hearth art integration. Local and Region views at 960 by 600, 1280 by 720, and 1920 by 1080 all report `complete=True`, `failure=None` and pass visual review. Canonical package inventory, clean-extracted packaged boot, physical-controller review, and a complete human playthrough remain pending. The settled v2.6.0 package remains the verified rollback baseline.
+
+Grand Hearth Art v2.7.0: Town Hall now exact-pins two dedicated 1536 by 1024, 3 by 2 companion atlases. The opaque floor sheet gives the chamber two dark civic-wood variants, an oxblood-and-charcoal company runner, its starting medallion, a heat-darkened hearth apron, and the storm-door threshold. The transparent set-piece sheet gives the room its monumental hearth, interior storm doors, company register, road-company banner, rain-blue window, and stores. The shared v1.61 Midgaard interior sheets remain fail-closed fallbacks.
+
+The final floor cells 0 and 1 received an edge-balance ImageGen refinement, with their prompt and validation provenance updated. Fallback set-piece drawing is footprint-gated and covered by assertions. Visual review accepts one open hall with a continuous runner and medallion, monumental hearth, open storm doors, six patrons, and a clear route, without checkerboard seams, magenta residue, square backplates, or cropping.
+
+The accepted source set contains the two exact runtime atlases plus seven source, alpha, prompt, and validation companions: nine promoted files in all. Only the runtime PNGs are package candidates. This presentation pass does not change the 10 by 9 room, 8 by 7 open floor, original spawn and exit, patrons, fixtures, oxblood-and-charcoal tutorial runner, portal/objective flow, gameplay, or save schema.
 
 Town Hall Gathering v2.6.0: New Game -> Muster now starts the company inside Town Hall's expanded 10 by 9 Grand Hearth chamber. Its continuous 8 by 7 gathering floor holds six authored patrons while preserving the original spawn, storm-door exit, clear company runner, stable object IDs, cartography table, and blue road chest. NEXT and the opening objective require the company to leave through the storm doors before the journey begins and then advance toward King Halvard in Midgaard. Existing campaign data remains compatible; save schema remains v25.
 
@@ -142,7 +150,7 @@ Controls:
 - Party Growth v2.5: press I, select Growth, choose a party member, and stage earned attributes or class-relevant talents. Apply commits and autosaves; Reset or closing discards the draft. During combat the same tab is review-only.
 - NPC conversations: Enter/Space or Next advances pages. On the final page, click a topic or press 1-4; Esc closes the conversation without choosing.
 - Audio: Tavern Settings and the in-game Menu expose separate SFX and Music volume controls plus Mute All Audio.
-- Opening flow: the title menu leads New Game into Muster, where Quick Start begins immediately or the four-person party can be tuned before its first spawn inside Town Hall's wide Grand Hearth gathering chamber. Follow NEXT across the clear company runner and leave through the storm doors to begin the journey.
+- Opening flow: the title menu leads New Game into Muster, where Quick Start begins immediately or the four-person party can be tuned before its first spawn inside Town Hall's wide Grand Hearth gathering chamber. Follow NEXT across the oxblood-and-charcoal company runner and leave through the storm doors to begin the journey.
 - Tavern menu v0.50.1: after the splash, the first playable screen is now a Midgaard tavern landing with Start Game, Customize Party, Beta Lab, Settings, and Exit Game.
 - Tavern landing v1.19.0: normal startup opens on a new generated tavern backdrop with the title and main actions centered; the old party preview is removed from the first screen.
 - Tavern menu v0.50.5: normal startup now opens directly to the tavern, Begin the Old Road is the hero action, Settings contains the SFX/motion controls, and Beta Lab is visually separated as a tester door.

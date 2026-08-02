@@ -4865,6 +4865,11 @@ namespace AshenHalls.Editor
             MapObject grandHearthDoor = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthDoorId);
             MapObject grandHearthExit = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthExitId);
             MapObject grandHearthFire = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthFireId);
+            MapObject grandHearthRegister = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthRegisterId);
+            MapObject grandHearthBanner = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthBannerId);
+            MapObject grandHearthWindow = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthWindowId);
+            MapObject grandHearthCargo = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthCargoId);
+            MapObject grandHearthShelves = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthShelvesId);
             MapObject grandHearthMapTable = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthMapTableId);
             MapObject grandHearthRoadChest = MidgaardInteriorRules.FindById(state.Map, MidgaardInteriorRules.GrandHearthRoadChestId);
             MapObject grandHearthKeeper = state.Map.Objects.Single(obj => obj != null && obj.Type == ObjectType.TavernKeeper);
@@ -4883,14 +4888,102 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<int>(game, "MidgaardTownObjectIconIndexFor", ObjectType.Tavern, grandHearthDoor) == 11,
                 "Town Hall exterior keeps Tavern behavior while using the civic-hall silhouette");
             Assert(grandHearthFire != null && grandHearthBounds.Contains(new Vector2Int(grandHearthFire.X, grandHearthFire.Y)), "Grand Hearth fireplace remains inside the authored room");
+            MapObject[] grandHearthSetpieces =
+            {
+                grandHearthFire,
+                grandHearthExit,
+                grandHearthRegister,
+                grandHearthBanner,
+                grandHearthWindow,
+                grandHearthCargo,
+                grandHearthShelves
+            };
+            int[] grandHearthSetpieceCells = { 0, 1, 2, 3, 4, 5, 5 };
+            for (int index = 0; index < grandHearthSetpieces.Length; index++)
+            {
+                MapObject setpiece = grandHearthSetpieces[index];
+                Assert(setpiece != null && grandHearthBounds.Contains(new Vector2Int(setpiece.X, setpiece.Y)),
+                    "Grand Hearth set-piece " + grandHearthSetpieceCells[index] + " remains inside the authored room");
+                Assert(GrandHearthArtCatalog.SetpieceIndex(setpiece.Id) == grandHearthSetpieceCells[index],
+                    setpiece.Id + " resolves its pure Grand Hearth set-piece mapping");
+                Assert(InvokePrivate<int>(game, "GrandHearthSetpieceAtlasIndex", setpiece) == grandHearthSetpieceCells[index],
+                    setpiece.Id + " reaches Grand Hearth set-piece cell " + grandHearthSetpieceCells[index] + " through the live draw adapter");
+            }
+            Texture2D liveGrandHearthSetpieceAtlas = GetPrivateField<Texture2D>(game, "grandHearthSetpieceAtlas");
+            bool originalExploreWideView = GetPrivateField<bool>(game, "exploreWideView");
+            Rect grandHearthProbeCell = new Rect(0f, 0f, 100f, 100f);
+            SetPrivateField(game, "exploreWideView", false);
+            Rect grandHearthFireArt = InvokePrivate<Rect>(game, "ExploreObjectRect", grandHearthProbeCell, grandHearthFire);
+            Rect grandHearthDoorArt = InvokePrivate<Rect>(game, "ExploreObjectRect", grandHearthProbeCell, grandHearthExit);
+            Assert(grandHearthFireArt.width >= 158f && grandHearthFireArt.width <= 162f
+                && grandHearthFireArt.height >= 160f && grandHearthFireArt.height <= 164f,
+                "dedicated Grand Hearth art receives its monumental Local Map footprint");
+            Assert(grandHearthDoorArt.width >= 118f && grandHearthDoorArt.width <= 122f
+                && grandHearthDoorArt.height >= 148f && grandHearthDoorArt.height <= 152f,
+                "dedicated storm-door art receives its tall Local Map footprint");
+            SetPrivateField<Texture2D>(game, "grandHearthSetpieceAtlas", null);
+            Rect fallbackGrandHearthFireArt = InvokePrivate<Rect>(game, "ExploreObjectRect", grandHearthProbeCell, grandHearthFire);
+            Rect fallbackGrandHearthDoorArt = InvokePrivate<Rect>(game, "ExploreObjectRect", grandHearthProbeCell, grandHearthExit);
+            Assert(fallbackGrandHearthFireArt.width >= 98f && fallbackGrandHearthFireArt.width <= 102f
+                && fallbackGrandHearthFireArt.height >= 98f && fallbackGrandHearthFireArt.height <= 102f,
+                "missing Grand Hearth atlas restores the bounded legacy fireplace footprint");
+            Assert(fallbackGrandHearthDoorArt.width >= 76f && fallbackGrandHearthDoorArt.width <= 80f
+                && fallbackGrandHearthDoorArt.height >= 76f && fallbackGrandHearthDoorArt.height <= 80f,
+                "missing Grand Hearth atlas restores the bounded legacy storm-door footprint");
+            SetPrivateField(game, "grandHearthSetpieceAtlas", liveGrandHearthSetpieceAtlas);
+            SetPrivateField(game, "exploreWideView", true);
+            Rect wideGrandHearthFireArt = InvokePrivate<Rect>(game, "ExploreObjectRect", grandHearthProbeCell, grandHearthFire);
+            Rect wideGrandHearthDoorArt = InvokePrivate<Rect>(game, "ExploreObjectRect", grandHearthProbeCell, grandHearthExit);
+            Assert(wideGrandHearthFireArt.width >= 146f && wideGrandHearthFireArt.width <= 150f
+                && wideGrandHearthDoorArt.width >= 110f && wideGrandHearthDoorArt.width <= 114f,
+                "Region Map keeps both dedicated Grand Hearth set-pieces within their authored wide-view footprints");
+            SetPrivateField(game, "exploreWideView", originalExploreWideView);
             Assert(grandHearthMapTable != null && grandHearthBounds.Contains(new Vector2Int(grandHearthMapTable.X, grandHearthMapTable.Y)), "Grand Hearth keeps an Old Road map table off the tutorial lane");
             Assert(grandHearthRoadChest != null && grandHearthBounds.Contains(new Vector2Int(grandHearthRoadChest.X, grandHearthRoadChest.Y)), "Grand Hearth keeps a company road chest off the tutorial lane");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", grandHearthExit.X, grandHearthExit.Y, 1) == 16, "Grand Hearth storm doors use the timber threshold");
-            Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", grandHearthSpawn.X, grandHearthSpawn.Y, 1) == 1, "fresh party company mark uses the blue-and-gold runner");
+            Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", grandHearthSpawn.X, grandHearthSpawn.Y, 1) == 1, "fresh party company mark keeps the shared-atlas runner fallback");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorTileAtlasIndex", grandHearthBounds.xMin + 4, grandHearthBounds.yMin + 2, 1) == 4, "Grand Hearth surrounds its runner with warm wood floor");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorPropIconIndex", ObjectType.RoyalLectern, grandHearthMapTable) == 7, "Grand Hearth map table uses the authored cartography desk");
             Assert(InvokePrivate<int>(game, "MidgaardInteriorPropIconIndex", ObjectType.ProvisionShelf, grandHearthRoadChest) == 17, "Grand Hearth road chest uses the authored blue company chest");
             Assert(InvokePrivate<string>(game, "ExploreGroundName", grandHearthSpawn.X, grandHearthSpawn.Y) == "Company runner", "Grand Hearth HUD names the starting floor as the company runner");
+            Assert(GrandHearthArtCatalog.TryFloorChoice(
+                    state.Map,
+                    grandHearthSpawn.X,
+                    grandHearthSpawn.Y,
+                    1,
+                    out GrandHearthFloorChoice liveSpawnFloor)
+                && liveSpawnFloor.AtlasIndex == 3
+                && !liveSpawnFloor.FlipX
+                && !liveSpawnFloor.FlipY,
+                "fresh party company mark resolves the unflipped v2.7 medallion floor");
+            Assert(GrandHearthArtCatalog.TryFloorChoice(
+                    state.Map,
+                    grandHearthExit.X,
+                    grandHearthExit.Y,
+                    1,
+                    out GrandHearthFloorChoice liveThresholdFloor)
+                && liveThresholdFloor.AtlasIndex == 5
+                && !liveThresholdFloor.FlipX
+                && !liveThresholdFloor.FlipY,
+                "live Town Hall exit resolves the unflipped v2.7 storm threshold floor");
+            Assert(GrandHearthArtCatalog.TryFloorChoice(
+                    state.Map,
+                    grandHearthFire.X,
+                    grandHearthFire.Y,
+                    1,
+                    out GrandHearthFloorChoice liveApronFloor)
+                && liveApronFloor.AtlasIndex == 4
+                && !liveApronFloor.FlipX
+                && !liveApronFloor.FlipY,
+                "live Grand Hearth fixture resolves the unflipped v2.7 hearth apron floor");
+            Assert(GrandHearthArtCatalog.TryFloorChoice(
+                    state.Map,
+                    grandHearthBounds.xMin + 4,
+                    grandHearthBounds.yMin + 2,
+                    1,
+                    out GrandHearthFloorChoice liveTimberFloor)
+                && (liveTimberFloor.AtlasIndex == 0 || liveTimberFloor.AtlasIndex == 1),
+                "live Town Hall open floor resolves one deterministic v2.7 hearthwood variant");
 
             Assert(MidgaardInteriorRules.GrandHearthPatrons.Count == 6,
                 "Town Hall gathering space authors six ambient patrons");

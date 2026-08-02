@@ -1697,6 +1697,28 @@ namespace AshenHalls
         private Rect ExploreObjectRect(Rect cell, MapObject obj)
         {
             if (obj == null) return Pad(cell, cell.width * 0.18f);
+            if (IsGrandHearthSetpieceAtlas()
+                && string.Equals(obj.Id, MidgaardInteriorRules.GrandHearthFireId, StringComparison.Ordinal))
+            {
+                float width = cell.width * (exploreWideView ? 1.48f : 1.60f);
+                float height = cell.height * (exploreWideView ? 1.52f : 1.62f);
+                return new Rect(
+                    cell.center.x - width * 0.5f - cell.width * 0.10f,
+                    cell.yMax - height + cell.height * 0.04f,
+                    width,
+                    height);
+            }
+            if (IsGrandHearthSetpieceAtlas()
+                && string.Equals(obj.Id, MidgaardInteriorRules.GrandHearthExitId, StringComparison.Ordinal))
+            {
+                float width = cell.width * (exploreWideView ? 1.12f : 1.20f);
+                float height = cell.height * (exploreWideView ? 1.40f : 1.50f);
+                return new Rect(
+                    cell.center.x - width * 0.5f + cell.width * 0.04f,
+                    cell.yMax - height + cell.height * 0.03f,
+                    width,
+                    height);
+            }
             if (IsMidgaardGateType(obj.Type))
             {
                 bool sideGate = obj.Type == ObjectType.EastGate || obj.Type == ObjectType.WestGate;

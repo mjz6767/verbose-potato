@@ -2,7 +2,18 @@
 
 ## Current Candidate
 
-`v2.6.0` is the current verified family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It begins New Game -> Muster inside Town Hall's expanded Grand Hearth gathering chamber and makes leaving its storm doors the required first journey step. Existing campaign data remains compatible and the save schema remains v25. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the Windows build, direct Local/Region visual review at 1280 by 720 and 1920 by 1080, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete real playthrough remain manual gates. This is not a content-complete game.
+`v2.7.0` is the current development candidate for the Midgaard sewer and bounded Old Road slice. It adds dedicated Grand Hearth floor and set-piece art without changing the v2.6 Town Hall room, first journey step, gameplay, save data, or save schema v25. RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, the final Windows build, and six supported-resolution built-player captures pass. Package inventory, clean-extracted packaged boot, physical-controller review, and a complete real playthrough remain pending. The packaged v2.6.0 candidate remains the verified rollback baseline. This is not a content-complete game.
+
+## Grand Hearth Art v2.7 - Automated, Build, and Visual Gates Passed
+
+- The exact 1536 by 1024 opaque floor atlas uses a stable 3 by 2 order: dark civic wood A, dark civic wood B, oxblood-and-charcoal company runner, company runner medallion, heat-darkened Grand Hearth apron, and storm-door threshold.
+- The exact 1536 by 1024 RGBA set-piece atlas uses a stable 3 by 2 order: monumental Grand Hearth, interior storm doors, company register, road-company banner, rain-blue window, and road-company stores. Every cell retains its validated 32-pixel transparent gutter.
+- Exact manifest pins, fail-closed loaders, deterministic floor selection, set-piece fixture mappings, and live draw adapters are integrated. The shared v1.61 Midgaard interior sheets remain available for other interiors and as the Grand Hearth fallback.
+- Floor cells 0/1 use the accepted edge-balance ImageGen refinement; the floor prompt and validation evidence were updated with it. Fallback set-piece drawing is restricted to the owning fixture footprint and covered by deterministic assertions.
+- The accepted nine-file source set contains two runtime atlases and seven source/alpha/prompt/validation companions. All nine are deliberately promoted from the locally ignored ArtReferences workspace; only the two runtime PNGs are future package candidates.
+- The 10 by 9 room, continuous 8 by 7 floor, first-spawn cell, storm-door exit, oxblood-and-charcoal tutorial runner, patrons, stable fixture IDs, map-table and road-chest fallbacks, portal/objective/autosave flow, gameplay, and save schema v25 remain unchanged.
+- RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the final Windows build pass. Six captures under `QA/v2.7.0-grand-hearth` cover Local and Region at 960 by 600, 1280 by 720, and 1920 by 1080; every capture reports `complete=True`, `failure=None`. Visual review accepts one open hall, a continuous oxblood runner and medallion, monumental hearth, open storm doors, six patrons, and a clear route, with no checkerboard seams, magenta residue, square backplates, or cropping.
+- Canonical package inventory, clean-extracted packaged boot, physical-controller review, and a complete New Game -> Muster -> Town Hall -> Midgaard walkthrough remain pending.
 
 ## Town Hall Gathering v2.6 - Automated, Visual, and Package Gates Passed
 
