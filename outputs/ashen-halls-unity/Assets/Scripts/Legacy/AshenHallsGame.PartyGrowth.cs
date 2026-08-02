@@ -289,7 +289,7 @@ namespace AshenHalls
         {
             string staged = plan.IsEmpty
                 ? "No choices staged"
-                : plan.SpentStatPoints + " stat / " + plan.SpentSkillPoints + " skill staged";
+                : ArmoryGrowthStagedChoiceSummary(plan);
             return "POINTS  Stat " + member.StatPoints + " -> " + (member.StatPoints - plan.SpentStatPoints)
                 + "  /  Skill " + member.SkillPoints + " -> " + (member.SkillPoints - plan.SpentSkillPoints)
                 + "\nSTAGED  " + staged
@@ -302,6 +302,25 @@ namespace AshenHalls
                 + "\nSPEED  " + member.AttackSpeed + " -> " + preview.AttackSpeed
                 + "  /  MOVE  " + member.Movement + " -> " + preview.Movement
                 + "\n" + ProgressionUnlockLine(member);
+        }
+
+        private string ArmoryGrowthStagedChoiceSummary(PartyGrowthPlan plan)
+        {
+            List<string> choices = new List<string>();
+            for (int value = (int)PartyGrowthChoice.Strength; value <= (int)PartyGrowthChoice.Guard; value++)
+            {
+                PartyGrowthChoice choice = (PartyGrowthChoice)value;
+                int count = plan.Get(choice);
+                if (count <= 0) continue;
+                int gain = count * (PartyGrowthRules.IsAttribute(choice)
+                    ? PartyGrowthRules.AttributeGain
+                    : PartyGrowthRules.TalentGain);
+                choices.Add(ArmoryGrowthDisplayLabel(choice) + " +" + gain);
+            }
+
+            if (choices.Count == 0) return "No choices staged";
+            if (choices.Count <= 2) return string.Join(" / ", choices);
+            return choices[0] + " / " + choices[choices.Count - 1] + " / +" + (choices.Count - 2) + " more";
         }
 
         private string ArmoryGrowthCostLine(PartyMember member, PartyGrowthPlan plan)
@@ -432,6 +451,7 @@ namespace AshenHalls
                 failure = "party is missing";
                 return false;
             }
+            PartyMember member = SelectedArmoryGrowthMember(out _);
             if (CurrentUiOverlay() != UiOverlay.Armory
                 || armoryTab != (int)ArmoryTab.Growth
                 || armoryOverlayScreen == null
@@ -459,9 +479,19 @@ namespace AshenHalls
                     stagedRows++;
                 }
             }
-            if (rows.Count < 6 || stagedRows != 2 || BuildArmoryGrowthDetail() == null)
+            ArmoryDetailView detail = BuildArmoryGrowthDetail();
+            IReadOnlyList<PartyGrowthChoice> relevantTalents = PartyGrowthRules.RelevantTalents(member);
+            string expectedTalent = relevantTalents.Count == 0
+                ? ""
+                : PartyGrowthRules.Label(relevantTalents[0]) + " +" + PartyGrowthRules.TalentGain;
+            if (rows.Count != ArmoryGrowthAttributes.Length + relevantTalents.Count
+                || stagedRows != 2
+                || detail == null
+                || detail.Summary.IndexOf("Strength +" + PartyGrowthRules.AttributeGain, StringComparison.Ordinal) < 0
+                || string.IsNullOrWhiteSpace(expectedTalent)
+                || detail.Summary.IndexOf(expectedTalent, StringComparison.Ordinal) < 0)
             {
-                failure = "Growth preview does not contain four attributes, class talents, and two staged choices";
+                failure = "Growth preview does not contain four attributes, class talents, and both named staged choices";
                 return false;
             }
             return true;
