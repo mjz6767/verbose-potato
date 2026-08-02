@@ -2,6 +2,13 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.5.0 - Party Growth
+
+- Added a fifth Armory tab that lets an active campaign spend earned attribute and talent points instead of leaving them stranded in the save. Players can filter to any party member, stage Strength, Intelligence, Agility, Health, and only that class's relevant talents, then inspect the resulting HP, MP, damage, power, defense, speed, and movement before committing.
+- Kept every preview mutation-free. Reset, closing the Armory, or leaving the screen discards the draft; Apply spends the exact staged costs, recalculates the selected adventurer through the authoritative progression path, reports the result, and creates a normal exploration checkpoint. Growth remains visible but read-only during combat.
+- Unified earned-point talent eligibility with the existing Muster rules, including distinct Warrior, Rogue, Ranger, Wizard, Mage, Warlock, Priest, and Paladin mappings. Attribute ranks cost one point and talent ranks cost two; invalid, unaffordable, or class-inapplicable changes cannot be staged or applied.
+- Added deterministic rule and live runtime coverage for layout, navigation focus, mutation-free preview/reset, atomic application, stale-draft cleanup, combat lockout, and save/load continuity. RuleSmoke and full RuntimeBoot pass on the settled feature source; Windows packaging, clean-extracted boot, the three-resolution visual matrix, physical-controller review, and a human playthrough remain release gates. Existing campaign data remains compatible; save schema remains v25.
+
 ## v2.4.0 - The Grand Hearth Opens
 
 - Reframed combat around a materially larger battlefield and a compact vertical command palette. The decision ribbon, active/target dossiers, initiative drawer, adaptive emergency controls, long target-title best fit, and 960 by 600 fallback keep commands readable without surrendering the board.
