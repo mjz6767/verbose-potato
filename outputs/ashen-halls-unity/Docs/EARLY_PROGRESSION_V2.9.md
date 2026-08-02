@@ -50,4 +50,4 @@ The v2.9 atlases preserve every earlier mapped cell pixel-for-pixel. Their sourc
 
 ## Validation status
 
-Combined RuleSmoke, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, and full RuntimeBoot pass with the exact 8,740-XP curve, level-cap normalization, unlock tables, icon cells, and live ability/formula paths. The final Windows build, built-player visual matrix, canonical package integrity gate, and clean-extracted packaged boot remain pending release checks.
+Combined RuleSmoke, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, full RuntimeBoot, the clean Windows build, canonical package integrity gate, clean-extracted packaged boot, and the nine-capture built-player visual matrix pass with the exact 8,740-XP curve, level-cap normalization, unlock tables, icon cells, and live ability/formula paths. Physical-controller review and a complete human playthrough remain manual release checks.

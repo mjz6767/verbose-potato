@@ -44,5 +44,7 @@ release owner must deliberately force-add these five approved files.
   impact routes.
 - Combined RuleSmoke, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke,
   and full RuntimeBoot pass with the exact pin and live mappings.
-- The Windows build, staged/built-player visual review, packaged-art integrity
-  comparison, and clean-extracted packaged boot remain pending release gates.
+- The clean Windows build, staged/packaged-art integrity comparison, canonical
+  package, and clean-extracted packaged boot pass. The nine-capture built-player
+  matrix also passes deterministic validation and manual visual review under
+  `QA/v2.9.0-release-visuals-741451a`.

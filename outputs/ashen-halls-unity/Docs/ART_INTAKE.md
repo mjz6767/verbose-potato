@@ -3,13 +3,13 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
-## Active v2.9.0 combat power contract - automated gates passed; release gates pending
+## Active v2.9.0 combat power contract - automated, package, and visual gates passed
 
 The v2.9 power-art set exact-pins three runtime sheets. `ability-icon-atlas-runtime-v2.9.0.png` is an RGBA 4 by 7 sheet that preserves cells 0-23, maps Sunder, Shadowstep, and Quick Shot to cells 24-26, and keeps cell 27 transparent. `signature-spell-icon-atlas-runtime-v2.9.0.png` remains an RGBA 7 by 8 sheet, preserves cells 0-50, and maps Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse to cells 51-55. `combat-spell-effects-atlas-runtime-v2.9.0.png` is an exact RGBA 1280 by 1280, 4 by 4 sheet with 320-pixel cells, at most 280 by 280 visible content per cell, and at least 20 transparent pixels on every side at alpha greater than 8.
 
 The ability, spell, and effects runtime SHA-256 values are `D36CC925F4560C6D04CE63DE3B31CC2B4DD0B0EAF7DA48A63602595A7F81EF28`, `A2E14C5248B564FB82876DD18D4B1BCA9E86D602B68892CD120C62B74B3DE4D9`, and `F3FE0D14FD6BE218AB64AE177FDA741A4D6F7694BBFF96C89C576CC866D5A92A`. The reviewed provenance set contains thirteen exact files: three runtime PNGs and ten chroma-key, alpha, prompt/design, and validation companions documented by `EARLY_PROGRESSION_V2.9.md` and `COMBAT_EFFECTS_V2.9_ART_HANDOFF.md`. Because `Docs/ArtReferences/` is locally excluded, release integration must promote those thirteen files by exact path; only the three runtime PNGs are package-selected.
 
-Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, and SpriteArtRuntimeSmoke pass with the exact pins and live mappings. The final Windows build, packaged-art integrity gate, built-player visual matrix, and clean-extracted packaged boot remain pending and must not be inferred from the automated art checks.
+Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, the clean Windows build, packaged-art integrity gate, and clean-extracted packaged boot pass with the exact pins and live mappings. The package contains 83 approved runtime art files. Nine built-player combat, power-book, and map captures pass deterministic validation and manual visual review under `QA/v2.9.0-release-visuals-741451a`; capture-set SHA-256 is `006b36b45b3e43672286bf4edc7d410f482ee1b16e8c26168b7ae375fae2c321`. Physical-controller review and a complete human playthrough remain manual.
 
 ## Active v2.8.0 Grand Hearth ambience contract - automated, build, and visual gates passed
 

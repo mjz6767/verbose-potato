@@ -2,16 +2,16 @@
 
 ## Current Candidate
 
-`v2.9.0` is the current integrated family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It improves combat and power-book clarity, impact art and sound, combatant staging, world-map readability, the original soundtrack, and level-1-to-20 progression without changing save schema v25. Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, and SpriteArtRuntimeSmoke pass. The final Windows build, canonical packaging and clean-extracted boot, built-player visual matrix, physical-controller review, and complete real playthrough remain pending release gates. This is not a content-complete game.
+`v2.9.0` is the current verified family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It improves combat and power-book clarity, impact art and sound, combatant staging, world-map readability, the original soundtrack, and level-1-to-20 progression without changing save schema v25. Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, the clean Windows build, canonical packaging, clean-extracted boot, and the nine-capture built-player visual matrix pass. Physical-controller review and a complete real playthrough remain manual gates. This is not a content-complete game.
 
-## Steel, Sorcery, and Living Roads v2.9 - Automated Gates Passed; Release Gates Pending
+## Steel, Sorcery, and Living Roads v2.9 - Automated, Build, Package, and Visual Gates Passed
 
 - Spellbook and Skillbook now separate passive pointer Preview, committed Selection, and armed Targeting more reliably. A short hover dwell prevents incidental card churn; one selected rail remains visible; and BLOCKED, ARMED, and NEXT command tags plus action-appropriate sword/bow emblems make combat intent easier to scan.
 - The exact-pinned 4 by 4 combat-effects atlas supports layered, power-specific motifs and a static Reduced Motion stamp. Combat sprites gain normalized footprints, contact light, faction rims, and an active-unit pulse, while priority/coalescing keeps important impact audio audible without an unbounded cue pileup.
 - Combat music holds a stable encounter identity, protects boss themes, and uses bounded critical/recovery transitions. The reproducible original score now contains 53 masters, including the 60-second title overture, the Grand Hearth reprise, and eight authored regional-site themes.
 - Local and Region Map improve building grounding, ambient-layer hierarchy, traversal-accurate movement cues, edge treatment for large setpieces and habitats, and citizen clearance around the party and authored destinations. The opening tutorial lane, named NPCs, interaction priority, encounter homes, and save data remain protected.
 - Level 20 is the initial cap. The practical linear curve requires 8,740 total XP; three level-16 martial skills and five formulas extend the existing ladders with dedicated exact-pinned book icons. Existing saves repair out-of-range levels and clear cap overflow without creating level 21.
-- Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, and SpriteArtRuntimeSmoke pass on the integrated tree. The final player build, package integrity/clean-extract gate, and direct visual review have not yet run and must not be reported as passed.
+- Combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, the clean Windows build, package integrity/clean-extract gate, and direct built-player visual review pass. The nine accepted captures cover combat overview, spell impact, Spellbook hover and armed states, Ranger Skillbook hover, Local Map, and starting plus kobold-route Region Map at supported resolutions. Evidence is retained under `QA/v2.9.0-release-visuals-741451a` with capture-set SHA-256 `006b36b45b3e43672286bf4edc7d410f482ee1b16e8c26168b7ae375fae2c321`; the package contains 83 approved runtime art files.
 
 ## Grand Hearth Atmosphere v2.8 - Automated, Build, and Visual Gates Passed
 
@@ -75,7 +75,7 @@
 ## Proven Automatically
 
 - The integrated v2.9 editor/player assemblies pass combined RuleSmoke, full RuntimeBoot, focused combat-UI runtime smoke, and SpriteArtRuntimeSmoke. Coverage includes pointer dwell and rail ownership, real melee/ranged HUD wiring, combat-music stability and recovery hysteresis, bounded/coalesced impact cues, Reduced Motion stamps, effect/icon atlas contracts, sprite-stage geometry, level-cap normalization, the 8,740-XP curve, all new powers, and world-map readability/fallback rules.
-- The v2.9 Windows build, canonical package integrity gate, clean-extracted packaged boot, and built-player visual captures remain pending; no release-integrity record is claimed yet.
+- The v2.9 Windows build, canonical package integrity gate, clean-extracted packaged boot, and nine built-player visual captures pass. Deterministic packet validation and manual visual review accept the complete capture set under `QA/v2.9.0-release-visuals-741451a`; the package inventory contains 83 approved runtime art files.
 - Normal startup reaches the Tavern, New Game reaches Party Setup, and Quick Start reaches exploration.
 - The supported combat frame uses a full-height right rail with portrait-backed active and target cards, a six-chip initiative grid, one tactical-read card, two collapsed or five expanded recent events, and no dead lower panel. The target title names Hover, Nearest, Suggested, Ally, or Intent provenance; every published active/target portrait and initiative chip resolves approved atlas geometry.
 - Spellbook art retains a stable one-to-one FormulaCatalog mapping across all 56 formulas. The exact v2.9.0 7 by 8 spell sheet preserves cells 0-50 and adds five new formulas in cells 51-55; the exact 4 by 7 ability sheet preserves cells 0-23, adds Sunder, Shadowstep, and Quick Shot in cells 24-26, and keeps cell 27 transparent. The 4 by 2 lightning subset and 4 by 3 book-state contract remain stable.
@@ -126,11 +126,10 @@
 
 ## Still Needs Human Validation
 
-- After the v2.9 package is built, compare combat, Spellbook, Skillbook, Local Map, and Region Map at 960 by 600, 1280 by 720, and 1920 by 1080. Confirm labels, rails, sprites, impacts, buildings, habitats, and citizens remain readable without clipping or misleading overlap.
 - With mouse and a physical controller, move repeatedly between hover Preview, committed Selection, and armed Targeting; confirm incidental pointer travel does not churn the detail pane and only the armed power uses gold commitment chrome.
 - Compare normal and Reduced Motion spell impacts, listen through critical and recovery transitions in several faction fights, and confirm combat music keeps a coherent encounter identity while important cast/impact cues remain audible.
 - Play enough ordinary encounters and site rewards to judge whether the 100-to-820 XP thresholds and 8,740-XP climb feel appropriately paced; exercise Sunder, Shadowstep, Quick Shot, Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse when available.
-- Once packaging passes, complete one real New Game -> Muster -> Town Hall -> Midgaard walkthrough from a clean-extracted v2.9.0 folder. Confirm Objective and NEXT remain on the storm doors until departure, then advance to King Halvard.
+- Complete one real New Game -> Muster -> Town Hall -> Midgaard walkthrough from a clean-extracted v2.9.0 folder. Confirm Objective and NEXT remain on the storm doors until departure, then advance to King Halvard.
 - Cross and circle the entire Grand Hearth gathering floor with keyboard, mouse, and a physical controller. Confirm all six patrons remain visible, walk-through, non-interactive, off the company runner, and unable to obstruct the storm doors.
 - A real new player should follow the Golden Thread without reading the README and report whether leaving Town Hall feels like a clear first journey step.
 - Run a physical-controller pass for book row navigation, right-stick detail scrolling, targeting resume/cancel, pointer-to-controller focus handoff, and comfort at the supported endpoint resolutions.
