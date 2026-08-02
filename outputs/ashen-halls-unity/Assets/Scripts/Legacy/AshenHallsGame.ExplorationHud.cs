@@ -5,6 +5,357 @@ using UnityEngine;
 
 namespace AshenHalls
 {
+    public readonly struct ExplorationHudFallbackRailLayout
+    {
+        public readonly float NextHeight;
+        public readonly float SecondaryHeight;
+        public readonly float ObjectiveHeight;
+        public readonly float GrowthHeight;
+        public readonly float ActionHeight;
+        public readonly float SectionGap;
+        public readonly float PostActionGap;
+        public readonly float GrowthTailGap;
+        public readonly float PartyLabelHeight;
+        public readonly float PartyRowHeight;
+        public readonly float PartyRowStep;
+        public readonly int PartyCount;
+        public readonly int NextMaxLines;
+        public readonly int SecondaryMaxLines;
+        public readonly int ObjectiveMaxLines;
+        public readonly int GrowthMaxLines;
+        public readonly float UsedHeight;
+
+        public ExplorationHudFallbackRailLayout(
+            float nextHeight,
+            float secondaryHeight,
+            float objectiveHeight,
+            float growthHeight,
+            float actionHeight,
+            float sectionGap,
+            float postActionGap,
+            float growthTailGap,
+            float partyLabelHeight,
+            float partyRowHeight,
+            float partyRowStep,
+            int partyCount,
+            int nextMaxLines,
+            int secondaryMaxLines,
+            int objectiveMaxLines,
+            int growthMaxLines,
+            float usedHeight)
+        {
+            NextHeight = nextHeight;
+            SecondaryHeight = secondaryHeight;
+            ObjectiveHeight = objectiveHeight;
+            GrowthHeight = growthHeight;
+            ActionHeight = actionHeight;
+            SectionGap = sectionGap;
+            PostActionGap = postActionGap;
+            GrowthTailGap = growthTailGap;
+            PartyLabelHeight = partyLabelHeight;
+            PartyRowHeight = partyRowHeight;
+            PartyRowStep = partyRowStep;
+            PartyCount = partyCount;
+            NextMaxLines = nextMaxLines;
+            SecondaryMaxLines = secondaryMaxLines;
+            ObjectiveMaxLines = objectiveMaxLines;
+            GrowthMaxLines = growthMaxLines;
+            UsedHeight = usedHeight;
+        }
+
+        public bool Fits(float availableHeight)
+        {
+            return UsedHeight <= availableHeight + 0.01f;
+        }
+    }
+
+    public readonly struct ExplorationHudFallbackCommandLayout
+    {
+        public readonly Rect Panel;
+        public readonly Rect Action;
+        public readonly Rect Camp;
+        public readonly Rect Recall;
+        public readonly Rect Descend;
+        public readonly Rect Elixir;
+        public readonly Rect Map;
+        public readonly Rect Journal;
+        public readonly Rect Party;
+        public readonly Rect Menu;
+        public readonly float ContextSeparatorX;
+        public readonly float UtilitySeparatorX;
+
+        public ExplorationHudFallbackCommandLayout(
+            Rect panel,
+            Rect action,
+            Rect camp,
+            Rect recall,
+            Rect descend,
+            Rect elixir,
+            Rect map,
+            Rect journal,
+            Rect party,
+            Rect menu,
+            float contextSeparatorX,
+            float utilitySeparatorX)
+        {
+            Panel = panel;
+            Action = action;
+            Camp = camp;
+            Recall = recall;
+            Descend = descend;
+            Elixir = elixir;
+            Map = map;
+            Journal = journal;
+            Party = party;
+            Menu = menu;
+            ContextSeparatorX = contextSeparatorX;
+            UtilitySeparatorX = utilitySeparatorX;
+        }
+
+        public IReadOnlyList<Rect> Commands => new[]
+        {
+            Action,
+            Camp,
+            Recall,
+            Descend,
+            Elixir,
+            Map,
+            Journal,
+            Party,
+            Menu
+        };
+
+        public bool Fits()
+        {
+            foreach (Rect command in Commands)
+            {
+                if (command.xMin < Panel.xMin - 0.01f
+                    || command.yMin < Panel.yMin - 0.01f
+                    || command.xMax > Panel.xMax + 0.01f
+                    || command.yMax > Panel.yMax + 0.01f)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    public static class ExplorationHudFallbackLayoutRules
+    {
+        private const float CardTopAndBottom = 28f;
+        private const float CardLineHeight = 15f;
+
+        public static ExplorationHudFallbackRailLayout CalculateRail(
+            bool detailsOpen,
+            float innerWidth,
+            float availableHeight,
+            float scale,
+            int bodyFontSize,
+            bool hasAction,
+            int partyCount,
+            string nextText,
+            string objectiveText,
+            string secondaryText,
+            string growthText)
+        {
+            scale = Mathf.Clamp(scale, 1f, 1.25f);
+            partyCount = Mathf.Clamp(partyCount, 0, 4);
+            float copyWidth = Mathf.Max(40f * scale, innerWidth - 18f * scale);
+            float sectionGap = 7f * scale;
+            float postActionGap = 9f * scale;
+            float growthTailGap = 9f * scale;
+            float partyLabelHeight = 21f * scale;
+            float partyRowHeight = 32f * scale;
+            float partyRowStep = 35f * scale;
+            float actionHeight = !detailsOpen && hasAction ? 56f * scale : 0f;
+
+            float nextMinimum = 54f * scale;
+            float secondaryMinimum = 50f * scale;
+            float objectiveMinimum = 68f * scale;
+            float growthMinimum = detailsOpen ? 44f * scale : 0f;
+            float nextHeight = DesiredCardHeight(nextText, copyWidth, bodyFontSize, scale, nextMinimum, 78f * scale);
+            float secondaryHeight = DesiredCardHeight(secondaryText, copyWidth, bodyFontSize, scale, secondaryMinimum, 88f * scale);
+            float objectiveHeight = DesiredCardHeight(objectiveText, copyWidth, bodyFontSize, scale, objectiveMinimum, 112f * scale);
+            float growthHeight = detailsOpen
+                ? DesiredCardHeight(growthText, copyWidth, bodyFontSize, scale, growthMinimum, 58f * scale)
+                : 0f;
+
+            float fixedHeight = partyLabelHeight + partyCount * partyRowStep;
+            fixedHeight += detailsOpen
+                ? sectionGap * 3f + growthTailGap
+                : sectionGap * 3f + (hasAction ? actionHeight + postActionGap : 0f);
+            float cardBudget = Mathf.Max(0f, availableHeight - fixedHeight);
+            float overflow = nextHeight + secondaryHeight + objectiveHeight + growthHeight - cardBudget;
+            if (overflow > 0f)
+            {
+                if (detailsOpen) ReduceToMinimum(ref growthHeight, growthMinimum, ref overflow);
+                ReduceToMinimum(ref secondaryHeight, secondaryMinimum, ref overflow);
+                ReduceToMinimum(ref nextHeight, nextMinimum, ref overflow);
+                ReduceToMinimum(ref objectiveHeight, objectiveMinimum, ref overflow);
+            }
+
+            float usedHeight = fixedHeight + nextHeight + secondaryHeight + objectiveHeight + growthHeight;
+            return new ExplorationHudFallbackRailLayout(
+                nextHeight,
+                secondaryHeight,
+                objectiveHeight,
+                growthHeight,
+                actionHeight,
+                sectionGap,
+                postActionGap,
+                growthTailGap,
+                partyLabelHeight,
+                partyRowHeight,
+                partyRowStep,
+                partyCount,
+                MaxLinesForHeight(nextHeight, scale),
+                MaxLinesForHeight(secondaryHeight, scale),
+                MaxLinesForHeight(objectiveHeight, scale),
+                detailsOpen ? MaxLinesForHeight(growthHeight, scale) : 0,
+                usedHeight);
+        }
+
+        public static ExplorationHudFallbackCommandLayout CalculateCommands(Rect panel, float scale)
+        {
+            scale = Mathf.Clamp(scale, 1f, 1.25f);
+            float padding = 10f * scale;
+            float itemGap = 6f * scale;
+            float groupGap = 14f * scale;
+            float height = 52f * scale;
+            float y = panel.y + 8f * scale;
+            float actionWidth = Mathf.Clamp(panel.width * 0.245f, 292f * scale, 420f * scale);
+            float buttonWidth = Mathf.Max(
+                74f * scale,
+                (panel.width - padding * 2f - actionWidth - groupGap * 2f - itemGap * 6f) / 8f);
+
+            Rect action = new Rect(panel.x + padding, y, actionWidth, height);
+            float travelStart = action.xMax + groupGap;
+            Rect camp = new Rect(travelStart, y, buttonWidth, height);
+            Rect recall = new Rect(camp.xMax + itemGap, y, buttonWidth, height);
+            Rect descend = new Rect(recall.xMax + itemGap, y, buttonWidth, height);
+            Rect elixir = new Rect(descend.xMax + itemGap, y, buttonWidth, height);
+            float utilityStart = elixir.xMax + groupGap;
+            Rect map = new Rect(utilityStart, y, buttonWidth, height);
+            Rect journal = new Rect(map.xMax + itemGap, y, buttonWidth, height);
+            Rect party = new Rect(journal.xMax + itemGap, y, buttonWidth, height);
+            Rect menu = new Rect(party.xMax + itemGap, y, buttonWidth, height);
+            return new ExplorationHudFallbackCommandLayout(
+                panel,
+                action,
+                camp,
+                recall,
+                descend,
+                elixir,
+                map,
+                journal,
+                party,
+                menu,
+                action.xMax + groupGap * 0.5f,
+                elixir.xMax + groupGap * 0.5f);
+        }
+
+        public static int EstimatedWrappedLines(string text, float width, int fontSize)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return 1;
+            int columnsPerLine = Mathf.Max(8, Mathf.FloorToInt(width / Mathf.Max(1f, fontSize * 0.62f)));
+            string[] paragraphs = text.Replace("\r", "").Split('\n');
+            int totalLines = 0;
+            foreach (string paragraph in paragraphs)
+            {
+                string[] words = paragraph.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+                if (words.Length == 0)
+                {
+                    totalLines++;
+                    continue;
+                }
+
+                int lines = 1;
+                int column = 0;
+                foreach (string word in words)
+                {
+                    int remaining = word.Length;
+                    if (column > 0 && column + 1 + remaining <= columnsPerLine)
+                    {
+                        column += 1 + remaining;
+                        continue;
+                    }
+                    if (column > 0)
+                    {
+                        lines++;
+                        column = 0;
+                    }
+                    while (remaining > columnsPerLine)
+                    {
+                        lines++;
+                        remaining -= columnsPerLine;
+                    }
+                    column = remaining;
+                }
+                totalLines += lines;
+            }
+            return Mathf.Max(1, totalLines);
+        }
+
+        public static string BoundedCopy(string text, float width, int fontSize, int maxLines)
+        {
+            string source = (text ?? "").Trim();
+            if (source.Length == 0 || maxLines <= 0) return "";
+            if (EstimatedWrappedLines(source, width, fontSize) <= maxLines) return source;
+
+            string compact = string.Join(
+                " ",
+                source.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries));
+            int low = 1;
+            int high = compact.Length;
+            int best = 0;
+            while (low <= high)
+            {
+                int middle = (low + high) / 2;
+                string candidate = compact.Substring(0, middle).TrimEnd() + "…";
+                if (EstimatedWrappedLines(candidate, width, fontSize) <= maxLines)
+                {
+                    best = middle;
+                    low = middle + 1;
+                }
+                else
+                {
+                    high = middle - 1;
+                }
+            }
+            if (best <= 0) return "…";
+            int wordEnd = compact.LastIndexOf(' ', Mathf.Min(best - 1, compact.Length - 1));
+            int length = wordEnd > 0 ? wordEnd : best;
+            return compact.Substring(0, length).TrimEnd() + "…";
+        }
+
+        private static float DesiredCardHeight(
+            string text,
+            float width,
+            int fontSize,
+            float scale,
+            float minimum,
+            float maximum)
+        {
+            int lines = EstimatedWrappedLines(text, width, fontSize);
+            return Mathf.Clamp((CardTopAndBottom + CardLineHeight * lines) * scale, minimum, maximum);
+        }
+
+        private static int MaxLinesForHeight(float height, float scale)
+        {
+            if (height <= 0f) return 0;
+            return Mathf.Max(1, Mathf.FloorToInt((height / scale - CardTopAndBottom) / CardLineHeight));
+        }
+
+        private static void ReduceToMinimum(ref float value, float minimum, ref float overflow)
+        {
+            if (overflow <= 0f) return;
+            float reduction = Mathf.Min(overflow, Mathf.Max(0f, value - minimum));
+            value -= reduction;
+            overflow -= reduction;
+        }
+    }
+
     public sealed partial class AshenHallsGame
     {
         private sealed class ExploreGuidancePlan
@@ -113,36 +464,65 @@ namespace AshenHalls
             DrawRect(new Rect(geometry.Side.x, geometry.Side.y, 4f * scale, geometry.Side.height), teal.WithAlpha(0.84f));
             DrawBorder(geometry.Side, Hex("58b7a5", 0.82f), 1);
             GUI.Label(new Rect(sideInnerX, geometry.Side.y + 8f * scale, sideInnerW, 24f * scale), FitText(view.ZoneName, sideInnerW, CenterLeftStyle(ExploreHudFont(18), Hex("e3ba63"))), CenterLeftStyle(ExploreHudFont(18), Hex("e3ba63")));
-            float statusW = sideInnerW * 0.55f;
-            GUI.Label(new Rect(sideInnerX, geometry.Side.y + 34f * scale, statusW, 18f * scale), FitText(view.DangerLabel, statusW, CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6"))), CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6")));
-            GUI.Label(new Rect(sideInnerX + statusW, geometry.Side.y + 34f * scale, sideInnerW - statusW, 18f * scale), FitText(view.ViewLabel, sideInnerW - statusW, CenterRightStyle(ExploreHudFont(11), exploreWideView ? frost : teal)), CenterRightStyle(ExploreHudFont(11), exploreWideView ? frost : teal));
+            GUI.Label(new Rect(sideInnerX, geometry.Side.y + 34f * scale, sideInnerW, 18f * scale), FitText(view.DangerLabel, sideInnerW, CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6"))), CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6")));
             DrawRect(new Rect(sideInnerX, geometry.Side.y + 57f * scale, sideInnerW, 1f), line.WithAlpha(0.72f));
 
             Rect detailsButton = new Rect(sideInnerX, geometry.Side.yMax - 40f * scale, sideInnerW, 32f * scale);
             float contentBottom = detailsButton.y - 8f * scale;
             float cursor = geometry.Side.y + 66f * scale;
-            float sectionGap = 7f * scale;
+            int partyCount = Mathf.Min(4, view.Party == null ? 0 : view.Party.Count);
+            string secondaryCopy = view.DetailsOpen
+                ? ((view.ZoneDetail ?? "") + "\n" + (view.LookLine ?? "")).Trim()
+                : view.NearbyLine;
+            ExplorationHudFallbackRailLayout rail = ExplorationHudFallbackLayoutRules.CalculateRail(
+                view.DetailsOpen,
+                sideInnerW,
+                Mathf.Max(0f, contentBottom - cursor),
+                scale,
+                ExploreHudFont(12),
+                view.HasAction,
+                partyCount,
+                view.WaypointLine,
+                view.DetailsOpen ? view.ObjectiveLine : view.ObjectiveSummary,
+                secondaryCopy,
+                view.GrowthLine);
+            float copyWidth = Mathf.Max(40f * scale, sideInnerW - 18f * scale);
             if (view.DetailsOpen)
             {
-                float nextH = 54f * scale;
-                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, nextH), "NEXT", view.WaypointLine, gold, true);
-                cursor += nextH + sectionGap;
-                float hereH = 62f * scale;
-                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, hereH), "HERE", (view.ZoneDetail + "\n" + view.LookLine).Trim(), gold, false);
-                cursor += hereH + sectionGap;
-                float objectiveH = 76f * scale;
-                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, objectiveH), "OBJECTIVE", view.ObjectiveLine, teal, true);
-                cursor += objectiveH + sectionGap;
-                float growthH = 50f * scale;
-                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, growthH), "PROGRESS", view.GrowthLine, moss, false);
-                cursor += growthH + 9f * scale;
+                DrawExploreFallbackInfoCard(
+                    new Rect(sideInnerX, cursor, sideInnerW, rail.NextHeight),
+                    "NEXT",
+                    ExplorationHudFallbackLayoutRules.BoundedCopy(view.WaypointLine, copyWidth, ExploreHudFont(12), rail.NextMaxLines),
+                    gold,
+                    true);
+                cursor += rail.NextHeight + rail.SectionGap;
+                DrawExploreFallbackInfoCard(
+                    new Rect(sideInnerX, cursor, sideInnerW, rail.SecondaryHeight),
+                    "HERE",
+                    ExplorationHudFallbackLayoutRules.BoundedCopy(secondaryCopy, copyWidth, ExploreHudFont(12), rail.SecondaryMaxLines),
+                    gold,
+                    false);
+                cursor += rail.SecondaryHeight + rail.SectionGap;
+                DrawExploreFallbackInfoCard(
+                    new Rect(sideInnerX, cursor, sideInnerW, rail.ObjectiveHeight),
+                    "OBJECTIVE",
+                    ExplorationHudFallbackLayoutRules.BoundedCopy(view.ObjectiveLine, copyWidth, ExploreHudFont(12), rail.ObjectiveMaxLines),
+                    teal,
+                    true);
+                cursor += rail.ObjectiveHeight + rail.SectionGap;
+                DrawExploreFallbackInfoCard(
+                    new Rect(sideInnerX, cursor, sideInnerW, rail.GrowthHeight),
+                    "PROGRESS",
+                    ExplorationHudFallbackLayoutRules.BoundedCopy(view.GrowthLine, copyWidth, ExploreHudFont(12), rail.GrowthMaxLines),
+                    moss,
+                    false);
+                cursor += rail.GrowthHeight + rail.GrowthTailGap;
                 GUI.Label(new Rect(sideInnerX, cursor, sideInnerW, 18f * scale), "PARTY", CenterLeftStyle(ExploreHudFont(11), Hex("e3ba63")));
-                cursor += 21f * scale;
-                int count = Mathf.Min(4, view.Party == null ? 0 : view.Party.Count);
-                for (int i = 0; i < count; i++)
+                cursor += rail.PartyLabelHeight;
+                for (int i = 0; i < rail.PartyCount; i++)
                 {
-                    DrawExploreRailPartyRow(new Rect(sideInnerX, cursor, sideInnerW, 32f * scale), view.Party[i]);
-                    cursor += 35f * scale;
+                    DrawExploreRailPartyRow(new Rect(sideInnerX, cursor, sideInnerW, rail.PartyRowHeight), view.Party[i]);
+                    cursor += rail.PartyRowStep;
                 }
                 float remaining = contentBottom - cursor;
                 if (remaining >= 84f * scale)
@@ -150,36 +530,47 @@ namespace AshenHalls
                     float mapH = Mathf.Min(180f * scale, remaining);
                     if (remaining >= 144f * scale) mapH = Mathf.Min(mapH, remaining * 0.60f);
                     DrawExploreMiniMap(new Rect(sideInnerX, cursor, sideInnerW, mapH));
-                    cursor += mapH + sectionGap;
+                    cursor += mapH + rail.SectionGap;
                     remaining = contentBottom - cursor;
                 }
                 DrawExploreFallbackLatest(sideInnerX, sideInnerW, ref cursor, contentBottom, view.Logs);
             }
             else
             {
-                float nextH = 62f * scale;
-                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, nextH), "NEXT", view.WaypointLine, gold, true);
-                cursor += nextH + sectionGap;
-                float objectiveH = 76f * scale;
-                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, objectiveH), "OBJECTIVE", view.ObjectiveSummary, teal, true);
-                cursor += objectiveH + sectionGap;
-                float nearbyH = 58f * scale;
-                DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, nearbyH), "NEARBY", view.NearbyLine, moss, false);
-                cursor += nearbyH + sectionGap;
+                DrawExploreFallbackInfoCard(
+                    new Rect(sideInnerX, cursor, sideInnerW, rail.NextHeight),
+                    "NEXT",
+                    ExplorationHudFallbackLayoutRules.BoundedCopy(view.WaypointLine, copyWidth, ExploreHudFont(12), rail.NextMaxLines),
+                    gold,
+                    true);
+                cursor += rail.NextHeight + rail.SectionGap;
+                DrawExploreFallbackInfoCard(
+                    new Rect(sideInnerX, cursor, sideInnerW, rail.ObjectiveHeight),
+                    "OBJECTIVE",
+                    ExplorationHudFallbackLayoutRules.BoundedCopy(view.ObjectiveSummary, copyWidth, ExploreHudFont(12), rail.ObjectiveMaxLines),
+                    teal,
+                    true);
+                cursor += rail.ObjectiveHeight + rail.SectionGap;
+                DrawExploreFallbackInfoCard(
+                    new Rect(sideInnerX, cursor, sideInnerW, rail.SecondaryHeight),
+                    "NEARBY",
+                    ExplorationHudFallbackLayoutRules.BoundedCopy(view.NearbyLine, copyWidth, ExploreHudFont(12), rail.SecondaryMaxLines),
+                    moss,
+                    false);
+                cursor += rail.SecondaryHeight + rail.SectionGap;
                 if (view.HasAction)
                 {
-                    Rect ready = new Rect(sideInnerX, cursor, sideInnerW, 56f * scale);
+                    Rect ready = new Rect(sideInnerX, cursor, sideInnerW, rail.ActionHeight);
                     if (DrawExploreFallbackAction(ready, view.ActionLabel, view.ActionTarget, true)) UseNearbyExploreObject();
-                    cursor += ready.height + 9f * scale;
+                    cursor += ready.height + rail.PostActionGap;
                 }
 
                 GUI.Label(new Rect(sideInnerX, cursor, sideInnerW, 18f * scale), "PARTY", CenterLeftStyle(ExploreHudFont(11), Hex("e3ba63")));
-                cursor += 21f * scale;
-                int count = Mathf.Min(4, view.Party == null ? 0 : view.Party.Count);
-                for (int i = 0; i < count; i++)
+                cursor += rail.PartyLabelHeight;
+                for (int i = 0; i < rail.PartyCount; i++)
                 {
-                    DrawExploreRailPartyRow(new Rect(sideInnerX, cursor, sideInnerW, 32f * scale), view.Party[i]);
-                    cursor += 35f * scale;
+                    DrawExploreRailPartyRow(new Rect(sideInnerX, cursor, sideInnerW, rail.PartyRowHeight), view.Party[i]);
+                    cursor += rail.PartyRowStep;
                 }
                 float mapH = contentBottom - cursor;
                 if (mapH >= 84f * scale)
@@ -193,38 +584,28 @@ namespace AshenHalls
             DrawRect(geometry.Command, Hex("060a0c", 0.99f));
             DrawRect(new Rect(geometry.Command.x, geometry.Command.y, geometry.Command.width, 3f * scale), Hex("58462c", 0.78f));
             DrawBorder(geometry.Command, Hex("52605c", 0.78f), 1);
-            float gap = 7f * scale;
-            const int secondaryCount = 8;
-            float actionW = Mathf.Clamp(geometry.Command.width * 0.22f, 270f * scale, 390f * scale);
-            float smallW = Mathf.Max(82f * scale, (geometry.Command.width - actionW - 20f * scale - gap * secondaryCount) / secondaryCount);
-            float x = geometry.Command.x + 10f * scale;
-            Rect actionRect = new Rect(x, geometry.Command.y + 8f * scale, actionW, 52f * scale);
+            ExplorationHudFallbackCommandLayout commandLayout = ExplorationHudFallbackLayoutRules.CalculateCommands(geometry.Command, scale);
+            DrawExploreFallbackGroupSeparator(geometry.Command, commandLayout.ContextSeparatorX, ember);
+            DrawExploreFallbackGroupSeparator(geometry.Command, commandLayout.UtilitySeparatorX, teal);
             bool oldEnabled = GUI.enabled;
             GUI.enabled = oldEnabled && view.HasAction;
-            if (DrawExploreFallbackAction(actionRect, view.HasAction ? view.ActionLabel : "Explore", view.HasAction ? view.ActionTarget : "No nearby action", view.HasAction)) UseNearbyExploreObject();
+            if (DrawExploreFallbackAction(commandLayout.Action, view.HasAction ? view.ActionLabel : "Explore", view.HasAction ? view.ActionTarget : "No nearby action", view.HasAction)) UseNearbyExploreObject();
             GUI.enabled = oldEnabled;
-            x += actionW + gap;
             GUI.enabled = oldEnabled && state.Supplies > 0;
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), "Camp", "R", "camp")) Camp();
+            if (DrawExploreFallbackCommand(commandLayout.Camp, "Camp", "R", "camp", false)) Camp();
             GUI.enabled = oldEnabled;
-            x += smallW + gap;
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), "Recall", "Y", "magic")) RecallToTempleSquare();
-            x += smallW + gap;
+            if (DrawExploreFallbackCommand(commandLayout.Recall, "Recall", "Y", "magic", false)) RecallToTempleSquare();
             GUI.enabled = oldEnabled && CanDescend();
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), "Descend", "T", "arrow")) Descend();
+            string descendLabel = commandLayout.Descend.width < 112f * scale ? "Down" : "Descend";
+            if (DrawExploreFallbackCommand(commandLayout.Descend, descendLabel, "T", "arrow", false)) Descend();
             GUI.enabled = oldEnabled;
-            x += smallW + gap;
             GUI.enabled = oldEnabled && state.Elixirs > 0;
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), "Elixir", "H", "hp")) UseElixir();
+            if (DrawExploreFallbackCommand(commandLayout.Elixir, "Elixir", "H", "hp", false)) UseElixir();
             GUI.enabled = oldEnabled;
-            x += smallW + gap;
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), exploreWideView ? "Local" : "Region", "Tab", "scroll")) ToggleExploreView();
-            x += smallW + gap;
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), "Journal", "J", "timeline")) ToggleArmory(ArmoryTab.Journal);
-            x += smallW + gap;
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), "Party", "F", "party")) ToggleArmory(ArmoryTab.Party);
-            x += smallW + gap;
-            if (DrawExploreFallbackCommand(new Rect(x, geometry.Command.y + 8f * scale, smallW, 52f * scale), "Menu", "Esc", "queue")) OpenPauseMenu();
+            if (DrawExploreFallbackCommand(commandLayout.Map, exploreWideView ? "Local" : "Region", "Tab", "scroll", true)) ToggleExploreView();
+            if (DrawExploreFallbackCommand(commandLayout.Journal, "Journal", "J", "timeline", true)) ToggleArmory(ArmoryTab.Journal);
+            if (DrawExploreFallbackCommand(commandLayout.Party, "Party", "F", "party", true)) ToggleArmory(ArmoryTab.Party);
+            if (DrawExploreFallbackCommand(commandLayout.Menu, "Menu", "Esc", "queue", true)) OpenPauseMenu();
             GUI.enabled = previousGuiEnabled;
         }
 
@@ -238,26 +619,40 @@ namespace AshenHalls
             GUI.Label(new Rect(rect.x + 8f * scale, rect.y + 15f * scale, rect.width - 14f * scale, 18f * scale), value ?? "0", CenterLeftStyle(ExploreHudFont(14), ink));
         }
 
-        private bool DrawExploreFallbackCommand(Rect rect, string label, string hotkey, string icon)
+        private void DrawExploreFallbackGroupSeparator(Rect panel, float x, Color accent)
+        {
+            float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
+            Rect divider = new Rect(Mathf.Round(x), panel.y + 12f * scale, Mathf.Max(1f, scale), panel.height - 24f * scale);
+            DrawRect(divider, line.WithAlpha(0.52f));
+            DrawRect(new Rect(divider.x, divider.y, divider.width, 10f * scale), accent.WithAlpha(0.72f));
+        }
+
+        private bool DrawExploreFallbackCommand(Rect rect, string label, string hotkey, string icon, bool utility)
         {
             float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
             Color accent = ExploreCommandAccent(label);
-            DrawRect(rect, GUI.enabled ? Hex("121a1e", 0.99f) : Hex("0b1013", 0.96f));
-            DrawRect(new Rect(rect.x, rect.y, rect.width, 3f * scale), accent.WithAlpha(GUI.enabled ? 0.82f : 0.32f));
-            DrawBorder(rect, GUI.enabled ? accent.WithAlpha(0.52f) : line.WithAlpha(0.30f), 1);
+            bool enabled = GUI.enabled;
+            DrawRect(rect, enabled
+                ? (utility ? Hex("0e1518", 0.97f) : Hex("121a1e", 0.99f))
+                : Hex("080d0f", 0.90f));
+            DrawRect(new Rect(rect.x, rect.y, rect.width, 3f * scale), accent.WithAlpha(enabled ? (utility ? 0.48f : 0.72f) : 0.12f));
+            DrawBorder(rect, enabled ? accent.WithAlpha(utility ? 0.34f : 0.46f) : line.WithAlpha(0.16f), 1);
             float iconSize = Mathf.Clamp(rect.height - 16f * scale, 30f * scale, 36f * scale);
             Rect iconRect = new Rect(rect.x + 7f * scale, rect.y + (rect.height - iconSize) * 0.5f, iconSize, iconSize);
-            DrawRect(Pad(iconRect, -2f * scale), Hex("070a0c", 0.82f));
-            DrawBorder(Pad(iconRect, -2f * scale), accent.WithAlpha(0.58f), 1);
+            DrawRect(Pad(iconRect, -2f * scale), enabled ? Hex("070a0c", utility ? 0.68f : 0.82f) : Hex("05080a", 0.54f));
+            DrawBorder(Pad(iconRect, -2f * scale), enabled ? accent.WithAlpha(utility ? 0.36f : 0.54f) : line.WithAlpha(0.14f), 1);
             int artIndex = ExploreCommandArtIndex(label);
-            if (!TryDrawWorldMapUiAtlasIcon(iconRect, artIndex, GUI.enabled ? Color.white : muted.WithAlpha(0.72f)))
+            Color iconTint = enabled ? (utility ? Hex("d8d5cc") : Color.white) : muted.WithAlpha(0.40f);
+            if (!TryDrawWorldMapUiAtlasIcon(iconRect, artIndex, iconTint))
             {
-                DrawTinyUiIcon(iconRect, icon, accent);
+                DrawTinyUiIcon(iconRect, icon, enabled ? accent : muted.WithAlpha(0.42f));
             }
             float textX = iconRect.xMax + 6f * scale;
             float textW = Mathf.Max(24f * scale, rect.xMax - textX - 6f * scale);
-            GUI.Label(new Rect(textX, rect.y + 6f * scale, textW, 21f * scale), FitText(label, textW, CenterLeftStyle(ExploreHudFont(13), ink)), CenterLeftStyle(ExploreHudFont(13), ink));
-            GUI.Label(new Rect(textX, rect.y + 29f * scale, textW, 16f * scale), hotkey, CenterLeftStyle(ExploreHudFont(11), accent));
+            Color labelColor = enabled ? (utility ? Hex("d0c5ae") : ink) : muted.WithAlpha(0.60f);
+            Color hotkeyColor = enabled ? accent : muted.WithAlpha(0.50f);
+            GUI.Label(new Rect(textX, rect.y + 6f * scale, textW, 21f * scale), FitText(label, textW, CenterLeftStyle(ExploreHudFont(13), labelColor)), CenterLeftStyle(ExploreHudFont(13), labelColor));
+            GUI.Label(new Rect(textX, rect.y + 29f * scale, textW, 16f * scale), hotkey, CenterLeftStyle(ExploreHudFont(11), hotkeyColor));
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
 
@@ -268,6 +663,7 @@ namespace AshenHalls
                 case "camp": return 0;
                 case "recall": return 1;
                 case "descend": return 2;
+                case "down": return 2;
                 case "elixir": return 3;
                 case "local":
                 case "region": return 4;
@@ -285,6 +681,7 @@ namespace AshenHalls
                 case "camp": return ember;
                 case "recall": return frost;
                 case "descend": return gold;
+                case "down": return gold;
                 case "elixir": return blood;
                 case "local":
                 case "region": return teal;
@@ -345,24 +742,26 @@ namespace AshenHalls
         {
             float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
             Color accent = available ? teal : muted;
-            DrawRect(rect, available ? Hex("10201f", 0.99f) : Hex("101519", 0.96f));
-            DrawRect(new Rect(rect.x, rect.y, 4f * scale, rect.height), accent.WithAlpha(0.94f));
-            DrawBorder(rect, accent.WithAlpha(available ? 0.88f : 0.42f), available ? 2 : 1);
+            DrawRect(rect, available ? Hex("10201f", 0.99f) : Hex("080d0f", 0.90f));
+            DrawRect(new Rect(rect.x, rect.y, 4f * scale, rect.height), accent.WithAlpha(available ? 0.94f : 0.18f));
+            DrawBorder(rect, accent.WithAlpha(available ? 0.88f : 0.16f), available ? 2 : 1);
             Rect iconRect = new Rect(rect.x + 10f * scale, rect.y + 10f * scale, 32f * scale, 32f * scale);
             int actionArtIndex = ExploreActionArtIndex(actionLabel, actionTarget);
-            if (!TryDrawWorldMapUiAtlasIcon(iconRect, actionArtIndex, available ? Color.white : muted.WithAlpha(0.72f)))
+            if (!TryDrawWorldMapUiAtlasIcon(iconRect, actionArtIndex, available ? Color.white : muted.WithAlpha(0.38f)))
             {
-                DrawTinyUiIcon(iconRect, available ? "hand" : "scroll", available ? teal : muted);
+                DrawTinyUiIcon(iconRect, available ? "hand" : "scroll", available ? teal : muted.WithAlpha(0.40f));
             }
             float keyW = 34f * scale;
             Rect key = new Rect(rect.xMax - keyW - 10f * scale, rect.y + 10f * scale, keyW, 32f * scale);
             DrawRect(key, Hex("05090a", 0.94f));
-            DrawBorder(key, accent.WithAlpha(0.76f), 1);
-            GUI.Label(key, available ? "E" : "--", CenterStyle(ExploreHudFont(13), available ? ink : muted));
+            DrawBorder(key, accent.WithAlpha(available ? 0.76f : 0.18f), 1);
+            GUI.Label(key, available ? "E" : "--", CenterStyle(ExploreHudFont(13), available ? ink : muted.WithAlpha(0.52f)));
             float textX = iconRect.xMax + 10f * scale;
             float textW = Mathf.Max(60f * scale, key.x - textX - 8f * scale);
-            GUI.Label(new Rect(textX, rect.y + 5f * scale, textW, 20f * scale), FitText((actionLabel ?? "USE").ToUpperInvariant(), textW, CenterLeftStyle(ExploreHudFont(13), accent)), CenterLeftStyle(ExploreHudFont(13), accent));
-            GUI.Label(new Rect(textX, rect.y + 26f * scale, textW, 21f * scale), FitText(actionTarget ?? "", textW, CenterLeftStyle(ExploreHudFont(12), ink)), CenterLeftStyle(ExploreHudFont(12), ink));
+            Color labelColor = available ? accent : muted.WithAlpha(0.60f);
+            Color targetColor = available ? ink : muted.WithAlpha(0.52f);
+            GUI.Label(new Rect(textX, rect.y + 5f * scale, textW, 20f * scale), FitText((actionLabel ?? "USE").ToUpperInvariant(), textW, CenterLeftStyle(ExploreHudFont(13), labelColor)), CenterLeftStyle(ExploreHudFont(13), labelColor));
+            GUI.Label(new Rect(textX, rect.y + 26f * scale, textW, 21f * scale), FitText(actionTarget ?? "", textW, CenterLeftStyle(ExploreHudFont(12), targetColor)), CenterLeftStyle(ExploreHudFont(12), targetColor));
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
 
@@ -491,6 +890,11 @@ namespace AshenHalls
             ExplorationInteraction interaction = CurrentExploreInteraction();
             WorldZone zone = state?.Map == null ? null : ZoneAt(state.PlayerX, state.PlayerY);
             MapObject obj = state?.Map == null ? null : ObjectAt(state.Map, state.PlayerX, state.PlayerY);
+            bool hasRegionalSite = TryRegionalSiteAt(
+                state?.Map,
+                state.PlayerX,
+                state.PlayerY,
+                out WorldMapSite regionalSite);
             string nearbyAction = ExploreNearbyActionLine();
             string lookLine;
             if (!string.IsNullOrEmpty(exploreHoverLookLine))
@@ -524,8 +928,8 @@ namespace AshenHalls
                 Elixirs = state.Elixirs.ToString(),
                 DetailsOpen = !exploreHudCollapsed,
                 ViewLabel = ExploreViewLabel(),
-                ZoneName = zone?.Name ?? HomeTownName,
-                ZoneDetail = ExploreLocationDetail(zone),
+                ZoneName = hasRegionalSite ? regionalSite.Name : zone?.Name ?? HomeTownName,
+                ZoneDetail = ExploreLocationDetail(zone, hasRegionalSite),
                 DangerLabel = zone == null ? "" : TravelDangerLabel(zone),
                 LookLine = lookLine,
                 ObjectiveLine = string.IsNullOrEmpty(state.ActiveStory) ? "Follow the road and mark what the party learns." : state.ActiveStory,
@@ -541,7 +945,9 @@ namespace AshenHalls
             };
         }
 
-        private string ExploreLocationDetail(WorldZone zone)
+        private string ExploreLocationDetail(
+            WorldZone zone,
+            bool hasRegionalSite = false)
         {
             if (zone == null || state?.Map == null) return "";
             if (state.Depth == 1 && IsMidgaardCityCell(state.PlayerX, state.PlayerY, state.Map, state.Depth))
@@ -550,6 +956,10 @@ namespace AshenHalls
                     state.PlayerX - state.Map.StartX,
                     state.PlayerY - state.Map.StartY);
                 return $"{district} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
+            }
+            if (hasRegionalSite)
+            {
+                return $"{zone.Title} landmark / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
             }
             return $"{zone.Title} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
         }

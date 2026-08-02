@@ -5774,7 +5774,7 @@ namespace AshenHalls
                 PushLog(site.Summary, Tone.Normal);
             }
             ShowBanner(site.Name);
-            PlaySfx("ui", 0.68f);
+            PlaySfx(WorldSitePresentationRules.InspectCueFor(site.Id), 0.68f);
             return true;
         }
 

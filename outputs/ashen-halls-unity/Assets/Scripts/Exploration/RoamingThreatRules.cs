@@ -3,13 +3,51 @@ using System.Collections.Generic;
 
 namespace AshenHalls
 {
+    public readonly struct RoamingThreatBehaviorProfile
+    {
+        public readonly string Id;
+        public readonly int AlertRadius;
+        public readonly int PursuitCadence;
+        public readonly int ReturnCadence;
+        public readonly int LeashRadius;
+
+        public RoamingThreatBehaviorProfile(
+            string id,
+            int alertRadius,
+            int pursuitCadence,
+            int returnCadence,
+            int leashRadius)
+        {
+            Id = id ?? "";
+            AlertRadius = Math.Max(2, alertRadius);
+            PursuitCadence = Math.Max(1, pursuitCadence);
+            ReturnCadence = Math.Max(1, returnCadence);
+            LeashRadius = Math.Max(AlertRadius + 1, leashRadius);
+        }
+    }
+
     public static class RoamingThreatRules
     {
-        public const int AlertRadius = 5;
+        // Broad presentation envelope retained for systems that do not own a
+        // concrete threat. Live movement uses the faction profile below.
+        public const int AlertRadius = 6;
         public const int MovementCadence = 2;
         public const int ReturnCadence = 3;
         public const int DefeatRespawnSteps = 36;
         public const int RetreatGraceSteps = 6;
+
+        public static readonly RoamingThreatBehaviorProfile DefaultProfile =
+            new RoamingThreatBehaviorProfile("road-patrol", 5, MovementCadence, ReturnCadence, 8);
+        private static readonly RoamingThreatBehaviorProfile RatProfile =
+            new RoamingThreatBehaviorProfile("skittish-scavengers", 4, 2, 2, 6);
+        private static readonly RoamingThreatBehaviorProfile KoboldProfile =
+            new RoamingThreatBehaviorProfile("coordinated-raiders", 5, 2, 3, 8);
+        private static readonly RoamingThreatBehaviorProfile DrowProfile =
+            new RoamingThreatBehaviorProfile("watchful-hunters", 6, 2, 4, 10);
+        private static readonly RoamingThreatBehaviorProfile UndeadProfile =
+            new RoamingThreatBehaviorProfile("relentless-dead", 4, 3, 5, 11);
+        private static readonly RoamingThreatBehaviorProfile DemonProfile =
+            new RoamingThreatBehaviorProfile("rampaging-demons", 6, 1, 2, 12);
 
         private static readonly int[] StepX = { 0, -1, 1, 0 };
         private static readonly int[] StepY = { -1, 0, 0, 1 };
@@ -21,17 +59,59 @@ namespace AshenHalls
 
         public static bool ShouldAlert(int distance, bool playerIsSafe, int graceSteps)
         {
-            return !playerIsSafe && graceSteps <= 0 && distance > 1 && distance <= AlertRadius;
+            return ShouldAlert(distance, playerIsSafe, graceSteps, DefaultProfile);
+        }
+
+        public static bool ShouldAlert(
+            int distance,
+            bool playerIsSafe,
+            int graceSteps,
+            RoamingThreatBehaviorProfile profile)
+        {
+            return !playerIsSafe && graceSteps <= 0 && distance > 1 && distance <= profile.AlertRadius;
         }
 
         public static bool ShouldPursue(int explorationSteps)
         {
-            return explorationSteps > 0 && explorationSteps % MovementCadence == 0;
+            return ShouldPursue(explorationSteps, DefaultProfile);
+        }
+
+        public static bool ShouldPursue(int explorationSteps, RoamingThreatBehaviorProfile profile)
+        {
+            return explorationSteps > 0 && explorationSteps % profile.PursuitCadence == 0;
         }
 
         public static bool ShouldReturnHome(int explorationSteps)
         {
-            return explorationSteps > 0 && explorationSteps % ReturnCadence == 0;
+            return ShouldReturnHome(explorationSteps, DefaultProfile);
+        }
+
+        public static bool ShouldReturnHome(int explorationSteps, RoamingThreatBehaviorProfile profile)
+        {
+            return explorationSteps > 0 && explorationSteps % profile.ReturnCadence == 0;
+        }
+
+        public static bool ShouldLeash(int distanceFromHome, RoamingThreatBehaviorProfile profile)
+        {
+            return distanceFromHome >= profile.LeashRadius;
+        }
+
+        public static int DisengageRadius(RoamingThreatBehaviorProfile profile)
+        {
+            return profile.AlertRadius + 2;
+        }
+
+        public static RoamingThreatBehaviorProfile ProfileFor(RoamingThreatFaction faction)
+        {
+            switch (faction)
+            {
+                case RoamingThreatFaction.Rats: return RatProfile;
+                case RoamingThreatFaction.Kobolds: return KoboldProfile;
+                case RoamingThreatFaction.Drow: return DrowProfile;
+                case RoamingThreatFaction.Undead: return UndeadProfile;
+                case RoamingThreatFaction.Demons: return DemonProfile;
+                default: return DefaultProfile;
+            }
         }
 
         public static int SpawnScore(int seed, int slot, int x, int y)

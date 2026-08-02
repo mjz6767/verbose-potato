@@ -19,7 +19,7 @@ namespace AshenHalls
 
             if (kind.StartsWith("midgaard", StringComparison.Ordinal))
             {
-                return wideView ? Lerp(0.66f, 0.74f, noise01) : Lerp(0.74f, 0.82f, noise01);
+                return wideView ? Lerp(0.60f, 0.68f, noise01) : Lerp(0.74f, 0.82f, noise01);
             }
 
             switch (kind)
@@ -30,18 +30,18 @@ namespace AshenHalls
                 case "paved":
                 case "ruins":
                 case "gloam":
-                    return wideView ? Lerp(0.62f, 0.71f, noise01) : Lerp(0.70f, 0.79f, noise01);
+                    return wideView ? Lerp(0.56f, 0.65f, noise01) : Lerp(0.70f, 0.79f, noise01);
                 case "moss":
                 case "mire":
                 case "mud":
                 case "cistern":
-                    return wideView ? Lerp(0.67f, 0.76f, noise01) : Lerp(0.75f, 0.84f, noise01);
+                    return wideView ? Lerp(0.61f, 0.70f, noise01) : Lerp(0.75f, 0.84f, noise01);
                 case "quarry":
                 case "glass":
                 case "ash":
-                    return wideView ? Lerp(0.69f, 0.78f, noise01) : Lerp(0.77f, 0.86f, noise01);
+                    return wideView ? Lerp(0.62f, 0.71f, noise01) : Lerp(0.77f, 0.86f, noise01);
                 default:
-                    return wideView ? Lerp(0.66f, 0.74f, noise01) : Lerp(0.74f, 0.82f, noise01);
+                    return wideView ? Lerp(0.59f, 0.68f, noise01) : Lerp(0.74f, 0.82f, noise01);
             }
         }
 
@@ -76,7 +76,7 @@ namespace AshenHalls
         public static float BiomePropAlpha(bool wideView, float noise01)
         {
             return wideView
-                ? Lerp(0.72f, 0.84f, noise01)
+                ? Lerp(0.60f, 0.72f, noise01)
                 : Lerp(0.96f, 1.00f, noise01);
         }
 

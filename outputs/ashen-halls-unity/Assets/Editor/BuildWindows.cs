@@ -48,6 +48,8 @@ namespace AshenHalls.Editor
             "world-map-material-atlas-runtime-",
             "world-map-landmark-atlas-runtime-",
             "world-map-region-landmark-atlas-runtime-",
+            "world-map-region-marker-atlas-runtime-",
+            "world-area-setpiece-atlas-runtime-",
             "world-map-overlay-atlas-runtime-",
             "world-map-progression-overlay-atlas-runtime-",
             "world-map-ui-atlas-runtime-",

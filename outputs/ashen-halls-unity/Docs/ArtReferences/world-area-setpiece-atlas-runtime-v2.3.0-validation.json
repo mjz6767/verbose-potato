@@ -1,0 +1,232 @@
+{
+  "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+  "output": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\world-area-setpiece-atlas-runtime-v2.3.0.png",
+  "grid": [
+    4,
+    2
+  ],
+  "cellSize": 384,
+  "padding": 20,
+  "atlasSize": [
+    1536,
+    768
+  ],
+  "cells": [
+    {
+      "index": 0,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        444,
+        444
+      ],
+      "sourceBounds": [
+        18,
+        43,
+        413,
+        400
+      ],
+      "runtimeBounds": [
+        20,
+        36,
+        364,
+        347
+      ],
+      "size": [
+        344,
+        311
+      ]
+    },
+    {
+      "index": 1,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 1,
+      "sourceRegion": [
+        444,
+        0,
+        887,
+        444
+      ],
+      "sourceBounds": [
+        15,
+        34,
+        418,
+        410
+      ],
+      "runtimeBounds": [
+        404,
+        31,
+        748,
+        352
+      ],
+      "size": [
+        344,
+        321
+      ]
+    },
+    {
+      "index": 2,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 2,
+      "sourceRegion": [
+        887,
+        0,
+        1330,
+        444
+      ],
+      "sourceBounds": [
+        17,
+        32,
+        426,
+        410
+      ],
+      "runtimeBounds": [
+        788,
+        33,
+        1132,
+        351
+      ],
+      "size": [
+        344,
+        318
+      ]
+    },
+    {
+      "index": 3,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 3,
+      "sourceRegion": [
+        1330,
+        0,
+        1774,
+        444
+      ],
+      "sourceBounds": [
+        22,
+        31,
+        424,
+        410
+      ],
+      "runtimeBounds": [
+        1172,
+        30,
+        1516,
+        354
+      ],
+      "size": [
+        344,
+        324
+      ]
+    },
+    {
+      "index": 4,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 4,
+      "sourceRegion": [
+        0,
+        444,
+        444,
+        887
+      ],
+      "sourceBounds": [
+        16,
+        36,
+        413,
+        400
+      ],
+      "runtimeBounds": [
+        20,
+        418,
+        364,
+        733
+      ],
+      "size": [
+        344,
+        315
+      ]
+    },
+    {
+      "index": 5,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 5,
+      "sourceRegion": [
+        444,
+        444,
+        887,
+        887
+      ],
+      "sourceBounds": [
+        13,
+        9,
+        443,
+        401
+      ],
+      "runtimeBounds": [
+        404,
+        419,
+        748,
+        733
+      ],
+      "size": [
+        344,
+        314
+      ]
+    },
+    {
+      "index": 6,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 6,
+      "sourceRegion": [
+        887,
+        444,
+        1330,
+        887
+      ],
+      "sourceBounds": [
+        0,
+        14,
+        443,
+        408
+      ],
+      "runtimeBounds": [
+        788,
+        423,
+        1132,
+        729
+      ],
+      "size": [
+        344,
+        306
+      ]
+    },
+    {
+      "index": 7,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\source-world-area-setpiece-atlas-v2.3.0-alpha.png",
+      "sourceIndex": 7,
+      "sourceRegion": [
+        1330,
+        444,
+        1774,
+        887
+      ],
+      "sourceBounds": [
+        0,
+        14,
+        429,
+        404
+      ],
+      "runtimeBounds": [
+        1172,
+        419,
+        1516,
+        732
+      ],
+      "size": [
+        344,
+        313
+      ]
+    }
+  ]
+}

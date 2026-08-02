@@ -361,6 +361,7 @@ namespace AshenHalls.Editor
         private static void AssertGeneratedRoamingThreatDepthsRuntime(AshenHallsGame game, GameState state)
         {
             const int seed = 51510;
+            HashSet<RoamingThreatFaction> behaviorFactionsExercised = new HashSet<RoamingThreatFaction>();
             foreach (string contentSet in new[] { ContentSetCatalog.SewerSlice, ContentSetCatalog.FullPrototype })
             {
                 bool fullPrototype = ContentSetCatalog.IsFullPrototype(contentSet);
@@ -395,6 +396,16 @@ namespace AshenHalls.Editor
                     {
                         RoamingThreat patrol = patrols.SingleOrDefault(threat => threat.Id == definition.Id);
                         Assert(patrol != null, label + " instantiates " + definition.Id);
+                        RoamingThreatBehaviorProfile expectedBehavior = definition.BehaviorProfile;
+                        RoamingThreatBehaviorProfile liveBehavior = InvokePrivate<RoamingThreatBehaviorProfile>(
+                            game,
+                            "RoamingThreatBehaviorFor",
+                            patrol);
+                        Assert(liveBehavior.Id == expectedBehavior.Id, label + " wires " + definition.Id + " to behavior " + expectedBehavior.Id);
+                        Assert(liveBehavior.AlertRadius == expectedBehavior.AlertRadius, label + " wires " + definition.Id + " alert radius");
+                        Assert(liveBehavior.PursuitCadence == expectedBehavior.PursuitCadence, label + " wires " + definition.Id + " pursuit cadence");
+                        Assert(liveBehavior.ReturnCadence == expectedBehavior.ReturnCadence, label + " wires " + definition.Id + " return cadence");
+                        Assert(liveBehavior.LeashRadius == expectedBehavior.LeashRadius, label + " wires " + definition.Id + " leash radius");
                         Assert(patrol.Active, label + " starts " + definition.Id + " active");
                         Assert(patrol.X >= 0 && patrol.Y >= 0 && patrol.X < state.Map.Width && patrol.Y < state.Map.Height, label + " keeps " + definition.Id + " in bounds");
                         Assert(reachable[patrol.X, patrol.Y], label + " keeps " + definition.Id + " reachable from the party start");
@@ -402,6 +413,10 @@ namespace AshenHalls.Editor
                         Assert(patrol.X != state.PlayerX || patrol.Y != state.PlayerY, label + " keeps " + definition.Id + " off the player cell");
                         WorldZone zone = InvokePrivate<WorldZone>(game, "ZoneFor", patrol.X, patrol.Y, state.Map, depth);
                         Assert(zone != null && zone.Danger > 0, label + " keeps " + definition.Id + " outside safe zones");
+                        if (behaviorFactionsExercised.Add(definition.Faction))
+                        {
+                            AssertLiveRoamingThreatPursuitCadence(game, state, patrol, expectedBehavior, label + " " + definition.Faction);
+                        }
                     }
                     for (int i = 0; i < patrols.Count; i++)
                     for (int j = i + 1; j < patrols.Count; j++)
@@ -438,6 +453,161 @@ namespace AshenHalls.Editor
                         InvokePrivate(game, "InvalidateCombatController");
                     }
                 }
+            }
+            Assert(
+                behaviorFactionsExercised.SetEquals(new[]
+                {
+                    RoamingThreatFaction.Rats,
+                    RoamingThreatFaction.Kobolds,
+                    RoamingThreatFaction.Drow,
+                    RoamingThreatFaction.Undead,
+                    RoamingThreatFaction.Demons
+                }),
+                "generated roaming-threat runtime coverage exercises every faction behavior profile");
+        }
+
+        private sealed class RoamingThreatRuntimeSnapshot
+        {
+            public readonly RoamingThreat Threat;
+            public readonly int X;
+            public readonly int Y;
+            public readonly bool Active;
+            public readonly bool Alerted;
+            public readonly int GraceSteps;
+            public readonly int RespawnSteps;
+
+            public RoamingThreatRuntimeSnapshot(RoamingThreat threat)
+            {
+                Threat = threat;
+                X = threat.X;
+                Y = threat.Y;
+                Active = threat.Active;
+                Alerted = threat.Alerted;
+                GraceSteps = threat.GraceSteps;
+                RespawnSteps = threat.RespawnSteps;
+            }
+
+            public void Restore()
+            {
+                Threat.X = X;
+                Threat.Y = Y;
+                Threat.Active = Active;
+                Threat.Alerted = Alerted;
+                Threat.GraceSteps = GraceSteps;
+                Threat.RespawnSteps = RespawnSteps;
+            }
+        }
+
+        private static void AssertLiveRoamingThreatPursuitCadence(
+            AshenHallsGame game,
+            GameState state,
+            RoamingThreat patrol,
+            RoamingThreatBehaviorProfile behavior,
+            string label)
+        {
+            int originalPlayerX = state.PlayerX;
+            int originalPlayerY = state.PlayerY;
+            int originalExplorationSteps = state.ExplorationSteps;
+            GameMode originalMode = state.Mode;
+            CombatState originalCombat = state.Combat;
+            List<RoamingThreatRuntimeSnapshot> snapshots = state.RoamingThreats
+                .Where(threat => threat != null)
+                .Select(threat => new RoamingThreatRuntimeSnapshot(threat))
+                .ToList();
+
+            try
+            {
+                foreach (RoamingThreatRuntimeSnapshot snapshot in snapshots)
+                {
+                    if (snapshot.Threat == patrol) continue;
+                    snapshot.Threat.Active = false;
+                    snapshot.Threat.Alerted = false;
+                    snapshot.Threat.RespawnSteps = 999;
+                }
+
+                patrol.Active = true;
+                patrol.Alerted = true;
+                patrol.GraceSteps = 0;
+                patrol.RespawnSteps = 0;
+                patrol.X = patrol.HomeX;
+                patrol.Y = patrol.HomeY;
+
+                state.PlayerX = -1;
+                state.PlayerY = -1;
+                MethodInfo cellAvailabilityMethod = FindPrivateMethod(
+                    "IsRoamingThreatCellAvailable",
+                    new object[] { 0, 0, patrol.Id });
+                Assert(cellAvailabilityMethod != null, label + " resolves the live hostile-cell rule");
+                bool[,] pursuitCells = new bool[state.Map.Width, state.Map.Height];
+                for (int y = 0; y < state.Map.Height; y++)
+                for (int x = 0; x < state.Map.Width; x++)
+                {
+                    pursuitCells[x, y] = (bool)cellAvailabilityMethod.Invoke(
+                        game,
+                        new object[] { x, y, patrol.Id });
+                }
+
+                Point playerCell = null;
+                for (int targetDistance = behavior.AlertRadius; targetDistance >= 3 && playerCell == null; targetDistance--)
+                {
+                    for (int y = 1; y < state.Map.Height - 1 && playerCell == null; y++)
+                    for (int x = 1; x < state.Map.Width - 1; x++)
+                    {
+                        int distance = Math.Abs(x - patrol.HomeX) + Math.Abs(y - patrol.HomeY);
+                        if (distance != targetDistance) continue;
+                        if (snapshots.Any(snapshot => snapshot.Threat.HomeX == x && snapshot.Threat.HomeY == y)) continue;
+                        if (!pursuitCells[x, y]) continue;
+                        bool routeFound = RoamingThreatRules.TryNextStep(
+                            state.Map.Width,
+                            state.Map.Height,
+                            patrol.HomeX,
+                            patrol.HomeY,
+                            x,
+                            y,
+                            (testX, testY) => pursuitCells[testX, testY],
+                            (testX, testY) => testX == x && testY == y,
+                            true,
+                            out _);
+                        if (!routeFound) continue;
+                        playerCell = new Point(x, y);
+                        break;
+                    }
+                }
+
+                Assert(playerCell != null, label + " finds a hostile pursuit lane inside its alert radius");
+                state.PlayerX = playerCell.X;
+                state.PlayerY = playerCell.Y;
+                state.ExplorationSteps = 0;
+                state.Mode = GameMode.Explore;
+                state.Combat = null;
+
+                int startX = patrol.X;
+                int startY = patrol.Y;
+                for (int step = 1; step <= behavior.PursuitCadence; step++)
+                {
+                    bool combatStarted = InvokePrivate<bool>(game, "AdvanceRoamingThreatsAfterPartyStep");
+                    Assert(!combatStarted && state.Mode == GameMode.Explore && state.Combat == null, label + " pursuit cadence stays in exploration at step " + step);
+                    int moved = Math.Abs(patrol.X - startX) + Math.Abs(patrol.Y - startY);
+                    if (step < behavior.PursuitCadence)
+                    {
+                        Assert(moved == 0, label + " waits for pursuit cadence step " + behavior.PursuitCadence);
+                    }
+                    else
+                    {
+                        Assert(moved == 1, label + " advances exactly one orthogonal cell on pursuit cadence step " + behavior.PursuitCadence);
+                    }
+                }
+            }
+            finally
+            {
+                foreach (RoamingThreatRuntimeSnapshot snapshot in snapshots) snapshot.Restore();
+                state.PlayerX = originalPlayerX;
+                state.PlayerY = originalPlayerY;
+                state.ExplorationSteps = originalExplorationSteps;
+                state.Mode = originalMode;
+                state.Combat = originalCombat;
+                InvokePrivate(game, "InvalidateExplorationController");
+                InvokePrivate(game, "InvalidateCombatController");
             }
         }
 
@@ -666,6 +836,7 @@ namespace AshenHalls.Editor
             Texture2D tavernBackdropAtlas = GetPrivateField<Texture2D>(game, "tavernBackdropArt");
             Texture2D roamingThreatAtlas = GetPrivateField<Texture2D>(game, "roamingThreatAtlas");
             Texture2D regionalLandmarkAtlas = GetPrivateField<Texture2D>(game, "worldMapRegionLandmarkAtlas");
+            Texture2D areaSetpieceAtlas = GetPrivateField<Texture2D>(game, "worldAreaSetpieceAtlas");
             Assert(streetLifeAtlas != null, "v1.50 Midgaard street-life atlas is loaded");
             Assert(streetLifeAtlas.name.IndexOf("v1.50.0", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard street life uses the pinned v1.50 art contract");
             Assert(streetLifeAtlas.width == 1400 && streetLifeAtlas.height == 1120, "Midgaard street-life atlas is an exact 5x4 grid");
@@ -678,6 +849,9 @@ namespace AshenHalls.Editor
             Assert(regionalLandmarkAtlas != null, "v1.65 regional-landmark atlas is loaded");
             Assert(regionalLandmarkAtlas.name.IndexOf("v1.65.0", StringComparison.OrdinalIgnoreCase) >= 0, "regional landmarks use the pinned v1.65 art contract");
             Assert(regionalLandmarkAtlas.width == 1400 && regionalLandmarkAtlas.height == 1120, "regional-landmark atlas is an exact 5x4 grid");
+            Assert(areaSetpieceAtlas != null, "v2.3 world-area set-piece atlas is loaded");
+            Assert(areaSetpieceAtlas.name.IndexOf("v2.3.0", StringComparison.OrdinalIgnoreCase) >= 0, "authored world areas use the pinned v2.3 set-piece contract");
+            Assert(areaSetpieceAtlas.width == 1536 && areaSetpieceAtlas.height == 768, "world-area set-piece atlas is an exact 4x2 grid");
             Assert(interiorPropAtlas != null, "v1.61 Midgaard interior-prop atlas is loaded");
             Assert(interiorPropAtlas.name.IndexOf("v1.61.0", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard interiors use the pinned v1.61 art contract");
             Assert(interiorPropAtlas.width == 1400 && interiorPropAtlas.height == 1120, "Midgaard interior props use an exact 5x4 grid");
@@ -722,6 +896,7 @@ namespace AshenHalls.Editor
             Assert(state.Map.SurfaceRoles.Any(raw => ((((ExplorationCellRole)raw) & (ExplorationCellRole.City | ExplorationCellRole.Road)) == (ExplorationCellRole.City | ExplorationCellRole.Road))), "Midgaard contains authored city streets");
             Assert(state.Map.SurfaceMaterials.Any(raw => (ExplorationMaterial)raw == ExplorationMaterial.Forest), "generated world retains blocked forest material independently of passability");
             AssertRegionalRouteCircuit(game, state);
+            AssertRegionalSiteAudioRuntime(game, state, soundClips);
             AssertExpandedMapSeedSweep(game);
             MapData legacyMap = new MapData { Width = 4, Height = 3, Depth = 2, StartX = 1, StartY = 1 };
             legacyMap.Tiles = new List<int>
@@ -4058,6 +4233,7 @@ namespace AshenHalls.Editor
                 state.Map.StartX,
                 state.Map.StartY);
             Assert(sites.Length == 8, "expanded world exposes one authored site in every outer zone");
+            HashSet<int> setpieceIndices = new HashSet<int>();
             foreach (WorldMapSite site in sites)
             {
                 MapObject landmark = state.Map.FindObjectById("regional-site:" + site.Id);
@@ -4067,6 +4243,96 @@ namespace AshenHalls.Editor
                 Assert((roles & (ExplorationCellRole.Room | ExplorationCellRole.Clearing)) == (ExplorationCellRole.Room | ExplorationCellRole.Clearing), $"{site.Name} owns a room-sized clearing");
                 Assert(!MidgaardInteriorRules.IsReservedCell(state.Map, site.X, site.Y), $"{site.Name} stays clear of Midgaard's embedded rooms");
                 Assert(InvokePrivate<string>(game, "ObjectName", landmark) == site.Name, $"{site.Name} publishes its authored map identity");
+                int setpieceIndex = WorldAreaSetpiecePresentationRules.IconIndex(site.Id);
+                Assert(setpieceIndex >= 0 && setpieceIndex < WorldAreaSetpiecePresentationRules.CellCount, $"{site.Name} resolves a valid authored set-piece cell");
+                Assert(setpieceIndices.Add(setpieceIndex), $"{site.Name} owns a distinct authored set-piece cell");
+            }
+            Assert(setpieceIndices.Count == WorldAreaSetpiecePresentationRules.CellCount, "runtime regional sites cover all eight set-piece cells exactly once");
+        }
+
+        private static void AssertRegionalSiteAudioRuntime(
+            AshenHallsGame game,
+            GameState state,
+            Dictionary<string, AudioClip> soundClips)
+        {
+            int originalPlayerX = state.PlayerX;
+            int originalPlayerY = state.PlayerY;
+            GameMode originalMode = state.Mode;
+            List<RoamingThreat> originalThreats = state.RoamingThreats;
+            try
+            {
+                state.Mode = GameMode.Explore;
+                state.RoamingThreats = new List<RoamingThreat>();
+                AudioClip huntedMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.HuntedRoad);
+                Assert(huntedMusic != null, "regional-site pursuit coverage resolves the hunted-road score");
+
+                foreach (WorldMapSite site in WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY))
+                {
+                    Assert(WorldSitePresentationRules.TryGet(site.Id, out WorldSitePresentationProfile profile), site.Name + " resolves runtime presentation data");
+                    MapObject landmark = state.Map.FindObjectById(
+                        WorldSitePresentationRules.LandmarkObjectIdPrefix + site.Id);
+                    Assert(landmark != null && landmark.Type == profile.LandmarkType, site.Name + " runtime landmark matches its audio profile");
+                    Assert(soundClips.ContainsKey(profile.PrimaryAmbientCue), site.Name + " primary ambience exists in the live SFX bank");
+                    Assert(soundClips.ContainsKey(profile.SecondaryAmbientCue), site.Name + " secondary ambience exists in the live SFX bank");
+                    Assert(soundClips.ContainsKey(profile.InspectCue), site.Name + " inspect cue exists in the live SFX bank");
+
+                    state.PlayerX = landmark.X;
+                    state.PlayerY = landmark.Y;
+                    string centerAmbience = InvokePrivate<string>(game, "CurrentExplorationAmbientCue");
+                    Assert(profile.UsesAmbientCue(centerAmbience), site.Name + " center resolves its authored ambience fingerprint");
+                    AudioClip expectedMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", profile.MusicKey);
+                    AudioClip calmMusic = InvokePrivate<AudioClip>(game, "DesiredMusicClip");
+                    Assert(expectedMusic != null && calmMusic == expectedMusic, site.Name + " center resolves its authored calm score");
+
+                    string decorationPrefix = WorldSitePresentationRules.DecorationObjectIdPrefix + site.Id + ":";
+                    List<MapObject> audioDecorations = state.Map.Objects
+                        .Where(obj => obj != null
+                            && !string.IsNullOrEmpty(obj.Id)
+                            && obj.Id.StartsWith(decorationPrefix, StringComparison.Ordinal)
+                            && (GameAudioCueRules.IsAmbientLandmark(obj.Type)
+                                || MusicDirectorRules.IsMusicLandmark(obj.Type)))
+                        .ToList();
+                    Assert(audioDecorations.Count > 0, site.Name + " runtime template includes an audio-relevant decorative prop");
+                    foreach (MapObject decoration in audioDecorations)
+                    {
+                        state.PlayerX = decoration.X;
+                        state.PlayerY = decoration.Y;
+                        string decorationAmbience = InvokePrivate<string>(game, "CurrentExplorationAmbientCue");
+                        Assert(profile.UsesAmbientCue(decorationAmbience), site.Name + " decorative " + decoration.Type + " cannot hijack its parent ambience");
+                        int centerDistance = Math.Abs(decoration.X - landmark.X) + Math.Abs(decoration.Y - landmark.Y);
+                        if (centerDistance <= 3)
+                        {
+                            AudioClip decorationMusic = InvokePrivate<AudioClip>(game, "DesiredMusicClip");
+                            Assert(decorationMusic == expectedMusic, site.Name + " decorative " + decoration.Type + " cannot hijack its parent score");
+                        }
+                    }
+
+                    state.PlayerX = landmark.X;
+                    state.PlayerY = landmark.Y;
+                    state.RoamingThreats.Add(new RoamingThreat
+                    {
+                        Id = "regional-site-audio-threat",
+                        Depth = state.Depth,
+                        X = landmark.X,
+                        Y = landmark.Y,
+                        Active = true,
+                        Alerted = true
+                    });
+                    AudioClip threatenedMusic = InvokePrivate<AudioClip>(game, "DesiredMusicClip");
+                    Assert(threatenedMusic == huntedMusic, site.Name + " yields to alerted-patrol music at runtime");
+                    state.RoamingThreats.Clear();
+                }
+            }
+            finally
+            {
+                state.PlayerX = originalPlayerX;
+                state.PlayerY = originalPlayerY;
+                state.Mode = originalMode;
+                state.RoamingThreats = originalThreats;
             }
         }
 

@@ -3,6 +3,12 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.3.0 regional set-piece contract
+
+`world-area-setpiece-atlas-runtime-v2.3.0.png` is the approved exact 4 by 2 transparent regional set-piece atlas. It is 1536 by 768 pixels with 384-pixel cells and at least 20 pixels of transparent gutter around every illustrated subject. Row-major cells are Green Shrine Training Ring, Old Quarry Forge, Gloam Deep Crypt, Glass Lore Library, Dusk Market Hideout, Red Gate Seal, Salt Cistern Gate, and Ash Fen Ancient Grove. Subjects share a bottom-center ground anchor and are drawn as large map illustrations at both Local and Region scales; do not bake labels, route strokes, selection frames, square backplates, or ambience marks into replacement art.
+
+The preserved authoring set is `source-world-area-setpiece-atlas-v2.3.0-generated.png`, `source-world-area-setpiece-atlas-v2.3.0-alpha.png`, `world-area-setpiece-atlas-runtime-v2.3.0-prompt.txt`, and `world-area-setpiece-atlas-runtime-v2.3.0-validation.json`. Runtime validation requires exact RGBA geometry, all eight populated cells, boundary-safe alpha, matching site-to-cell mappings, and the exact manifest pin. Only the normalized runtime atlas is packaged.
+
 ## Active v2.2.0 Region Map marker contract
 
 `world-map-region-marker-atlas-runtime-v2.2.0.png` is the approved 5 by 4 transparent Region Map marker atlas. Its 20 row-major cells cover civic/service actors, outer-road sites, danger, travel, party, Midgaard, and atmospheric reserve art. Runtime validation requires exact 1400 by 1120 geometry, safe gutters, visible alpha in every cell, and the matching manifest pin. The generated chroma-key source, cleaned alpha source, prompt, and validation report remain beside the runtime sheet under `Docs/ArtReferences`; only the runtime sheet is packaged.
@@ -66,6 +72,7 @@ Use these prefixes when creating replacement or expansion atlases:
 - `world-map-overlay-atlas-runtime-v0.xx.png`
 - `world-map-progression-overlay-atlas-runtime-v0.xx.png`
 - `world-map-ui-atlas-runtime-v0.xx.png`
+- `world-area-setpiece-atlas-runtime-vX.XX.X.png`
 - `world-map-token-sprite-atlas-runtime-vX.XX.X.png`
 - `midgaard-town-atlas-runtime-v0.xx.png`
 - `midgaard-tile-atlas-runtime-v0.xx.png`
@@ -118,6 +125,7 @@ Use a monotonically increasing version suffix. Example: `creature-sprite-atlas-r
 - Most UI, item, world object, world-map, story-card, and icon atlases are currently read as 5 by 4 grids. The expanded world-map material and blocked-terrain contracts below are explicit exceptions.
 - `roaming-threat-atlas-runtime-*` is a transparent 5 by 4 grid. The v1.62.0 contract reserves cells 0-19 for rat, ratfolk, kobold, demon, drow, undead, elite, boss-escort, and encounter-marker silhouettes; keep each figure centered with a common foot baseline and clear gutters.
 - `world-map-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by exploration/map command buttons.
+- `world-area-setpiece-atlas-runtime-v2.3.0.png` is an exact transparent 4 by 2, 1536 by 768 grid of eight large regional illustrations. Its stable row-major order follows the active v2.3.0 regional set-piece contract above; each 384-pixel cell keeps a bottom-center anchor and at least 20 pixels of clear gutter.
 - `tavern-ui-atlas-runtime-*` is read as a transparent 5 by 4 grid and is used by the tavern/title menu buttons.
 - `combat-command-icon-atlas-runtime-v1.99.0.png` is the active exact 5 by 4, 1280 by 1024 transparent command contract. Every cell is 256 by 256 with at least 18 pixels of transparent gutter; the live Move, Attack, Cast, Guard, Elixir, End Turn, and Skills mappings remain at cells 0, 1, 2, 3, 4, 5, and 7. The large unframed silhouettes are authored for 56-72 pixel HUD presentation, so do not bake button frames, text, keycaps, or interaction-state rails into replacement art.
 - Current active world/Midgaard/combat terrain sheets: `world-map-material-atlas-runtime-v1.92.0.png`, `world-map-exploration-tile-atlas-runtime-v1.68.0.png`, `world-map-overlay-atlas-runtime-v0.80.png`, `world-map-progression-overlay-atlas-runtime-v0.63.png`, `combat-terrain-atlas-runtime-v1.5.8.png`, `midgaard-tile-atlas-runtime-v1.6.3.png`, `midgaard-city-prop-atlas-runtime-v1.29.0.png`, `midgaard-gate-atlas-runtime-v1.93.0.png`, and `midgaard-wall-atlas-runtime-v1.91.0.png`.

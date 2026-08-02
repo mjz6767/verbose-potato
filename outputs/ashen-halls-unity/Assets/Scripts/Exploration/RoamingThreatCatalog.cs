@@ -35,6 +35,7 @@ namespace AshenHalls
         private readonly string[] enemyIds;
 
         public IReadOnlyList<string> EnemyIds => enemyIds;
+        public RoamingThreatBehaviorProfile BehaviorProfile => RoamingThreatRules.ProfileFor(Faction);
 
         public RoamingThreatDefinition(
             int slot,

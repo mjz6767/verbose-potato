@@ -70,6 +70,8 @@ namespace AshenHalls
 
         private Texture2D worldMapRegionMarkerAtlas;
 
+        private Texture2D worldAreaSetpieceAtlas;
+
         private Texture2D worldMapOverlayAtlas;
 
         private Texture2D worldMapProgressionOverlayAtlas;
@@ -2343,11 +2345,11 @@ namespace AshenHalls
                 return;
             }
 
-            string cue = CurrentExplorationAmbientCue();
+            string cue = CurrentExplorationAmbientCue(out string ambienceContext);
             if (string.IsNullOrEmpty(cue) || !soundClips.ContainsKey(cue)) return;
-            if (!string.Equals(lastExplorationAmbienceContext, cue, StringComparison.Ordinal))
+            if (!string.Equals(lastExplorationAmbienceContext, ambienceContext, StringComparison.Ordinal))
             {
-                lastExplorationAmbienceContext = cue;
+                lastExplorationAmbienceContext = ambienceContext;
                 nextExplorationAmbienceAt = now + 2.8f;
                 return;
             }
@@ -2420,6 +2422,11 @@ namespace AshenHalls
 
         private string CurrentExplorationAmbientCue()
         {
+            return CurrentExplorationAmbientCue(out _);
+        }
+
+        private string CurrentExplorationAmbientCue(out string ambienceContext)
+        {
             string zoneId = "road";
             try
             {
@@ -2430,21 +2437,59 @@ namespace AshenHalls
                 zoneId = "road";
             }
 
+            if (TryRegionalSiteAt(
+                    state?.Map,
+                    state == null ? 0 : state.PlayerX,
+                    state == null ? 0 : state.PlayerY,
+                    out WorldMapSite currentSite)
+                && WorldSitePresentationRules.TryGet(
+                    currentSite.Id,
+                    out WorldSitePresentationProfile currentSiteProfile))
+            {
+                ambienceContext = WorldSitePresentationRules.LandmarkObjectIdPrefix + currentSite.Id;
+                return currentSiteProfile.AmbientCueFor(explorationAmbienceSequence);
+            }
+
             ObjectType? nearest = null;
+            WorldSitePresentationProfile nearestSite = default;
+            bool hasNearestSite = false;
             int nearestDistance = int.MaxValue;
+            int nearestPriority = -1;
             if (state?.Map?.Objects != null)
             {
                 foreach (MapObject obj in state.Map.Objects)
                 {
-                    if (obj == null || !GameAudioCueRules.IsAmbientLandmark(obj.Type)) continue;
+                    if (obj == null || WorldSitePresentationRules.IsDecorationObjectId(obj.Id)) continue;
+                    bool isAuthoredSite = WorldSitePresentationRules.TryGetForLandmarkObjectId(
+                        obj.Id,
+                        out WorldSitePresentationProfile site)
+                        && obj.Type == site.LandmarkType;
+                    if (!isAuthoredSite && !GameAudioCueRules.IsAmbientLandmark(obj.Type)) continue;
                     int distance = Mathf.Abs(obj.X - state.PlayerX) + Mathf.Abs(obj.Y - state.PlayerY);
-                    if (distance > 6 || distance >= nearestDistance) continue;
+                    int priority = isAuthoredSite ? 1 : 0;
+                    if (distance > 6
+                        || distance > nearestDistance
+                        || distance == nearestDistance && priority <= nearestPriority)
+                    {
+                        continue;
+                    }
                     nearestDistance = distance;
+                    nearestPriority = priority;
                     nearest = obj.Type;
+                    nearestSite = site;
+                    hasNearestSite = isAuthoredSite;
                 }
             }
 
-            return GameAudioCueRules.AmbientFor(zoneId, nearest);
+            if (hasNearestSite)
+            {
+                ambienceContext = WorldSitePresentationRules.LandmarkObjectIdPrefix + nearestSite.SiteId;
+                return nearestSite.AmbientCueFor(explorationAmbienceSequence);
+            }
+
+            string cue = GameAudioCueRules.AmbientFor(zoneId, nearest);
+            ambienceContext = cue;
+            return cue;
         }
 
         private void UpdateTavernMusic()
@@ -2548,12 +2593,24 @@ namespace AshenHalls
                     zoneId = "road";
                 }
 
-                bool hasLandmark = TryNearestMusicLandmark(out ObjectType landmark);
-                string key = MusicDirectorRules.ExploreTrackKey(
-                    zoneId,
-                    landmark,
-                    hasLandmark,
-                    IsAlertedRoamingThreatNear());
+                bool threatAlerted = IsAlertedRoamingThreatNear();
+                bool hasLandmark;
+                ObjectType landmark;
+                string siteId;
+                if (TryRegionalSiteAt(state.Map, state.PlayerX, state.PlayerY, out WorldMapSite currentSite)
+                    && WorldSitePresentationRules.TryGet(currentSite.Id, out _))
+                {
+                    hasLandmark = true;
+                    landmark = currentSite.Type;
+                    siteId = currentSite.Id;
+                }
+                else
+                {
+                    hasLandmark = TryNearestMusicLandmark(out landmark, out siteId);
+                }
+                string key = string.IsNullOrEmpty(siteId)
+                    ? MusicDirectorRules.ExploreTrackKey(zoneId, landmark, hasLandmark, threatAlerted)
+                    : WorldSitePresentationRules.ExploreMusicKey(siteId, zoneId, threatAlerted);
                 return MusicClipForKey(key)
                     ?? MusicClipForKey(zoneId)
                     ?? MusicClipForKey("road")
@@ -2669,21 +2726,28 @@ namespace AshenHalls
             largest = count;
         }
 
-        private bool TryNearestMusicLandmark(out ObjectType landmark)
+        private bool TryNearestMusicLandmark(out ObjectType landmark, out string siteId)
         {
             landmark = default;
+            siteId = "";
             if (state?.Map?.Objects == null) return false;
             int bestDistance = int.MaxValue;
             int bestPriority = -1;
             bool found = false;
             foreach (MapObject obj in state.Map.Objects)
             {
-                if (obj == null || !MusicDirectorRules.IsMusicLandmark(obj.Type)) continue;
+                if (obj == null || WorldSitePresentationRules.IsDecorationObjectId(obj.Id)) continue;
+                bool isAuthoredSite = WorldSitePresentationRules.TryGetForLandmarkObjectId(
+                    obj.Id,
+                    out WorldSitePresentationProfile site)
+                    && obj.Type == site.LandmarkType;
+                if (!isAuthoredSite && !MusicDirectorRules.IsMusicLandmark(obj.Type)) continue;
                 int distance = Mathf.Abs(obj.X - state.PlayerX) + Mathf.Abs(obj.Y - state.PlayerY);
                 if (distance > 3) continue;
-                int priority = MusicDirectorRules.LandmarkPriority(obj.Type);
+                int priority = isAuthoredSite ? 100 : MusicDirectorRules.LandmarkPriority(obj.Type);
                 if (distance > bestDistance || distance == bestDistance && priority <= bestPriority) continue;
                 landmark = obj.Type;
+                siteId = isAuthoredSite ? site.SiteId : "";
                 bestDistance = distance;
                 bestPriority = priority;
                 found = true;
@@ -2818,6 +2882,7 @@ namespace AshenHalls
                 ?? LoadLatestExternalPngWithAlpha("world-map-landmark-atlas-runtime-", "", 0.12f, "world map landmarks", 0.16f);
             worldMapRegionLandmarkAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapRegionLandmarkAtlas, 0.20f, "world map regional landmarks", 0.16f);
             worldMapRegionMarkerAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapRegionMarkerAtlas, 0.20f, "world map regional markers", 0.12f);
+            worldAreaSetpieceAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldAreaSetpieceAtlas, 0.20f, "world area set-pieces", 0.12f);
             worldMapOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapOverlayAtlas, 0.20f, "world map overlays", 0.04f)
                 ?? LoadLatestExternalPngWithAlpha("world-map-overlay-atlas-runtime-", "", 0.20f, "world map overlays", 0.04f);
             worldMapProgressionOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapProgressionOverlayAtlas, 0.20f, "world map progression overlays", 0.04f)
@@ -2926,6 +2991,7 @@ namespace AshenHalls
             ValidateSpriteAtlasAlpha(worldMapLandmarkAtlas, "world map landmarks", 0.12f, 0.16f);
             ValidateSpriteAtlasAlpha(worldMapRegionLandmarkAtlas, "world map regional landmarks", 0.20f, 0.16f);
             ValidateSpriteAtlasAlpha(worldMapRegionMarkerAtlas, "world map regional markers", 0.20f, 0.12f);
+            ValidateSpriteAtlasAlpha(worldAreaSetpieceAtlas, "world area set-pieces", 0.20f, 0.12f);
             ValidateSpriteAtlasAlpha(worldMapOverlayAtlas, "world map overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapProgressionOverlayAtlas, "world map progression overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapUiAtlas, "world map UI icons", 0.20f, 0.10f);
@@ -3038,6 +3104,8 @@ namespace AshenHalls
             ValidateAtlasSquareCells(worldMapRegionLandmarkAtlas, "world map regional landmark", 5, 4, 3f);
             ValidateAtlasCells(worldMapRegionMarkerAtlas, "world map regional marker", 5, 4, false, Enumerable.Range(0, 20).ToArray());
             ValidateAtlasSquareCells(worldMapRegionMarkerAtlas, "world map regional marker", 5, 4, 3f);
+            ValidateAtlasCells(worldAreaSetpieceAtlas, "world area set-piece", 4, 2, false, Enumerable.Range(0, 8).ToArray());
+            ValidateAtlasSquareCells(worldAreaSetpieceAtlas, "world area set-piece", 4, 2, 3f);
             ValidateAtlasCells(worldMapOverlayAtlas, "world map overlay", 5, 4, false, Enumerable.Range(0, 19).ToArray());
             ValidateAtlasCells(worldMapProgressionOverlayAtlas, "world map progression overlay", 5, 4, false, Enumerable.Range(0, 20).ToArray());
             int explorationRows = WorldMapExplorationTileAtlasRows();

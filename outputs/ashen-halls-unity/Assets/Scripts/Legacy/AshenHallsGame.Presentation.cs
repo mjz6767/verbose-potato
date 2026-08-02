@@ -1107,6 +1107,38 @@ namespace AshenHalls
                 DefaultWorldMapArtSpec());
         }
 
+        private bool IsWorldAreaSetpieceAtlas()
+        {
+            return worldAreaSetpieceAtlas != null
+                && worldAreaSetpieceAtlas.width == 1536
+                && worldAreaSetpieceAtlas.height == 768;
+        }
+
+        private bool TryDrawWorldAreaSetpieceAtlasIcon(
+            Rect rect,
+            int index,
+            Color tint,
+            WorldMapArtSpec spec)
+        {
+            if (!IsWorldAreaSetpieceAtlas()
+                || index < 0
+                || index >= WorldAreaSetpiecePresentationRules.CellCount)
+            {
+                return false;
+            }
+            return TryDrawTrimmedExplorationAtlasCell(
+                worldAreaSetpieceAtlas,
+                rect,
+                index,
+                WorldAreaSetpiecePresentationRules.Columns,
+                WorldAreaSetpiecePresentationRules.Rows,
+                tint,
+                "world area set-piece",
+                0.04f,
+                0.94f,
+                spec);
+        }
+
         private bool IsWorldMapOverlayAtlas()
         {
             return worldMapOverlayAtlas != null && worldMapOverlayAtlas.width >= 768 && worldMapOverlayAtlas.height >= 600;

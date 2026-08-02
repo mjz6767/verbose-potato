@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.3.0 - Landmarks in the Gloam
+
+- Gave all eight outer-road destinations their own large illustrated set-piece instead of asking small repeated props to carry the whole location. Green Shrine's training ring, Old Quarry's forge, Gloam Deep's crypt, Glass Lore's library, Dusk Market's hideout, Red Gate's seal, Salt Cistern's gate, and Ash Fen's ancient grove occupy stable cells in a new exact 4 by 2 transparent atlas and keep consistent ground anchors at both map scales.
+- Made authored sites announce where the party actually is. The location rail and ground readout use the exact site identity inside its footprint, while every centerpiece selects a site-specific pair of ambient cues, calm exploration score, and inspect sound. Decorative objects cannot steal the area's ambience or music, and an alerted roaming threat still takes priority with the hunted-road score.
+- Gave roaming factions distinct patrol personalities without changing their encounter rosters. Rats notice nearby movement but stay close to their nest; kobolds pursue farther in organized sweeps; drow hold a longer, deliberate chase; undead wander and return slowly; and demons react and press aggressively. Each profile has a bounded alert delay, pursuit cadence, return cadence, and leash, while certified safe roads remain protected.
+- Clarified travel at a glance. Region Map terrain and distant decoration recede behind stronger road shoulders, trails, guidance, markers, and illustrated destinations; repeated site dressing is suppressed at distance. The exploration side rail now adapts its Next, Objective, Nearby, and Details cards to the available height so four party rows remain visible at 1280 by 720, and the command bar gives the context action clear priority over travel and utility controls.
+- Existing campaign data remains compatible and the save schema remains v25. This pass changes world presentation and roaming behavior; it does not rewrite routes, authored encounters, combat resolution, or progression.
+
 ## v2.2.0 - Roads Made Real
 
 - Replaced the eight generic outer-road clearings with deterministic authored destinations. Green Shrine, Old Quarry, Gloam Crypt, Glass Library, Dusk Market, Red Gate, Salt Cistern, and Ash Fen now have distinct footprints, entrances, materials, hazards, and stable landmark props while preserving route certification and existing centerpiece identities.

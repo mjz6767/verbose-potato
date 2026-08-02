@@ -1,0 +1,22 @@
+Built-in ImageGen prompt used for the v2.3.0 world-area set-piece atlas
+
+Use case: stylized-concept
+Asset type: transparent-ready game environment set-piece atlas for a dark-fantasy tactical CRPG world map
+Primary request: Create exactly eight distinct isometric pixel-art regional landmarks arranged in a strict 4-column by 2-row grid, with large consistent scale, equal cell spacing, and generous empty padding inside every cell.
+Scene/backdrop: perfectly flat solid #ff00ff chroma-key background across the entire canvas for local background removal. The background must be one uniform color with no shadows, gradients, texture, reflections, floor plane, or lighting variation.
+Style/medium: richly detailed hand-painted 32-bit pixel art, three-quarter top-down isometric view, crisp readable silhouettes, grounded medieval dark fantasy, matching a polished late-1990s tactical CRPG map atlas. Bold value separation and restrained highlights so every landmark remains readable at 64-128 pixels.
+Composition/framing: exact row-major order, four equal cells across and two equal cells down. Center one complete landmark in each cell. Do not let any landmark touch or overlap another cell. Keep a minimum 12% clear gutter around every landmark.
+Row 1, cell 1: Green Shrine Training Ring — moss-ringed circular practice ground, teal pilgrim lantern, shield racks and a small weathered shrine stone.
+Row 1, cell 2: Old Quarry Forge — roofless stone forge, cold anvil, timber winch, stacked cut blocks and bridge irons.
+Row 1, cell 3: Gloam Deep Crypt — sunken black-stone stair, sealed bone reliquary, narrow pillars and restrained violet funeral lights.
+Row 1, cell 4: Glass Lore Library — broken mirror stacks, crystal lectern, fractured blue-violet glass and ward-diagram masonry.
+Row 2, cell 1: Dusk Market Hideout — collapsed striped canvas stalls, fence table, crates and two low smoke braziers.
+Row 2, cell 2: Red Gate Seal — compact basalt gate lock, fused orange-red sigils, broken war banners and scorched stones.
+Row 2, cell 3: Salt Cistern Gate — flood-scored iron sluice doors, heavy chains, wet brick threshold and a narrow teal water channel contained inside the landmark.
+Row 2, cell 4: Ash Fen Ancient Grove — black-rooted trees enclosing a dry shrine island, pale green votive lights, weathered stones and mire reeds.
+Color palette: soot black, aged stone, dark oak, moss green, tarnished teal, muted gold, ember red, restrained violet and icy glass blue. Each cell should have its own dominant accent while sharing one coherent atlas style.
+Constraints: exactly eight landmarks and no extras; strict 4x2 grid; no text, labels, borders, frames, people, creatures, logos, watermark, UI chrome, or cell dividers. Keep all subjects opaque with crisp edges. No cast shadow, no contact shadow, no reflection outside each object's own structure. Do not use #ff00ff or magenta anywhere in the landmarks. Flat removable chroma-key background only.
+
+Generation mode: default built-in ImageGen tool.
+Generated source: exec-4efa1a11-b669-4e81-8df5-3125e4592e85.png
+Post-processing: built-in skill chroma-key removal helper, then BuildRuntimeIconAtlas.py normalization to an exact 4x2 grid with 384-pixel cells and 20-pixel safe padding.

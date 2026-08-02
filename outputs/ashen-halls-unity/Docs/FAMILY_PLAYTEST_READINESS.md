@@ -2,7 +2,15 @@
 
 ## Current Candidate
 
-`v2.2.0` is the current family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It gives the world map eight authored outer-road destinations, a district-aware Midgaard, illustrated Region Map markers and command icons, clearer danger readouts, more roaming faction patrols, and material/direction-aware travel sound. The v2.1 combat dossiers, initiative chips, command deck, truthful power-book states, and v2.0 Demon Arts remain intact. RuleSmoke, full RuntimeBoot, the Windows build/package, and clean-extracted packaged boot pass. Physical-controller review, subjective travel-audio review, and a complete real playthrough from a clean extraction remain release gates. Save schema remains v25. It is not a content-complete game.
+`v2.3.0` is the current family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It builds on v2.2.0 with eight illustrated regional set-pieces, exact site identity and ambience, faction-specific patrol behavior, a clearer route hierarchy, and a height-aware exploration rail and command bar. Existing campaign data remains compatible and the save schema remains v25. Unity RuleSmoke, full RuntimeBoot, the Windows build/package, clean-extracted packaged boot, and four direct-player Local/Region Map captures pass. Physical-controller review, subjective travel-audio review, and a complete real playthrough remain human release gates. It is not a content-complete game.
+
+## Integrated for v2.3.0 — Automated Gates Passed
+
+- The exact 4 by 2, 1536 by 768 regional set-piece atlas maps Green Shrine Training Ring, Old Quarry Forge, Gloam Deep Crypt, Glass Lore Library, Dusk Market Hideout, Red Gate Seal, Salt Cistern Gate, and Ash Fen Ancient Grove to stable row-major cells with transparent gutters and consistent bottom anchors.
+- Entering an authored site footprint promotes its exact name into the exploration rail and ground readout. Its centerpiece owns one site-specific ambient pair, calm exploration score, and inspect cue; distant decoration cannot hijack those selections, and an alerted threat still takes musical priority.
+- Rat, kobold, drow, undead, and demon patrols now use separate bounded alert, pursuit, return, and leash profiles. Their existing faction-matched encounter rosters and certified safe-road exclusions remain intact.
+- Region Map terrain and distant site dressing recede behind clearer roads, trails, guidance, useful markers, and the illustrated destinations. The fallback exploration rail allocates Next, Objective, Nearby, Details, and four party rows within supported 720p height, while the bottom bar separates the dominant context action from travel and utility controls.
+- RuleSmoke, full RuntimeBoot, the Windows build/package, and clean-extracted packaged boot exercise this implementation contract successfully.
 
 ## Proven Automatically
 
@@ -42,6 +50,9 @@
 - The exact 5 by 4 `world-map-region-marker-atlas-runtime-v2.2.0.png` supplies twenty transparent Region Map symbols. The visible fallback exploration HUD uses semantic atlas icons for its command deck, reserves useful distant service/objective markers, reports nearby threats before ordinary sites, and gives Progress enough height for two readable lines.
 - The v2.2.0 source, player, and editor assemblies compile directly from Unity's generated response files. Unity RuleSmoke, full RuntimeBoot, the Windows build/package, and clean-extracted packaged exploration boot pass in Unity 6000.3.18f1. Runtime coverage generates every depth and content profile, verifies exact patrol counts and spacing, and opens each patrol through its live same-faction combat path.
 - Direct v2.2 player captures cover Local Map, Region Map, Details-open, and the Chapter II outer route at supported endpoint resolutions. Capture logs report `complete=True` and `failure=None`; the Progress copy fits, semantic command/marker art loads, Midgaard districts remain readable, and the authored Dusk Market route stays unobscured.
+- The v2.3.0 editor and player assemblies compile in Unity 6000.3.18f1. RuleSmoke and full RuntimeBoot pass after loading the exact 4 by 2 set-piece atlas, visiting every authored site profile, enforcing site-music priority over decorative landmarks, and exercising all faction patrol profiles.
+- Four direct v2.3 development-player captures cover Local Map and Region Map with Details open at 1280x720 and 1920x1080. Every capture reports `complete=True` and `failure=None`; the illustrated Dusk Market set-piece, route hierarchy, four party rows, responsive minimap/latest rail, and grouped command bar remain readable at both endpoints. Evidence is retained under `QA/v2.3.0-world-map`.
+- The clean v2.3.0 Windows packaging gate preserves the previous good archive until the candidate clean-extracts, boots the exact packaged exploration path, and writes a release-integrity manifest binding the committed source, ZIP, executable, and every packaged-art hash. The clean-extracted boot passes.
 - The Windows packaging tool retains the prior good zip until the candidate zip clean-extracts, boots the exact packaged v2.2.0 exploration path in batch mode, exits successfully, and writes a release-integrity manifest with the committed release-source fingerprint plus package, executable, and every `Docs/PACKAGED_ART.txt` PNG SHA-256 hash. Final packaging rejects dirty release inputs, untracked package-selected art, source/staging hash drift, and packaged-art-manifest drift.
 - Direct v1.98 packaged-player evidence covers Selection, passive Preview, and armed Targeting in both books plus Locked, Low Resource, No Target, Action Used, Disabled, and Blocked across 1280x720 and 1920x1080. All twelve capture logs report `complete=True`, `failure=None`, exact typed state/icon tuples, and no re-entrant selection warning. The deterministic packet passes under `QA/v1.98.0-one-intent` with capture-set SHA-256 `ff8e2a3d83ffddbf2bb935e54a5206d9c14415cf3068f3a069e8e7bfe72822a9`.
 - Direct v1.97 packaged-player evidence covers Ember, Mend, Hex, Pact, Warrior, Rogue, and Ranger books at 1280x720 and 1920x1080, including hover-preview, armed-targeting, long-list, and locked states. All thirteen capture logs report `complete=True`, `failure=None`; the deterministic packet passes under `QA/v1.97.0-power-books`, and all four source, staged, and zipped atlas hashes match.
@@ -53,6 +64,8 @@
 
 ## Still Needs Validation and Humans
 
+- Repeat the accepted Local Map and Region Map endpoint captures from the clean-extracted packaged player; the equivalent development-player matrix already passes.
+- Enter each of the eight site footprints and confirm its exact rail name, ground line, calm music, alternating ambient cues, and inspect sound. Provoke and then evade each faction profile to confirm its intended chase cadence and leash without drawing danger onto certified safe roads.
 - Repeat the six-state v1.99 combat/book visual matrix in the clean-extracted packaged build. The development-player review is clean, while an equivalent packaged-player matrix remains manual evidence to collect.
 - Walk through West from wilderness-left to town-right and East from town-left to wilderness-right, then bump the north and south gates and confirm their visible state agrees with their passability.
 - A real new player still needs to confirm that the Golden Thread is sufficient without reading the README.
@@ -61,7 +74,7 @@
 - A physical controller still needs a human pass for book row navigation, right-stick detail scrolling, targeting resume/cancel, and comfort at both endpoint resolutions.
 - The v1.99 interaction contract still needs a physical mouse/controller handoff check: with the pointer parked over one card or combat command, D-pad/stick movement must leave exactly one truthful focus and prompt. Preview must remain quieter than committed Selection, armed Targeting must remain distinct, unavailable commands must remain focusable for explanation, and Low Resource, No Target, Action Used, Disabled, and Blocked must remain understandable without color.
 - The safe-room choice, defeat retry, and final reward need visual confirmation in the packaged Windows player.
-- One complete real playthrough from a clean extracted v1.99 folder remains the release gate before calling this broadly shareable; the automated v1.99 clean-extract exploration boot passes independently.
+- One complete real playthrough from a clean-extracted v2.3.0 folder remains the human release gate before calling this broadly shareable; the automated v2.3.0 clean-extract exploration boot passes independently.
 
 ## 15-Minute Family Script
 
@@ -72,7 +85,8 @@
 5. Clear Foul Runoff and choose one recovery-room item.
 6. Enter Cistern Den and decide whether the final room feels fair.
 7. Return to Borin, claim the reward, and open the Journal.
-8. In a second run, deliberately lose a fight and test Tavern > Continue.
+8. Continue onto the outer road, compare Local and Region Map at one illustrated destination, and confirm its name and sound identity match the artwork.
+9. In a second run, deliberately lose a fight and test Tavern > Continue.
 
 ## Feedback Questions
 
@@ -82,4 +96,5 @@
 - Did enemy turns feel too slow, too fast, unfair, or trivial?
 - Did the safe-room choice feel meaningful?
 - Could you read sprites, hazards, targeting, and results without squinting?
+- Did the illustrated sites, route, and current action stay clear without making the map feel empty?
 - Would you voluntarily play one more route after the teaser?
