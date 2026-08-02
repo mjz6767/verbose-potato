@@ -82,7 +82,7 @@ namespace AshenHalls
 
         public static float DecorativeDensityScale(bool wideView)
         {
-            return wideView ? 0f : 0.32f;
+            return wideView ? 0.22f : 0.32f;
         }
 
         public static bool ShouldDrawMidgaardPavingDecal(bool wideView, int distanceToParty, bool hasObject, int roll)
@@ -107,7 +107,7 @@ namespace AshenHalls
 
         public static bool ShouldDrawBiomeAmbientProp(string kind, bool wideView, int roll)
         {
-            if (wideView) return false;
+            if (wideView && PositiveMod(roll, 100) >= 12) return false;
             switch (kind ?? "")
             {
                 case "moss":

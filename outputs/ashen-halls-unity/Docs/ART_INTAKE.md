@@ -3,6 +3,10 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.2.0 Region Map marker contract
+
+`world-map-region-marker-atlas-runtime-v2.2.0.png` is the approved 5 by 4 transparent Region Map marker atlas. Its 20 row-major cells cover civic/service actors, outer-road sites, danger, travel, party, Midgaard, and atmospheric reserve art. Runtime validation requires exact 1400 by 1120 geometry, safe gutters, visible alpha in every cell, and the matching manifest pin. The generated chroma-key source, cleaned alpha source, prompt, and validation report remain beside the runtime sheet under `Docs/ArtReferences`; only the runtime sheet is packaged.
+
 ## Source-Control Promotion
 
 `Docs/ArtReferences/` is both the runtime-art input folder and a local

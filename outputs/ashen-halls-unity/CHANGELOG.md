@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.2.0 - Roads Made Real
+
+- Replaced the eight generic outer-road clearings with deterministic authored destinations. Green Shrine, Old Quarry, Gloam Crypt, Glass Library, Dusk Market, Red Gate, Salt Cistern, and Ash Fen now have distinct footprints, entrances, materials, hazards, and stable landmark props while preserving route certification and existing centerpiece identities.
+- Reworked Midgaard's map presentation with district-specific paving and roles, larger grounded civic buildings, quieter road strokes, sparse Region Map scenery, a taller unclipped Progress card, and danger-first Nearby summaries. The visible exploration command bar now uses its semantic illustrated atlas cells and clearer category accents.
+- Added an original transparent 20-cell Region Map marker atlas for services, objectives, landmarks, camps, gates, danger, navigation, and Midgaard. Distant nonessential actors are suppressed so useful markers remain readable without the old black-square fallback look.
+- Expanded the world from two patrols to four spaced rat-family threats in Chapter I, three safe rat patrols on later sewer-slice maps, and four or five faction-appropriate patrols across later prototype chapters. Every marker now opens an explicit same-faction encounter; malformed and older saves repair duplicate, invalid, crowded, or player-overlapping patrol positions safely.
+- Improved travel sound with material-aware footstep levels, quieter outer-road movement, destination-surface patrol steps, stereo threat direction, and rat chatter reserved for alerts. RuleSmoke and full RuntimeBoot pass in Unity 6000.3.18f1. Save schema remains v25.
+
 ## v2.1.0 - Battle at a Glance
 
 - Rebuilt the combat side rail into illustrated active-unit and target dossiers using the approved party, enemy, boss, creature, and demon atlases. Larger names, thicker HP/MP meters, explicit `HOVER`, `NEAREST`, `SUGGESTED`, `ALLY`, and `INTENT` provenance, and stronger turn-color framing make the current actor and inspected target readable without covering the board.

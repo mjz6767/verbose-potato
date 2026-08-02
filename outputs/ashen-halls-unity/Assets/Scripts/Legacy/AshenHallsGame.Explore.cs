@@ -10,6 +10,7 @@ namespace AshenHalls
     public sealed partial class AshenHallsGame
     {
         private const string RegionalSiteIdPrefix = "regional-site:";
+        private const string RegionalSiteDecorationIdPrefix = "regional-site-decor:";
         private readonly List<int> generatedObjectCandidateIndices = new List<int>(2048);
 
         private MapData GenerateMap(int depth, int seed)
@@ -209,11 +210,27 @@ namespace AshenHalls
                 map.StartX,
                 map.StartY))
             {
+                bool hasTemplate = WorldAreaTemplateRules.TryGet(site.Id, site.ZoneId, out WorldAreaTemplate template);
                 WorldMapJunction route = junctions.FirstOrDefault(candidate =>
                     string.Equals(candidate.ZoneId, site.ZoneId, StringComparison.Ordinal));
                 if (!string.IsNullOrEmpty(route.Id))
                 {
-                    CarveRoad(map, route.X, route.Y, site.X, site.Y, mapRng);
+                    int approachX = hasTemplate ? site.X + template.ApproachOffsetX : site.X;
+                    int approachY = hasTemplate ? site.Y + template.ApproachOffsetY : site.Y;
+                    CarveRoad(map, route.X, route.Y, approachX, approachY, mapRng);
+                }
+
+                if (hasTemplate)
+                {
+                    foreach (WorldAreaCellTemplate cell in template.Cells)
+                    {
+                        int x = site.X + cell.OffsetX;
+                        int y = site.Y + cell.OffsetY;
+                        if (x < 1 || y < 1 || x >= map.Width - 1 || y >= map.Height - 1) continue;
+                        if (MidgaardInteriorRules.IsReservedCell(map, x, y)) continue;
+                        SetExploreCell(map, x, y, cell.Open ? 1 : 0, cell.Material, cell.Roles);
+                    }
+                    continue;
                 }
 
                 ExplorationMaterial material = OpenMaterialForZone(site.ZoneId);
@@ -245,13 +262,41 @@ namespace AshenHalls
                 map.StartX,
                 map.StartY))
             {
+                bool addedObject = false;
                 string objectId = RegionalSiteObjectId(site);
                 if (map.FindObjectById(objectId) == null && ObjectAt(map, site.X, site.Y) == null)
                 {
                     MapObject landmark = new MapObject(site.X, site.Y, site.Type, objectId);
                     map.Objects.Add(landmark);
                     ApplyMapObjectSurface(map, landmark);
+                    addedObject = true;
                 }
+
+                if (WorldAreaTemplateRules.TryGet(site.Id, site.ZoneId, out WorldAreaTemplate template))
+                {
+                    foreach (WorldAreaObjectTemplate decoration in template.Objects)
+                    {
+                        int x = site.X + decoration.OffsetX;
+                        int y = site.Y + decoration.OffsetY;
+                        string decorationId = RegionalSiteDecorationObjectId(site, decoration);
+                        if (x < 1 || y < 1 || x >= map.Width - 1 || y >= map.Height - 1) continue;
+                        if (MidgaardInteriorRules.IsReservedCell(map, x, y)) continue;
+                        if (!template.TryCell(decoration.OffsetX, decoration.OffsetY, out WorldAreaCellTemplate cell)
+                            || !cell.Open
+                            || map.FindObjectById(decorationId) != null
+                            || ObjectAt(map, x, y) != null)
+                        {
+                            continue;
+                        }
+
+                        MapObject prop = new MapObject(x, y, decoration.Type, decorationId);
+                        map.Objects.Add(prop);
+                        ApplyMapObjectSurface(map, prop);
+                        addedObject = true;
+                    }
+                }
+
+                if (addedObject) map.InvalidateObjectLookup();
 
                 open?.RemoveAll(point =>
                     Mathf.Abs(point.X - site.X) <= site.Radius
@@ -262,6 +307,48 @@ namespace AshenHalls
         private string RegionalSiteObjectId(WorldMapSite site)
         {
             return RegionalSiteIdPrefix + site.Id;
+        }
+
+        private string RegionalSiteDecorationObjectId(
+            WorldMapSite site,
+            WorldAreaObjectTemplate decoration)
+        {
+            return RegionalSiteDecorationIdPrefix + site.Id + ":" + decoration.Key;
+        }
+
+        private bool IsRegionalSiteDecoration(MapData map, MapObject obj)
+        {
+            if (map == null
+                || obj == null
+                || string.IsNullOrEmpty(obj.Id)
+                || !obj.Id.StartsWith(RegionalSiteDecorationIdPrefix, StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            foreach (WorldMapSite site in WorldMapGenerationRules.RegionalSites(
+                map.Width,
+                map.Height,
+                map.StartX,
+                map.StartY))
+            {
+                if (!WorldAreaTemplateRules.TryGet(site.Id, site.ZoneId, out WorldAreaTemplate template)) continue;
+                foreach (WorldAreaObjectTemplate decoration in template.Objects)
+                {
+                    if (!string.Equals(
+                            obj.Id,
+                            RegionalSiteDecorationObjectId(site, decoration),
+                            StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+
+                    return obj.Type == decoration.Type
+                        && obj.X == site.X + decoration.OffsetX
+                        && obj.Y == site.Y + decoration.OffsetY;
+                }
+            }
+            return false;
         }
 
         private bool TryRegionalSite(MapData map, MapObject obj, out WorldMapSite site)
@@ -375,6 +462,21 @@ namespace AshenHalls
                 return new Point(site.X, site.Y);
             }
 
+            if (WorldAreaTemplateRules.TryGet(site.Id, site.ZoneId, out WorldAreaTemplate template))
+            {
+                Point authoredApproach = new Point(
+                    site.X + Math.Sign(template.ApproachOffsetX),
+                    site.Y + Math.Sign(template.ApproachOffsetY));
+                if (authoredApproach.X > 0
+                    && authoredApproach.Y > 0
+                    && authoredApproach.X < map.Width - 1
+                    && authoredApproach.Y < map.Height - 1
+                    && ExplorationTraversalRules.CanStandOnObject(ObjectAt(map, authoredApproach.X, authoredApproach.Y)))
+                {
+                    return authoredApproach;
+                }
+            }
+
             Point[] approaches =
             {
                 new Point(site.X, site.Y + 1),
@@ -470,6 +572,7 @@ namespace AshenHalls
             }
             MapObject blocker = ObjectAt(map, x, y);
             if (blocker == null || !ExplorationTraversalRules.BlocksMovement(blocker)) return true;
+            if (IsRegionalSiteDecoration(map, blocker)) return false;
             return !IsRouteScaffoldObject(blocker.Type);
         }
 
@@ -484,6 +587,7 @@ namespace AshenHalls
             OpenExploreConnectorSurface(map, x, y, ExplorationCellRole.Road);
             MapObject blocker = ObjectAt(map, x, y);
             if (blocker == null || !ExplorationTraversalRules.BlocksMovement(blocker)) return;
+            if (IsRegionalSiteDecoration(map, blocker)) return;
             if (IsMidgaardCityCell(x, y, map, map.Depth) || IsRouteScaffoldObject(blocker.Type)) return;
             map.Objects.Remove(blocker);
         }
@@ -705,6 +809,7 @@ namespace AshenHalls
                 if (IsMidgaardCityCell(obj.X, obj.Y, map, map.Depth)) continue;
                 if (IsMidgaardInteriorCell(obj.X, obj.Y, map, map.Depth)) continue;
                 if (TryRegionalSite(map, obj, out _)) continue;
+                if (IsRegionalSiteDecoration(map, obj)) continue;
                 if (CanPlaceGeneratedExploreObject(map, obj.X, obj.Y, obj.Type)) continue;
 
                 string zoneId = ZoneIdFor(obj.X, obj.Y, map, map.Depth);
@@ -756,7 +861,15 @@ namespace AshenHalls
             for (int y = top; y <= bottom; y++)
             for (int x = left; x <= right; x++)
             {
-                SetExploreCell(map, x, y, 1, ExplorationMaterial.CityPaving, ExplorationCellRole.City);
+                int dx = x - sx;
+                int dy = y - sy;
+                SetExploreCell(
+                    map,
+                    x,
+                    y,
+                    1,
+                    MidgaardDistrictRules.MaterialAtOffset(dx, dy),
+                    MidgaardDistrictRules.RolesAtOffset(dx, dy));
             }
 
             for (int x = left; x <= right; x++)
@@ -1411,6 +1524,7 @@ namespace AshenHalls
                 }
                 else
                 {
+                    DrawMidgaardBuildingFootprint(objectCell, obj);
                     objectRect = ExploreObjectRect(objectCell, obj);
                     DrawExploreObject(objectCell, objectRect, obj);
                 }
@@ -1547,6 +1661,47 @@ namespace AshenHalls
             return Pad(cell, cell.width * ExploreObjectPadding(obj.Type));
         }
 
+        private void DrawMidgaardBuildingFootprint(Rect cell, MapObject obj)
+        {
+            if (obj == null || !ExplorationArtRules.IsMidgaardBuilding(obj.Type)) return;
+            float width = cell.width * (exploreWideView ? 1.18f : 1.48f);
+            float height = cell.height * (exploreWideView ? 0.46f : 0.58f);
+            Rect foundation = new Rect(
+                cell.center.x - width * 0.5f,
+                cell.y + cell.height * (exploreWideView ? 0.48f : 0.42f),
+                width,
+                height);
+            Color accent = MidgaardBuildingDistrictAccent(obj.Type);
+            DrawRect(foundation, Hex("030506", exploreWideView ? 0.34f : 0.42f));
+            DrawRect(
+                new Rect(foundation.x, foundation.yMax - Mathf.Max(2f, foundation.height * 0.12f), foundation.width, Mathf.Max(2f, foundation.height * 0.12f)),
+                accent.WithAlpha(exploreWideView ? 0.30f : 0.38f));
+            DrawBorder(foundation, accent.WithAlpha(exploreWideView ? 0.22f : 0.28f), 1);
+            Rect threshold = new Rect(
+                cell.center.x - cell.width * 0.27f,
+                cell.yMax - Mathf.Max(2f, cell.height * 0.10f),
+                cell.width * 0.54f,
+                Mathf.Max(2f, cell.height * 0.10f));
+            DrawRect(threshold, Color.Lerp(accent, cursorWhite, 0.18f).WithAlpha(0.42f));
+        }
+
+        private Color MidgaardBuildingDistrictAccent(ObjectType type)
+        {
+            switch (type)
+            {
+                case ObjectType.Temple: return frost;
+                case ObjectType.Market:
+                case ObjectType.Provisions: return gold;
+                case ObjectType.Tavern:
+                case ObjectType.Diner: return ember;
+                case ObjectType.Enchanter: return teal;
+                case ObjectType.KingHall: return Color.Lerp(gold, frost, 0.38f);
+                case ObjectType.Armorer:
+                case ObjectType.WeaponVendor: return line;
+                default: return moss;
+            }
+        }
+
         private bool IsMidgaardGateType(ObjectType type)
         {
             return type == ObjectType.NorthGate
@@ -1558,7 +1713,9 @@ namespace AshenHalls
         private bool ShouldSuppressExploreRegionObject(MapObject obj, int distance, bool objective)
         {
             if (!exploreWideView || obj == null || objective || distance <= 2) return false;
-            return obj.Type == ObjectType.TownGuard;
+            if (obj.Type == ObjectType.TownGuard) return true;
+            return IsMidgaardNpcObject(obj.Type)
+                && !WorldMapRegionMarkerCatalog.ShouldShowActor(obj.Type, distance, objective);
         }
 
         private bool ShouldUseExploreRegionMarker(MapObject obj, int distance, bool objective)
@@ -1570,8 +1727,22 @@ namespace AshenHalls
         private Rect DrawExploreRegionActorMarker(Rect cell, MapObject obj)
         {
             Color accent = ObjectColor(obj.Type);
-            float size = Mathf.Max(12f, cell.width * 0.46f);
-            Rect marker = new Rect(cell.center.x - size * 0.5f, cell.center.y - size * 0.42f, size, size);
+            float size = Mathf.Max(14f, cell.width * 0.66f);
+            Rect marker = new Rect(cell.center.x - size * 0.5f, cell.center.y - size * 0.48f, size, size);
+            int artIndex = WorldMapRegionMarkerCatalog.ActorMarkerIndex(obj.Type);
+            if (TryDrawWorldMapRegionMarkerAtlasIcon(marker, artIndex, Color.white))
+            {
+                Rect underline = new Rect(
+                    marker.x + marker.width * 0.22f,
+                    marker.yMax - Mathf.Max(1f, marker.height * 0.05f),
+                    marker.width * 0.56f,
+                    Mathf.Max(1f, marker.height * 0.05f));
+                DrawRect(underline, accent.WithAlpha(0.78f));
+                return marker;
+            }
+
+            size = Mathf.Max(12f, cell.width * 0.46f);
+            marker = new Rect(cell.center.x - size * 0.5f, cell.center.y - size * 0.42f, size, size);
             DrawRect(marker, Hex("030405", 0.90f));
             DrawBorder(marker, accent.WithAlpha(0.92f), 1);
             Rect inner = Pad(marker, marker.width * 0.20f);
@@ -2496,8 +2667,13 @@ namespace AshenHalls
             {
                 tweens.Add(new Tween("party", move.OldPosition, move.NewPosition, Time.time, 0.16f, TweenKind.Move));
             }
-            string stepSfx = GameAudioCueRules.FootstepFor(ExploreMaterialAt(state.PlayerX, state.PlayerY));
-            PlaySfxSpatial(stepSfx, 0.62f, 0f, GameAudioCueRules.FootstepPitch(state.PlayerX, state.PlayerY));
+            ExplorationMaterial stepMaterial = ExploreMaterialAt(state.PlayerX, state.PlayerY);
+            string stepSfx = GameAudioCueRules.FootstepFor(stepMaterial);
+            PlaySfxSpatial(
+                stepSfx,
+                GameAudioCueRules.FootstepVolume(stepMaterial),
+                0f,
+                GameAudioCueRules.FootstepPitch(state.PlayerX, state.PlayerY));
             string afterRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
             if (afterRegion != beforeRegion && afterRegion != lastExploreRegion)
             {
@@ -2666,25 +2842,28 @@ namespace AshenHalls
         {
             if (state?.Map == null) return;
             if (state.RoamingThreats == null) state.RoamingThreats = new List<RoamingThreat>();
-            state.RoamingThreats.RemoveAll(threat => threat == null || threat.Depth != state.Depth);
-            if (state.Depth != 1) return;
+            bool fullPrototype = ContentSetCatalog.IsFullPrototype(activeContentSet);
+            IReadOnlyList<RoamingThreatDefinition> definitions = RoamingThreatCatalog.ForDepth(state.Depth, fullPrototype);
+            HashSet<string> activeIds = new HashSet<string>(definitions.Select(definition => definition.Id), StringComparer.Ordinal);
+            HashSet<string> retainedIds = new HashSet<string>(StringComparer.Ordinal);
+            state.RoamingThreats.RemoveAll(threat =>
+                threat == null
+                || threat.Depth != state.Depth
+                || !activeIds.Contains(threat.Id ?? "")
+                || !retainedIds.Add(threat.Id));
 
-            string[] ids = { "midgaard-rat-patrol-west", "midgaard-rat-patrol-east" };
-            string[] names = { "Gutter Rat Patrol", "Cistern Ratfolk Patrol" };
-            string[] archetypes = { "rats", "ratfolk" };
-            for (int slot = 0; slot < ids.Length; slot++)
+            foreach (RoamingThreatDefinition definition in definitions)
             {
-                string id = ids[slot];
-                RoamingThreat threat = state.RoamingThreats.FirstOrDefault(candidate => candidate.Id == id);
+                RoamingThreat threat = state.RoamingThreats.FirstOrDefault(candidate => candidate.Id == definition.Id);
                 if (threat == null)
                 {
-                    Point spawn = FindRoamingThreatSpawn(slot, id);
+                    Point spawn = FindRoamingThreatSpawn(definition, definition.Id);
                     if (spawn == null) continue;
                     threat = new RoamingThreat
                     {
-                        Id = id,
-                        Name = names[slot],
-                        Archetype = archetypes[slot],
+                        Id = definition.Id,
+                        Name = definition.Name,
+                        Archetype = definition.Archetype,
                         Depth = state.Depth,
                         X = spawn.X,
                         Y = spawn.Y,
@@ -2698,17 +2877,19 @@ namespace AshenHalls
                     continue;
                 }
 
-                threat.Name = names[slot];
-                threat.Archetype = archetypes[slot];
+                threat.Name = definition.Name;
+                threat.Archetype = definition.Archetype;
                 threat.Depth = state.Depth;
-                if (!IsRoamingThreatCellAvailable(threat.HomeX, threat.HomeY, threat.Id))
+                if (!IsRoamingThreatHomeAvailable(threat.HomeX, threat.HomeY, threat.Id))
                 {
-                    Point repairedHome = FindRoamingThreatSpawn(slot, threat.Id);
-                    if (repairedHome != null)
+                    Point repairedHome = FindRoamingThreatSpawn(definition, threat.Id);
+                    if (repairedHome == null)
                     {
-                        threat.HomeX = repairedHome.X;
-                        threat.HomeY = repairedHome.Y;
+                        state.RoamingThreats.Remove(threat);
+                        continue;
                     }
+                    threat.HomeX = repairedHome.X;
+                    threat.HomeY = repairedHome.Y;
                 }
                 if (threat.Active && !IsRoamingThreatCellAvailable(threat.X, threat.Y, threat.Id))
                 {
@@ -2720,9 +2901,9 @@ namespace AshenHalls
             }
         }
 
-        private Point FindRoamingThreatSpawn(int slot, string ignoreId)
+        private Point FindRoamingThreatSpawn(RoamingThreatDefinition definition, string ignoreId)
         {
-            if (state?.Map == null) return null;
+            if (state?.Map == null || definition == null) return null;
             Point routeAnchor = FindCriticalRouteAnchor(state.Map)
                 ?? BestOpenNeighbor(state.Map.StartX, state.Map.StartY);
             if (routeAnchor == null) return null;
@@ -2731,30 +2912,26 @@ namespace AshenHalls
             for (int y = 1; y < state.Map.Height - 1; y++)
             for (int x = 1; x < state.Map.Width - 1; x++)
             {
-                if (!reachable[x, y] || !IsRoamingThreatCellAvailable(x, y, ignoreId)) continue;
+                if (!reachable[x, y] || !IsRoamingThreatHomeAvailable(x, y, ignoreId)) continue;
+                if (Distance(x, y, state.PlayerX, state.PlayerY) <= 1) continue;
                 int distance = Distance(x, y, state.Map.StartX, state.Map.StartY);
                 if (distance < 7 || distance > 24) continue;
                 if (RoamingThreatOpenNeighborCount(x, y, ignoreId) < 2) continue;
-                if (state.RoamingThreats.Any(other =>
-                        other != null
-                        && other.Id != ignoreId
-                        && other.Depth == state.Depth
-                        && Distance(x, y, other.HomeX, other.HomeY) < 7))
-                {
-                    continue;
-                }
                 candidates.Add(new Point(x, y));
             }
 
-            string preferredZone = slot == 0 ? "salt-cisterns" : "green-shrine-road";
             List<Point> preferred = candidates
-                .Where(point => string.Equals(ZoneIdFor(point.X, point.Y, state.Map, state.Depth), preferredZone, StringComparison.Ordinal))
+                .Where(point => string.Equals(
+                    ZoneIdFor(point.X, point.Y, state.Map, state.Depth),
+                    definition.PreferredZoneId,
+                    StringComparison.Ordinal))
                 .ToList();
             List<Point> pool = preferred.Count > 0 ? preferred : candidates;
-            int targetDistance = slot == 0 ? 10 : 13;
             return pool
-                .OrderBy(point => Mathf.Abs(Distance(point.X, point.Y, state.Map.StartX, state.Map.StartY) - targetDistance))
-                .ThenBy(point => RoamingThreatRules.SpawnScore(state.Seed, slot, point.X, point.Y))
+                .OrderBy(point => Mathf.Abs(
+                    Distance(point.X, point.Y, state.Map.StartX, state.Map.StartY)
+                    - definition.TargetDistance))
+                .ThenBy(point => RoamingThreatRules.SpawnScore(state.Seed, definition.Slot, point.X, point.Y))
                 .FirstOrDefault();
         }
 
@@ -2772,9 +2949,20 @@ namespace AshenHalls
         {
             if (state?.Map == null || x < 0 || y < 0 || x >= state.Map.Width || y >= state.Map.Height) return false;
             if (TileAt(state.Map, x, y) != 1 || ObjectAt(state.Map, x, y) != null) return false;
+            if (x == state.PlayerX && y == state.PlayerY) return false;
             WorldZone zone = ZoneFor(x, y, state.Map, state.Depth);
             if (zone == null || zone.Danger <= 0) return false;
             return RoamingThreatAt(x, y, ignoreId) == null;
+        }
+
+        private bool IsRoamingThreatHomeAvailable(int x, int y, string ignoreId)
+        {
+            if (!IsRoamingThreatCellAvailable(x, y, ignoreId)) return false;
+            return !state.RoamingThreats.Any(other =>
+                other != null
+                && other.Id != ignoreId
+                && other.Depth == state.Depth
+                && Distance(x, y, other.HomeX, other.HomeY) < 7);
         }
 
         private RoamingThreat RoamingThreatAt(int x, int y, string excludeId = "")
@@ -2820,7 +3008,12 @@ namespace AshenHalls
             if (threat == null || state == null || state.Mode != GameMode.Explore) return;
             threat.Alerted = true;
             PushLog($"{threat.Name} closes the road. The party forms ranks.", Tone.Warn);
-            StartCombat(EncounterId.Patrol);
+            RoamingThreatDefinition definition = RoamingThreatCatalog.Find(
+                threat.Id,
+                threat.Depth,
+                ContentSetCatalog.IsFullPrototype(activeContentSet));
+            EncounterDefinition encounter = RoamingThreatCatalog.BuildEncounter(definition, state.Depth);
+            StartCombat(encounter ?? EncounterCatalog.For(EncounterId.Patrol));
             if (state.Combat != null) state.Combat.RoamingThreatId = threat.Id;
         }
 
@@ -2869,7 +3062,11 @@ namespace AshenHalls
                         PushLog($"{threat.Name} spots the party. It will move after the next travel step.", Tone.Warn);
                         ShowBanner("Patrol alerted");
                         string alertCue = CreatureAudioRules.CueForArchetype(threat.Archetype, "alert");
-                        PlaySfx(string.IsNullOrEmpty(alertCue) ? "encounter" : alertCue, 0.72f);
+                        PlaySfxSpatial(
+                            string.IsNullOrEmpty(alertCue) ? "encounter" : alertCue,
+                            0.72f,
+                            GameAudioCueRules.RoamingThreatPan(threat.X, state.Map.Width),
+                            1f);
                         continue;
                     }
                     if (RoamingThreatRules.ShouldPursue(state.ExplorationSteps))
@@ -2921,22 +3118,31 @@ namespace AshenHalls
             threat.X = next.X;
             threat.Y = next.Y;
             AddTween(threat.Id, new Vector2(oldX, oldY), new Vector2(threat.X, threat.Y), TweenKind.Move);
+            ExplorationMaterial stepMaterial = ExploreMaterialAt(threat.X, threat.Y);
             string stepCue = CreatureAudioRules.CueForArchetype(threat.Archetype, "step");
+            bool useSurfaceStep = string.IsNullOrEmpty(stepCue)
+                || string.Equals(stepCue, "ratchitter", StringComparison.OrdinalIgnoreCase);
+            string resolvedStepCue = useSurfaceStep
+                ? GameAudioCueRules.FootstepFor(stepMaterial)
+                : stepCue;
             PlaySfxSpatial(
-                string.IsNullOrEmpty(stepCue) ? "move" : stepCue,
-                0.30f,
-                CombatAudioMixRules.StereoPanForColumn(threat.X, state.Map.Width) * 0.35f,
-                0.92f);
+                resolvedStepCue,
+                useSurfaceStep ? GameAudioCueRules.RoamingThreatFootstepVolume(stepMaterial) : 0.28f,
+                GameAudioCueRules.RoamingThreatPan(threat.X, state.Map.Width),
+                useSurfaceStep ? GameAudioCueRules.FootstepPitch(threat.X, threat.Y) * 0.96f : 0.92f);
             return true;
         }
 
         private void RespawnRoamingThreat(RoamingThreat threat)
         {
             if (threat == null) return;
-            int slot = threat.Id != null && threat.Id.EndsWith("east", StringComparison.Ordinal) ? 1 : 0;
-            Point spawn = IsRoamingThreatCellAvailable(threat.HomeX, threat.HomeY, threat.Id)
+            RoamingThreatDefinition definition = RoamingThreatCatalog.Find(
+                threat.Id,
+                threat.Depth,
+                ContentSetCatalog.IsFullPrototype(activeContentSet));
+            Point spawn = IsRoamingThreatHomeAvailable(threat.HomeX, threat.HomeY, threat.Id)
                 ? new Point(threat.HomeX, threat.HomeY)
-                : FindRoamingThreatSpawn(slot, threat.Id);
+                : FindRoamingThreatSpawn(definition, threat.Id);
             if (spawn == null)
             {
                 threat.RespawnSteps = 1;
@@ -2997,7 +3203,13 @@ namespace AshenHalls
                 if (!TryDrawRoamingThreatAtlasIcon(token, spriteIndex, Color.white)
                     && !TryDrawWorldMapTokenSpriteAtlasIcon(token, LegacyRoamingThreatSpriteIndex(threat), Color.white, spec))
                 {
-                    DrawToken(token, "ratfolk", blood, false, "", "claw");
+                    DrawToken(
+                        token,
+                        RoamingThreatFallbackRole(threat),
+                        RoamingThreatFallbackColor(threat),
+                        false,
+                        "",
+                        "claw");
                 }
                 Color frame = threat.Alerted ? blood : Hex("d7a84e");
                 if (threat.Alerted)
@@ -3033,12 +3245,56 @@ namespace AshenHalls
         {
             switch ((threat?.Archetype ?? "").ToLowerInvariant())
             {
-                case "kobolds": return 11;
-                case "ratfolk": return 12;
+                case "kobold":
+                case "kobolds":
+                case "koboldshaman":
+                case "koboldking": return 11;
+                case "ratfolk":
+                case "ratbrute":
+                case "ratcleric":
+                case "plaguerats":
+                case "ratcaptain": return 12;
+                case "drowscout":
+                case "drowmage":
                 case "drow": return 13;
+                case "imp":
+                case "boundimp":
+                case "lesserdemon":
+                case "greaterdemon":
+                case "redgatedemon":
                 case "demon": return 14;
+                case "reaver":
+                case "undead":
+                case "bonepriest":
+                case "revenant": return -1;
+                case "rat":
                 case "rats":
+                case "ratswarm":
                 default: return 10;
+            }
+        }
+
+        private string RoamingThreatFallbackRole(RoamingThreat threat)
+        {
+            switch (RoamingThreatCatalog.FactionForArchetype(threat?.Archetype))
+            {
+                case RoamingThreatFaction.Kobolds: return "koboldraider";
+                case RoamingThreatFaction.Drow: return "drowscout";
+                case RoamingThreatFaction.Undead: return "reaver";
+                case RoamingThreatFaction.Demons: return "lesserdemon";
+                default: return "ratfolk";
+            }
+        }
+
+        private Color RoamingThreatFallbackColor(RoamingThreat threat)
+        {
+            switch (RoamingThreatCatalog.FactionForArchetype(threat?.Archetype))
+            {
+                case RoamingThreatFaction.Kobolds: return Hex("c58b42");
+                case RoamingThreatFaction.Drow: return Hex("8f7bc4");
+                case RoamingThreatFaction.Undead: return Hex("8da58a");
+                case RoamingThreatFaction.Demons: return blood;
+                default: return Hex("b99b75");
             }
         }
 
@@ -3771,16 +4027,16 @@ namespace AshenHalls
             bool city = (roles & ExplorationCellRole.City) != 0;
             bool road = (roles & ExplorationCellRole.Road) != 0;
             float shoulderFraction = city
-                ? exploreWideView ? 0.19f : 0.23f
+                ? exploreWideView ? 0.14f : 0.17f
                 : road
                     ? exploreWideView ? 0.18f : 0.22f
                     : exploreWideView ? 0.16f : 0.19f;
             float shoulderWidth = rect.width * shoulderFraction;
             float coreWidth = shoulderWidth * 0.68f;
             float highlightWidth = coreWidth * 0.20f;
-            Color shoulder = city ? Hex("111719", 0.26f) : Hex("20150e", 0.30f);
-            Color core = city ? Hex("81765f", 0.20f) : material == ExplorationMaterial.Moss ? Hex("735637", 0.28f) : Hex("8f6841", 0.25f);
-            Color highlight = city ? Hex("d3c5a0", 0.14f) : Hex("e2bd83", 0.15f);
+            Color shoulder = city ? Hex("111719", 0.17f) : Hex("20150e", 0.30f);
+            Color core = city ? Hex("81765f", 0.13f) : material == ExplorationMaterial.Moss ? Hex("735637", 0.28f) : Hex("8f6841", 0.25f);
+            Color highlight = city ? Hex("d3c5a0", 0.09f) : Hex("e2bd83", 0.15f);
             DrawExplorePathStroke(rect, mask, shoulderWidth, shoulder);
             DrawExplorePathStroke(rect, mask, coreWidth, core);
             DrawExplorePathStroke(rect, mask, highlightWidth, highlight);

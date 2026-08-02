@@ -1,0 +1,16 @@
+Ash & Brimstone v2.2.0 World Map Region Marker Atlas
+
+Built-in ImageGen edit using `world-map-region-marker-atlas-runtime-v1.30.0.png` as the visual reference.
+
+Edit and substantially refine this exact 5 columns by 4 rows game sprite atlas for Ash & Brimstone's wide world map. Preserve the exact 20-cell row-major semantic order and one centered object per cell:
+
+0 city watch banner; 1 hooded quest messenger with parchment; 2 blacksmith anvil with coin; 3 sealed quest writ; 4 radiant waystone;
+5 tavern mug; 6 guarded city gate; 7 sewer grate; 8 travel camp; 9 cave entrance;
+10 treasure cache; 11 shrine; 12 dangerous enemy skull marker; 13 descending stone stairs; 14 road sign;
+15 compass route star; 16 campfire; 17 party shield; 18 Midgaard city silhouette; 19 magical region mist rune.
+
+Make every silhouette bolder, larger, and more legible at 20-32 pixels than the reference, with consistent three-quarter top-down late-1990s tactical CRPG pixel art, crisp pixel clusters, unified warm upper-left lighting, deep charcoal shadows, restrained Midgaard palette of dark iron, slate stone, teal cloth/cyan magic, warm amber/gold, parchment, and a small controlled crimson danger accent. Equal visual weight across cells, generous but not excessive padding, no cast shadows crossing cell boundaries.
+
+Output exactly one evenly spaced 5x4 atlas, no grid lines, no borders, no labels, no letters, no numbers, no watermark, no UI cards, no extra objects. Use a perfectly uniform flat #ff00ff chroma-key background in every empty pixel; do not use magenta inside any sprite. Preserve square cells and do not crop any object.
+
+Post-processing: resized to 1400x1120, border-connected chroma removed with three magenta-matte decontamination passes, remaining flat chroma removed globally, then normalized to 5x4 cells with a 244x238 maximum sprite footprint and baseline 258.

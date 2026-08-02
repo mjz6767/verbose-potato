@@ -133,7 +133,7 @@ namespace AshenHalls
                 float objectiveH = 76f * scale;
                 DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, objectiveH), "OBJECTIVE", view.ObjectiveLine, teal, true);
                 cursor += objectiveH + sectionGap;
-                float growthH = 34f * scale;
+                float growthH = 50f * scale;
                 DrawExploreFallbackInfoCard(new Rect(sideInnerX, cursor, sideInnerW, growthH), "PROGRESS", view.GrowthLine, moss, false);
                 cursor += growthH + 9f * scale;
                 GUI.Label(new Rect(sideInnerX, cursor, sideInnerW, 18f * scale), "PARTY", CenterLeftStyle(ExploreHudFont(11), Hex("e3ba63")));
@@ -241,19 +241,57 @@ namespace AshenHalls
         private bool DrawExploreFallbackCommand(Rect rect, string label, string hotkey, string icon)
         {
             float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
-            DrawRect(rect, Hex("141b20", 0.99f));
-            DrawRect(new Rect(rect.x, rect.y, rect.width, 3f * scale), Hex("58462c", 0.68f));
-            DrawBorder(rect, GUI.enabled ? line.WithAlpha(0.82f) : line.WithAlpha(0.40f), 1);
-            float iconSize = Mathf.Clamp(rect.height - 18f * scale, 28f * scale, 32f * scale);
+            Color accent = ExploreCommandAccent(label);
+            DrawRect(rect, GUI.enabled ? Hex("121a1e", 0.99f) : Hex("0b1013", 0.96f));
+            DrawRect(new Rect(rect.x, rect.y, rect.width, 3f * scale), accent.WithAlpha(GUI.enabled ? 0.82f : 0.32f));
+            DrawBorder(rect, GUI.enabled ? accent.WithAlpha(0.52f) : line.WithAlpha(0.30f), 1);
+            float iconSize = Mathf.Clamp(rect.height - 16f * scale, 30f * scale, 36f * scale);
             Rect iconRect = new Rect(rect.x + 7f * scale, rect.y + (rect.height - iconSize) * 0.5f, iconSize, iconSize);
             DrawRect(Pad(iconRect, -2f * scale), Hex("070a0c", 0.82f));
-            DrawBorder(Pad(iconRect, -2f * scale), gold.WithAlpha(0.58f), 1);
-            DrawTinyUiIcon(iconRect, icon, gold);
+            DrawBorder(Pad(iconRect, -2f * scale), accent.WithAlpha(0.58f), 1);
+            int artIndex = ExploreCommandArtIndex(label);
+            if (!TryDrawWorldMapUiAtlasIcon(iconRect, artIndex, GUI.enabled ? Color.white : muted.WithAlpha(0.72f)))
+            {
+                DrawTinyUiIcon(iconRect, icon, accent);
+            }
             float textX = iconRect.xMax + 6f * scale;
             float textW = Mathf.Max(24f * scale, rect.xMax - textX - 6f * scale);
             GUI.Label(new Rect(textX, rect.y + 6f * scale, textW, 21f * scale), FitText(label, textW, CenterLeftStyle(ExploreHudFont(13), ink)), CenterLeftStyle(ExploreHudFont(13), ink));
-            GUI.Label(new Rect(textX, rect.y + 29f * scale, textW, 16f * scale), hotkey, CenterLeftStyle(ExploreHudFont(11), Hex("e3ba63")));
+            GUI.Label(new Rect(textX, rect.y + 29f * scale, textW, 16f * scale), hotkey, CenterLeftStyle(ExploreHudFont(11), accent));
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
+        }
+
+        private int ExploreCommandArtIndex(string label)
+        {
+            switch ((label ?? "").Trim().ToLowerInvariant())
+            {
+                case "camp": return 0;
+                case "recall": return 1;
+                case "descend": return 2;
+                case "elixir": return 3;
+                case "local":
+                case "region": return 4;
+                case "journal": return 6;
+                case "party": return 9;
+                case "menu": return 15;
+                default: return 8;
+            }
+        }
+
+        private Color ExploreCommandAccent(string label)
+        {
+            switch ((label ?? "").Trim().ToLowerInvariant())
+            {
+                case "camp": return ember;
+                case "recall": return frost;
+                case "descend": return gold;
+                case "elixir": return blood;
+                case "local":
+                case "region": return teal;
+                case "journal": return gold;
+                case "party": return moss;
+                default: return line;
+            }
         }
 
         private void DrawExploreRailPartyRow(Rect row, ExplorationHudPartyMemberView member)
@@ -311,7 +349,11 @@ namespace AshenHalls
             DrawRect(new Rect(rect.x, rect.y, 4f * scale, rect.height), accent.WithAlpha(0.94f));
             DrawBorder(rect, accent.WithAlpha(available ? 0.88f : 0.42f), available ? 2 : 1);
             Rect iconRect = new Rect(rect.x + 10f * scale, rect.y + 10f * scale, 32f * scale, 32f * scale);
-            DrawTinyUiIcon(iconRect, available ? "hand" : "scroll", available ? teal : muted);
+            int actionArtIndex = ExploreActionArtIndex(actionLabel, actionTarget);
+            if (!TryDrawWorldMapUiAtlasIcon(iconRect, actionArtIndex, available ? Color.white : muted.WithAlpha(0.72f)))
+            {
+                DrawTinyUiIcon(iconRect, available ? "hand" : "scroll", available ? teal : muted);
+            }
             float keyW = 34f * scale;
             Rect key = new Rect(rect.xMax - keyW - 10f * scale, rect.y + 10f * scale, keyW, 32f * scale);
             DrawRect(key, Hex("05090a", 0.94f));
@@ -324,14 +366,32 @@ namespace AshenHalls
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
 
+        private int ExploreActionArtIndex(string actionLabel, string actionTarget)
+        {
+            string identity = ((actionLabel ?? "") + " " + (actionTarget ?? "")).ToLowerInvariant();
+            if (identity.Contains("talk") || identity.Contains("speak")) return 12;
+            if (identity.Contains("sewer") || identity.Contains("cistern")) return 18;
+            if (identity.Contains("cave")) return 19;
+            if (identity.Contains("gate") || identity.Contains("enter")) return 17;
+            if (identity.Contains("market") || identity.Contains("trade") || identity.Contains("shop")) return 11;
+            if (identity.Contains("descend") || identity.Contains("stairs")) return 2;
+            if (identity.Contains("danger") || identity.Contains("encounter")) return 13;
+            return 8;
+        }
+
         private bool DrawExploreFallbackToggleButton(Rect rect, bool detailsOpen)
         {
             float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
             DrawRect(rect, Hex("151b20", 0.99f));
             DrawRect(new Rect(rect.x, rect.y, 4f * scale, rect.height), teal.WithAlpha(0.92f));
             DrawBorder(rect, teal.WithAlpha(0.68f), 1);
+            Rect iconRect = new Rect(rect.x + 8f * scale, rect.y + 5f * scale, rect.height - 10f * scale, rect.height - 10f * scale);
+            if (!TryDrawWorldMapUiAtlasIcon(iconRect, 5, Color.white))
+            {
+                DrawTinyUiIcon(iconRect, "scroll", teal);
+            }
             GUI.Label(
-                new Rect(rect.x + 12f * scale, rect.y, rect.width - 54f * scale, rect.height),
+                new Rect(iconRect.xMax + 7f * scale, rect.y, rect.width - iconRect.width - 58f * scale, rect.height),
                 detailsOpen ? "BACK TO MAP" : "LOCATION DETAILS",
                 CenterLeftStyle(ExploreHudFont(13), ink));
             Rect key = new Rect(rect.xMax - 38f * scale, rect.y + 5f * scale, 30f * scale, rect.height - 10f * scale);
@@ -465,7 +525,7 @@ namespace AshenHalls
                 DetailsOpen = !exploreHudCollapsed,
                 ViewLabel = ExploreViewLabel(),
                 ZoneName = zone?.Name ?? HomeTownName,
-                ZoneDetail = zone == null ? "" : $"{zone.Title} / {ExploreGroundName(state.PlayerX, state.PlayerY)}",
+                ZoneDetail = ExploreLocationDetail(zone),
                 DangerLabel = zone == null ? "" : TravelDangerLabel(zone),
                 LookLine = lookLine,
                 ObjectiveLine = string.IsNullOrEmpty(state.ActiveStory) ? "Follow the road and mark what the party learns." : state.ActiveStory,
@@ -479,6 +539,19 @@ namespace AshenHalls
                 Party = BuildExplorationHudPartyViews(),
                 Logs = BuildExplorationHudLogViews()
             };
+        }
+
+        private string ExploreLocationDetail(WorldZone zone)
+        {
+            if (zone == null || state?.Map == null) return "";
+            if (state.Depth == 1 && IsMidgaardCityCell(state.PlayerX, state.PlayerY, state.Map, state.Depth))
+            {
+                string district = MidgaardDistrictRules.DistrictAtOffset(
+                    state.PlayerX - state.Map.StartX,
+                    state.PlayerY - state.Map.StartY);
+                return $"{district} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
+            }
+            return $"{zone.Title} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
         }
 
         private string ExploreObjectiveSummaryLine()
@@ -954,7 +1027,21 @@ namespace AshenHalls
             if (state?.Map?.Objects == null) return "No marked sites nearby.";
             ExplorationInteraction interaction = CurrentExploreInteraction();
             ExploreGuidancePlan guidance = CurrentExploreGuidancePlan();
-            string[] nearby = state.Map.Objects
+            List<string> nearby = new List<string>();
+            if (state.RoamingThreats != null)
+            {
+                nearby.AddRange(state.RoamingThreats
+                    .Where(threat => threat != null
+                        && threat.Active
+                        && threat.Depth == state.Depth
+                        && Distance(threat.X, threat.Y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius)
+                    .OrderByDescending(threat => threat.Alerted)
+                    .ThenBy(threat => Distance(threat.X, threat.Y, state.PlayerX, state.PlayerY))
+                    .Take(2)
+                    .Select(threat => $"{(threat.Alerted ? "DANGER" : "Patrol")}: {threat.Name} · compass {ExploreDirectionToPoint(threat.X, threat.Y)}"));
+            }
+
+            nearby.AddRange(state.Map.Objects
                 .Where(o => o != null
                     && ExplorationInteractionRules.IsUseObject(o)
                     && (!interaction.HasTarget || !ReferenceEquals(interaction.Target, o))
@@ -962,10 +1049,21 @@ namespace AshenHalls
                     && Distance(o.X, o.Y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius)
                 .OrderBy(o => IsCurrentMidgaardObjective(o) ? 0 : 1)
                 .ThenBy(o => Distance(o.X, o.Y, state.PlayerX, state.PlayerY))
-                .Take(4)
-                .Select(o => $"{ObjectName(o)} {ExploreDirectionTo(o)}")
-                .ToArray();
-            return nearby.Length == 0 ? "No other marked sites within sight." : string.Join("\n", nearby);
+                .Take(Mathf.Max(0, 4 - nearby.Count))
+                .Select(o => $"{ObjectName(o)} {ExploreDirectionTo(o)}"));
+            return nearby.Count == 0 ? "No other marked sites within sight." : string.Join("\n", nearby);
+        }
+
+        private string ExploreDirectionToPoint(int x, int y)
+        {
+            int dx = x - state.PlayerX;
+            int dy = y - state.PlayerY;
+            int distance = Mathf.Abs(dx) + Mathf.Abs(dy);
+            if (distance <= 0) return "HERE";
+            string direction = Mathf.Abs(dx) >= Mathf.Abs(dy)
+                ? dx < 0 ? "W" : "E"
+                : dy < 0 ? "N" : "S";
+            return direction + distance;
         }
 
         private bool IsExploreGuidanceTarget(MapObject obj)

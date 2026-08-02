@@ -24,6 +24,9 @@ namespace AshenHalls
                 || text.Contains("ratmage")
                 || text.Contains("ratcleric")
                 || text.Contains("ratbrute")
+                || text.Contains("ratcaptain")
+                || text.Contains("ratswarm")
+                || text.Contains("plaguerats")
                 || text.Contains("sewer rat")
                 || text.Contains("giant rat")
                 || text == "rat"

@@ -40,6 +40,21 @@ namespace AshenHalls.Editor
             }
         }
 
+        public static void RunRoamingThreatRules()
+        {
+            try
+            {
+                RoamingThreatsTelegraphAndPathAroundTerrain();
+                Debug.Log(VersionInfo.ProductName + " roaming-threat rule smoke tests passed.");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(VersionInfo.ProductName + " roaming-threat rule smoke tests failed: " + ex);
+                EditorApplication.Exit(1);
+            }
+        }
+
         public static void RunOrThrow()
         {
             UiRuntimeDefaultFontResolves();
@@ -64,10 +79,13 @@ namespace AshenHalls.Editor
             WorldMapGenerationRulesDefineModestExpansion();
             WorldMapGenerationRulesDefineNamedJunctionCircuit();
             WorldMapGenerationRulesDefineRegionalSites();
+            WorldAreaTemplateRulesDefineDistinctRegionalSites();
+            MidgaardDistrictRulesDefineAuthoredWards();
             RouteChartRulesTrackDiscoveredJunctionsAndBearings();
             ExplorationReadabilityRulesKeepGroundBehindSprites();
             WorldMapSpriteCellCoverageRejectsPruningExtremes();
             WorldMapRegionLandmarkCatalogIsSemantic();
+            WorldMapRegionMarkerCatalogIsSemantic();
             ApprovedV130WorldMapAtlasesMatchRuntimeContracts();
             ExplorationArtRulesMapSemanticTilesAndScale();
             ExplorationSurfaceRulesPreserveAuthoredMapStructure();
@@ -1472,6 +1490,254 @@ namespace AshenHalls.Editor
             AssertEqual(true, ReferenceEquals(WorldZoneCatalog.For("old-quarry", 1), WorldZoneCatalog.For("old-quarry", 1)), "world-zone metadata is shared instead of allocated per visible tile");
         }
 
+        private static void WorldAreaTemplateRulesDefineDistinctRegionalSites()
+        {
+            int width = WorldMapGenerationRules.Width;
+            int height = WorldMapGenerationRules.Height;
+            int startX = WorldMapGenerationRules.StartX(width);
+            int startY = WorldMapGenerationRules.StartY(height);
+            WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(width, height, startX, startY);
+            MapData map = new MapData
+            {
+                Width = width,
+                Height = height,
+                Depth = 1,
+                StartX = startX,
+                StartY = startY
+            };
+
+            AssertEqual(8, WorldAreaTemplateRules.All.Count, "regional area rules define eight authored compositions");
+            AssertEqual(false, WorldAreaTemplateRules.TryGet(sites[0].Id, "wrong-zone", out _), "regional area lookup requires both stable site and zone identity");
+
+            HashSet<string> signatures = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> silhouettes = new HashSet<string>(StringComparer.Ordinal);
+            WorldMapJunction[] junctions = WorldMapGenerationRules.RegionalJunctions(width, height, startX, startY);
+            foreach (WorldMapSite site in sites)
+            {
+                AssertEqual(
+                    true,
+                    WorldAreaTemplateRules.TryGet(site.Id, site.ZoneId, out WorldAreaTemplate template),
+                    site.Id + " resolves an authored area template");
+                AssertEqual(site.Radius, template.Radius, site.Id + " template preserves its established footprint radius");
+                AssertEqual(
+                    (site.Radius * 2 + 1) * (site.Radius * 2 + 1),
+                    template.Cells.Count,
+                    site.Id + " template accounts for every cell in its square footprint");
+
+                HashSet<string> offsets = new HashSet<string>(StringComparer.Ordinal);
+                foreach (WorldAreaCellTemplate cell in template.Cells)
+                {
+                    AssertEqual(
+                        true,
+                        Math.Abs(cell.OffsetX) <= site.Radius && Math.Abs(cell.OffsetY) <= site.Radius,
+                        site.Id + " template cell stays inside its declared radius");
+                    AssertEqual(
+                        true,
+                        offsets.Add(cell.OffsetX + ":" + cell.OffsetY),
+                        site.Id + " template cell offsets are unique");
+
+                    int x = site.X + cell.OffsetX;
+                    int y = site.Y + cell.OffsetY;
+                    AssertEqual(
+                        true,
+                        x >= 1 && y >= 1 && x < width - 1 && y < height - 1,
+                        site.Id + " composed footprint stays inside the traversable world frame");
+                    AssertEqual(
+                        false,
+                        MidgaardInteriorRules.IsReservedCell(map, x, y),
+                        site.Id + " composed footprint avoids Midgaard reserved cells");
+                }
+
+                AssertEqual(
+                    true,
+                    template.Cells.Any(cell => cell.Open) && template.Cells.Any(cell => !cell.Open),
+                    site.Id + " composition combines deliberate open and blocked space");
+                AssertEqual(
+                    true,
+                    template.Cells.Select(cell => cell.Material).Distinct().Count() >= 2,
+                    site.Id + " composition uses more than one authored surface material");
+                AssertEqual(
+                    true,
+                    template.TryCell(0, 0, out WorldAreaCellTemplate center)
+                    && center.Open
+                    && (center.Roles & ExplorationCellRole.Threshold) != 0,
+                    site.Id + " keeps its established centerpiece cell open and marked");
+                AssertEqual(
+                    true,
+                    template.TryCell(template.ApproachOffsetX, template.ApproachOffsetY, out WorldAreaCellTemplate approach)
+                    && approach.Open
+                    && (approach.Roles & ExplorationCellRole.Road) != 0
+                    && (approach.Roles & ExplorationCellRole.Threshold) != 0,
+                    site.Id + " defines a road-marked boundary approach");
+                AssertEqual(
+                    1,
+                    template.Cells.Count(cell =>
+                        cell.Open
+                        && (cell.Roles & ExplorationCellRole.Road) != 0
+                        && (cell.Roles & ExplorationCellRole.Threshold) != 0),
+                    site.Id + " has one unambiguous route approach");
+
+                int approachSteps = Math.Max(Math.Abs(template.ApproachOffsetX), Math.Abs(template.ApproachOffsetY));
+                int approachStepX = Math.Sign(template.ApproachOffsetX);
+                int approachStepY = Math.Sign(template.ApproachOffsetY);
+                AssertEqual(
+                    true,
+                    approachSteps == site.Radius
+                    && (approachStepX == 0 || approachStepY == 0)
+                    && approachStepX != approachStepY,
+                    site.Id + " uses a cardinal boundary approach");
+                for (int step = 1; step <= approachSteps; step++)
+                {
+                    AssertEqual(
+                        true,
+                        template.TryCell(approachStepX * step, approachStepY * step, out WorldAreaCellTemplate corridor)
+                        && corridor.Open,
+                        site.Id + " keeps its approach corridor open at step " + step);
+                }
+
+                AssertEqual(true, template.Objects.Count >= 3, site.Id + " has an intentional prop composition");
+                HashSet<string> objectKeys = new HashSet<string>(StringComparer.Ordinal);
+                HashSet<string> objectOffsets = new HashSet<string>(StringComparer.Ordinal);
+                foreach (WorldAreaObjectTemplate decoration in template.Objects)
+                {
+                    AssertEqual(true, objectKeys.Add(decoration.Key), site.Id + " prop keys are stable and unique");
+                    AssertEqual(
+                        true,
+                        objectOffsets.Add(decoration.OffsetX + ":" + decoration.OffsetY),
+                        site.Id + " prop positions are unique");
+                    AssertEqual(false, decoration.Type == ObjectType.Encounter, site.Id + " does not hide a static encounter blocker in its composition");
+                    AssertEqual(
+                        true,
+                        template.TryCell(decoration.OffsetX, decoration.OffsetY, out WorldAreaCellTemplate propCell)
+                        && propCell.Open,
+                        site.Id + " props occupy authored open cells");
+                    AssertEqual(
+                        false,
+                        decoration.OffsetX == 0 && decoration.OffsetY == 0,
+                        site.Id + " props preserve the established centerpiece coordinate");
+                    AssertEqual(
+                        true,
+                        ExplorationTraversalRules.CanStandOnObject(decoration.Type)
+                        || decoration.OffsetX * approachStepY != decoration.OffsetY * approachStepX
+                        || decoration.OffsetX * approachStepX + decoration.OffsetY * approachStepY <= 0,
+                        site.Id + " blocking props stay off the approach corridor");
+                }
+
+                WorldMapJunction junction = junctions.Single(candidate =>
+                    string.Equals(candidate.ZoneId, site.ZoneId, StringComparison.Ordinal));
+                int junctionOffsetX = junction.X - site.X;
+                int junctionOffsetY = junction.Y - site.Y;
+                if (Math.Abs(junctionOffsetX) <= site.Radius && Math.Abs(junctionOffsetY) <= site.Radius)
+                {
+                    AssertEqual(
+                        true,
+                        template.TryCell(junctionOffsetX, junctionOffsetY, out WorldAreaCellTemplate junctionCell)
+                        && junctionCell.Open
+                        && (junctionCell.Roles & ExplorationCellRole.Road) != 0,
+                        site.Id + " preserves its overlapping named route junction");
+                    int openJunctionNeighbors = 0;
+                    foreach (Point direction in new[]
+                    {
+                        new Point(0, -1),
+                        new Point(-1, 0),
+                        new Point(1, 0),
+                        new Point(0, 1)
+                    })
+                    {
+                        if (template.TryCell(
+                                junctionOffsetX + direction.X,
+                                junctionOffsetY + direction.Y,
+                                out WorldAreaCellTemplate neighbor)
+                            && neighbor.Open)
+                        {
+                            openJunctionNeighbors++;
+                        }
+                    }
+                    AssertEqual(
+                        true,
+                        openJunctionNeighbors >= 2,
+                        site.Id + " does not turn its overlapping route junction into a dead end");
+                    AssertEqual(
+                        true,
+                        RegionalTemplateCellsConnect(
+                            template,
+                            junctionOffsetX,
+                            junctionOffsetY,
+                            template.ApproachOffsetX,
+                            template.ApproachOffsetY),
+                        site.Id + " connects its named junction to its authored approach");
+                }
+
+                signatures.Add(template.Signature);
+                silhouettes.Add(string.Concat(template.Cells.Select(cell => cell.Open ? "1" : "0")));
+            }
+
+            AssertEqual(8, signatures.Count, "all eight regional compositions have distinct deterministic signatures");
+            AssertEqual(8, silhouettes.Count, "all eight regional compositions have distinct open-space silhouettes");
+        }
+
+        private static bool RegionalTemplateCellsConnect(
+            WorldAreaTemplate template,
+            int startX,
+            int startY,
+            int goalX,
+            int goalY)
+        {
+            if (template == null) return false;
+            Queue<Point> frontier = new Queue<Point>();
+            HashSet<string> visited = new HashSet<string>(StringComparer.Ordinal);
+            frontier.Enqueue(new Point(startX, startY));
+            visited.Add(startX + ":" + startY);
+            Point[] directions =
+            {
+                new Point(0, -1),
+                new Point(-1, 0),
+                new Point(1, 0),
+                new Point(0, 1)
+            };
+            while (frontier.Count > 0)
+            {
+                Point current = frontier.Dequeue();
+                if (current.X == goalX && current.Y == goalY) return true;
+                foreach (Point direction in directions)
+                {
+                    int x = current.X + direction.X;
+                    int y = current.Y + direction.Y;
+                    string key = x + ":" + y;
+                    if (visited.Contains(key)
+                        || !template.TryCell(x, y, out WorldAreaCellTemplate cell)
+                        || !cell.Open)
+                    {
+                        continue;
+                    }
+                    visited.Add(key);
+                    frontier.Enqueue(new Point(x, y));
+                }
+            }
+            return false;
+        }
+
+        private static void MidgaardDistrictRulesDefineAuthoredWards()
+        {
+            AssertEqual(ExplorationMaterial.KeepStone, MidgaardDistrictRules.MaterialAtOffset(0, -7), "royal approach uses formal keep stone");
+            AssertEqual(ExplorationMaterial.TempleStone, MidgaardDistrictRules.MaterialAtOffset(1, -4), "temple precinct uses pale temple stone");
+            AssertEqual(ExplorationMaterial.MarketCobbles, MidgaardDistrictRules.MaterialAtOffset(3, 0), "trade ward uses warmer market cobbles");
+            AssertEqual(ExplorationMaterial.MarketCobbles, MidgaardDistrictRules.MaterialAtOffset(-5, 2), "tavern ward uses active street cobbles");
+            AssertEqual(ExplorationMaterial.SewerBrick, MidgaardDistrictRules.MaterialAtOffset(-4, 5), "cistern quarter uses damp sewer brick");
+            AssertEqual(ExplorationMaterial.CityPaving, MidgaardDistrictRules.MaterialAtOffset(-8, -5), "civic edge retains quiet city paving");
+            AssertEqual(5, new[]
+            {
+                MidgaardDistrictRules.MaterialAtOffset(0, -7),
+                MidgaardDistrictRules.MaterialAtOffset(1, -4),
+                MidgaardDistrictRules.MaterialAtOffset(3, 0),
+                MidgaardDistrictRules.MaterialAtOffset(-4, 5),
+                MidgaardDistrictRules.MaterialAtOffset(-8, -5)
+            }.Distinct().Count(), "Midgaard exposes five readable district surfaces");
+            AssertEqual(true, (MidgaardDistrictRules.RolesAtOffset(5, 2) & ExplorationCellRole.Road) != 0, "east trade lane is authored as a secondary road");
+            AssertEqual(true, (MidgaardDistrictRules.RolesAtOffset(0, -6) & ExplorationCellRole.Plaza) != 0, "royal approach reads as a precinct");
+            AssertEqual("Cistern Quarter", MidgaardDistrictRules.DistrictAtOffset(-4, 5), "HUD names the southern cistern quarter");
+        }
+
         private static void RouteChartRulesTrackDiscoveredJunctionsAndBearings()
         {
             int width = WorldMapGenerationRules.Width;
@@ -1538,7 +1804,8 @@ namespace AshenHalls.Editor
             AssertEqual(true, ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp("moss", false, 0), "approved biome props can decorate the local map");
             AssertEqual(true, ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp("ruins", false, 0), "route ruins can use approved environmental props");
             AssertEqual(true, ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp("cistern", false, 0), "cistern routes can use approved environmental props");
-            AssertEqual(false, ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp("moss", true, 0), "region map suppresses decorative biome props");
+            AssertEqual(true, ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp("moss", true, 0), "region map retains restrained macro biome props");
+            AssertEqual(false, ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp("moss", true, 12), "region map caps macro prop density before local-map detail levels");
             AssertEqual(false, ExplorationReadabilityRules.ShouldDrawBiomeAmbientProp("midgaard-paved", false, 0), "city paving does not receive wilderness props");
             AssertEqual(true, ExplorationReadabilityRules.ShouldDrawMidgaardPavingDecal(false, 3, false, 0), "distant empty local-map paving can receive a city decal");
             AssertEqual(false, ExplorationReadabilityRules.ShouldDrawMidgaardPavingDecal(false, 1, false, 0), "party-adjacent paving stays clear");
@@ -1639,12 +1906,30 @@ namespace AshenHalls.Editor
             AssertEqual(-1, WorldMapRegionLandmarkCatalog.IconIndex("old-quarry", ObjectType.Camp), "unsupported regional objects retain generic fallbacks");
         }
 
+        private static void WorldMapRegionMarkerCatalogIsSemantic()
+        {
+            AssertEqual(5, WorldMapRegionMarkerCatalog.Columns, "regional marker atlas columns");
+            AssertEqual(4, WorldMapRegionMarkerCatalog.Rows, "regional marker atlas rows");
+            AssertEqual(0, WorldMapRegionMarkerCatalog.ActorMarkerIndex(ObjectType.TownGuard), "guard uses the watch-banner marker");
+            AssertEqual(1, WorldMapRegionMarkerCatalog.ActorMarkerIndex(ObjectType.CityCourier), "courier uses the messenger marker");
+            AssertEqual(2, WorldMapRegionMarkerCatalog.ActorMarkerIndex(ObjectType.ArmorerNpc), "armorer uses the smith marker");
+            AssertEqual(5, WorldMapRegionMarkerCatalog.ActorMarkerIndex(ObjectType.TavernKeeper), "tavern keeper uses the tavern marker");
+            AssertEqual(10, WorldMapRegionMarkerCatalog.ActorMarkerIndex(ObjectType.MarketClerk), "market clerk uses the trade marker");
+            AssertEqual(11, WorldMapRegionMarkerCatalog.ActorMarkerIndex(ObjectType.TempleHealer), "healer uses the shrine marker");
+            AssertEqual(19, WorldMapRegionMarkerCatalog.ActorMarkerIndex(ObjectType.EnchanterNpc), "enchanter uses the arcane marker");
+            AssertEqual(true, WorldMapRegionMarkerCatalog.ShouldShowActor(ObjectType.WoundedTraveler, 2, false), "nearby story contacts remain visible");
+            AssertEqual(false, WorldMapRegionMarkerCatalog.ShouldShowActor(ObjectType.WoundedTraveler, 6, false), "distant secondary contacts no longer crowd the region map");
+            AssertEqual(true, WorldMapRegionMarkerCatalog.ShouldShowActor(ObjectType.MarketClerk, 6, false), "important services remain visible at district range");
+            AssertEqual(false, WorldMapRegionMarkerCatalog.ShouldShowActor(ObjectType.MarketClerk, 8, false), "even service markers yield beyond readable range");
+            AssertEqual(true, WorldMapRegionMarkerCatalog.ShouldShowActor(ObjectType.WoundedTraveler, 12, true), "active objectives override distance suppression");
+        }
+
         private static void ApprovedV130WorldMapAtlasesMatchRuntimeContracts()
         {
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.1.0", VersionInfo.PackageVersion, "package version matches the v2.1 release");
+            AssertEqual("v2.2.0", VersionInfo.PackageVersion, "package version matches the v2.2 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
@@ -1667,6 +1952,7 @@ namespace AshenHalls.Editor
             AssertEqual("world-map-biome-prop-atlas-runtime-v1.29.0.png", RuntimeArtManifest.WorldMapBiomePropAtlas, "approved v1.29 biome prop atlas pin");
             AssertEqual("world-map-landmark-atlas-runtime-v1.29.0.png", RuntimeArtManifest.WorldMapLandmarkAtlas, "approved v1.29 landmark atlas pin");
             AssertEqual("world-map-region-landmark-atlas-runtime-v1.65.0.png", RuntimeArtManifest.WorldMapRegionLandmarkAtlas, "approved v1.65 regional landmark atlas pin");
+            AssertEqual("world-map-region-marker-atlas-runtime-v2.2.0.png", RuntimeArtManifest.WorldMapRegionMarkerAtlas, "approved v2.2 regional marker atlas pin");
             AssertEqual("midgaard-town-atlas-runtime-v1.29.0.png", RuntimeArtManifest.MidgaardTownAtlas, "approved v1.29 town atlas pin");
             AssertEqual("midgaard-tile-atlas-runtime-v1.6.3.png", RuntimeArtManifest.MidgaardTileAtlas, "approved v1.6.3 Midgaard terrain pin");
             AssertEqual("midgaard-city-prop-atlas-runtime-v1.29.0.png", RuntimeArtManifest.MidgaardCityPropAtlas, "approved v1.29 city prop atlas pin");
@@ -1686,10 +1972,10 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.0.0.png|signature-spell-icon-atlas-runtime-v2.0.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v0.73.png|tavern-backdrop-runtime-v1.49.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(39, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(40, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -1879,10 +2165,15 @@ namespace AshenHalls.Editor
                 AssertAtlasCellSafeGutter(roamingThreats, 5, 4, Enumerable.Range(0, 20), 18, 8, 8, "v1.62 roaming threat");
 
                 Texture2D regionalLandmarks = LoadApprovedRuntimeAtlas(RuntimeArtManifest.WorldMapRegionLandmarkAtlas);
+                Texture2D regionalMarkers = LoadApprovedRuntimeAtlas(RuntimeArtManifest.WorldMapRegionMarkerAtlas);
                 normalizedAtlases.Add(regionalLandmarks);
+                normalizedAtlases.Add(regionalMarkers);
                 AssertEqual(new Vector2Int(1400, 1120), new Vector2Int(regionalLandmarks.width, regionalLandmarks.height), "v1.65 regional-landmark dimensions");
+                AssertEqual(new Vector2Int(1400, 1120), new Vector2Int(regionalMarkers.width, regionalMarkers.height), "v2.2 regional-marker dimensions");
                 AssertAtlasCellCoverage(regionalLandmarks, 5, 4, Enumerable.Range(0, 20), 0.08f, 0.92f, "v1.65 regional landmark");
+                AssertAtlasCellCoverage(regionalMarkers, 5, 4, Enumerable.Range(0, 20), 0.08f, 0.92f, "v2.2 regional marker");
                 AssertAtlasCellSafeGutter(regionalLandmarks, 5, 4, Enumerable.Range(0, 20), 18, 8, 8, "v1.65 regional landmark");
+                AssertAtlasCellSafeGutter(regionalMarkers, 5, 4, Enumerable.Range(0, 20), 18, 8, 8, "v2.2 regional marker");
 
                 Texture2D streetLife = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardStreetLifeAtlas);
                 Texture2D pavingDecals = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardPavingDecalAtlas);
@@ -2551,8 +2842,8 @@ namespace AshenHalls.Editor
             float regionBuildingFill = (1f - 2f * ExplorationArtRules.MidgaardBuildingPadding(true))
                 * buildingArtFill
                 * ExplorationArtRules.MidgaardBuildingSpriteScale(true);
-            AssertEqual(true, localBuildingFill >= 1.22f && localBuildingFill <= 1.25f, "local Midgaard buildings rise beyond one cell for landmark readability");
-            AssertEqual(true, regionBuildingFill >= 0.92f && regionBuildingFill <= 0.95f, "region Midgaard buildings remain nearly cell-filling");
+            AssertEqual(true, localBuildingFill >= 1.30f && localBuildingFill <= 1.33f, "local Midgaard buildings rise beyond one cell for landmark readability");
+            AssertEqual(true, regionBuildingFill >= 0.99f && regionBuildingFill <= 1.02f, "region Midgaard buildings remain cell-filling silhouettes");
             AssertEqual(true, ExplorationArtRules.MidgaardBuildingVerticalOffset(false) < ExplorationArtRules.MidgaardBuildingVerticalOffset(true), "local building growth favors the roofline over the street");
 
             AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(false, true) >= 0.76f && ExplorationArtRules.GateArtWidthInCells(false, true) <= 0.80f, "local side gate keeps a compact wall-aligned frame");
@@ -3907,11 +4198,38 @@ namespace AshenHalls.Editor
             AssertEqual("footash", GameAudioCueRules.FootstepFor(ExplorationMaterial.RedAsh), "red ash footstep");
             AssertEqual("footgravel", GameAudioCueRules.FootstepFor(ExplorationMaterial.QuarryStone), "quarry gravel footstep");
             AssertEqual("footgravel", GameAudioCueRules.FootstepFor(ExplorationMaterial.RuinedPaving), "ruined paving footstep");
+            AssertEqual(true, GameAudioCueRules.FootstepVolume(ExplorationMaterial.CityPaving) >= 0.78f, "quiet city stone remains audible");
+            AssertEqual(true, GameAudioCueRules.FootstepVolume(ExplorationMaterial.PackedDirt) >= 0.80f, "quiet road earth remains audible");
+            AssertEqual(true, GameAudioCueRules.FootstepVolume(ExplorationMaterial.ShallowWater) <= 0.36f, "water steps remain restrained");
+            AssertEqual(true, GameAudioCueRules.FootstepVolume(ExplorationMaterial.GlassRubble) <= 0.32f, "glass steps remain restrained");
+            AssertEqual(true, GameAudioCueRules.FootstepVolume(ExplorationMaterial.FenMud) <= 0.34f, "mud steps remain restrained");
+            AssertEqual(true, GameAudioCueRules.FootstepVolume(ExplorationMaterial.RedAsh) <= 0.32f, "ash steps remain restrained");
+            foreach (ExplorationMaterial material in Enum.GetValues(typeof(ExplorationMaterial)))
+            {
+                float volume = GameAudioCueRules.FootstepVolume(material);
+                AssertEqual(true, volume >= 0.30f && volume <= 0.88f, material + " footstep gain stays inside the world mix");
+                float threatVolume = GameAudioCueRules.RoamingThreatFootstepVolume(material);
+                AssertEqual(true, threatVolume >= 0.18f && threatVolume <= 0.32f, material + " roaming-threat step stays beneath the party");
+            }
             foreach (int x in new[] { -20, 0, 4, 1000 })
             {
                 float pitch = GameAudioCueRules.FootstepPitch(x, x - 3);
                 AssertEqual(true, pitch >= 0.96f && pitch <= 1.04f, "footstep pitch stays restrained at " + x);
             }
+            AssertEqual(false, GameAudioCueRules.SuppressesExplorationAmbience("footstone"), "party footsteps do not starve world ambience");
+            AssertEqual(false, GameAudioCueRules.SuppressesExplorationAmbience("footmud"), "wet footsteps do not starve world ambience");
+            AssertEqual(false, GameAudioCueRules.SuppressesExplorationAmbience("koboldstep"), "roaming movement does not starve world ambience");
+            AssertEqual(false, GameAudioCueRules.SuppressesExplorationAmbience("ambwind"), "ambient one-shots do not suppress their own schedule");
+            AssertEqual(true, GameAudioCueRules.SuppressesExplorationAmbience("ratchitter"), "rat alerts preserve foreground breathing room");
+            AssertEqual(true, GameAudioCueRules.SuppressesExplorationAmbience("wayfind"), "discovery stingers preserve foreground breathing room");
+            AssertEqual(true, GameAudioCueRules.SuppressesExplorationAmbience("gateopen"), "landmark interactions preserve foreground breathing room");
+            AssertEqual(0f, GameAudioCueRules.RoamingThreatPan(0, 1), "single-column threat audio stays centered");
+            AssertEqual(true, GameAudioCueRules.RoamingThreatPan(0, 20) < -0.60f, "west threats sound west");
+            AssertEqual(true, GameAudioCueRules.RoamingThreatPan(19, 20) > 0.60f, "east threats sound east");
+            AssertEqual(
+                -GameAudioCueRules.RoamingThreatPan(3, 20),
+                GameAudioCueRules.RoamingThreatPan(16, 20),
+                "threat stereo placement is symmetric");
 
             AssertEqual("ambbell", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.TempleHealer), "temple district uses bell ambience");
             AssertEqual("ambforge", GameAudioCueRules.AmbientFor("midgaard-city", ObjectType.Armorer), "armorer district uses forge ambience");
@@ -4956,6 +5274,57 @@ namespace AshenHalls.Editor
 
         private static void RoamingThreatsTelegraphAndPathAroundTerrain()
         {
+            AssertEqual(
+                RoamingThreatCatalog.All.Count,
+                RoamingThreatCatalog.All.Select(definition => definition.Id).Distinct().Count(),
+                "roaming-threat catalog identities are globally unique for save repair");
+            IReadOnlyList<RoamingThreatDefinition> chapterOne = RoamingThreatCatalog.ForDepth(1, false);
+            IReadOnlyList<RoamingThreatDefinition> chapterOnePrototype = RoamingThreatCatalog.ForDepth(1, true);
+            AssertRoamingThreatRoster(chapterOne, 1, 4, "shared chapter-one patrol roster");
+            AssertEqual(
+                string.Join("|", chapterOne.Select(definition => definition.Id)),
+                string.Join("|", chapterOnePrototype.Select(definition => definition.Id)),
+                "chapter-one patrol identities stay stable across content profiles");
+            AssertEqual(true, chapterOne.Any(definition => definition.Id == "midgaard-rat-patrol-west"), "west patrol keeps its save-compatible identity");
+            AssertEqual(true, chapterOne.Any(definition => definition.Id == "midgaard-rat-patrol-east"), "east patrol keeps its save-compatible identity");
+
+            for (int depth = 2; depth <= 6; depth++)
+            {
+                IReadOnlyList<RoamingThreatDefinition> safeRoster = RoamingThreatCatalog.ForDepth(depth, false);
+                AssertRoamingThreatRoster(safeRoster, depth, 3, "sewer-slice fallback patrol roster");
+                AssertEqual(
+                    true,
+                    safeRoster.All(definition =>
+                        definition.Archetype == "rats"
+                        || definition.Archetype == "ratfolk"
+                        || definition.Archetype == "ratcleric"),
+                    "sewer-slice later-depth patrols stay aligned with its rat-only combat pool at depth " + depth);
+            }
+
+            int[] prototypeCounts = { 0, 4, 4, 5, 5, 5 };
+            for (int depth = 2; depth <= 6; depth++)
+            {
+                AssertRoamingThreatRoster(
+                    RoamingThreatCatalog.ForDepth(depth, true),
+                    depth,
+                    prototypeCounts[depth - 1],
+                    "full-prototype patrol progression");
+            }
+
+            IReadOnlyList<RoamingThreatDefinition> chapterTwo = RoamingThreatCatalog.ForDepth(2, true);
+            IReadOnlyList<RoamingThreatDefinition> chapterThree = RoamingThreatCatalog.ForDepth(3, true);
+            IReadOnlyList<RoamingThreatDefinition> chapterFour = RoamingThreatCatalog.ForDepth(4, true);
+            AssertEqual(true, chapterTwo.Any(definition => definition.Archetype == "kobolds"), "chapter two introduces a visible kobold patrol");
+            AssertEqual(true, chapterTwo.Any(definition => definition.Archetype == "drowscout"), "chapter two telegraphs the first drow scouts");
+            AssertEqual(true, chapterTwo.Any(definition => definition.Archetype == "undead"), "chapter two telegraphs the first restless dead");
+            AssertEqual(true, chapterThree.Any(definition => definition.Archetype == "drowmage"), "chapter three escalates the drow patrol silhouette");
+            AssertEqual(true, chapterThree.Any(definition => definition.Archetype == "bonepriest"), "chapter three introduces the death-cult patrol");
+            AssertEqual(true, chapterFour.Any(definition => definition.Archetype == "lesserdemon"), "chapter four introduces a supported demon patrol");
+            AssertEqual(
+                string.Join("|", chapterFour.Select(definition => definition.Id)),
+                string.Join("|", RoamingThreatCatalog.ForDepth(4, true).Select(definition => definition.Id)),
+                "patrol selection is deterministic for the same depth and content profile");
+
             AssertEqual(false, RoamingThreatRules.ShouldAlert(3, true, 0), "safe roads suppress roaming threat alerts");
             AssertEqual(false, RoamingThreatRules.ShouldAlert(3, false, 1), "retreat grace suppresses roaming threat alerts");
             AssertEqual(true, RoamingThreatRules.ShouldAlert(3, false, 0), "danger-zone patrols alert inside the telegraph radius");
@@ -4972,6 +5341,9 @@ namespace AshenHalls.Editor
             AssertEqual("drowstep", CreatureAudioRules.CueForArchetype("drow", "step"), "drow patrol owns a quiet movement cue");
             AssertEqual("demondeath", CreatureAudioRules.CueForArchetype("greaterdemon", "death"), "greater demons own a defeat voice");
             AssertEqual("undeadcast", CreatureAudioRules.CueForArchetype("bonepriest", "cast"), "bone priests own an undead casting voice");
+            AssertEqual("ratchitter", CreatureAudioRules.CueForArchetype("ratcaptain", "alert"), "rat captains retain rat-family alert audio");
+            AssertEqual("ratattack", CreatureAudioRules.CueForArchetype("ratswarm", "attack"), "rat swarms retain rat-family attack audio");
+            AssertEqual("ratdeath", CreatureAudioRules.CueForArchetype("plaguerats", "death"), "plague rats retain rat-family defeat audio");
 
             bool found = RoamingThreatRules.TryNextStep(
                 7,
@@ -5000,6 +5372,52 @@ namespace AshenHalls.Editor
                 true,
                 out _);
             AssertEqual(false, blocked, "roaming threats cannot cross an impassable boundary");
+        }
+
+        private static void AssertRoamingThreatRoster(
+            IReadOnlyList<RoamingThreatDefinition> roster,
+            int depth,
+            int expectedCount,
+            string label)
+        {
+            AssertEqual(expectedCount, roster.Count, label + " count at depth " + depth);
+            AssertEqual(expectedCount, roster.Select(definition => definition.Slot).Distinct().Count(), label + " uses distinct deterministic slots at depth " + depth);
+            AssertEqual(expectedCount, roster.Select(definition => definition.Id).Distinct().Count(), label + " uses distinct stable IDs at depth " + depth);
+            AssertEqual(expectedCount, roster.Select(definition => definition.Archetype).Distinct().Count(), label + " uses distinct art archetypes at depth " + depth);
+            AssertEqual(expectedCount, roster.Select(definition => definition.PreferredZoneId).Distinct().Count(), label + " uses distinct zone preferences at depth " + depth);
+            foreach (RoamingThreatDefinition definition in roster)
+            {
+                AssertEqual(true, definition.MinDepth <= depth && definition.MaxDepth >= depth, definition.Id + " includes its selected depth");
+                AssertEqual(true, !string.IsNullOrEmpty(definition.Name), definition.Id + " has a player-facing name");
+                AssertEqual(true, RoamingThreatPresentationRules.SpriteIndex(definition.Archetype) != 19, definition.Id + " resolves approved roaming-threat art");
+                AssertEqual(definition.Faction, RoamingThreatCatalog.FactionForArchetype(definition.Archetype), definition.Id + " art archetype matches its combat faction");
+                AssertEqual(true, WorldZoneCatalog.For(definition.PreferredZoneId, depth).Danger > 0, definition.Id + " prefers a hostile zone instead of Midgaard or a safe road");
+                AssertEqual(true, definition.TargetDistance >= 7 && definition.TargetDistance <= 24, definition.Id + " keeps the established spawn-distance envelope");
+                AssertEqual(true, ReferenceEquals(definition, RoamingThreatCatalog.Find(definition.Id, depth, definition.ContentProfile != RoamingThreatContentProfile.SewerSlice)), definition.Id + " resolves deterministically by stable identity");
+                AssertEqual(true, definition.EnemyIds.Count >= 2, definition.Id + " has an explicit combat roster");
+                foreach (string enemyId in definition.EnemyIds)
+                {
+                    AssertEqual(true, EncounterCatalog.IsKnownEnemyId(enemyId), definition.Id + " combat roster references known enemy " + enemyId);
+                    AssertEqual(definition.Faction, RoamingThreatCatalog.FactionForEnemy(enemyId), definition.Id + " combat enemy " + enemyId + " matches the visible faction");
+                    if (definition.ContentProfile != RoamingThreatContentProfile.FullPrototype)
+                    {
+                        AssertEqual(true, ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, enemyId), definition.Id + " remains combat-safe in the sewer slice");
+                    }
+                }
+
+                EncounterDefinition encounter = RoamingThreatCatalog.BuildEncounter(definition, depth);
+                AssertEqual(EncounterId.Patrol, encounter.Id, definition.Id + " retains the patrol encounter lifecycle");
+                AssertEqual("patrol", encounter.LegacyStyle, definition.Id + " retains patrol rewards and victory routing");
+                AssertEqual(false, encounter.UsesGeneratedEnemyPool, definition.Id + " cannot drift back to an unrelated zone pool");
+                AssertEqual(
+                    EncounterCatalog.For(EncounterId.Patrol).EnemyCountForDepth(depth),
+                    encounter.EnemyCountForDepth(depth),
+                    definition.Id + " retains standard patrol difficulty count");
+                AssertEqual(
+                    string.Join("|", definition.EnemyIds),
+                    string.Join("|", encounter.EnemyIds),
+                    definition.Id + " copies its explicit combat roster without mutation");
+            }
         }
 
         private static MapData OpenTestMap(int width, int height)

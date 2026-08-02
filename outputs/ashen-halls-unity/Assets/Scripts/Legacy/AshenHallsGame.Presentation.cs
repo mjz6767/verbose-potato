@@ -1084,6 +1084,29 @@ namespace AshenHalls
                 spec);
         }
 
+        private bool IsWorldMapRegionMarkerAtlas()
+        {
+            return worldMapRegionMarkerAtlas != null
+                && worldMapRegionMarkerAtlas.width >= 1000
+                && worldMapRegionMarkerAtlas.height >= 800;
+        }
+
+        private bool TryDrawWorldMapRegionMarkerAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsWorldMapRegionMarkerAtlas() || index < 0 || index >= 20) return false;
+            return TryDrawTrimmedExplorationAtlasCell(
+                worldMapRegionMarkerAtlas,
+                rect,
+                index,
+                5,
+                4,
+                tint,
+                "world map regional marker",
+                0.08f,
+                0.92f,
+                DefaultWorldMapArtSpec());
+        }
+
         private bool IsWorldMapOverlayAtlas()
         {
             return worldMapOverlayAtlas != null && worldMapOverlayAtlas.width >= 768 && worldMapOverlayAtlas.height >= 600;

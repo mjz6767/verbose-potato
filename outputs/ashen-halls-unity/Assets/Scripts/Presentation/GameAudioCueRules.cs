@@ -33,6 +33,82 @@ namespace AshenHalls
             }
         }
 
+        public static float FootstepVolume(ExplorationMaterial material)
+        {
+            // The authored surface masters have intentionally different textures,
+            // but their measured body levels are not identical. Calibrate at the
+            // semantic material layer so wet and brittle steps stay restrained
+            // while the quieter stone and earth recordings remain readable.
+            switch (material)
+            {
+                case ExplorationMaterial.ShallowWater:
+                    return 0.36f;
+                case ExplorationMaterial.DeepWater:
+                    return 0.32f;
+                case ExplorationMaterial.GlassRubble:
+                    return 0.30f;
+                case ExplorationMaterial.FenMud:
+                    return 0.32f;
+                case ExplorationMaterial.RedAsh:
+                    return 0.30f;
+                case ExplorationMaterial.QuarryStone:
+                case ExplorationMaterial.RuinedPaving:
+                case ExplorationMaterial.Cliff:
+                    return 0.34f;
+                case ExplorationMaterial.BridgeDeck:
+                    return 0.54f;
+                case ExplorationMaterial.NaturalGround:
+                    return 0.88f;
+                case ExplorationMaterial.PackedDirt:
+                    return 0.84f;
+                case ExplorationMaterial.Moss:
+                    return 0.76f;
+                case ExplorationMaterial.Forest:
+                    return 0.72f;
+                case ExplorationMaterial.MarketCobbles:
+                    return 0.80f;
+                case ExplorationMaterial.TempleStone:
+                case ExplorationMaterial.KeepStone:
+                    return 0.84f;
+                case ExplorationMaterial.SewerBrick:
+                case ExplorationMaterial.CisternBrick:
+                case ExplorationMaterial.GloamStone:
+                    return 0.78f;
+                case ExplorationMaterial.CityPaving:
+                default:
+                    return 0.82f;
+            }
+        }
+
+        public static float RoamingThreatFootstepVolume(ExplorationMaterial material)
+        {
+            return Clamp(FootstepVolume(material) * 0.38f, 0.18f, 0.32f);
+        }
+
+        public static float RoamingThreatPan(int column, int mapWidth)
+        {
+            if (mapWidth <= 1) return 0f;
+            float normalized = Clamp(column / (float)(mapWidth - 1), 0f, 1f);
+            return (normalized * 2f - 1f) * 0.62f;
+        }
+
+        public static bool SuppressesExplorationAmbience(string cue)
+        {
+            string key = (cue ?? "").Trim().ToLowerInvariant();
+            if (key.Length == 0 || key.StartsWith("amb", StringComparison.Ordinal)) return false;
+            if (key.StartsWith("foot", StringComparison.Ordinal)) return false;
+            switch (key)
+            {
+                case "koboldstep":
+                case "drowstep":
+                case "demonstep":
+                case "undeadstep":
+                    return false;
+                default:
+                    return true;
+            }
+        }
+
         public static float FootstepPitch(int x, int y)
         {
             unchecked
@@ -244,6 +320,11 @@ namespace AshenHalls
                 hash ^= hash >> 13;
                 return hash & 0x7fffffff;
             }
+        }
+
+        private static float Clamp(float value, float minimum, float maximum)
+        {
+            return Math.Max(minimum, Math.Min(maximum, value));
         }
     }
 }

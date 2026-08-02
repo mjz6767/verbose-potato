@@ -68,6 +68,8 @@ namespace AshenHalls
 
         private Texture2D worldMapRegionLandmarkAtlas;
 
+        private Texture2D worldMapRegionMarkerAtlas;
+
         private Texture2D worldMapOverlayAtlas;
 
         private Texture2D worldMapProgressionOverlayAtlas;
@@ -231,6 +233,8 @@ namespace AshenHalls
         private string lastExplorationAmbienceContext = "";
 
         private int explorationAmbienceSequence;
+
+        private float lastExplorationForegroundSfxAt = -10f;
 
         private float nextTavernAmbienceAt = -1f;
 
@@ -2235,6 +2239,12 @@ namespace AshenHalls
                 lastSfxKey = key;
                 lastSfxAt = Time.realtimeSinceStartup;
                 lastSfxVolume = clamped;
+                if (state != null
+                    && state.Mode == GameMode.Explore
+                    && GameAudioCueRules.SuppressesExplorationAmbience(key))
+                {
+                    lastExplorationForegroundSfxAt = Time.unscaledTime;
+                }
                 voice.PlayOneShot(soundClips[key], clamped);
             }
             catch (Exception)
@@ -2344,7 +2354,7 @@ namespace AshenHalls
 
             if (nextExplorationAmbienceAt < 0f) nextExplorationAmbienceAt = now + 2.8f;
             if (now < nextExplorationAmbienceAt) return;
-            if (now - lastSfxAt < 1.25f)
+            if (now - lastExplorationForegroundSfxAt < 1.25f)
             {
                 nextExplorationAmbienceAt = now + 1.5f;
                 return;
@@ -2807,6 +2817,7 @@ namespace AshenHalls
             worldMapLandmarkAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapLandmarkAtlas, 0.12f, "world map landmarks", 0.16f)
                 ?? LoadLatestExternalPngWithAlpha("world-map-landmark-atlas-runtime-", "", 0.12f, "world map landmarks", 0.16f);
             worldMapRegionLandmarkAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapRegionLandmarkAtlas, 0.20f, "world map regional landmarks", 0.16f);
+            worldMapRegionMarkerAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapRegionMarkerAtlas, 0.20f, "world map regional markers", 0.12f);
             worldMapOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapOverlayAtlas, 0.20f, "world map overlays", 0.04f)
                 ?? LoadLatestExternalPngWithAlpha("world-map-overlay-atlas-runtime-", "", 0.20f, "world map overlays", 0.04f);
             worldMapProgressionOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapProgressionOverlayAtlas, 0.20f, "world map progression overlays", 0.04f)
@@ -2914,6 +2925,7 @@ namespace AshenHalls
             ValidateSpriteAtlasAlpha(worldMapBiomePropAtlas, "world map biome props", 0.20f, 0.08f);
             ValidateSpriteAtlasAlpha(worldMapLandmarkAtlas, "world map landmarks", 0.12f, 0.16f);
             ValidateSpriteAtlasAlpha(worldMapRegionLandmarkAtlas, "world map regional landmarks", 0.20f, 0.16f);
+            ValidateSpriteAtlasAlpha(worldMapRegionMarkerAtlas, "world map regional markers", 0.20f, 0.12f);
             ValidateSpriteAtlasAlpha(worldMapOverlayAtlas, "world map overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapProgressionOverlayAtlas, "world map progression overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapUiAtlas, "world map UI icons", 0.20f, 0.10f);
@@ -3024,6 +3036,8 @@ namespace AshenHalls
             ValidateAtlasCells(worldMapLandmarkAtlas, "world map landmark", 5, 4, false, 1, 3, 4, 5, 6, 8, 10, 11, 13, 15, 17);
             ValidateAtlasCells(worldMapRegionLandmarkAtlas, "world map regional landmark", 5, 4, false, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
             ValidateAtlasSquareCells(worldMapRegionLandmarkAtlas, "world map regional landmark", 5, 4, 3f);
+            ValidateAtlasCells(worldMapRegionMarkerAtlas, "world map regional marker", 5, 4, false, Enumerable.Range(0, 20).ToArray());
+            ValidateAtlasSquareCells(worldMapRegionMarkerAtlas, "world map regional marker", 5, 4, 3f);
             ValidateAtlasCells(worldMapOverlayAtlas, "world map overlay", 5, 4, false, Enumerable.Range(0, 19).ToArray());
             ValidateAtlasCells(worldMapProgressionOverlayAtlas, "world map progression overlay", 5, 4, false, Enumerable.Range(0, 20).ToArray());
             int explorationRows = WorldMapExplorationTileAtlasRows();

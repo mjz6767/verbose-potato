@@ -92,7 +92,7 @@ namespace AshenHalls
             // Region view still needs an almost cell-filling silhouette; local view
             // can let roofs and awnings rise beyond the cell without changing the
             // deterministic interaction footprint beneath them.
-            return wideView ? 1.14f : 1.26f;
+            return wideView ? 1.22f : 1.34f;
         }
 
         public static float MidgaardBuildingArtPadding()
@@ -105,7 +105,7 @@ namespace AshenHalls
             // Scaling from the destination centre would grow just as far into the
             // street as toward the roofline. Shift upward to keep doorsteps and
             // market counters visually tied to their map cell.
-            return wideView ? -0.03f : -0.08f;
+            return wideView ? -0.05f : -0.10f;
         }
 
         public static string PartyTokenRole(int partyCount, string leadRole)

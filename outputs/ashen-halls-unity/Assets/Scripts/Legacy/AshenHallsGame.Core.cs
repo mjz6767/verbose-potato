@@ -1074,9 +1074,18 @@ namespace AshenHalls
             List<RoamingThreat> threats = state?.RoamingThreats?
                 .Where(threat => threat != null && threat.Active && threat.Depth == state.Depth)
                 .ToList();
-            if (threats == null || threats.Count != 2)
+            IReadOnlyList<RoamingThreatDefinition> expected = RoamingThreatCatalog.ForDepth(
+                state?.Depth ?? 1,
+                ContentSetCatalog.IsFullPrototype(activeContentSet));
+            if (threats == null || threats.Count != expected.Count)
             {
-                throw new InvalidOperationException($"Exploration smoke expected two active Midgaard patrols, found {threats?.Count ?? 0}.");
+                throw new InvalidOperationException(
+                    $"Exploration smoke expected {expected.Count} active patrols, found {threats?.Count ?? 0}.");
+            }
+            HashSet<string> expectedIds = new HashSet<string>(expected.Select(definition => definition.Id), StringComparer.Ordinal);
+            if (threats.Any(threat => !expectedIds.Contains(threat.Id)))
+            {
+                throw new InvalidOperationException("Exploration smoke found a patrol outside the active catalog roster.");
             }
             if (threats.Select(threat => threat.Id).Distinct().Count() != threats.Count)
             {
@@ -1091,6 +1100,14 @@ namespace AshenHalls
                 if (ObjectAt(state.Map, threat.X, threat.Y) != null)
                 {
                     throw new InvalidOperationException($"{threat.Name} overlaps a map object.");
+                }
+                if (threat.X == state.PlayerX && threat.Y == state.PlayerY)
+                {
+                    throw new InvalidOperationException($"{threat.Name} overlaps the party.");
+                }
+                if (threats.Any(other => other != threat && Distance(threat.HomeX, threat.HomeY, other.HomeX, other.HomeY) < 7))
+                {
+                    throw new InvalidOperationException($"{threat.Name} spawned too close to another patrol home.");
                 }
             }
             Debug.Log(VersionInfo.ProductName + " roaming threat smoke: " + string.Join(", ", threats.Select(threat => $"{threat.Name}@{threat.X},{threat.Y}")));

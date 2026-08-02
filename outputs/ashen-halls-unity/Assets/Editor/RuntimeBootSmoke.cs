@@ -47,6 +47,51 @@ namespace AshenHalls.Editor
             }
         }
 
+        public static void RunRoamingThreats()
+        {
+            try
+            {
+                RunRoamingThreatsOrThrow();
+                Debug.Log(VersionInfo.ProductName + " roaming-threat runtime smoke passed.");
+                EditorApplication.Exit(0);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError(VersionInfo.ProductName + " roaming-threat runtime smoke failed: " + ex);
+                EditorApplication.Exit(1);
+            }
+        }
+
+        public static void RunRoamingThreatsOrThrow()
+        {
+            string projectRoot = Directory.GetParent(Application.dataPath).FullName;
+            string sceneFullPath = Path.Combine(projectRoot, MainScenePath);
+            if (!File.Exists(sceneFullPath)) throw new InvalidOperationException("Main scene is missing: " + MainScenePath);
+
+            try
+            {
+                Scene scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
+                Assert(scene.IsValid() && scene.isLoaded, "Main scene loads for roaming-threat smoke");
+                AshenHallsGame game = UnityEngine.Object.FindFirstObjectByType<AshenHallsGame>();
+                Assert(game != null, "AshenHallsGame exists for roaming-threat smoke");
+                InvokePrivate(game, "Awake");
+                InvokePrivate(game, "LateUpdate");
+                AssertNoLaunchError(game);
+                InvokePrivate(game, "StartNewGame");
+                InvokePrivate(game, "LateUpdate");
+                InvokePrivate(game, "QuickStart");
+                InvokePrivate(game, "LateUpdate");
+                AssertMode(game, GameMode.Explore, "roaming-threat smoke reaches Explore");
+                GameState state = GetPrivateField<GameState>(game, "state");
+                AssertRoamingThreatCombatRuntime(game, state);
+                AssertGeneratedRoamingThreatDepthsRuntime(game, state);
+            }
+            finally
+            {
+                EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+        }
+
         public static void RunShopkeepers()
         {
             try
@@ -239,6 +284,160 @@ namespace AshenHalls.Editor
             finally
             {
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+        }
+
+        private static void AssertRoamingThreatCombatRuntime(AshenHallsGame game, GameState state)
+        {
+            Assert(state?.Map != null, "roaming-threat runtime has a generated map");
+            IReadOnlyList<RoamingThreatDefinition> definitions = RoamingThreatCatalog.ForDepth(
+                state.Depth,
+                ContentSetCatalog.IsFullPrototype(state.ContentSetId));
+            List<RoamingThreat> patrols = state.RoamingThreats
+                .Where(threat => threat != null && threat.Depth == state.Depth)
+                .OrderBy(threat => threat.Id)
+                .ToList();
+            Assert(patrols.Count == 4 && patrols.Count == definitions.Count, "four cataloged patrols spawn on the chapter-one world map");
+            foreach (RoamingThreatDefinition definition in definitions)
+            {
+                RoamingThreat patrol = patrols.SingleOrDefault(threat => threat.Id == definition.Id);
+                Assert(patrol != null, definition.Id + " spawns with its stable identity");
+                Assert(patrol.Archetype == definition.Archetype, definition.Id + " uses its cataloged visible archetype");
+                Assert(patrol.X != state.PlayerX || patrol.Y != state.PlayerY, definition.Id + " does not overlap the player");
+                WorldZone zone = InvokePrivate<WorldZone>(game, "ZoneFor", patrol.X, patrol.Y, state.Map, state.Depth);
+                Assert(zone != null && zone.Danger > 0, definition.Id + " stays outside Midgaard and safe roads");
+            }
+            for (int i = 0; i < patrols.Count; i++)
+            for (int j = i + 1; j < patrols.Count; j++)
+            {
+                int distance = Math.Abs(patrols[i].HomeX - patrols[j].HomeX) + Math.Abs(patrols[i].HomeY - patrols[j].HomeY);
+                Assert(distance >= 7, patrols[i].Id + " and " + patrols[j].Id + " preserve patrol-home spacing");
+            }
+
+            string stableSignature = string.Join("|", patrols.Select(threat => threat.Id + ":" + threat.HomeX + "," + threat.HomeY));
+            RoamingThreat first = patrols[0];
+            state.RoamingThreats.Add(new RoamingThreat
+            {
+                Id = first.Id,
+                Name = "Corrupt duplicate",
+                Archetype = first.Archetype,
+                Depth = first.Depth,
+                X = first.X,
+                Y = first.Y,
+                HomeX = first.HomeX,
+                HomeY = first.HomeY
+            });
+            InvokePrivate(game, "EnsureRoamingThreats");
+            Assert(state.RoamingThreats.Count(threat => threat != null && threat.Id == first.Id) == 1, "duplicate saved patrol identity is removed");
+            first.X = -1;
+            first.Y = -1;
+            first.HomeX = -1;
+            first.HomeY = -1;
+            InvokePrivate(game, "EnsureRoamingThreats");
+            string repairedSignature = string.Join("|", state.RoamingThreats
+                .Where(threat => threat != null && threat.Depth == state.Depth)
+                .OrderBy(threat => threat.Id)
+                .Select(threat => threat.Id + ":" + threat.HomeX + "," + threat.HomeY));
+            Assert(stableSignature == repairedSignature, "invalid saved patrol home repairs to the deterministic catalog spawn");
+
+            foreach (RoamingThreatDefinition definition in definitions)
+            {
+                RoamingThreat patrol = state.RoamingThreats.Single(threat => threat != null && threat.Id == definition.Id);
+                InvokePrivate(game, "StartRoamingThreatCombat", patrol);
+                Assert(state.Mode == GameMode.Combat && state.Combat != null, definition.Id + " opens live patrol combat");
+                Assert(state.Combat.EncounterStyle == "patrol", definition.Id + " retains patrol rewards and victory routing");
+                Assert(state.Combat.RoamingThreatId == definition.Id, definition.Id + " binds live defeat state to its stable identity");
+                List<CombatUnit> enemies = state.Combat.Units.Where(unit => unit != null && unit.Side == UnitSide.Enemy).ToList();
+                Assert(enemies.Count == EncounterCatalog.For(EncounterId.Patrol).EnemyCountForDepth(state.Depth), definition.Id + " retains standard patrol difficulty");
+                Assert(enemies.All(enemy => definition.EnemyIds.Contains(enemy.Role)), definition.Id + " combat units come from its explicit roster");
+                Assert(enemies.All(enemy => RoamingThreatCatalog.FactionForEnemy(enemy.Role) == definition.Faction), definition.Id + " visible and combat factions agree");
+                state.Mode = GameMode.Explore;
+                state.Combat = null;
+                patrol.Alerted = false;
+                InvokePrivate(game, "InvalidateCombatController");
+            }
+        }
+
+        private static void AssertGeneratedRoamingThreatDepthsRuntime(AshenHallsGame game, GameState state)
+        {
+            const int seed = 51510;
+            foreach (string contentSet in new[] { ContentSetCatalog.SewerSlice, ContentSetCatalog.FullPrototype })
+            {
+                bool fullPrototype = ContentSetCatalog.IsFullPrototype(contentSet);
+                InvokePrivate(game, "SetActiveContentSet", contentSet);
+                for (int depth = 2; depth <= 6; depth++)
+                {
+                    state.Depth = depth;
+                    state.Seed = seed;
+                    state.Mode = GameMode.Explore;
+                    state.Map = InvokePrivate<MapData>(game, "GenerateMap", depth, seed);
+                    state.PlayerX = state.Map.StartX;
+                    state.PlayerY = state.Map.StartY;
+                    state.RoamingThreats = new List<RoamingThreat>();
+                    InvokePrivate(game, "InvalidateExplorationController");
+                    InvokePrivate(game, "EnsureRoamingThreats");
+
+                    IReadOnlyList<RoamingThreatDefinition> definitions = RoamingThreatCatalog.ForDepth(depth, fullPrototype);
+                    List<RoamingThreat> patrols = state.RoamingThreats
+                        .Where(threat => threat != null && threat.Depth == depth)
+                        .OrderBy(threat => threat.Id)
+                        .ToList();
+                    int expectedCount = fullPrototype ? (depth <= 3 ? 4 : 5) : 3;
+                    string label = contentSet + " depth " + depth;
+                    Assert(definitions.Count == expectedCount, label + " catalog has the expected patrol count");
+                    Assert(patrols.Count == expectedCount, label + " generated map instantiates every catalog patrol");
+
+                    bool[,] reachable = ExplorationTraversalRules.ReachableMask(
+                        state.Map,
+                        state.PlayerX,
+                        state.PlayerY);
+                    foreach (RoamingThreatDefinition definition in definitions)
+                    {
+                        RoamingThreat patrol = patrols.SingleOrDefault(threat => threat.Id == definition.Id);
+                        Assert(patrol != null, label + " instantiates " + definition.Id);
+                        Assert(patrol.Active, label + " starts " + definition.Id + " active");
+                        Assert(patrol.X >= 0 && patrol.Y >= 0 && patrol.X < state.Map.Width && patrol.Y < state.Map.Height, label + " keeps " + definition.Id + " in bounds");
+                        Assert(reachable[patrol.X, patrol.Y], label + " keeps " + definition.Id + " reachable from the party start");
+                        Assert(ExplorationTraversalRules.IsStandable(state.Map, patrol.X, patrol.Y), label + " places " + definition.Id + " on passable terrain");
+                        Assert(patrol.X != state.PlayerX || patrol.Y != state.PlayerY, label + " keeps " + definition.Id + " off the player cell");
+                        WorldZone zone = InvokePrivate<WorldZone>(game, "ZoneFor", patrol.X, patrol.Y, state.Map, depth);
+                        Assert(zone != null && zone.Danger > 0, label + " keeps " + definition.Id + " outside safe zones");
+                    }
+                    for (int i = 0; i < patrols.Count; i++)
+                    for (int j = i + 1; j < patrols.Count; j++)
+                    {
+                        int distance = Math.Abs(patrols[i].HomeX - patrols[j].HomeX)
+                            + Math.Abs(patrols[i].HomeY - patrols[j].HomeY);
+                        Assert(distance >= 7, label + " preserves home spacing between " + patrols[i].Id + " and " + patrols[j].Id);
+                    }
+
+                    string signature = string.Join("|", patrols.Select(threat => threat.Id + ":" + threat.HomeX + "," + threat.HomeY));
+                    InvokePrivate(game, "EnsureRoamingThreats");
+                    string repairedSignature = string.Join("|", state.RoamingThreats
+                        .Where(threat => threat != null && threat.Depth == depth)
+                        .OrderBy(threat => threat.Id)
+                        .Select(threat => threat.Id + ":" + threat.HomeX + "," + threat.HomeY));
+                    Assert(signature == repairedSignature, label + " population is deterministic and idempotent");
+
+                    foreach (RoamingThreatDefinition definition in definitions)
+                    {
+                        RoamingThreat patrol = state.RoamingThreats.Single(threat => threat != null && threat.Id == definition.Id);
+                        InvokePrivate(game, "StartRoamingThreatCombat", patrol);
+                        Assert(state.Mode == GameMode.Combat && state.Combat != null, label + " opens combat for " + definition.Id);
+                        Assert(state.Combat.EncounterStyle == "patrol", label + " retains patrol lifecycle for " + definition.Id);
+                        Assert(state.Combat.RoamingThreatId == definition.Id, label + " binds combat to " + definition.Id);
+                        List<CombatUnit> enemies = state.Combat.Units
+                            .Where(unit => unit != null && unit.Side == UnitSide.Enemy)
+                            .ToList();
+                        Assert(enemies.Count == EncounterCatalog.For(EncounterId.Patrol).EnemyCountForDepth(depth), label + " retains standard patrol difficulty for " + definition.Id);
+                        Assert(enemies.All(enemy => definition.EnemyIds.Contains(enemy.Role)), label + " uses the explicit roster for " + definition.Id);
+                        Assert(enemies.All(enemy => RoamingThreatCatalog.FactionForEnemy(enemy.Role) == definition.Faction), label + " keeps visible and combat factions aligned for " + definition.Id);
+                        state.Mode = GameMode.Explore;
+                        state.Combat = null;
+                        patrol.Alerted = false;
+                        InvokePrivate(game, "InvalidateCombatController");
+                    }
+                }
             }
         }
 
@@ -624,17 +823,29 @@ namespace AshenHalls.Editor
                 .Where(threat => threat != null && threat.Depth == state.Depth)
                 .OrderBy(threat => threat.Id)
                 .ToList();
-            Assert(patrols.Count == 2, "two deliberate hostile patrols prowl beyond Midgaard");
-            Assert(patrols.Any(threat => threat.Archetype == "rats"), "west patrol uses the rat-scout presentation");
-            Assert(patrols.Any(threat => threat.Archetype == "ratfolk"), "east patrol uses the armored ratfolk presentation");
+            IReadOnlyList<RoamingThreatDefinition> patrolDefinitions = RoamingThreatCatalog.ForDepth(
+                state.Depth,
+                ContentSetCatalog.IsFullPrototype(state.ContentSetId));
+            Assert(patrols.Count == patrolDefinitions.Count, "cataloged hostile patrols prowl beyond Midgaard");
             Assert(patrols.Select(threat => threat.Id).Distinct().Count() == patrols.Count, "roaming patrol identities are stable and unique");
-            foreach (RoamingThreat patrol in patrols)
+            foreach (RoamingThreatDefinition definition in patrolDefinitions)
             {
+                RoamingThreat patrol = patrols.SingleOrDefault(threat => threat.Id == definition.Id);
+                Assert(patrol != null, definition.Id + " is instantiated from the roaming-threat catalog");
+                Assert(patrol.Name == definition.Name, definition.Id + " keeps its cataloged player-facing name");
+                Assert(patrol.Archetype == definition.Archetype, definition.Id + " keeps its cataloged art archetype");
                 Assert(patrol.Active, patrol.Name + " starts active");
                 WorldZone patrolZone = InvokePrivate<WorldZone>(game, "ZoneFor", patrol.X, patrol.Y, state.Map, state.Depth);
                 Assert(patrolZone != null && patrolZone.Danger > 0, patrol.Name + " starts outside the safe road");
                 Assert(state.Map.Objects.All(obj => obj == null || obj.X != patrol.X || obj.Y != patrol.Y), patrol.Name + " does not overlap a map object");
+                Assert(patrol.X != state.PlayerX || patrol.Y != state.PlayerY, patrol.Name + " does not overlap the saved player position");
                 Assert(!InvokePrivate<bool>(game, "CanStepExplore", patrol.X, patrol.Y), patrol.Name + " visibly occupies its map tile");
+            }
+            for (int i = 0; i < patrols.Count; i++)
+            for (int j = i + 1; j < patrols.Count; j++)
+            {
+                int homeDistance = Math.Abs(patrols[i].HomeX - patrols[j].HomeX) + Math.Abs(patrols[i].HomeY - patrols[j].HomeY);
+                Assert(homeDistance >= 7, patrols[i].Name + " and " + patrols[j].Name + " keep the established home spacing");
             }
             string patrolSignature = string.Join("|", patrols.Select(threat => $"{threat.Id}:{threat.HomeX},{threat.HomeY}"));
             InvokePrivate(game, "EnsureRoamingThreats");
@@ -643,6 +854,50 @@ namespace AshenHalls.Editor
                 .OrderBy(threat => threat.Id)
                 .Select(threat => $"{threat.Id}:{threat.HomeX},{threat.HomeY}"));
             Assert(patrolSignature == repairedPatrolSignature, "roaming patrol repair is deterministic and idempotent");
+
+            RoamingThreat duplicateSource = patrols[0];
+            state.RoamingThreats.Add(new RoamingThreat
+            {
+                Id = duplicateSource.Id,
+                Name = "Corrupt duplicate",
+                Archetype = duplicateSource.Archetype,
+                Depth = duplicateSource.Depth,
+                X = duplicateSource.X,
+                Y = duplicateSource.Y,
+                HomeX = duplicateSource.HomeX,
+                HomeY = duplicateSource.HomeY,
+                Active = true
+            });
+            InvokePrivate(game, "EnsureRoamingThreats");
+            Assert(state.RoamingThreats.Count(threat => threat != null && threat.Id == duplicateSource.Id) == 1, "roaming patrol repair removes duplicate saved identities");
+
+            duplicateSource.HomeX = -1;
+            duplicateSource.HomeY = -1;
+            duplicateSource.X = -1;
+            duplicateSource.Y = -1;
+            InvokePrivate(game, "EnsureRoamingThreats");
+            string recoveredPatrolSignature = string.Join("|", state.RoamingThreats
+                .Where(threat => threat != null && threat.Depth == state.Depth)
+                .OrderBy(threat => threat.Id)
+                .Select(threat => $"{threat.Id}:{threat.HomeX},{threat.HomeY}"));
+            Assert(patrolSignature == recoveredPatrolSignature, "roaming patrol repair deterministically recovers an invalid saved home");
+
+            foreach (RoamingThreatDefinition definition in patrolDefinitions)
+            {
+                RoamingThreat patrol = state.RoamingThreats.Single(threat => threat != null && threat.Id == definition.Id);
+                InvokePrivate(game, "StartRoamingThreatCombat", patrol);
+                Assert(state.Mode == GameMode.Combat && state.Combat != null, definition.Id + " opens combat through the live roaming-threat path");
+                Assert(state.Combat.EncounterStyle == "patrol", definition.Id + " retains patrol victory and reward routing");
+                Assert(state.Combat.RoamingThreatId == definition.Id, definition.Id + " binds defeat state to its stable roaming identity");
+                List<CombatUnit> enemies = state.Combat.Units.Where(unit => unit != null && unit.Side == UnitSide.Enemy).ToList();
+                Assert(enemies.Count == EncounterCatalog.For(EncounterId.Patrol).EnemyCountForDepth(state.Depth), definition.Id + " retains the standard patrol enemy count");
+                Assert(enemies.All(enemy => definition.EnemyIds.Contains(enemy.Role)), definition.Id + " live combat uses only its explicit roster");
+                Assert(enemies.All(enemy => RoamingThreatCatalog.FactionForEnemy(enemy.Role) == definition.Faction), definition.Id + " visible mob and live combat faction agree");
+                state.Mode = GameMode.Explore;
+                state.Combat = null;
+                patrol.Alerted = false;
+                InvokePrivate(game, "InvalidateCombatController");
+            }
             string populationSignature = string.Join("|", state.Map.Objects
                 .Where(obj => obj != null && InvokePrivate<bool>(game, "IsMidgaardCityCell", obj.X, obj.Y, state.Map, state.Depth))
                 .OrderBy(obj => obj.Y)

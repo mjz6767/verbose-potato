@@ -1,0 +1,363 @@
+{
+  "file": "world-map-region-marker-atlas-runtime-v2.2.0.png",
+  "dimensions": [
+    1400,
+    1120
+  ],
+  "grid": [
+    5,
+    4
+  ],
+  "cellDimensions": [
+    280,
+    280
+  ],
+  "alphaThreshold": 16,
+  "maxSpriteDimensions": [
+    244,
+    238
+  ],
+  "baseline": 258,
+  "cells": [
+    {
+      "index": 0,
+      "empty": false,
+      "sourceBounds": [
+        32,
+        19,
+        248,
+        280
+      ],
+      "normalizedBounds": [
+        41,
+        20,
+        197,
+        238
+      ],
+      "visibleFraction": 0.3479
+    },
+    {
+      "index": 1,
+      "empty": false,
+      "sourceBounds": [
+        8,
+        20,
+        270,
+        277
+      ],
+      "normalizedBounds": [
+        18,
+        20,
+        243,
+        238
+      ],
+      "visibleFraction": 0.5261
+    },
+    {
+      "index": 2,
+      "empty": false,
+      "sourceBounds": [
+        28,
+        40,
+        251,
+        279
+      ],
+      "normalizedBounds": [
+        29,
+        20,
+        222,
+        238
+      ],
+      "visibleFraction": 0.4865
+    },
+    {
+      "index": 3,
+      "empty": false,
+      "sourceBounds": [
+        44,
+        40,
+        247,
+        277
+      ],
+      "normalizedBounds": [
+        38,
+        20,
+        204,
+        238
+      ],
+      "visibleFraction": 0.3505
+    },
+    {
+      "index": 4,
+      "empty": false,
+      "sourceBounds": [
+        30,
+        13,
+        247,
+        280
+      ],
+      "normalizedBounds": [
+        43,
+        20,
+        193,
+        238
+      ],
+      "visibleFraction": 0.3955
+    },
+    {
+      "index": 5,
+      "empty": false,
+      "sourceBounds": [
+        35,
+        0,
+        245,
+        272
+      ],
+      "normalizedBounds": [
+        48,
+        20,
+        184,
+        238
+      ],
+      "visibleFraction": 0.3815
+    },
+    {
+      "index": 6,
+      "empty": false,
+      "sourceBounds": [
+        8,
+        39,
+        263,
+        274
+      ],
+      "normalizedBounds": [
+        18,
+        33,
+        244,
+        225
+      ],
+      "visibleFraction": 0.6103
+    },
+    {
+      "index": 7,
+      "empty": false,
+      "sourceBounds": [
+        21,
+        53,
+        261,
+        259
+      ],
+      "normalizedBounds": [
+        18,
+        49,
+        244,
+        209
+      ],
+      "visibleFraction": 0.5383
+    },
+    {
+      "index": 8,
+      "empty": false,
+      "sourceBounds": [
+        7,
+        23,
+        280,
+        280
+      ],
+      "normalizedBounds": [
+        18,
+        28,
+        244,
+        230
+      ],
+      "visibleFraction": 0.3885
+    },
+    {
+      "index": 9,
+      "empty": false,
+      "sourceBounds": [
+        0,
+        0,
+        267,
+        280
+      ],
+      "normalizedBounds": [
+        26,
+        20,
+        227,
+        238
+      ],
+      "visibleFraction": 0.4543
+    },
+    {
+      "index": 10,
+      "empty": false,
+      "sourceBounds": [
+        19,
+        47,
+        258,
+        253
+      ],
+      "normalizedBounds": [
+        18,
+        48,
+        244,
+        210
+      ],
+      "visibleFraction": 0.4935
+    },
+    {
+      "index": 11,
+      "empty": false,
+      "sourceBounds": [
+        11,
+        10,
+        250,
+        280
+      ],
+      "normalizedBounds": [
+        34,
+        20,
+        211,
+        238
+      ],
+      "visibleFraction": 0.4373
+    },
+    {
+      "index": 12,
+      "empty": false,
+      "sourceBounds": [
+        16,
+        16,
+        262,
+        273
+      ],
+      "normalizedBounds": [
+        26,
+        20,
+        228,
+        238
+      ],
+      "visibleFraction": 0.4129
+    },
+    {
+      "index": 13,
+      "empty": false,
+      "sourceBounds": [
+        11,
+        0,
+        266,
+        267
+      ],
+      "normalizedBounds": [
+        26,
+        20,
+        227,
+        238
+      ],
+      "visibleFraction": 0.4798
+    },
+    {
+      "index": 14,
+      "empty": false,
+      "sourceBounds": [
+        43,
+        24,
+        228,
+        272
+      ],
+      "normalizedBounds": [
+        51,
+        20,
+        178,
+        238
+      ],
+      "visibleFraction": 0.3558
+    },
+    {
+      "index": 15,
+      "empty": false,
+      "sourceBounds": [
+        17,
+        4,
+        268,
+        249
+      ],
+      "normalizedBounds": [
+        18,
+        20,
+        244,
+        238
+      ],
+      "visibleFraction": 0.3442
+    },
+    {
+      "index": 16,
+      "empty": false,
+      "sourceBounds": [
+        27,
+        8,
+        242,
+        253
+      ],
+      "normalizedBounds": [
+        35,
+        20,
+        209,
+        238
+      ],
+      "visibleFraction": 0.3886
+    },
+    {
+      "index": 17,
+      "empty": false,
+      "sourceBounds": [
+        16,
+        4,
+        280,
+        257
+      ],
+      "normalizedBounds": [
+        18,
+        24,
+        244,
+        234
+      ],
+      "visibleFraction": 0.4639
+    },
+    {
+      "index": 18,
+      "empty": false,
+      "sourceBounds": [
+        0,
+        7,
+        256,
+        261
+      ],
+      "normalizedBounds": [
+        20,
+        20,
+        240,
+        238
+      ],
+      "visibleFraction": 0.5215
+    },
+    {
+      "index": 19,
+      "empty": false,
+      "sourceBounds": [
+        8,
+        7,
+        255,
+        258
+      ],
+      "normalizedBounds": [
+        23,
+        20,
+        234,
+        238
+      ],
+      "visibleFraction": 0.5224
+    }
+  ]
+}

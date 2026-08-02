@@ -23,6 +23,7 @@ namespace AshenHalls
         public const string WorldMapBiomePropAtlas = "world-map-biome-prop-atlas-runtime-v1.29.0.png";
         public const string WorldMapLandmarkAtlas = "world-map-landmark-atlas-runtime-v1.29.0.png";
         public const string WorldMapRegionLandmarkAtlas = "world-map-region-landmark-atlas-runtime-v1.65.0.png";
+        public const string WorldMapRegionMarkerAtlas = "world-map-region-marker-atlas-runtime-v2.2.0.png";
         public const string MidgaardTownAtlas = "midgaard-town-atlas-runtime-v1.29.0.png";
         public const string MidgaardTileAtlas = "midgaard-tile-atlas-runtime-v1.6.3.png";
         public const string MidgaardCityPropAtlas = "midgaard-city-prop-atlas-runtime-v1.29.0.png";
@@ -65,6 +66,7 @@ namespace AshenHalls
             WorldMapBiomePropAtlas,
             WorldMapLandmarkAtlas,
             WorldMapRegionLandmarkAtlas,
+            WorldMapRegionMarkerAtlas,
             MidgaardTownAtlas,
             MidgaardTileAtlas,
             MidgaardCityPropAtlas,
