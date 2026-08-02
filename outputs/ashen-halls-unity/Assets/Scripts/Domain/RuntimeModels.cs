@@ -86,6 +86,23 @@ namespace AshenHalls
         public int GearIntelligence;
         public int GearAgility;
         public int GearHealth;
+
+        public PartyMember CloneForPreview()
+        {
+            PartyMember clone = (PartyMember)MemberwiseClone();
+            clone.Skills = Skills == null
+                ? null
+                : new SkillSet
+                {
+                    Arms = Skills.Arms,
+                    Missile = Skills.Missile,
+                    Mend = Skills.Mend,
+                    Ember = Skills.Ember,
+                    Hex = Skills.Hex,
+                    Guard = Skills.Guard
+                };
+            return clone;
+        }
     }
 
     [Serializable]

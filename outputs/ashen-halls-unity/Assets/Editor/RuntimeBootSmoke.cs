@@ -280,12 +280,146 @@ namespace AshenHalls.Editor
                     "default exploration smoke returns to Local Map with Details closed");
                 InvokePrivate(game, "MarkUiDirty");
                 InvokePrivate(game, "LateUpdate");
+                AssertPartyGrowthRuntime(game, firstPlayState);
                 AssertExplorationWorldMapRuntime(game);
                 AssertCombatPresentationRuntime(game);
             }
             finally
             {
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+        }
+
+        private static void AssertPartyGrowthRuntime(AshenHallsGame game, GameState state)
+        {
+            Assert(state?.Party != null && state.Party.Count > 0, "Party Growth runtime has a live party");
+            PartyMember originalMember = state.Party[0];
+            PartyMember probe = originalMember.CloneForPreview();
+            probe.Id = "party-growth-runtime-probe";
+            probe.StatPoints = 1;
+            probe.SkillPoints = 1;
+            PartyGrowthChoice talent = PartyGrowthRules.RelevantTalents(probe).First();
+            Stats startingStats = probe.Stats;
+            int startingTalent = PartyGrowthRules.ProjectedSkill(probe, new PartyGrowthPlan(), talent);
+            int originalTab = GetPrivateField<int>(game, "armoryTab");
+            int originalPartyIndex = GetPrivateField<int>(game, "armorySelectedPartyIndex");
+            bool originalShowArmory = GetPrivateField<bool>(game, "showArmory");
+            GameMode originalMode = state.Mode;
+            CombatState originalCombat = state.Combat;
+            List<LogEntry> originalLog = state.Log == null ? null : new List<LogEntry>(state.Log);
+
+            try
+            {
+                state.Party[0] = probe;
+                state.Mode = GameMode.Explore;
+                state.Combat = null;
+                SetPrivateField(game, "armorySelectedPartyIndex", 0);
+                SetPrivateField(game, "showArmory", false);
+                InvokePrivate(game, "DiscardArmoryGrowthDrafts");
+                InvokePrivate(game, "ToggleArmory", 4);
+                InvokePrivate(game, "LateUpdate");
+
+                ArmoryOverlayScreen armory = GetPrivateField<ArmoryOverlayScreen>(game, "armoryOverlayScreen");
+                Assert(armory != null && armory.IsVisible && armory.HasRenderableGeometry, "Party Growth opens through the live Armory overlay");
+                Assert(armory.ActiveTabLabelForTest == "Growth", "the fifth Armory tab has the Growth label");
+                Assert(armory.VisibleFilterCountForTest == state.Party.Count, "Growth exposes one member filter per adventurer");
+                Assert(armory.VisibleRowCountForTest == 4 + PartyGrowthRules.RelevantTalents(probe).Count, "Growth shows four attributes plus only class-relevant talents");
+                Assert(armory.HasVisibleDetailForTest && armory.VisibleDetailActionCountForTest == 2, "Growth presents Apply and Reset beside the preview");
+                Assert(armory.FocusedRowIsCommittedForTest, "spendable Growth opens with an interactable committed row focused");
+
+                IReadOnlyList<ArmoryRowView> rows = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryGrowthRows");
+                ArmoryRowView strengthRow = rows.Single(row => row.Title == "Strength");
+                int strengthVisibleIndex = armory.VisibleRowIndexForKeyForTest(strengthRow.Key);
+                Assert(strengthVisibleIndex >= 0 && strengthRow.ActionEnabled, "Strength is a live spendable Growth row");
+                armory.InvokeRowActionForTest(strengthVisibleIndex);
+                InvokePrivate(game, "LateUpdate");
+                Assert(probe.Stats.Strength == startingStats.Strength
+                    && probe.StatPoints == 1
+                    && probe.SkillPoints == 1,
+                    "staging Strength updates only the preview");
+
+                armory.InvokeDetailActionForTest(1);
+                InvokePrivate(game, "LateUpdate");
+                Assert(probe.Stats.Strength == startingStats.Strength
+                    && PartyGrowthRules.ProjectedSkill(probe, new PartyGrowthPlan(), talent) == startingTalent
+                    && probe.StatPoints == 1
+                    && probe.SkillPoints == 1,
+                    "Reset cancels the draft without mutating the member or point totals");
+
+                rows = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryGrowthRows");
+                strengthRow = rows.Single(row => row.Title == "Strength");
+                armory.InvokeRowActionForTest(armory.VisibleRowIndexForKeyForTest(strengthRow.Key));
+                InvokePrivate(game, "LateUpdate");
+                rows = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryGrowthRows");
+                ArmoryRowView talentRow = rows.Single(row => row.Title == PartyGrowthRules.Label(talent));
+                int talentVisibleIndex = armory.VisibleRowIndexForKeyForTest(talentRow.Key);
+                Assert(talentVisibleIndex >= 0 && talentRow.ActionEnabled, "the selected class talent is live and spendable");
+                armory.InvokeRowActionForTest(talentVisibleIndex);
+                InvokePrivate(game, "LateUpdate");
+                Assert(probe.Stats.Strength == startingStats.Strength
+                    && PartyGrowthRules.ProjectedSkill(probe, new PartyGrowthPlan(), talent) == startingTalent,
+                    "combined stat and talent staging remains mutation-free before Apply");
+
+                armory.InvokeDetailActionForTest(0);
+                InvokePrivate(game, "LateUpdate");
+                Assert(probe.Stats.Strength == startingStats.Strength + 1, "Apply commits exactly +1 Strength");
+                Assert(PartyGrowthRules.ProjectedSkill(probe, new PartyGrowthPlan(), talent) == startingTalent + 2, "Apply commits exactly +2 to the class talent");
+                Assert(probe.StatPoints == 0 && probe.SkillPoints == 0, "Apply consumes exactly the staged stat and skill points");
+
+                InvokePrivate(game, "CloseArmoryOverlay");
+                InvokePrivate(game, "LateUpdate");
+                InvokePrivate(game, "ToggleArmory", 4);
+                InvokePrivate(game, "LateUpdate");
+                rows = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryGrowthRows");
+                Assert(armory.ActiveTabLabelForTest == "Growth"
+                    && rows.All(row => string.IsNullOrEmpty(row.Badge) || row.Badge.IndexOf("STAGED", StringComparison.OrdinalIgnoreCase) < 0),
+                    "reopening Growth keeps applied values and never resurrects a committed draft");
+
+                GameState roundTripSource = new GameState
+                {
+                    SaveVersion = state.SaveVersion,
+                    Party = new List<PartyMember> { probe }
+                };
+                GameState roundTrip = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(roundTripSource));
+                PartyMember loaded = roundTrip.Party.Single();
+                Assert(roundTrip.SaveVersion == state.SaveVersion, "Party Growth keeps the existing save schema");
+                Assert(loaded.Stats.Strength == probe.Stats.Strength
+                    && PartyGrowthRules.ProjectedSkill(loaded, new PartyGrowthPlan(), talent)
+                        == PartyGrowthRules.ProjectedSkill(probe, new PartyGrowthPlan(), talent)
+                    && loaded.StatPoints == probe.StatPoints
+                    && loaded.SkillPoints == probe.SkillPoints,
+                    "applied Growth values and remaining points survive JSON save/load");
+
+                probe.StatPoints = 1;
+                probe.SkillPoints = 1;
+                state.Mode = GameMode.Combat;
+                InvokePrivate(game, "MarkUiDirty");
+                InvokePrivate(game, "LateUpdate");
+                rows = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryGrowthRows");
+                int combatStrength = probe.Stats.Strength;
+                int combatTalent = PartyGrowthRules.ProjectedSkill(probe, new PartyGrowthPlan(), talent);
+                Assert(rows.Count > 0 && rows.All(row => !row.ActionEnabled), "Growth rows are read-only during combat even with points available");
+                Assert(armory.FocusedRowIndexForTest < 0, "combat review never focuses a disabled Growth row");
+                armory.InvokeDetailActionForTest(0);
+                Assert(probe.Stats.Strength == combatStrength
+                    && PartyGrowthRules.ProjectedSkill(probe, new PartyGrowthPlan(), talent) == combatTalent
+                    && probe.StatPoints == 1
+                    && probe.SkillPoints == 1,
+                    "combat review cannot apply or consume Growth");
+            }
+            finally
+            {
+                SetPrivateField(game, "showArmory", false);
+                SetPrivateField(game, "armoryTab", originalTab);
+                SetPrivateField(game, "armorySelectedPartyIndex", originalPartyIndex);
+                InvokePrivate(game, "DiscardArmoryGrowthDrafts");
+                state.Party[0] = originalMember;
+                state.Mode = originalMode;
+                state.Combat = originalCombat;
+                state.Log = originalLog;
+                SetPrivateField(game, "showArmory", originalShowArmory);
+                InvokePrivate(game, "MarkUiDirty");
+                InvokePrivate(game, "LateUpdate");
             }
         }
 

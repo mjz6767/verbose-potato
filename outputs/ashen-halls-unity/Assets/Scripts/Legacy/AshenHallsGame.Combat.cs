@@ -2915,7 +2915,9 @@ namespace AshenHalls
             int unspentStats = state.Party.Sum(p => Mathf.Max(0, p.StatPoints));
             int unspentSkills = state.Party.Sum(p => Mathf.Max(0, p.SkillPoints));
             string next = closest == null ? "" : $"{closest.Name} {Mathf.Max(0, ExperienceForNextLevel(closest.Level) - closest.Experience)} XP to L{closest.Level + 1}";
-            string ready = unspentStats + unspentSkills > 0 ? $" / spend {unspentStats} stat {unspentSkills} skill" : "";
+            string ready = unspentStats + unspentSkills > 0
+                ? $" / I > Growth: {unspentStats} stat {unspentSkills} skill"
+                : "";
             return $"Party L{avg} / {next}{ready}";
         }
 
@@ -9942,7 +9944,7 @@ namespace AshenHalls
                     int statGain = Mathf.Max(0, member.StatPoints - oldStatPoints);
                     int skillGain = Mathf.Max(0, member.SkillPoints - oldSkillPoints);
                     string unlocks = LevelUnlockLine(member, oldLevel, member.Level);
-                    PushLog($"{member.Name} reaches level {member.Level}: +{hpGain} HP{(manaGain > 0 ? $" / +{manaGain} MP" : "")}, +{statGain} stat point{(statGain == 1 ? "" : "s")}, +{skillGain} skill point{(skillGain == 1 ? "" : "s")}{unlocks}.", Tone.Good);
+                    PushLog($"{member.Name} reaches level {member.Level}: +{hpGain} HP{(manaGain > 0 ? $" / +{manaGain} MP" : "")}, +{statGain} stat point{(statGain == 1 ? "" : "s")}, +{skillGain} skill point{(skillGain == 1 ? "" : "s")}{unlocks}. Spend earned points in I > Growth.", Tone.Good);
                     AddFloat(Mathf.Clamp(state.PlayerX, 0, CombatW - 1), Mathf.Clamp(state.PlayerY, 0, CombatH - 1), "level", gold);
                 }
             }

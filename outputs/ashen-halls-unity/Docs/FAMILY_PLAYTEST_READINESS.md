@@ -4,6 +4,16 @@
 
 `v2.4.0` is the current verified family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It combines a Grand Hearth title/menu and first-spawn sequence, a battlefield-first combat frame with a compact vertical command palette, functional rewards and repeat services at all eight regional destinations, clearer exploration/minimap/road presentation, and bounded party-relative patrol audio. Existing campaign data remains compatible and the save schema remains v25. Combined RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, the Windows build/package, and clean-extracted packaged boot pass from the settled source. Final 720p/1080 visual review, physical-controller review, subjective travel-audio/title review, and a complete real playthrough remain human release gates. It is not a content-complete game.
 
+## Party Growth v2.5 - In Development, Gates Pending
+
+- The development player adds Growth as the fifth Armory tab. Press `I`, choose Growth, select an adventurer, and stage earned Strength, Intelligence, Agility, Health, or only the talents relevant to that adventurer's class.
+- Every staged choice shows its exact point cost and before/after value. The detail pane previews remaining points plus HP, MP, damage, power, defense, speed, and movement before the campaign changes.
+- Apply commits the complete valid draft, recalculates the adventurer, clears the draft, and immediately writes the normal campaign checkpoint. Reset returns every staged point; closing the Armory discards all unconfirmed growth choices.
+- Combat exposes the same information as a read-only review. Training cannot change the active combatant or spend points until exploration resumes.
+- Growth reuses the existing party stat, talent, and unspent-point fields. Existing v25 campaigns remain compatible and the save schema stays v25.
+- `-ashen-growth-smoke` deterministically starts a Quick Start party, opens the fifth tab, supplies the selected adventurer with review points, and stages Strength plus that class's first relevant talent for capture. It presents a preview; it does not stand in for Apply, checkpoint, save/load, or controller testing.
+- No v2.5 verification result is promoted here yet. RuleSmoke, focused runtime coverage, full RuntimeBoot, Windows build/package, clean-extracted boot, the 960 by 600 fallback, 1280 by 720 and 1920 by 1080 visual captures, physical-controller review, and a human growth-spending pass remain pending. The settled v2.4.0 evidence below remains the verified history.
+
 ## Integrated for v2.4.0 — Automated Gates Passed
 
 - Combat gives the board materially more of the frame and places Move, Attack, Cast, Guard, Elixir, End Turn, and Skills in a compact vertical illustrated palette. Adaptive emergency cards, a focused information drawer, long target-title best fit, and the 960 by 600 fallback are part of the combined candidate.
@@ -74,6 +84,9 @@
 
 ## Still Needs Validation and Humans
 
+- Before promoting v2.5, run the growth-aware RuleSmoke and runtime gates, full RuntimeBoot, Windows build/package, and clean-extracted packaged boot from one settled source state. Do not reuse the v2.4 pass claims as v2.5 evidence.
+- Capture `-ashen-growth-smoke` at 960 by 600, 1280 by 720, and 1920 by 1080. Confirm all five tabs fit, the selected member and class talent are truthful, staged values and remaining points agree, Apply and Reset stay visible, and no copy clips or overlaps.
+- In normal exploration, stage several choices across two adventurers, switch members, Reset one draft, close with another unconfirmed, then Apply a valid draft. Confirm only Apply mutates points/stats, the checkpoint is written, save/load preserves the result, and combat keeps Growth read-only. Repeat the flow with mouse, keyboard, and a physical controller.
 - Automated evidence from the settled combined v2.4.0 source passes RuleSmoke, focused sprite-art and combat-UI runtime checks, full RuntimeBoot, the production Windows build/package, and clean-extracted packaged boot. The build log and release-integrity manifest retain the exact package evidence.
 - Capture the Grand Hearth title and first spawn, compact vertical combat palette and expanded battlefield, and all eight reward-ready/repeat-service regional-site states at 1280 by 720 and 1920 by 1080. The deterministic remote-site staging exists to make the exploration matrix repeatable, but the final combined visual packet is pending.
 - At both endpoint resolutions, move a roaming patrol away from home and confirm its habitat remains fixed beneath the token layer in Local and Region Map, then defeat it and confirm the home becomes neutral ruined-waystation aftermath. Confirm the Grand Hearth tutorial lane, current guidance, certified safe roads, rooms, water, hazards, entrances, authored sites, and interactables remain free of ambient citizens; confirm an eligible non-safe road can still receive ambience; ambient figures offer no interaction; a one-member party uses the correct role silhouette; and a multi-member party retains the established group marker.

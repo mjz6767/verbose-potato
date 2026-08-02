@@ -18,7 +18,7 @@ This is a living note for keeping the game coherent as it grows. It should captu
 - Core stats are Strength, Intelligence, Agility, and Health. Keep the list tight unless a future system clearly earns another stat.
 - Derived combat fields include HP, mana for spellcasting classes, movement, defense, damage range, attack speed, range, resistance, weakness, and status hooks.
 - Attack speed is useful in turn-based combat as initiative, hit/crit pressure, and gear feel. It should not become real-time action speed.
-- Level-ups grant XP progression, stat points, and skill points. Early beta spending is simple; later versions should add clearer level-up screens and class-specific spell unlocks.
+- Level-ups grant XP progression, stat points, and skill points. The in-development v2.5 Party Growth workspace makes those points spendable inside the active campaign through `I > Growth`: choose one adventurer, stage attributes or class-relevant talents, inspect the derived-stat preview, then Apply or Reset. Apply checkpoints immediately; unconfirmed drafts are disposable; combat keeps the workspace review-only. Automatic spell and martial unlocks remain level-driven rather than point purchases.
 - Save compatibility is intentionally relaxed during this scaffold phase. Old saves can be discarded until the core systems settle.
 
 ## Races

@@ -39,6 +39,8 @@ namespace AshenHalls
         public string Title;
         public string Subtitle;
         public string Summary;
+        public string ActionsHeading;
+        public bool ExtendedSummary;
         public string AccentHex;
         public Texture2D IconTexture;
         public Rect IconUv;
@@ -146,7 +148,7 @@ namespace AshenHalls
 
         public static Rect[] TabRects(float width)
         {
-            return EvenButtonRects(width, 4, 8f, 32f, 144f);
+            return EvenButtonRects(width, 5, 8f, 32f, 144f);
         }
 
         public static Rect[] FilterRects(float width, int count)
@@ -245,6 +247,7 @@ namespace AshenHalls
         private int lastFilter = -1;
         private int lastFilterCount = -1;
         private bool lastDetailVisible;
+        private bool lastExtendedDetailSummary;
         private bool lastCompactRows;
         private int lastSelectedRowKey = int.MinValue;
         private bool lastRefreshSucceeded;
@@ -321,6 +324,7 @@ namespace AshenHalls
             }
 
             bool detailVisible = view.Detail != null;
+            bool extendedDetailSummary = view.Detail != null && view.Detail.ExtendedSummary;
             bool navigationChanged = lastTab != view.ActiveTab || lastFilter != view.ActiveFilter;
             int selectedRowKey = int.MinValue;
             for (int i = 0; i < view.Rows.Count; i++)
@@ -336,11 +340,12 @@ namespace AshenHalls
                 || !Mathf.Approximately(lastHeight, Screen.height)
                 || lastTab != view.ActiveTab
                 || lastDetailVisible != detailVisible
+                || lastExtendedDetailSummary != extendedDetailSummary
                 || lastFilterCount != view.Filters.Count
                 || lastCompactRows != view.CompactRows)
             {
                 lastCompactRows = view.CompactRows;
-                ApplyLayout(detailVisible, view.Filters.Count);
+                ApplyLayout(detailVisible, view.Filters.Count, extendedDetailSummary);
             }
 
             titleText.text = string.IsNullOrWhiteSpace(view.Title) ? "Inventory & Equipment" : view.Title;
@@ -349,7 +354,7 @@ namespace AshenHalls
             summaryText.text = view.Summary ?? "";
             footerText.text = view.Footer ?? "";
             RefreshTabs(view.ActiveTab);
-            RefreshFilters(view.Filters, view.ActiveFilter);
+            RefreshFilters(view.Filters, view.ActiveFilter, detailVisible);
             visibleRowCount = view.Rows.Count;
             EnsureRowCount(visibleRowCount);
             emptyText.gameObject.SetActive(view.Rows.Count == 0);
@@ -375,18 +380,20 @@ namespace AshenHalls
             lastFilter = view.ActiveFilter;
             lastFilterCount = view.Filters.Count;
             lastDetailVisible = detailVisible;
+            lastExtendedDetailSummary = extendedDetailSummary;
             lastCompactRows = view.CompactRows;
             lastSelectedRowKey = selectedRowKey;
             lastRefreshSucceeded = true;
-            if (navigationChanged || selectionChanged)
+            EventSystem refreshEventSystem = EventSystem.current;
+            bool focusNeedsRecovery = CanvasSelectionNeedsRecovery(refreshEventSystem);
+            if (navigationChanged || selectionChanged || focusNeedsRecovery)
             {
-                EventSystem eventSystem = EventSystem.current;
                 ClearTransientRowContext();
-                if (eventSystem != null && IsCanvasSelection(eventSystem.currentSelectedGameObject))
+                if (refreshEventSystem != null && IsCanvasSelection(refreshEventSystem.currentSelectedGameObject))
                 {
-                    eventSystem.SetSelectedGameObject(null);
+                    refreshEventSystem.SetSelectedGameObject(null);
                 }
-                if (IsVisible) FocusSelectedRow(eventSystem);
+                if (IsVisible) FocusSelectedRow(refreshEventSystem);
             }
         }
 
@@ -448,7 +455,7 @@ namespace AshenHalls
 
         private void RefreshTabs(int activeTab)
         {
-            string[] labels = { "Equipment", "Inventory", "Spells", "Journal" };
+            string[] labels = { "Equipment", "Inventory", "Spells", "Journal", "Growth" };
             for (int i = 0; i < tabButtons.Count; i++)
             {
                 bool active = i == activeTab;
@@ -461,10 +468,10 @@ namespace AshenHalls
             }
         }
 
-        private void RefreshFilters(IReadOnlyList<string> filters, int activeFilter)
+        private void RefreshFilters(IReadOnlyList<string> filters, int activeFilter, bool detailVisible)
         {
             visibleFilterCount = filters?.Count ?? 0;
-            EnsureFilterCount(visibleFilterCount);
+            EnsureFilterCount(visibleFilterCount, detailVisible);
             filtersRoot.gameObject.SetActive(visibleFilterCount > 0);
             for (int i = 0; i < filterButtons.Count; i++)
             {
@@ -524,6 +531,9 @@ namespace AshenHalls
             detailTitleText.text = view.Title ?? "";
             detailSubtitleText.text = view.Subtitle ?? "";
             detailSummaryText.text = view.Summary ?? "";
+            detailActionsHeadingText.text = string.IsNullOrWhiteSpace(view.ActionsHeading)
+                ? "EQUIP TO"
+                : view.ActionsHeading;
             SetIcon(detailIcon, detailIconFallback, view.IconTexture, view.IconUv, view.IconLabel);
 
             visibleDetailActionCount = view.Actions.Count;
@@ -551,6 +561,7 @@ namespace AshenHalls
         private void FocusSelectedRow(EventSystem eventSystem = null)
         {
             int index = CommittedVisibleRowIndex();
+            if (!IsNavigableVisibleRowIndex(index)) index = -1;
             if (index < 0) index = FirstNavigableVisibleRowIndex();
             if (index >= 0)
             {
@@ -561,6 +572,12 @@ namespace AshenHalls
 
             if (eventSystem == null) eventSystem = EventSystem.current;
             if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            int detailActionIndex = FirstNavigableDetailActionIndex();
+            if (eventSystem != null && detailActionIndex >= 0)
+            {
+                eventSystem.SetSelectedGameObject(detailActionControls[detailActionIndex].Root.gameObject);
+                return;
+            }
             if (eventSystem != null && lastTab >= 0 && lastTab < tabButtons.Count)
             {
                 eventSystem.SetSelectedGameObject(tabButtons[lastTab].gameObject);
@@ -674,16 +691,31 @@ namespace AshenHalls
 
         private int FirstNavigableVisibleRowIndex()
         {
-            int firstVisible = -1;
             for (int i = 0; i < visibleRowCount && i < rowControls.Count; i++)
             {
                 RowControls row = rowControls[i];
                 if (!row.Root.gameObject.activeInHierarchy) continue;
-                if (firstVisible < 0) firstVisible = i;
                 Button submit = RowSubmitControl(row);
                 if (submit != null && submit.gameObject.activeInHierarchy && submit.interactable) return i;
             }
-            return firstVisible;
+            return -1;
+        }
+
+        private bool IsNavigableVisibleRowIndex(int index)
+        {
+            if (!IsVisibleRowIndex(index)) return false;
+            Button submit = RowSubmitControl(rowControls[index]);
+            return submit != null && submit.gameObject.activeInHierarchy && submit.interactable;
+        }
+
+        private int FirstNavigableDetailActionIndex()
+        {
+            for (int i = 0; i < visibleDetailActionCount && i < detailActionControls.Count; i++)
+            {
+                Button action = detailActionControls[i].Root;
+                if (action != null && action.gameObject.activeInHierarchy && action.interactable) return i;
+            }
+            return -1;
         }
 
         private bool IsVisibleRowIndex(int index)
@@ -729,6 +761,15 @@ namespace AshenHalls
             return selectedTransform == canvasTransform || selectedTransform.IsChildOf(canvasTransform);
         }
 
+        private bool CanvasSelectionNeedsRecovery(EventSystem eventSystem)
+        {
+            GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            if (!IsCanvasSelection(selected)) return false;
+            if (!selected.activeInHierarchy) return true;
+            Selectable selectable = selected.GetComponent<Selectable>();
+            return selectable != null && !selectable.IsInteractable();
+        }
+
         private void Build()
         {
             if (canvas != null) return;
@@ -752,7 +793,7 @@ namespace AshenHalls
 
             tabsRoot = new GameObject("Tabs", typeof(RectTransform)).GetComponent<RectTransform>();
             tabsRoot.SetParent(panel, false);
-            for (int i = 0; i < 4; i++)
+            for (int i = 0; i < 5; i++)
             {
                 int tab = i;
                 Button button = AddButton("Tab " + i, tabsRoot, "", () => bindings?.SelectTab?.Invoke(tab));
@@ -791,7 +832,7 @@ namespace AshenHalls
             footerText = AddText("Footer", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
         }
 
-        private void ApplyLayout(bool detailVisible, int filterCount)
+        private void ApplyLayout(bool detailVisible, int filterCount, bool extendedDetailSummary)
         {
             lastWidth = Screen.width;
             lastHeight = Screen.height;
@@ -818,12 +859,12 @@ namespace AshenHalls
             SetLocalRect(contentViewport, viewportArea);
             SetLocalRect(emptyText.rectTransform, new Rect(14f, 14f, viewportArea.width - 28f, viewportArea.height - 28f));
             SetLocalRect(detailPanel, geometry.Detail);
-            LayoutDetailPanel(geometry.Detail);
+            LayoutDetailPanel(geometry.Detail, extendedDetailSummary);
             SetLocalRect(footerText.rectTransform, new Rect(26f, geometry.Panel.height - 30f, geometry.Panel.width - 52f, 18f));
             LayoutRows();
         }
 
-        private void LayoutDetailPanel(Rect detail)
+        private void LayoutDetailPanel(Rect detail, bool extendedSummary)
         {
             SetLocalRect(detailIconFrame, new Rect(16f, 16f, 74f, 74f));
             Stretch(detailIcon.rectTransform, 5f, 5f);
@@ -831,13 +872,16 @@ namespace AshenHalls
             SetLocalRect(detailEyebrowText.rectTransform, new Rect(102f, 14f, detail.width - 118f, 18f));
             SetLocalRect(detailTitleText.rectTransform, new Rect(102f, 34f, detail.width - 118f, 36f));
             SetLocalRect(detailSubtitleText.rectTransform, new Rect(102f, 70f, detail.width - 118f, 22f));
-            SetLocalRect(detailSummaryText.rectTransform, new Rect(16f, 104f, detail.width - 32f, 64f));
-            SetLocalRect(detailActionsHeadingText.rectTransform, new Rect(16f, 174f, detail.width - 32f, 18f));
-            SetLocalRect(detailActionsRoot, new Rect(16f, 196f, detail.width - 32f, detail.height - 212f));
+            float summaryHeight = extendedSummary ? 112f : 64f;
+            float headingY = extendedSummary ? 222f : 174f;
+            float actionsY = extendedSummary ? 244f : 196f;
+            SetLocalRect(detailSummaryText.rectTransform, new Rect(16f, 104f, detail.width - 32f, summaryHeight));
+            SetLocalRect(detailActionsHeadingText.rectTransform, new Rect(16f, headingY, detail.width - 32f, 18f));
+            SetLocalRect(detailActionsRoot, new Rect(16f, actionsY, detail.width - 32f, detail.height - actionsY - 16f));
             LayoutDetailActions(visibleDetailActionCount);
         }
 
-        private void EnsureFilterCount(int count)
+        private void EnsureFilterCount(int count, bool detailVisible)
         {
             while (filterButtons.Count < count)
             {
@@ -849,7 +893,7 @@ namespace AshenHalls
             if (lastWidth > 0f)
             {
                 ArmoryOverlayGeometry geometry = ArmoryOverlayLayout.Calculate(lastWidth, lastHeight);
-                Rect listArea = lastDetailVisible ? geometry.ListContent : geometry.FullContent;
+                Rect listArea = detailVisible ? geometry.ListContent : geometry.FullContent;
                 Rect[] rects = ArmoryOverlayLayout.FilterRects(listArea.width, count);
                 for (int i = 0; i < filterButtons.Count && i < rects.Length; i++) SetLocalRect(filterButtons[i].GetComponent<RectTransform>(), rects[i]);
             }

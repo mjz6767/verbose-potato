@@ -130,6 +130,7 @@ namespace AshenHalls.Editor
             DialoguePagingAndPortraitCatalogAreReadable();
             LootPopupLayoutFitsSupportedResolutions();
             ArmoryOverlayLayoutFitsSupportedResolutions();
+            PartyGrowthRulesStageAndApplyCampaignPointsSafely();
             InventoryEquipmentRulesMakeOwnershipAndComparisonsExplicit();
             WeaponEnchantmentRulesPreserveAffinityAndDuration();
             PresentationRefreshKeysAreStableUntilStateChanges();
@@ -2227,7 +2228,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.4.0", VersionInfo.PackageVersion, "package version matches the v2.4 release");
+            AssertEqual("v2.5.0", VersionInfo.PackageVersion, "package version matches the v2.5 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.0 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.0.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.0 signature spell atlas pin");
@@ -5159,12 +5160,16 @@ namespace AshenHalls.Editor
             AssertEqual(true, tavern.Title.Contains("Tavern"), "tavern help title");
             AssertEqual(true, tavern.Lines.Any(line => line.Contains("Beta Testing")), "developer tavern help mentions beta testing");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Space / E")), "exploration help mentions contextual use");
+            AssertEqual(true, explore.Lines.Any(line => line.Contains("Growth tab")), "exploration help points earned progression to I > Growth");
             AssertEqual(true, explore.Lines.Any(line => line.IndexOf("east and west gates", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help mentions pass-through gates");
             AssertEqual(true, combat.Lines.Any(line => line.Contains("Tree Cover")), "combat help mentions tree cover");
             AssertEqual(true, combat.Lines.Any(line => line.Contains("undo this turn's movement")), "combat help explains pre-action movement undo");
             AssertEqual(true, combat.Lines.Any(line => line.Contains("cancels an armed target")), "combat help explains non-destructive target cancellation");
             AssertEqual(true, combat.Lines.Any(line => line.Contains("retreat for one supply")), "combat help explains the retreat safety valve");
+            AssertEqual(true, combat.Lines.Any(line => line.Contains("review-only")), "combat help explains that growth spending waits until combat ends");
             AssertEqual(true, muster.Lines.Any(line => line.Contains("50-point")), "muster help mentions stat budget");
+            AssertEqual(true, tavern.Lines.Any(line => line.IndexOf("muster", StringComparison.OrdinalIgnoreCase) >= 0)
+                && !tavern.Lines.Any(line => line.Contains("Customize Party")), "title help names the current new-company path without a removed choice");
             AssertEqual(true, victory.Title.Contains("Victory"), "victory help title");
             AssertEqual(true, defeat.Title.Contains("Defeat"), "defeat help title");
         }
@@ -5397,6 +5402,7 @@ namespace AshenHalls.Editor
         {
             Vector2Int[] sizes =
             {
+                new Vector2Int(960, 600),
                 new Vector2Int(1280, 720),
                 new Vector2Int(1600, 900),
                 new Vector2Int(1920, 1080),
@@ -5408,6 +5414,7 @@ namespace AshenHalls.Editor
                 ArmoryOverlayGeometry geometry = ArmoryOverlayLayout.Calculate(size.x, size.y);
                 AssertEqual(true, geometry.Fits(size.x, size.y), $"armory overlay layout fits {size.x}x{size.y}");
                 Rect[] tabs = ArmoryOverlayLayout.TabRects(geometry.Tabs.width);
+                AssertEqual(5, tabs.Length, $"armory exposes five tabs at {size.x}x{size.y}");
                 foreach (Rect tab in tabs)
                 {
                     AssertEqual(true, tab.xMin >= 0f && tab.yMin >= 0f && tab.xMax <= geometry.Tabs.width && tab.yMax <= geometry.Tabs.height, $"armory tab fits {size.x}x{size.y}");
@@ -5415,6 +5422,169 @@ namespace AshenHalls.Editor
                 AssertEqual(true, geometry.ListContent.width >= 500f, $"inventory list remains readable at {size.x}x{size.y}");
                 AssertEqual(true, geometry.Detail.width >= 320f, $"equipment comparison pane remains readable at {size.x}x{size.y}");
             }
+        }
+
+        private static void PartyGrowthRulesStageAndApplyCampaignPointsSafely()
+        {
+            var expectedTalents = new Dictionary<string, PartyGrowthChoice[]>
+            {
+                { "warrior", new[] { PartyGrowthChoice.Arms, PartyGrowthChoice.Guard } },
+                { "rogue", new[] { PartyGrowthChoice.Arms, PartyGrowthChoice.Missile } },
+                { "ranger", new[] { PartyGrowthChoice.Missile, PartyGrowthChoice.Arms } },
+                { "wizard", new[] { PartyGrowthChoice.Ember, PartyGrowthChoice.Hex } },
+                { "mage", new[] { PartyGrowthChoice.Ember } },
+                { "warlock", new[] { PartyGrowthChoice.Hex, PartyGrowthChoice.Arms } },
+                { "priest", new[] { PartyGrowthChoice.Mend, PartyGrowthChoice.Guard } },
+                { "paladin", new[] { PartyGrowthChoice.Guard, PartyGrowthChoice.Arms, PartyGrowthChoice.Mend } }
+            };
+
+            foreach (KeyValuePair<string, PartyGrowthChoice[]> expected in expectedTalents)
+            {
+                PartyMember member = PartyGrowthTestMember(expected.Key, 0, 0);
+                AssertEqual(
+                    true,
+                    PartyGrowthRules.RelevantTalents(member).SequenceEqual(expected.Value),
+                    expected.Key + " growth exposes only class-relevant talents");
+            }
+            AssertEqual(
+                0,
+                PartyGrowthRules.RelevantTalents(PartyGrowthTestMember("unknown", 0, 0)).Count,
+                "unknown classes expose no talent spending");
+            AssertEqual(true, PartyGrowthRules.IsAttribute(PartyGrowthChoice.Strength), "Strength is an attribute growth choice");
+            AssertEqual(false, PartyGrowthRules.IsAttribute(PartyGrowthChoice.Arms), "Arms is a talent growth choice");
+            AssertEqual("Strength", PartyGrowthRules.Label(PartyGrowthChoice.Strength), "growth choice has a player-facing label");
+            AssertEqual("+1 Strength", PartyGrowthRules.Effect(PartyGrowthChoice.Strength), "attribute growth advertises its exact gain");
+            AssertEqual("+2 Arms", PartyGrowthRules.Effect(PartyGrowthChoice.Arms), "talent growth advertises its exact gain");
+
+            PartyMember direct = PartyGrowthTestMember("warrior", 2, 2);
+            AssertEqual(
+                true,
+                PartyGrowthRules.TrySpendAttributePoint(direct, PartyGrowthChoice.Strength, out _),
+                "one stat point can be spent directly on an attribute");
+            AssertEqual(11, direct.Stats.Strength, "one stat point adds exactly one Strength");
+            AssertEqual(1, direct.StatPoints, "direct attribute spending consumes exactly one stat point");
+            AssertEqual(
+                true,
+                PartyGrowthRules.TrySpendTalentPoint(direct, PartyGrowthChoice.Arms, out _),
+                "one skill point can be spent directly on a relevant talent");
+            AssertEqual(12, direct.Skills.Arms, "one skill point adds exactly two Arms");
+            AssertEqual(1, direct.SkillPoints, "direct talent spending consumes exactly one skill point");
+
+            PartyMember balanced = PartyGrowthTestMember("warrior", 2, 2);
+            PartyGrowthPlan balancedPlan = new PartyGrowthPlan();
+            AssertEqual(true, PartyGrowthRules.TryStage(balanced, balancedPlan, PartyGrowthChoice.Strength, out _), "first attribute point stages");
+            AssertEqual(true, PartyGrowthRules.TryStage(balanced, balancedPlan, PartyGrowthChoice.Health, out _), "second attribute point stages");
+            AssertEqual(true, PartyGrowthRules.TryStage(balanced, balancedPlan, PartyGrowthChoice.Arms, out _), "first talent point stages");
+            AssertEqual(true, PartyGrowthRules.TryStage(balanced, balancedPlan, PartyGrowthChoice.Guard, out _), "second talent point stages");
+            AssertEqual(2, balancedPlan.SpentStatPoints, "staged plan counts every stat point exactly once");
+            AssertEqual(2, balancedPlan.SpentSkillPoints, "staged plan counts every skill point exactly once");
+            AssertEqual(true, PartyGrowthRules.Validate(balanced, balancedPlan, out _), "balanced growth plan validates");
+            AssertEqual(11, PartyGrowthRules.ProjectedAttribute(balanced, balancedPlan, PartyGrowthChoice.Strength), "attribute preview is exact");
+            AssertEqual(12, PartyGrowthRules.ProjectedSkill(balanced, balancedPlan, PartyGrowthChoice.Arms), "talent preview is exact");
+            AssertEqual(true, PartyGrowthRules.TryApply(balanced, balancedPlan, out _), "balanced growth plan applies");
+            AssertEqual(11, balanced.Stats.Strength, "applied plan adds staged Strength");
+            AssertEqual(11, balanced.Stats.Health, "applied plan adds staged Health");
+            AssertEqual(12, balanced.Skills.Arms, "applied plan adds staged Arms");
+            AssertEqual(12, balanced.Skills.Guard, "applied plan adds staged Guard");
+            AssertEqual(0, balanced.StatPoints, "applied plan conserves all stat points");
+            AssertEqual(0, balanced.SkillPoints, "applied plan conserves all skill points");
+
+            PartyMember limited = PartyGrowthTestMember("warrior", 1, 1);
+            PartyGrowthPlan limitedPlan = new PartyGrowthPlan();
+            AssertEqual(true, PartyGrowthRules.TryStage(limited, limitedPlan, PartyGrowthChoice.Strength, out _), "available stat point stages");
+            AssertEqual(false, PartyGrowthRules.CanStage(limited, limitedPlan, PartyGrowthChoice.Health, out _), "stat overspend cannot stage");
+            AssertEqual(false, PartyGrowthRules.TryStage(limited, limitedPlan, PartyGrowthChoice.Health, out _), "stat overspend is rejected atomically");
+            AssertEqual(0, limitedPlan.Get(PartyGrowthChoice.Health), "rejected stat overspend does not alter the plan");
+            AssertEqual(true, PartyGrowthRules.TryStage(limited, limitedPlan, PartyGrowthChoice.Arms, out _), "available skill point stages");
+            AssertEqual(false, PartyGrowthRules.TryStage(limited, limitedPlan, PartyGrowthChoice.Guard, out _), "skill overspend is rejected");
+            AssertEqual(0, limitedPlan.Get(PartyGrowthChoice.Guard), "rejected skill overspend does not alter the plan");
+
+            PartyMember irrelevant = PartyGrowthTestMember("warrior", 0, 1);
+            PartyGrowthPlan irrelevantPlan = new PartyGrowthPlan();
+            AssertEqual(false, PartyGrowthRules.CanStage(irrelevant, irrelevantPlan, PartyGrowthChoice.Ember, out _), "irrelevant talent cannot stage");
+            AssertEqual(false, PartyGrowthRules.TryStage(irrelevant, irrelevantPlan, PartyGrowthChoice.Ember, out _), "irrelevant talent is rejected");
+            AssertEqual(true, irrelevantPlan.IsEmpty, "irrelevant-talent rejection leaves the plan empty");
+
+            PartyMember cappedAttribute = PartyGrowthTestMember("warrior", 1, 0);
+            cappedAttribute.Stats = new Stats(PartyGrowthRules.MaximumValue, 10, 10, 10);
+            AssertEqual(
+                false,
+                PartyGrowthRules.TrySpendAttributePoint(cappedAttribute, PartyGrowthChoice.Strength, out _),
+                "an attribute at 99 rejects another point");
+            AssertEqual(PartyGrowthRules.MaximumValue, cappedAttribute.Stats.Strength, "rejected attribute cap does not mutate Strength");
+            AssertEqual(1, cappedAttribute.StatPoints, "rejected attribute cap does not spend a point");
+
+            PartyMember cappedTalent = PartyGrowthTestMember("warrior", 0, 1);
+            cappedTalent.Skills.Arms = PartyGrowthRules.MaximumValue - 1;
+            AssertEqual(
+                false,
+                PartyGrowthRules.TrySpendTalentPoint(cappedTalent, PartyGrowthChoice.Arms, out _),
+                "a talent that would exceed 99 rejects another point");
+            AssertEqual(PartyGrowthRules.MaximumValue - 1, cappedTalent.Skills.Arms, "rejected talent cap does not mutate Arms");
+            AssertEqual(1, cappedTalent.SkillPoints, "rejected talent cap does not spend a point");
+
+            PartyMember atomic = PartyGrowthTestMember("warrior", 1, 1);
+            PartyGrowthPlan invalidPlan = new PartyGrowthPlan();
+            invalidPlan.Increment(PartyGrowthChoice.Strength);
+            invalidPlan.Increment(PartyGrowthChoice.Health);
+            invalidPlan.Increment(PartyGrowthChoice.Arms);
+            Stats atomicStats = atomic.Stats;
+            int atomicArms = atomic.Skills.Arms;
+            AssertEqual(false, PartyGrowthRules.Validate(atomic, invalidPlan, out _), "overspent manual plan fails validation");
+            AssertEqual(false, PartyGrowthRules.TryApply(atomic, invalidPlan, out _), "invalid plan cannot partially apply");
+            AssertEqual(atomicStats.Strength, atomic.Stats.Strength, "invalid-plan rejection preserves Strength");
+            AssertEqual(atomicStats.Health, atomic.Stats.Health, "invalid-plan rejection preserves Health");
+            AssertEqual(atomicArms, atomic.Skills.Arms, "invalid-plan rejection preserves talents");
+            AssertEqual(1, atomic.StatPoints, "invalid-plan rejection preserves stat points");
+            AssertEqual(1, atomic.SkillPoints, "invalid-plan rejection preserves skill points");
+            invalidPlan.Reset();
+            AssertEqual(true, invalidPlan.IsEmpty, "reset clears an invalid plan");
+            AssertEqual(0, invalidPlan.SpentStatPoints, "reset clears staged stat spending");
+            AssertEqual(0, invalidPlan.SpentSkillPoints, "reset clears staged skill spending");
+
+            PartyMember preview = PartyGrowthTestMember("warrior", 3, 3);
+            PartyGrowthPlan previewPlan = new PartyGrowthPlan();
+            AssertEqual(true, PartyGrowthRules.TryStage(preview, previewPlan, PartyGrowthChoice.Strength, out _), "preview attribute stages");
+            AssertEqual(true, PartyGrowthRules.TryStage(preview, previewPlan, PartyGrowthChoice.Arms, out _), "preview talent stages");
+            PartyGrowthPlan previewClone = previewPlan.Clone();
+            previewClone.Increment(PartyGrowthChoice.Health);
+            AssertEqual(0, previewPlan.Get(PartyGrowthChoice.Health), "preview clone is independent from the active draft");
+            AssertEqual(1, previewClone.Get(PartyGrowthChoice.Health), "preview clone owns its additional choice");
+            AssertEqual(11, PartyGrowthRules.ProjectedAttribute(preview, previewPlan, PartyGrowthChoice.Strength), "preview reads staged attribute without applying it");
+            AssertEqual(12, PartyGrowthRules.ProjectedSkill(preview, previewPlan, PartyGrowthChoice.Arms), "preview reads staged talent without applying it");
+            AssertEqual(10, preview.Stats.Strength, "preview does not mutate member attributes");
+            AssertEqual(10, preview.Skills.Arms, "preview does not mutate member talents");
+            AssertEqual(3, preview.StatPoints, "preview does not spend stat points");
+            AssertEqual(3, preview.SkillPoints, "preview does not spend skill points");
+            previewClone.Reset();
+            previewPlan.Reset();
+            AssertEqual(true, previewClone.IsEmpty, "cancel clears the preview clone");
+            AssertEqual(true, previewPlan.IsEmpty, "cancel clears the active growth draft");
+            AssertEqual(10, preview.Stats.Strength, "cancel preserves member attributes");
+            AssertEqual(10, preview.Skills.Arms, "cancel preserves member talents");
+            AssertEqual(3, preview.StatPoints, "cancel preserves stat points");
+            AssertEqual(3, preview.SkillPoints, "cancel preserves skill points");
+        }
+
+        private static PartyMember PartyGrowthTestMember(string classKey, int statPoints, int skillPoints)
+        {
+            return new PartyMember
+            {
+                Name = "Growth Tester",
+                ClassKey = classKey,
+                Stats = new Stats(10, 10, 10, 10),
+                StatPoints = statPoints,
+                SkillPoints = skillPoints,
+                Skills = new SkillSet
+                {
+                    Arms = 10,
+                    Missile = 10,
+                    Mend = 10,
+                    Ember = 10,
+                    Hex = 10,
+                    Guard = 10
+                }
+            };
         }
 
         private static void InventoryEquipmentRulesMakeOwnershipAndComparisonsExplicit()

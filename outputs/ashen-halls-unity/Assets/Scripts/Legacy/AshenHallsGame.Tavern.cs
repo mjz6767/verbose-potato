@@ -618,7 +618,11 @@ namespace AshenHalls
         {
             if (member == null) return false;
             if (member.Skills == null) member.Skills = new SkillSet().Normalize();
-            if (member.SkillPoints > 0) return SkillValue(member.Skills, key) < 99;
+            if (member.SkillPoints > 0)
+            {
+                return TryPartyGrowthChoice(key, out PartyGrowthChoice choice)
+                    && PartyGrowthRules.CanStage(member, new PartyGrowthPlan(), choice, out _);
+            }
             bool freshRecruit = member.Level <= 1 && member.Experience <= 0 && member.StatPoints <= 0;
             return freshRecruit && SkillValue(member.Skills, key) < 12;
         }
@@ -630,8 +634,11 @@ namespace AshenHalls
             int current = SkillValue(member.Skills, key);
             if (member.SkillPoints > 0)
             {
-                SetSkill(member.Skills, key, Mathf.Clamp(current + 2, 1, 99));
-                member.SkillPoints = Mathf.Max(0, member.SkillPoints - 1);
+                if (!TryPartyGrowthChoice(key, out PartyGrowthChoice choice)
+                    || !PartyGrowthRules.TrySpendTalentPoint(member, choice, out _))
+                {
+                    return;
+                }
                 PushLog($"{member.Name} trains {key} to {SkillValue(member.Skills, key)}.", Tone.Good);
                 PlaySfx("ui", 0.45f);
                 return;
@@ -717,7 +724,19 @@ namespace AshenHalls
         {
             if (member == null) return;
             bool spendsEarnedPoint = delta > 0 && member.Stats.Total >= StatPointBudget;
-            if (spendsEarnedPoint && member.StatPoints <= 0) return;
+            if (spendsEarnedPoint)
+            {
+                if (delta != 1
+                    || !PartyGrowthRules.TrySpendAttributePoint(
+                        member,
+                        PartyGrowthAttributeForStatCode(code),
+                        out _))
+                {
+                    return;
+                }
+                RecalculateMember(member);
+                return;
+            }
             if (delta < 0)
             {
                 int current = GetStat(member.Stats, code);
@@ -731,7 +750,6 @@ namespace AshenHalls
                 case -3: member.Stats.Dexterity += delta; break;
                 case -4: member.Stats.Health += delta; break;
             }
-            if (spendsEarnedPoint) member.StatPoints = Mathf.Max(0, member.StatPoints - 1);
             if (delta < 0 && member.Stats.Total >= StatPointBudget) member.StatPoints++;
             RecalculateMember(member);
         }

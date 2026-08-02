@@ -1,6 +1,8 @@
-Ash & Brimstone v2.4.0 - Family Playtest Candidate
+Ash & Brimstone v2.5.0 - Party Growth Candidate
 
 Validation status: Unity RuleSmoke, focused sprite-art and combat-UI runtime smoke, full RuntimeBoot, the Windows build/package, and clean-extracted packaged boot pass from the settled v2.4.0 source. Unzip the verified package folder and run AshAndBrimstone.exe. The final combined 1280 by 720 and 1920 by 1080 visual matrix, physical-controller review, subjective audio/effect review, and a complete human playthrough remain release-readiness checks.
+
+Party Growth v2.5 is in development and has not yet passed its runtime, Windows build/package, clean-extracted boot, or visual gates. In the development player, press I and choose the fifth Growth tab to review earned points. Choose an adventurer, stage Strength, Intelligence, Agility, Health, or only that class's relevant talents, and inspect the before/after preview. Apply commits the staged choices and immediately creates a campaign checkpoint; Reset or closing the Armory discards unconfirmed choices. Growth remains visible but read-only during combat. Existing campaign fields are reused, so the save schema remains v25. Continue to treat the verified v2.4.0 package as the family-playtest candidate until the v2.5 gates finish.
 
 The Grand Hearth Opens v2.4.0: combat now gives the battlefield more of the frame and moves its illustrated commands into a compact vertical palette, with adaptive emergency controls, long-title fitting, a focused information drawer, and a bounded 960 by 600 fallback. The eight authored regional sites now grant distinct first-visit rewards and truthful repeat services; upgraded v2.3.0 campaigns can still claim them. Exploration gains clearer roads and trails, quieter ordinary markers, semantic minimap states, edge-safe landmark fallbacks, exact site labels, and party-relative patrol sound that fades outside a bounded hearing radius. Deterministic remote-site staging can place every destination, view scale, Details state, and reward/service state for visual review without touching campaign saves. The title and menu now open on the storm-lit Grand Hearth with licensed Cinzel Decorative typography, and New Game gathers the party inside that authored room before its first walk into Midgaard. Existing campaign files remain compatible; save schema remains v25.
 
@@ -133,6 +135,7 @@ World map note v1.20.4: keyboard bumping into a blocking usable object now uses 
 Save note v1.19.6: normal campaigns now save schema v18 with their active content set. Developer labs are intentionally not saved to the normal campaign slot.
 
 Controls:
+- Party Growth v2.5 development preview: press I, select Growth, choose a party member, and stage earned attributes or class-relevant talents. Apply commits and autosaves; Reset or closing discards the draft. During combat the same tab is review-only.
 - NPC conversations: Enter/Space or Next advances pages. On the final page, click a topic or press 1-4; Esc closes the conversation without choosing.
 - Audio: Tavern Settings and the in-game Menu expose separate SFX and Music volume controls plus Mute All Audio.
 - Muster screen: after the splash, the game opens on a tavern scene. Quick Start begins immediately, or tune the 4-person tavern party first.

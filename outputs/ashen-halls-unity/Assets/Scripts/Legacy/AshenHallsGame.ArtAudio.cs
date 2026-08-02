@@ -261,7 +261,7 @@ namespace AshenHalls
             West
         }
 
-        private const int ArmoryTabCount = 4;
+        private const int ArmoryTabCount = 5;
 
         private static readonly float[] floatTextLaneOffsets =
         {

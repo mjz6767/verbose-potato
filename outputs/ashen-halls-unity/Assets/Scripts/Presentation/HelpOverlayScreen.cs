@@ -84,7 +84,7 @@ namespace AshenHalls
                         "F: Attack or Shoot. Rangers shoot by default unless engaged.",
                         "C: Ability. Casters open the Spellbook; martial classes open skills. Esc or right-click cancels an armed target without spending the action.",
                         "Space: End Turn. It becomes the right answer when movement or action is spent.",
-                        "G: Guard. H: Elixir. Esc: Menu. Campaign fights can retreat for one supply.",
+                        "G: Guard. H: Elixir. I: Armory; Growth is review-only until combat ends. Esc: Menu. Campaign fights can retreat for one supply.",
                         "Standing still focuses casting: lower MP, longer reach, and harder hits.",
                         "Tree Cover lasts " + Math.Max(1, summonedTreeDuration) + " rounds. It blocks arrows/direct bolts, but arcing spells can pass over it.",
                         "Hover tiles and targets for range, line-of-sight, cover, and damage notes."
@@ -103,7 +103,7 @@ namespace AshenHalls
                         "WASD / arrows: move one tile. Click adjacent tiles to walk.",
                         "Space / E: use the highlighted nearby target: talk, loot, enter, recall, or descend.",
                         "Q: Location Details. Tab: toggle Local/Region Map.",
-                        "I: Party and inventory. J: Journal. C: spell reference.",
+                        "I: Armory. Its Growth tab previews and spends earned points. J: Journal. C: spell reference.",
                         "P or Esc: Menu for save, load, settings, return, or new game.",
                         "The Grand Hearth is the first room: follow NEXT to its storm doors, then follow gold through Midgaard to King Halvard.",
                         "Midgaard begins the sewer contract: speak with the king, gather supplies, then clear the rat den.",
@@ -125,6 +125,7 @@ namespace AshenHalls
                         "Quick Start uses Warrior, Ranger, Mage, and Priest.",
                         "Advanced choices let you adjust class, race, name, look, gear, color, and stats.",
                         "Attributes use a 50-point budget.",
+                        "Later levels earn points that can be previewed and spent in I > Growth.",
                         "Reroll Gear changes starting equipment. Reroll Look changes visual identity.",
                         "The first slice is balanced around melee, ranged pressure, elemental magic, and healing."
                     }
@@ -160,8 +161,8 @@ namespace AshenHalls
             string[] normal =
             {
                 "Continue appears when a campaign save exists.",
-                "Begin the Old Road gathers the default four-person party inside the Grand Hearth.",
-                "Customize Party opens the muster screen for deeper setup.",
+                "Begin the Old Road opens the four-person muster before the Grand Hearth.",
+                "Quick Start accepts the default company; Begin uses the current muster choices.",
                 "Settings controls audio volume and reduced motion.",
                 "F5 saves and F9 loads during gameplay. Esc opens the gameplay menu."
             };

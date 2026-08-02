@@ -55,12 +55,14 @@ namespace AshenHalls
             }
             if (armoryOverlayScreen == null)
             {
+                if (!visible) DiscardArmoryGrowthDrafts();
                 if (visible) RecoverUnavailableOverlay(UiOverlay.Armory, "Armory");
                 return;
             }
             if (!visible)
             {
                 armoryInventoryTargetPickerOpen = false;
+                DiscardArmoryGrowthDrafts();
                 armoryOverlayScreen.SetVisible(false);
                 return;
             }
@@ -97,6 +99,7 @@ namespace AshenHalls
             hash = unchecked(hash * 31 + armorySelectedInventoryIndex);
             hash = unchecked(hash * 31 + armorySelectedPartyIndex);
             hash = unchecked(hash * 31 + (armoryInventoryTargetPickerOpen ? 1 : 0));
+            hash = unchecked(hash * 31 + ArmoryGrowthDraftHash());
             hash = unchecked(hash * 31 + (state.ActiveRouteWaypointKey ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (state.Gold));
             hash = unchecked(hash * 31 + (state.Inventory == null ? 0 : state.Inventory.Count));
@@ -117,6 +120,22 @@ namespace AshenHalls
                     if (member == null) continue;
                     hash = unchecked(hash * 31 + (member.Name ?? "").GetHashCode());
                     hash = unchecked(hash * 31 + member.Level);
+                    hash = unchecked(hash * 31 + member.Experience);
+                    hash = unchecked(hash * 31 + member.StatPoints);
+                    hash = unchecked(hash * 31 + member.SkillPoints);
+                    hash = unchecked(hash * 31 + member.Stats.Strength);
+                    hash = unchecked(hash * 31 + member.Stats.Intelligence);
+                    hash = unchecked(hash * 31 + member.Stats.Dexterity);
+                    hash = unchecked(hash * 31 + member.Stats.Health);
+                    if (member.Skills != null)
+                    {
+                        hash = unchecked(hash * 31 + member.Skills.Arms);
+                        hash = unchecked(hash * 31 + member.Skills.Missile);
+                        hash = unchecked(hash * 31 + member.Skills.Mend);
+                        hash = unchecked(hash * 31 + member.Skills.Ember);
+                        hash = unchecked(hash * 31 + member.Skills.Hex);
+                        hash = unchecked(hash * 31 + member.Skills.Guard);
+                    }
                     hash = unchecked(hash * 31 + member.Hp);
                     hash = unchecked(hash * 31 + member.Mana);
                     hash = unchecked(hash * 31 + (member.WeaponName ?? "").GetHashCode());
@@ -133,11 +152,14 @@ namespace AshenHalls
             int tab = Mathf.Clamp(armoryTab, 0, ArmoryTabCount - 1);
             NormalizeArmorySelections(tab);
             bool inventoryFiltersVisible = tab == (int)ArmoryTab.Pack && InventoryCategoryFiltersVisible();
+            bool growthFiltersVisible = tab == (int)ArmoryTab.Growth && state?.Party != null && state.Party.Count > 0;
             return new ArmoryOverlayView
             {
                 Visible = state != null && CurrentUiOverlay() == UiOverlay.Armory,
                 ActiveTab = tab,
-                ActiveFilter = inventoryFiltersVisible ? armoryPackFilter : 0,
+                ActiveFilter = inventoryFiltersVisible
+                    ? armoryPackFilter
+                    : growthFiltersVisible ? armorySelectedPartyIndex : 0,
                 Title = ArmoryTitle(tab),
                 Subtitle = ArmorySubtitle(tab),
                 Summary = ArmorySummaryLine(),
@@ -145,7 +167,7 @@ namespace AshenHalls
                 CompactRows = tab == (int)ArmoryTab.Pack,
                 Filters = inventoryFiltersVisible
                     ? new[] { "All", "Weapons", "Armor" }
-                    : Array.Empty<string>(),
+                    : growthFiltersVisible ? ArmoryGrowthMemberFilters() : Array.Empty<string>(),
                 Rows = BuildArmoryRows(tab),
                 Detail = BuildArmoryDetail(tab)
             };
@@ -156,6 +178,7 @@ namespace AshenHalls
             if (!showArmory) return;
             SuppressBoardPointer();
             armoryInventoryTargetPickerOpen = false;
+            DiscardArmoryGrowthDrafts();
             showArmory = false;
             MarkUiDirty();
             SyncArmoryOverlayScreen();
@@ -166,6 +189,7 @@ namespace AshenHalls
         {
             int next = Mathf.Clamp(tab, 0, ArmoryTabCount - 1);
             if (armoryTab == next) return;
+            if (armoryTab == (int)ArmoryTab.Growth) DiscardArmoryGrowthDrafts();
             armoryInventoryTargetPickerOpen = false;
             armoryTab = next;
             NormalizeArmorySelections(next);
@@ -175,6 +199,11 @@ namespace AshenHalls
 
         private void SelectArmoryFilter(int filter)
         {
+            if (armoryTab == (int)ArmoryTab.Growth)
+            {
+                SelectArmoryGrowthMember(filter);
+                return;
+            }
             int next = Mathf.Clamp(filter, 0, 2);
             if (armoryPackFilter == next) return;
             armoryInventoryTargetPickerOpen = false;
@@ -187,6 +216,11 @@ namespace AshenHalls
 
         private void RunArmoryRowAction(int key)
         {
+            if (armoryTab == (int)ArmoryTab.Growth)
+            {
+                RunArmoryGrowthRowAction(key);
+                return;
+            }
             if (armoryTab == (int)ArmoryTab.Party)
             {
                 if (state?.Party == null || key < 0 || key >= state.Party.Count) return;
@@ -252,6 +286,11 @@ namespace AshenHalls
 
         private void RunArmoryDetailAction(int partyIndex)
         {
+            if (armoryTab == (int)ArmoryTab.Growth)
+            {
+                RunArmoryGrowthDetailAction(partyIndex);
+                return;
+            }
             if (armoryTab != (int)ArmoryTab.Pack
                 || state?.Inventory == null
                 || armorySelectedInventoryIndex < 0
@@ -287,6 +326,7 @@ namespace AshenHalls
             if (tab == (int)ArmoryTab.Pack) return BuildArmoryPackRows();
             if (tab == (int)ArmoryTab.Spells) return BuildArmoryFormulaRows();
             if (tab == (int)ArmoryTab.Journal) return BuildArmoryJournalRows();
+            if (tab == (int)ArmoryTab.Growth) return BuildArmoryGrowthRows();
             return BuildArmoryPartyRows();
         }
 
@@ -363,6 +403,7 @@ namespace AshenHalls
         {
             if (tab == (int)ArmoryTab.Pack) return BuildInventoryItemDetail();
             if (tab == (int)ArmoryTab.Party) return BuildPartyEquipmentDetail();
+            if (tab == (int)ArmoryTab.Growth) return BuildArmoryGrowthDetail();
             return null;
         }
 
@@ -944,6 +985,7 @@ namespace AshenHalls
             if (tab == (int)ArmoryTab.Pack) return "Inventory";
             if (tab == (int)ArmoryTab.Spells) return "Spell Reference";
             if (tab == (int)ArmoryTab.Journal) return "Journal";
+            if (tab == (int)ArmoryTab.Growth) return "Party Growth";
             return "Equipment";
         }
 
@@ -954,6 +996,7 @@ namespace AshenHalls
             if (tab == (int)ArmoryTab.Journal) return ContentSetCatalog.ShowPrototypeScaffold(activeContentSet)
                 ? "Story beats, city errands, charted roads, selectable waypoints, and future scaffold hooks."
                 : "Current sewer contract, reward, and the live Old Road route after Chapter I.";
+            if (tab == (int)ArmoryTab.Growth) return ArmoryGrowthSubtitle();
             return "Review every adventurer's current weapon, armor, and combat-facing stats.";
         }
 
@@ -967,6 +1010,7 @@ namespace AshenHalls
             if (tab == (int)ArmoryTab.Party) return "Equipment: select an adventurer for a complete loadout readout.";
             if (tab == (int)ArmoryTab.Pack) return "Select an item  •  Equip on the right  •  Esc closes";
             if (tab == (int)ArmoryTab.Spells) return "Spells tab: choose Ability in combat, select a formula, then click a highlighted target.";
+            if (tab == (int)ArmoryTab.Growth) return ArmoryGrowthFooter();
             return ContentSetCatalog.ShowPrototypeScaffold(activeContentSet)
                 ? "Journal tab: mark any charted road turn to draw a path and replace automatic guidance."
                 : "Journal tab: finish the sewer reward to unlock the Old Road chart and selectable waypoints.";

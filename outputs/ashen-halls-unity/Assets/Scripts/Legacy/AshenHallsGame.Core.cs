@@ -372,7 +372,8 @@ namespace AshenHalls
             Party = 0,
             Pack = 1,
             Spells = 2,
-            Journal = 3
+            Journal = 3,
+            Growth = 4
         }
 
         private void InvalidateControllerCaches()
@@ -413,8 +414,8 @@ namespace AshenHalls
             int displayH = Screen.currentResolution.height > 0 ? Screen.currentResolution.height : 1080;
             int targetW = displayW >= 2048 && displayH >= 1152 ? 2048 : displayW >= 1920 && displayH >= 1080 ? 1920 : displayW >= 1280 ? Mathf.Min(displayW, 1600) : displayW;
             int targetH = displayW >= 2048 && displayH >= 1152 ? 1152 : displayW >= 1920 && displayH >= 1080 ? 1080 : displayH >= 720 ? Mathf.Min(displayH, 900) : displayH;
-            int minimumW = Mathf.Min(1280, displayW);
-            int minimumH = Mathf.Min(720, displayH);
+            int minimumW = Mathf.Min(visualCaptureRequested ? 960 : 1280, displayW);
+            int minimumH = Mathf.Min(visualCaptureRequested ? 600 : 720, displayH);
             int maximumW = visualCaptureRequested ? Mathf.Max(displayW, 4096) : displayW;
             int maximumH = visualCaptureRequested ? Mathf.Max(displayH, 2160) : displayH;
             targetW = CommandLineDimension(commandLineArgs, "-screen-width", targetW, minimumW, maximumW);
@@ -550,6 +551,13 @@ namespace AshenHalls
                 Debug.Log(VersionInfo.ProductName + (lootSmoke
                     ? " visual smoke mode: acquired loot."
                     : " visual smoke mode: inventory and equipment."));
+                return;
+            }
+
+            if (args.Any(arg => string.Equals(arg, "-ashen-growth-smoke", StringComparison.OrdinalIgnoreCase)))
+            {
+                StagePartyGrowthVisualSmoke();
+                Debug.Log(VersionInfo.ProductName + " visual smoke mode: Party Growth preview.");
                 return;
             }
 
@@ -1447,6 +1455,20 @@ namespace AshenHalls
             else
             {
                 yield return new WaitForSecondsRealtime(2f);
+            }
+
+            bool growthCapture = captureArgs.Any(arg => string.Equals(arg, "-ashen-growth-smoke", StringComparison.OrdinalIgnoreCase));
+            if (growthCapture)
+            {
+                SyncArmoryOverlayScreen();
+                yield return null;
+                if (!TryValidatePartyGrowthVisualSmoke(out string growthFailure))
+                {
+                    Debug.LogError(VersionInfo.ProductName + " Party Growth visual smoke failed: " + growthFailure + ".");
+                    if (quitAfterCapture) Application.Quit(2);
+                    yield break;
+                }
+                Debug.Log(VersionInfo.ProductName + " Party Growth visual smoke validated before capture.");
             }
 
             bool combatPresentationCapture = feedbackCapture
@@ -2650,6 +2672,7 @@ namespace AshenHalls
 
         private void MarkUiDirty()
         {
+            if (!showArmory) DiscardArmoryGrowthDrafts();
             unchecked
             {
                 uiRevision++;
