@@ -1,6 +1,6 @@
 # Ashen Halls Runtime Art Audit
 
-Last updated for the v2.6.0 Town Hall development candidate. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the current Windows build, and direct Local/Region visual review at 1280 by 720 and 1920 by 1080 pass; final packaging and clean-extracted packaged boot remain open. Older release sections are retained below as historical records.
+Last updated for the verified v2.6.0 Town Hall family-playtest candidate. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the Windows build, direct Local/Region visual review at 1280 by 720 and 1920 by 1080, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained below as historical records.
 
 ## Active Runtime Art
 
@@ -14,11 +14,11 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 - Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.
 - Journal/scaffold: story cards, NPC portraits, route/dungeon/service/faction scaffold hooks when matching files are present.
 
-## Newly Connected In v2.6.0 - Automated and Visual Gates Passed
+## Newly Connected In v2.6.0 - Automated, Visual, and Package Gates Passed
 
 - Town Hall's expanded Grand Hearth reuses six distinct approved cells from `world-npc-citizen-atlas-runtime-v2.4.0.png`: tailor, mason, lamplighter, caravan guide, road pilgrim, and fishmonger. No new runtime image, manifest pin, packaged-art entry, atlas geometry, or v2.4 provenance file is introduced.
 - These are authored interior presentation placements, not procedural exterior ambient citizens. They remain deterministic, walk-through, and off the tutorial company runner, with no `MapObject`, collision, hover response, Talk prompt, dialogue, named-NPC substitution, portrait identity, or saved identity. Procedural placement remains exterior-only and still excludes every room.
-- RuleSmoke verifies the exact six-cell mapping, distinct professions, clear runner, and stable Town Hall contracts. Focused sprite-art runtime smoke resolves every patron through the approved atlas, full RuntimeBoot verifies the live first-spawn room and portal flow, and the current Windows build passes. Four direct built-player captures under `QA/v2.6.0-town-hall` cover Local and Region at 1280 by 720 and 1920 by 1080; all report `complete=True`, `failure=None` and visually confirm the six figures, clear route, and unobstructed exit. Final packaging and clean-extracted packaged boot remain pending.
+- RuleSmoke verifies the exact six-cell mapping, distinct professions, clear runner, and stable Town Hall contracts. Focused sprite-art runtime smoke resolves every patron through the approved atlas, full RuntimeBoot verifies the live first-spawn room and portal flow, and the Windows build passes. Four direct built-player captures under `QA/v2.6.0-town-hall` cover Local and Region at 1280 by 720 and 1920 by 1080; all report `complete=True`, `failure=None` and visually confirm the six figures, clear route, and unobstructed exit. Canonical packaging and clean-extracted packaged boot pass; the release-integrity record reports `sourceDirty=false`, `cleanExtractLaunch=true`, `playerExitCode=0`, and `packagedArtCount=80` while binding the exact final source revision and hashes.
 
 ## Newly Connected In v2.4.0 - Automated Gates Passed
 

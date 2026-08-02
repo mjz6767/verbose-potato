@@ -2,9 +2,9 @@
 
 ## Current Candidate
 
-`v2.6.0` is the current development candidate for the Midgaard sewer and bounded Old Road slice. It begins New Game -> Muster inside Town Hall's expanded Grand Hearth gathering chamber and makes leaving its storm doors the required first journey step. Existing campaign data remains compatible and the save schema remains v25. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the current Windows build, and direct Local/Region visual review at 1280 by 720 and 1920 by 1080 pass. Final packaging, clean-extracted packaged boot, physical-controller review, and a complete real playthrough remain open gates. The fully packaged and visually reviewed v2.5.0 candidate remains the verified rollback baseline. This is not a content-complete game.
+`v2.6.0` is the current verified family-playtest candidate for the Midgaard sewer and bounded Old Road slice. It begins New Game -> Muster inside Town Hall's expanded Grand Hearth gathering chamber and makes leaving its storm doors the required first journey step. Existing campaign data remains compatible and the save schema remains v25. RuleSmoke, focused sprite-art runtime smoke, full RuntimeBoot, the Windows build, direct Local/Region visual review at 1280 by 720 and 1920 by 1080, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete real playthrough remain manual gates. This is not a content-complete game.
 
-## Town Hall Gathering v2.6 - Automated and Visual Gates Passed
+## Town Hall Gathering v2.6 - Automated, Visual, and Package Gates Passed
 
 - New Game -> Muster starts the company inside Town Hall's 10 by 9 Grand Hearth chamber, whose uninterrupted 8 by 7 floor creates a wider civic gathering space before the road opens.
 - The expansion preserves the original first-spawn cell, storm-door exit, company runner, stable room/object IDs, cartography table using interior-prop cell 7, blue company road chest using cell 17, and working portal flow.
@@ -12,7 +12,8 @@
 - Fresh-game Objective and NEXT guidance require the party to leave through the Town Hall storm doors before the journey begins. After departure, guidance advances to King Halvard as before.
 - RuleSmoke verifies the 10 by 9 reservation, continuous 8 by 7 floor, stable contracts, six unique patron cells, approved atlas mappings, clear runner, and departure copy. Focused sprite-art runtime smoke verifies the patron art cells, and full RuntimeBoot verifies first spawn, objective/guidance, walkable exit, portal transition, departure flag, checkpoint seam, and post-exit objective.
 - The current Windows build passes its embedded RuleSmoke, sprite-art, combat-UI, and full RuntimeBoot gates. Four direct built-player captures under `QA/v2.6.0-town-hall` cover Local and Region at 1280 by 720 and 1920 by 1080; each reports `complete=True`, `failure=None`, and visual inspection confirms the full Town Hall name, six distinct patrons, clear runner, readable Grand Hearth, unobstructed storm doors, and correct first objective.
-- Final packaging, clean-extracted packaged boot, controller review, and a complete human first-play walkthrough remain pending. Do not promote v2.6.0 over the settled v2.5.0 rollback candidate until those gates pass.
+- Canonical packaging and clean-extracted packaged boot pass. The release-integrity record reports `sourceDirty=false`, `cleanExtractLaunch=true`, `playerExitCode=0`, and `packagedArtCount=80` while binding the exact final source revision and package hashes.
+- Physical-controller review and a complete human New Game -> Muster -> Town Hall -> Midgaard walkthrough remain manual gates.
 
 ## Party Growth v2.5 - Automated Gates Passed
 
