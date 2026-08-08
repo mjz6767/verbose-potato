@@ -806,6 +806,7 @@ namespace AshenHalls
         {
             if (map == null || TileAt(map, x, y) != 1) return false;
             if (MidgaardInteriorRules.IsReservedCell(map, x, y)) return false;
+            if (IsOldRoadSpineCell(map, x, y)) return false;
             if (IsRegionalSiteCell(map, x, y)) return false;
             if (WorldMapGenerationRules.TryFindRegionalJunction(map.Width, map.Height, map.StartX, map.StartY, x, y, 1, out _)) return false;
             if (ExplorationTraversalRules.CanStandOnObject(type)) return true;
@@ -823,7 +824,10 @@ namespace AshenHalls
             if (map?.Objects == null || !ContentSetCatalog.IsSewerSlice(activeContentSet)) return;
             map.Objects.RemoveAll(obj => obj != null
                 && (obj.Type == ObjectType.Encounter
-                    || obj.Type == ObjectType.Stairs && !string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal)));
+                    || obj.Type == ObjectType.Stairs
+                        && !string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal)
+                        && !string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal)
+                        && !string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal)));
             map.InvalidateObjectLookup();
         }
 
@@ -937,9 +941,11 @@ namespace AshenHalls
             CarveMidgaardSquare(map, sx - 5, bottom - 1, 1, ExplorationMaterial.SewerBrick, true);
             CarveMidgaardPath(map, sx, top + 1, sx + 2, top + 2);
 
-            UpsertMapObject(map, sx, sy, ObjectType.Market);
-            UpsertMapObject(map, sx - 1, sy, ObjectType.QuestBoard);
-            UpsertMapObject(map, sx + 1, sy, ObjectType.MarketClerk);
+            // Keep the Old Road's carriage line clear. Services face the road
+            // from the neighboring market aprons instead of occupying its center.
+            UpsertMapObject(map, sx, sy - 1, ObjectType.Market);
+            UpsertMapObject(map, sx - 1, sy + 1, ObjectType.QuestBoard);
+            UpsertMapObject(map, sx + 1, sy + 1, ObjectType.MarketClerk);
             UpsertMapObject(map, sx, sy - 5, ObjectType.Temple);
             UpsertMapObject(map, sx, sy - 4, ObjectType.Fountain);
             UpsertMapObject(map, sx - 1, sy - 4, ObjectType.TempleHealer);
@@ -948,8 +954,8 @@ namespace AshenHalls
             UpsertMapObject(map, sx + 6, sy + 3, ObjectType.Provisions);
             UpsertMapObject(map, sx - 3, sy + 2, ObjectType.Tavern);
             UpsertMapObject(map, sx - 2, sy + 2, ObjectType.TavernKeeper);
-            UpsertMapObject(map, sx - 4, sy, ObjectType.Armorer);
-            UpsertMapObject(map, sx + 4, sy, ObjectType.WeaponVendor);
+            UpsertMapObject(map, sx - 4, sy - 1, ObjectType.Armorer);
+            UpsertMapObject(map, sx + 4, sy - 1, ObjectType.WeaponVendor);
             UpsertMapObject(map, sx + 4, sy + 1, ObjectType.Enchanter);
             UpsertMapObject(map, sx + 2, sy - 1, ObjectType.CityCourier);
             UpsertMapObject(map, sx - 6, sy + 3, ObjectType.WoundedTraveler);
@@ -1008,6 +1014,75 @@ namespace AshenHalls
             // doorway. Keep those invariants attached to any direct town repair.
             map.InvalidateObjectLookup();
             EnsureMidgaardInteriors(map);
+            EnsureOldRoadSpine(map);
+        }
+
+        private bool TryOldRoadEndpoints(MapData map, out WorldMapJunction west, out WorldMapJunction east)
+        {
+            west = default;
+            east = default;
+            if (map == null || map.Depth != 1) return false;
+            WorldMapJunction[] junctions = WorldMapGenerationRules.RegionalJunctions(
+                map.Width,
+                map.Height,
+                map.StartX,
+                map.StartY);
+            west = junctions.FirstOrDefault(candidate => string.Equals(
+                candidate.Id,
+                WorldMapGenerationRules.OldRoadWestJunctionId,
+                StringComparison.Ordinal));
+            east = junctions.FirstOrDefault(candidate => string.Equals(
+                candidate.Id,
+                WorldMapGenerationRules.OldRoadEastJunctionId,
+                StringComparison.Ordinal));
+            return !string.IsNullOrEmpty(west.Id) && !string.IsNullOrEmpty(east.Id);
+        }
+
+        private bool IsOldRoadSpineCell(MapData map, int x, int y)
+        {
+            if (!TryOldRoadEndpoints(map, out WorldMapJunction west, out WorldMapJunction east)) return false;
+            int minX = Mathf.Min(west.X, east.X);
+            int maxX = Mathf.Max(west.X, east.X);
+            return y == map.StartY && x >= minX && x <= maxX;
+        }
+
+        private void EnsureOldRoadSpine(MapData map)
+        {
+            if (!TryOldRoadEndpoints(map, out WorldMapJunction west, out WorldMapJunction east)) return;
+            int minX = Mathf.Min(west.X, east.X);
+            int maxX = Mathf.Max(west.X, east.X);
+            for (int x = minX; x <= maxX; x++)
+            {
+                bool gateThreshold = x == MidgaardLeft(map) || x == MidgaardRight(map);
+                SetMidgaardRoadCell(map, x, map.StartY, gateThreshold);
+                ExplorationCellRole roadRoles = ExplorationSurfaceRules.RolesAt(map, x, map.StartY);
+                roadRoles &= ~(ExplorationCellRole.Room | ExplorationCellRole.Water | ExplorationCellRole.Hazard);
+                roadRoles |= ExplorationCellRole.Road;
+                ExplorationSurfaceRules.SetRoles(map, x, map.StartY, roadRoles);
+                MapObject occupant = ObjectAt(map, x, map.StartY);
+                if (occupant == null
+                    || occupant.Type == ObjectType.WestGate
+                    || occupant.Type == ObjectType.EastGate
+                    || string.Equals(occupant.Id, OldRoadDescentId, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string requiredZone = ZoneIdFor(occupant.X, occupant.Y, map, map.Depth);
+                Point replacement = FindSafeGeneratedObjectTile(map, occupant, requiredZone)
+                    ?? FindSafeGeneratedObjectTile(map, occupant, "");
+                if (replacement != null)
+                {
+                    occupant.X = replacement.X;
+                    occupant.Y = replacement.Y;
+                    map.InvalidateObjectLookup();
+                }
+                else
+                {
+                    map.Objects.Remove(occupant);
+                    map.InvalidateObjectLookup();
+                }
+            }
         }
 
         private void SetMidgaardRoadCell(MapData map, int x, int y, bool threshold)
@@ -1155,6 +1230,7 @@ namespace AshenHalls
             }
             EnsureOldRoadDescentMarker();
             if (state.Depth == 2) EnsureKoboldKingCaveMarker();
+            if (state.Depth == 3) EnsureGlassAndAshPassageMarker();
             EnsureRouteScaffoldLandmarks();
             int landmarkCount = state.Map.Objects.Count(o => o.Type == ObjectType.Obelisk || o.Type == ObjectType.Ruin || o.Type == ObjectType.Bridge || o.Type == ObjectType.Cave);
             if (landmarkCount < 5)
@@ -1175,6 +1251,7 @@ namespace AshenHalls
                 PlaceObjects(state.Map, open, mapRng, ObjectType.Bridge, 1);
                 PlaceObjects(state.Map, open, mapRng, ObjectType.Cave, 1);
                 if (state.Depth == 2) EnsureKoboldKingCaveMarker();
+                if (state.Depth == 3) EnsureGlassAndAshPassageMarker();
                 EnsureRouteScaffoldLandmarks();
             }
             CertifyRegionalRouteCircuit(state.Map);
@@ -1271,11 +1348,17 @@ namespace AshenHalls
 
                 if (map.Depth == 2)
                 {
-                    MapObject storyCave = map.Objects.FirstOrDefault(o => o != null
-                        && o.Type == ObjectType.Cave
-                        && ZoneIdFor(o.X, o.Y, map, map.Depth) == "dusk-market");
-                    if (storyCave != null) critical.Add(storyCave);
+                    MapObject storyRoute = HasStoryFlag(StoryFlags.KoboldKingDefeated)
+                        ? map.FindObjectById(BoneRoadPassageId)
+                        : map.FindObjectById(KoboldStoryCaveId);
+                    if (storyRoute != null) critical.Add(storyRoute);
                 }
+            }
+
+            if (map.Depth == 3 && ContentSetCatalog.BoneRoadComplete(state?.StoryFlags))
+            {
+                MapObject glassPassage = map.FindObjectById(GlassAndAshPassageId);
+                if (glassPassage != null) critical.Add(glassPassage);
             }
 
             if (ContentSetCatalog.ShowPrototypeScaffold(activeContentSet))
@@ -1559,18 +1642,23 @@ namespace AshenHalls
             // room's floor, patrons, and fixtures without changing traversal.
             DrawGrandHearthAmbience(grid, cell, origin, viewW, viewH);
 
-            // Stationary habitat art is anchored to the patrol's persisted home
-            // and stays beneath roads, authored sites, mobile threats, and party UI.
-            DrawRoamingThreatHabitats(grid, cell, origin, viewW, viewH, guidanceCells);
             DrawExplorePathSurfaceOverlayPass(grid, cell, origin, viewW, viewH);
             DrawExploreTerrainBoundaries(grid, cell, origin, viewW, viewH);
             DrawExploreAmbientPresentationPass(grid, cell, origin, viewW, viewH, guidanceCells);
+            // Physical habitat art sits above roads and ambient scenery so an
+            // adjacent tent or wall is never striped by a path overlay. Authored
+            // sites, route breadcrumbs, threats, and party cues still draw later.
+            DrawRoamingThreatHabitats(grid, cell, origin, viewW, viewH, guidanceCells);
             // Ground breadcrumbs may cross soft scenery but stay beneath roofs and
             // authored set-pieces. The later next-step/edge cue remains above art.
             DrawExploreWaypointTrail(grid, cell, origin, viewW, viewH);
             exploreFrameInteractionTarget = CurrentExploreInteraction().Target;
 
-            foreach (MapObject obj in state.Map.Objects)
+            foreach (MapObject obj in state.Map.Objects
+                .Where(candidate => candidate != null)
+                .OrderBy(candidate => candidate.Y)
+                .ThenBy(candidate => candidate.X)
+                .ThenBy(candidate => candidate.Id ?? "", StringComparer.Ordinal))
             {
                 if (!ExplorePointInViewport(obj.X, obj.Y, origin, viewW, viewH)) continue;
                 Rect objectCell = new Rect(grid.x + (obj.X - origin.X) * cell, grid.y + (obj.Y - origin.Y) * cell, cell, cell);
@@ -1831,6 +1919,8 @@ namespace AshenHalls
             int index = WorldAreaSetpiecePresentationRules.IconIndex(site.Id);
             if (index < 0) return false;
 
+            DrawWorldAreaSetpieceFootprint(cell, obj);
+
             float size = cell.width * WorldAreaSetpiecePresentationRules.MapScale(exploreWideView);
             Rect fullRect = new Rect(
                 cell.center.x - size * 0.5f,
@@ -1853,12 +1943,55 @@ namespace AshenHalls
             try
             {
                 drawn = TryDrawWorldAreaSetpieceAtlasIcon(clippedRect, index, Color.white, spec);
+                if (drawn && ExplorationTraversalRules.BlocksMovement(obj))
+                {
+                    // The generated set-piece paintings contain deliberately soft
+                    // atmospheric pixels. A restrained second pass restores a solid
+                    // architectural core while the one-cell foundation below makes
+                    // the actual collision footprint explicit.
+                    TryDrawWorldAreaSetpieceAtlasIcon(
+                        clippedRect,
+                        index,
+                        Color.white.WithAlpha(0.58f),
+                        spec);
+                }
             }
             finally
             {
                 GUI.EndGroup();
             }
             return drawn;
+        }
+
+        private void DrawWorldAreaSetpieceFootprint(Rect cell, MapObject obj)
+        {
+            if (obj == null) return;
+            bool standable = ExplorationTraversalRules.CanStandOnObject(obj);
+            Color accent = ObjectColor(obj.Type);
+            Rect foundation = new Rect(
+                cell.x + cell.width * 0.08f,
+                cell.y + cell.height * 0.56f,
+                cell.width * 0.84f,
+                cell.height * 0.31f);
+            Color contact = standable ? Hex("121718", 0.44f) : Hex("020303", 0.82f);
+            if (standable)
+            {
+                float segment = foundation.width * 0.27f;
+                DrawRect(new Rect(foundation.x, foundation.y, segment, foundation.height), contact);
+                DrawRect(new Rect(foundation.xMax - segment, foundation.y, segment, foundation.height), contact);
+            }
+            else
+            {
+                DrawRect(foundation, contact);
+                DrawRect(
+                    new Rect(
+                        foundation.x + foundation.width * 0.18f,
+                        foundation.yMax - Mathf.Max(2f, foundation.height * 0.14f),
+                        foundation.width * 0.64f,
+                        Mathf.Max(2f, foundation.height * 0.14f)),
+                    accent.WithAlpha(0.66f));
+            }
+            DrawBorder(foundation, accent.WithAlpha(standable ? 0.24f : 0.42f), 1);
         }
 
         private bool ShouldUseExploreRegionMarker(MapObject obj, int distance, bool objective)
@@ -1917,7 +2050,8 @@ namespace AshenHalls
             if (type == ObjectType.TownGuard) return exploreWideView ? 0.18f : 0.10f;
             if (ExplorationArtRules.IsMidgaardBuilding(type)) return ExplorationArtRules.MidgaardBuildingPadding(exploreWideView);
             if (type == ObjectType.Fountain || type == ObjectType.RecallCircle) return exploreWideView ? 0.18f : 0.10f;
-            if (type == ObjectType.Cache || type == ObjectType.Shrine || type == ObjectType.Encounter || type == ObjectType.Stairs || type == ObjectType.Camp || type == ObjectType.Cave) return exploreWideView ? 0.17f : 0.08f;
+            if (type == ObjectType.Camp) return exploreWideView ? 0.25f : 0.20f;
+            if (type == ObjectType.Cache || type == ObjectType.Shrine || type == ObjectType.Encounter || type == ObjectType.Stairs || type == ObjectType.Cave) return exploreWideView ? 0.17f : 0.08f;
             return exploreWideView ? 0.19f : 0.11f;
         }
 
@@ -1969,6 +2103,7 @@ namespace AshenHalls
             out int index)
         {
             index = -1;
+            if (!ExplorationReadabilityRules.AllowPassableMidgaardFixtures) return false;
             if (state?.Map == null || state.Depth != 1 || tile == 0 || !IsMidgaardCityCell(x, y, state.Map, state.Depth)) return false;
             if (ObjectAt(state.Map, x, y) != null || HasNearbyMidgaardFocusObject(x, y)) return false;
             if (x == state.PlayerX && y == state.PlayerY) return false;
@@ -2239,23 +2374,25 @@ namespace AshenHalls
 
         private int BiomeAmbientPropAtlasIndex(string kind, int variant)
         {
+            int index;
             switch (kind ?? "")
             {
-                case "moss": return PickPropVariant(variant, 0, 1, 3, 16);
-                case "mire": return PickPropVariant(variant, 5, 7, 6, 18);
-                case "mud": return PickPropVariant(variant, 2, 3, 19, 13);
-                case "quarry": return PickPropVariant(variant, 8, 9, 13, 14);
-                case "glass": return PickPropVariant(variant, 12, 8, 13, 19);
+                case "moss": index = PickPropVariant(variant, 3, 6, 16, 19); break;
+                case "mire": index = PickPropVariant(variant, 5, 7, 6, 19); break;
+                case "mud": index = PickPropVariant(variant, 3, 6, 14, 19); break;
+                case "quarry": index = PickPropVariant(variant, 3, 6, 14, 19); break;
+                case "glass": index = PickPropVariant(variant, 6, 14, 16, 19); break;
                 case "ash":
-                case "red": return PickPropVariant(variant, 10, 11, 4, 14);
+                case "red": index = PickPropVariant(variant, 3, 6, 14, 19); break;
                 case "road":
-                case "paved": return PickPropVariant(variant, 15, 17, 8, 19);
-                case "ruins": return PickPropVariant(variant, 8, 9, 13, 14);
-                case "gloam": return PickPropVariant(variant, 9, 13, 14, 4);
-                case "cistern": return PickPropVariant(variant, 5, 6, 9, 14);
-                case "outworks": return PickPropVariant(variant, 2, 8, 15, 19);
+                case "paved": index = PickPropVariant(variant, 3, 14, 16, 19); break;
+                case "ruins":
+                case "gloam": index = PickPropVariant(variant, 6, 14, 16, 19); break;
+                case "cistern": index = PickPropVariant(variant, 5, 6, 7, 14); break;
+                case "outworks": index = PickPropVariant(variant, 3, 14, 16, 19); break;
                 default: return -1;
             }
+            return ExplorationReadabilityRules.IsPassableBiomePropIndex(index) ? index : -1;
         }
 
         private int LegacyBiomeWorldMapPropAtlasIndex(string kind, int variant)
@@ -2403,6 +2540,15 @@ namespace AshenHalls
                 persistentLocalType);
         }
 
+        private bool ShouldUseExploreObjectBackdrop(MapObject obj)
+        {
+            if (obj == null || state == null) return false;
+            return IsCurrentMidgaardObjective(obj)
+                || ReferenceEquals(exploreFrameInteractionTarget, obj)
+                || obj.X == exploreHoverMapX && obj.Y == exploreHoverMapY
+                || Distance(obj.X, obj.Y, state.PlayerX, state.PlayerY) <= 1;
+        }
+
         private float ExploreObjectArtPadding(ObjectType type, bool quiet)
         {
             if (type == ObjectType.CityWall) return 0.00f;
@@ -2413,7 +2559,14 @@ namespace AshenHalls
             return 0.03f;
         }
 
-        private void DrawExploreObjectPlinth(Rect rect, Color color, bool quiet, bool framed, float pulse, bool standable)
+        private void DrawExploreObjectPlinth(
+            Rect rect,
+            Color color,
+            bool quiet,
+            bool framed,
+            bool backdrop,
+            float pulse,
+            bool standable)
         {
             float shadowH = Mathf.Max(3f, rect.height * (quiet ? 0.085f : 0.105f));
             Rect shadow = new Rect(rect.x + rect.width * 0.14f, rect.yMax - shadowH - rect.height * 0.03f, rect.width * 0.72f, shadowH);
@@ -2428,7 +2581,7 @@ namespace AshenHalls
             {
                 DrawRect(shadow, contact);
             }
-            float washAlpha = ExplorationReadabilityRules.InteractiveObjectBackdropAlpha(quiet, framed);
+            float washAlpha = ExplorationReadabilityRules.InteractiveObjectBackdropAlpha(quiet, backdrop);
             if (washAlpha <= 0f) return;
             Rect wash = Pad(rect, rect.width * (quiet ? 0.16f : 0.13f));
             DrawRect(wash, Hex("020303", washAlpha));
@@ -2588,7 +2741,8 @@ namespace AshenHalls
                 case ObjectType.Ruin: return 3;
                 case ObjectType.Encounter: return 13;
                 case ObjectType.Stairs: return state != null && state.Depth >= FinalBossDepth - 1 ? 19 : 16;
-                case ObjectType.Cave: return state != null && state.Depth == 2 && ZoneIdFor(obj.X, obj.Y, state.Map, state.Depth) == "dusk-market" ? 17 : 11;
+                case ObjectType.Cave:
+                    return IsKoboldStoryCave(obj) && HasStoryFlag(StoryFlags.KoboldAmbushSurvived) ? 17 : 11;
                 case ObjectType.Town:
                 case ObjectType.Temple:
                 case ObjectType.Fountain:
@@ -2694,6 +2848,8 @@ namespace AshenHalls
             MapObject mapObject = ObjectAt(state?.Map, x, y);
             bool softScenery = ExploreCellHasSoftScenery(x, y, tile, guidanceCells);
             bool enemyOccupied = RoamingThreatAt(x, y) != null;
+            bool solidScenery = IsActiveRoamingThreatHabitatCell(x, y);
+            if (solidScenery && !enemyOccupied) return WorldMapCellAccessKind.SolidObstacle;
             return ExplorationReadabilityRules.ClassifyCellAccess(tile, mapObject, softScenery, enemyOccupied);
         }
 
@@ -2703,7 +2859,7 @@ namespace AshenHalls
             if (x == state.PlayerX && y == state.PlayerY) return false;
             if (TryGetGrandHearthPatronAt(x, y, tile, guidanceCells, out _)) return true;
             if (TryGetWorldAmbientCitizenAt(x, y, tile, guidanceCells, out _, out _)) return true;
-            if (IsRoamingThreatHomeCell(x, y)) return true;
+            if (IsRoamingThreatHomeCell(x, y)) return !IsActiveRoamingThreatHabitatCell(x, y);
 
             string kind = ExploreTileKind(x, y, tile) ?? "";
             if (TryGetMidgaardAmbientPropIndex(x, y, tile, kind, guidanceCells, out _)) return true;
@@ -2968,7 +3124,7 @@ namespace AshenHalls
             if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.E)) UseNearbyExploreObject();
             if (Input.GetKeyDown(KeyCode.R)) Camp();
             if (Input.GetKeyDown(KeyCode.Y)) RecallToTempleSquare();
-            if (Input.GetKeyDown(KeyCode.T) && CanDescend()) Descend();
+            if (Input.GetKeyDown(KeyCode.T) && (CanDescend() || CanSurveyGlassAndAshFrontier())) Descend();
             if (Input.GetKeyDown(KeyCode.Tab)) ToggleExploreView();
             if (Input.GetKeyDown(KeyCode.Q)) ToggleExploreHud();
         }
@@ -3072,6 +3228,11 @@ namespace AshenHalls
                 return $"{name} blocks the way.";
             }
 
+            if (IsActiveRoamingThreatHabitatCell(x, y))
+            {
+                return "An occupied lair blocks the way. Circle around it or engage its patrol.";
+            }
+
             if (TileAt(state.Map, x, y) != 1) return "Terrain blocks the way.";
             return "The path is blocked.";
         }
@@ -3103,6 +3264,7 @@ namespace AshenHalls
             DiscoverRegionalJunction();
             if (AdvanceRoamingThreatsAfterPartyStep()) return;
             if (MaybeTriggerKoboldAmbush()) return;
+            if (MaybeTriggerBoneRoadWatch()) return;
             ResolveExploreTile();
         }
 
@@ -3252,6 +3414,7 @@ namespace AshenHalls
             if (state?.Map == null || x < 0 || y < 0 || x >= state.Map.Width || y >= state.Map.Height) return false;
             if (TileAt(state.Map, x, y) != 1) return false;
             if (!ExplorationTraversalRules.CanStandOnObject(ObjectAt(state.Map, x, y))) return false;
+            if (IsActiveRoamingThreatHabitatCell(x, y)) return false;
             return RoamingThreatAt(x, y) == null;
         }
 
@@ -3261,17 +3424,25 @@ namespace AshenHalls
             if (state.RoamingThreats == null) state.RoamingThreats = new List<RoamingThreat>();
             bool fullPrototype = ContentSetCatalog.IsFullPrototype(activeContentSet);
             IReadOnlyList<RoamingThreatDefinition> definitions = RoamingThreatCatalog.ForDepth(state.Depth, fullPrototype);
-            HashSet<string> activeIds = new HashSet<string>(definitions.Select(definition => definition.Id), StringComparer.Ordinal);
-            HashSet<string> retainedIds = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> allowedKeys = new HashSet<string>(StringComparer.Ordinal);
+            for (int depth = 1; depth <= FinalBossDepth; depth++)
+            {
+                foreach (RoamingThreatDefinition definition in RoamingThreatCatalog.ForDepth(depth, fullPrototype))
+                {
+                    allowedKeys.Add(depth + ":" + definition.Id);
+                }
+            }
+            HashSet<string> retainedKeys = new HashSet<string>(StringComparer.Ordinal);
             state.RoamingThreats.RemoveAll(threat =>
                 threat == null
-                || threat.Depth != state.Depth
-                || !activeIds.Contains(threat.Id ?? "")
-                || !retainedIds.Add(threat.Id));
+                || !allowedKeys.Contains(threat.Depth + ":" + (threat.Id ?? ""))
+                || !retainedKeys.Add(threat.Depth + ":" + threat.Id));
 
             foreach (RoamingThreatDefinition definition in definitions)
             {
-                RoamingThreat threat = state.RoamingThreats.FirstOrDefault(candidate => candidate.Id == definition.Id);
+                RoamingThreat threat = state.RoamingThreats.FirstOrDefault(candidate =>
+                    candidate.Depth == state.Depth
+                    && candidate.Id == definition.Id);
                 if (threat == null)
                 {
                     Point spawn = FindRoamingThreatSpawn(definition, definition.Id);
@@ -3375,6 +3546,11 @@ namespace AshenHalls
         private bool IsRoamingThreatHomeAvailable(int x, int y, string ignoreId)
         {
             if (!IsRoamingThreatCellAvailable(x, y, ignoreId)) return false;
+            // A solid lair belongs beside the travel network, never on top of it.
+            // This keeps guidance and the authored Old Road free while the patrol
+            // itself can still move across roads and engage the party.
+            if (ExplorationSurfaceRules.IsPath(ExplorationSurfaceRules.RolesAt(state.Map, x, y))) return false;
+            if (IsRegionalSiteCell(state.Map, x, y)) return false;
             return !state.RoamingThreats.Any(other =>
                 other != null
                 && other.Id != ignoreId
@@ -3607,7 +3783,10 @@ namespace AshenHalls
 
         private void ResolveRoamingThreatVictory(string threatId)
         {
-            RoamingThreat threat = state?.RoamingThreats?.FirstOrDefault(candidate => candidate != null && candidate.Id == threatId);
+            RoamingThreat threat = state?.RoamingThreats?.FirstOrDefault(candidate =>
+                candidate != null
+                && candidate.Depth == state.Depth
+                && candidate.Id == threatId);
             if (threat == null) return;
             threat.Active = false;
             threat.Alerted = false;
@@ -3618,7 +3797,10 @@ namespace AshenHalls
 
         private void ResolveRoamingThreatRetreat(string threatId)
         {
-            RoamingThreat threat = state?.RoamingThreats?.FirstOrDefault(candidate => candidate != null && candidate.Id == threatId);
+            RoamingThreat threat = state?.RoamingThreats?.FirstOrDefault(candidate =>
+                candidate != null
+                && candidate.Depth == state.Depth
+                && candidate.Id == threatId);
             if (threat == null) return;
             threat.Active = true;
             threat.Alerted = false;
@@ -4001,9 +4183,29 @@ namespace AshenHalls
         private string ExploreContextVerb(MapObject obj, int dx, int dy)
         {
             if (obj == null) return "Use";
+            if (string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal)) return "Travel east";
+            if (string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal)) return "Enter Bone Road";
+            if (string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal)) return "Survey frontier";
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite)
                 && WorldSiteInteractionRules.TryGet(regionalSite.Id, out WorldSiteInteractionProfile interaction))
             {
+                if (state?.Depth == 3
+                    && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
+                {
+                    if (string.Equals(regionalSite.Id, GloamDeepCryptSiteId, StringComparison.Ordinal)
+                        && !HasStoryFlag(StoryFlags.GloamWardenDefeated))
+                    {
+                        if (!HasStoryFlag(StoryFlags.BoneRoadWatchDefeated)) return "Face watch";
+                        if (!HasStoryFlag(StoryFlags.GloamRitualBroken)) return "Break ritual";
+                        return "Face warden";
+                    }
+                    if (string.Equals(regionalSite.Id, RedGateSealSiteId, StringComparison.Ordinal)
+                        && HasStoryFlag(StoryFlags.GloamWardenDefeated)
+                        && !HasStoryFlag(StoryFlags.RedGateWarningRecovered))
+                    {
+                        return "Read warning";
+                    }
+                }
                 bool rewardClaimed = WorldSiteInteractionRules.RewardClaimed(
                     state?.StoryFlags,
                     state?.Depth ?? 1,
@@ -4276,6 +4478,11 @@ namespace AshenHalls
             if (tile == 0) return "midgaardwall";
             ExplorationMaterial material = ExploreMaterialAt(x, y);
             ExplorationCellRole roles = ExploreRolesAt(x, y);
+            if (state?.Map != null
+                && MidgaardDistrictRules.IsOldRoadOffset(x - state.Map.StartX, y - state.Map.StartY))
+            {
+                return "midgaard-road";
+            }
             if (material == ExplorationMaterial.MarketCobbles) return "midgaard-market";
             if (material == ExplorationMaterial.TempleStone) return "midgaard-temple";
             if (material == ExplorationMaterial.KeepStone) return "midgaard-king";
@@ -4490,34 +4697,59 @@ namespace AshenHalls
             if (tile != 1) return;
             ExplorationCellRole roles = ExploreRolesAt(x, y);
             ExplorationMaterial material = ExploreMaterialAt(x, y);
-            if (!ExplorationArtRules.ShouldDrawMaterialPathStroke(material, roles)) return;
+            bool authoredRegionalSiteCell = IsRegionalSiteCell(state?.Map, x, y);
+            if (!ExplorationArtRules.ShouldDrawMaterialPathStroke(material, roles, authoredRegionalSiteCell)) return;
             MapObject occupant = ObjectAt(state?.Map, x, y);
             if (occupant != null && (UsesSemanticMidgaardGround(occupant) || IsMidgaardGateType(occupant.Type))) return;
 
             int mask = ExplorationSurfaceRules.PathNeighborMask(state?.Map, x, y);
             bool city = (roles & ExplorationCellRole.City) != 0;
             bool road = (roles & (ExplorationCellRole.Road | ExplorationCellRole.Bridge)) != 0;
-            float shoulderFraction = city
+            bool oldRoad = IsOldRoadSpineCell(state?.Map, x, y);
+            int mainMask = oldRoad ? mask & (2 | 8) : mask;
+            // The authored east-west artery uses one broad carriage stroke. Side
+            // streets join with the normal narrow connector treatment rather than
+            // turning the city into a translucent ladder/grid.
+            float shoulderFraction = oldRoad
+                ? exploreWideView ? 0.50f : 0.60f
+                : city
                 ? exploreWideView ? 0.14f : 0.17f
                 : road
                     ? exploreWideView ? 0.22f : 0.22f
                     : exploreWideView ? 0.10f : 0.13f;
             float shoulderWidth = rect.width * shoulderFraction;
-            float coreWidth = shoulderWidth * 0.68f;
-            float highlightWidth = coreWidth * 0.20f;
-            Color shoulder = city ? Hex("111719", 0.17f) : Hex("20150e", exploreWideView ? 0.34f : 0.30f);
-            Color core = city
+            float coreWidth = shoulderWidth * (oldRoad ? 0.72f : 0.68f);
+            float highlightWidth = coreWidth * (oldRoad ? 0.11f : 0.20f);
+            Color shoulder = oldRoad
+                ? Hex("17130f", exploreWideView ? 0.52f : 0.58f)
+                : city ? Hex("111719", 0.17f) : Hex("20150e", exploreWideView ? 0.34f : 0.30f);
+            Color core = oldRoad
+                ? Hex("9a7b52", exploreWideView ? 0.40f : 0.46f)
+                : city
                 ? Hex("81765f", 0.13f)
                 : material == ExplorationMaterial.Moss
                     ? Hex("735637", exploreWideView ? 0.34f : 0.28f)
                     : Hex("8f6841", exploreWideView ? 0.31f : 0.25f);
-            Color highlight = city ? Hex("d3c5a0", 0.09f) : Hex("e2bd83", exploreWideView ? 0.22f : 0.15f);
-            DrawExplorePathStroke(rect, mask, shoulderWidth, shoulder);
-            DrawExplorePathStroke(rect, mask, coreWidth, core);
-            DrawExplorePathStroke(rect, mask, highlightWidth, highlight);
+            Color highlight = oldRoad
+                ? Hex("e0c28c", exploreWideView ? 0.25f : 0.30f)
+                : city ? Hex("d3c5a0", 0.09f) : Hex("e2bd83", exploreWideView ? 0.22f : 0.15f);
+            DrawExplorePathStroke(rect, mainMask, shoulderWidth, shoulder);
+            DrawExplorePathStroke(rect, mainMask, coreWidth, core);
+            DrawExplorePathStroke(rect, mainMask, highlightWidth, highlight);
+            if (oldRoad)
+            {
+                float rutHeight = Mathf.Max(1f, rect.height * (exploreWideView ? 0.018f : 0.024f));
+                float rutOffset = coreWidth * 0.24f;
+                Color rut = Hex("3a2919", exploreWideView ? 0.30f : 0.38f);
+                float rutX = rect.x + ((mainMask & 8) == 0 ? rect.width * 0.34f : 0f);
+                float rutXMax = rect.xMax - ((mainMask & 2) == 0 ? rect.width * 0.34f : 0f);
+                float rutWidth = Mathf.Max(0f, rutXMax - rutX);
+                DrawRect(new Rect(rutX, rect.center.y - rutOffset, rutWidth, rutHeight), rut);
+                DrawRect(new Rect(rutX, rect.center.y + rutOffset - rutHeight, rutWidth, rutHeight), rut);
+            }
             if (road)
             {
-                int connectorMask = ExplorationSurfaceRules.PathConnectorNeighborMask(state?.Map, x, y) & ~mask;
+                int connectorMask = ExplorationSurfaceRules.PathConnectorNeighborMask(state?.Map, x, y) & ~mainMask;
                 if (connectorMask != 0)
                 {
                     float connectorShoulder = rect.width * (exploreWideView ? 0.10f : 0.13f);
@@ -4529,6 +4761,40 @@ namespace AshenHalls
             if ((roles & ExplorationCellRole.Clearing) != 0)
             {
                 DrawRegionalJunctionGroundMark(rect, x, y);
+            }
+            if (oldRoad) DrawOldRoadGroundMark(rect, x, y);
+        }
+
+        private void DrawOldRoadGroundMark(Rect rect, int x, int y)
+        {
+            if (!TryOldRoadEndpoints(state?.Map, out WorldMapJunction west, out WorldMapJunction east)
+                || y != west.Y
+                || x != west.X + 3 && x != east.X - 3)
+            {
+                return;
+            }
+
+            Rect shield = new Rect(
+                rect.x + rect.width * 0.18f,
+                rect.center.y - rect.height * 0.12f,
+                rect.width * 0.64f,
+                rect.height * 0.24f);
+            DrawRect(shield, Hex("17130f", 0.78f));
+            DrawBorder(shield, Hex("d5b477", 0.74f), 1);
+            if (rect.width >= 42f)
+            {
+                GUIStyle style = CenterStyle(
+                    Mathf.Clamp(Mathf.RoundToInt(rect.height * 0.105f), 7, 11),
+                    Hex("f0d49c", 0.88f));
+                GUI.Label(shield, FitText("OLD ROAD", shield.width - 4f, style), style);
+            }
+            else
+            {
+                float lineWidth = shield.width * 0.52f;
+                float lineHeight = Mathf.Max(1f, shield.height * 0.10f);
+                DrawRect(
+                    new Rect(shield.center.x - lineWidth * 0.5f, shield.center.y - lineHeight * 0.5f, lineWidth, lineHeight),
+                    Hex("f0d49c", 0.76f));
             }
         }
 
@@ -5442,10 +5708,18 @@ namespace AshenHalls
             Color objectColor = ObjectColor(type);
             bool quiet = IsQuietExploreObject(type);
             bool framed = ShouldFrameExploreObject(type, obj);
+            bool backdrop = ShouldUseExploreObjectBackdrop(obj);
             bool gate = IsMidgaardGateType(type);
             float pulse = quiet || state != null && state.ReducedMotion ? 0.35f : 0.35f + Mathf.Sin(Time.time * 3.5f + (int)type) * 0.12f;
             if (gate) DrawMidgaardGateFoundation(cell, rect, type, framed);
-            else DrawExploreObjectPlinth(rect, objectColor, quiet, framed, pulse, ExplorationTraversalRules.CanStandOnObject(type));
+            else DrawExploreObjectPlinth(
+                rect,
+                objectColor,
+                quiet,
+                framed,
+                backdrop,
+                pulse,
+                ExplorationTraversalRules.CanStandOnObject(type));
             Rect artRect = Pad(rect, rect.width * ExploreObjectArtPadding(type, quiet));
             if (TryDrawWorldObjectIcon(artRect, type, obj))
             {
@@ -5572,14 +5846,11 @@ namespace AshenHalls
 
         private bool ShouldReinforceExploreObjectAlpha(ObjectType type)
         {
-            switch (type)
-            {
-                case ObjectType.Sewer:
-                case ObjectType.RatPeltQuest:
-                    return true;
-                default:
-                    return IsRouteScaffoldObject(type);
-            }
+            // Blocking fixtures must keep a solid core even when a legacy PNG was
+            // exported with soft internal alpha. Walkable gates, camps, bridges,
+            // stairs, and recall features retain their open-ground presentation.
+            return type != ObjectType.CityWall
+                && !ExplorationTraversalRules.CanStandOnObject(type);
         }
 
         private void DrawMidgaardWallTerrainUnderlay(Rect rect, int x, int y)
@@ -6143,9 +6414,12 @@ namespace AshenHalls
         private bool IsKoboldStoryObject(MapObject obj)
         {
             if (!ContentSetCatalog.AllowKoboldChapter(activeContentSet, state?.StoryFlags)) return false;
-            if (obj == null || obj.Type != ObjectType.Cave || state?.Map == null || state.Depth != 2) return false;
-            if (HasStoryFlag(StoryFlags.KoboldKingDefeated)) return false;
-            return ZoneIdFor(obj.X, obj.Y, state.Map, state.Depth) == "dusk-market";
+            if (!HasStoryFlag(StoryFlags.KoboldAmbushSurvived)
+                || HasStoryFlag(StoryFlags.KoboldKingDefeated))
+            {
+                return false;
+            }
+            return IsKoboldStoryCave(obj);
         }
 
         private int KoboldRouteMarkerIndex()
@@ -6280,6 +6554,7 @@ namespace AshenHalls
             int sy = map?.StartY ?? mapHeight / 2;
             string interiorId = MidgaardInteriorIdAt(x, y, map, depth);
             if (!string.IsNullOrEmpty(interiorId)) return interiorId;
+            if (depth == 1 && IsOldRoadSpineCell(map, x, y)) return "midgaard-road";
             if (IsMidgaardCityCell(x, y, map, depth)) return "midgaard-city";
             bool midgaardApproach = depth == 1
                 && map != null
@@ -6474,6 +6749,18 @@ namespace AshenHalls
                 return $"{label} / Grand Hearth patron / {region}\nYields the path / walkable";
             }
 
+            if (IsActiveRoamingThreatHabitatCell(x, y))
+            {
+                RoamingThreat homeThreat = state.RoamingThreats?.FirstOrDefault(candidate =>
+                    candidate != null
+                    && candidate.Active
+                    && candidate.Depth == state.Depth
+                    && candidate.HomeX == x
+                    && candidate.HomeY == y);
+                string label = homeThreat == null ? "Occupied lair" : homeThreat.Name + " lair";
+                return $"{label} / {region}\nSolid threat habitat / blocks movement / circle around";
+            }
+
             if (TryRegionalJunctionAt(x, y, 0, out WorldMapJunction junction))
             {
                 bool charted = state.DiscoveredZones != null
@@ -6552,7 +6839,7 @@ namespace AshenHalls
                 case "midgaard-provisions": return "Provision crates";
                 case "midgaard-ratquest": return "Pelt marker";
                 case "midgaard-recall": return "Recall circle";
-                case "midgaard-road": return "City street";
+                case "midgaard-road": return "Old Road cobbles";
                 case "midgaard-plaza": return "Plaza cobbles";
                 case "midgaard-paved": return "Town paving";
                 case "forestwall": return "Tree wall";
@@ -6640,8 +6927,39 @@ namespace AshenHalls
 
         private string ObjectHint(MapObject obj)
         {
+            if (obj != null && string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal))
+            {
+                return "follow the Old Road through Lanternless Cross toward Dusk Market";
+            }
+            if (obj != null && string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal))
+            {
+                return "pass beneath Varkh's broken hall to the Bone Road and Gloam Courts";
+            }
+            if (obj != null && string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal))
+            {
+                return HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                    ? "charted frontier; return to Midgaard before the next expedition"
+                    : "survey the glass storms beyond the recovered Red Gate warning";
+            }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite))
             {
+                if (state?.Depth == 3
+                    && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
+                {
+                    if (string.Equals(regionalSite.Id, GloamDeepCryptSiteId, StringComparison.Ordinal)
+                        && !HasStoryFlag(StoryFlags.GloamWardenDefeated))
+                    {
+                        if (!HasStoryFlag(StoryFlags.BoneRoadWatchDefeated)) return regionalSite.Summary + " The Bone Road watch holds the approach.";
+                        if (!HasStoryFlag(StoryFlags.GloamRitualBroken)) return regionalSite.Summary + " A reliquary choir is naming the dead inside.";
+                        return regionalSite.Summary + " The Ossuary Warden waits below the broken choir.";
+                    }
+                    if (string.Equals(regionalSite.Id, RedGateSealSiteId, StringComparison.Ordinal)
+                        && HasStoryFlag(StoryFlags.GloamWardenDefeated)
+                        && !HasStoryFlag(StoryFlags.RedGateWarningRecovered))
+                    {
+                        return regionalSite.Summary + " Varkh's recovered tally fits the outer sigils.";
+                    }
+                }
                 if (!WorldSiteInteractionRules.TryGet(regionalSite.Id, out WorldSiteInteractionProfile interaction))
                 {
                     return regionalSite.Summary;
@@ -6669,7 +6987,21 @@ namespace AshenHalls
             if (obj == null) return "";
             if (string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal))
             {
-                return "Sluice Steps";
+                return "Eastbound Old Road";
+            }
+            if (string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal))
+            {
+                return "Bone Road Passage";
+            }
+            if (string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal))
+            {
+                return "Glass and Ash Frontier";
+            }
+            if (IsKoboldStoryCave(obj) && HasStoryFlag(StoryFlags.KoboldAmbushSurvived))
+            {
+                return HasStoryFlag(StoryFlags.KoboldCaveCleared)
+                    ? "Varkh's Hall"
+                    : "Smoke Cave Mouth";
             }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite))
             {
@@ -6730,8 +7062,8 @@ namespace AshenHalls
                 case ObjectType.EnchantmentTable: return "quiet rune-light";
                 case ObjectType.ProvisionShelf: return "merchant stock";
                 case ObjectType.MerchantCounter: return "trade counter";
-                case ObjectType.EastGate: return "east road out of Midgaard";
-                case ObjectType.WestGate: return "west road out of Midgaard";
+                case ObjectType.EastGate: return "The Old Road east through Lanternless Cross toward Dusk Market";
+                case ObjectType.WestGate: return "The Old Road west through Pilgrim Fork toward Green Shrine and the quarry";
                 case ObjectType.TownGuard: return "gate watch and quest warnings";
                 case ObjectType.GateCaptain: return HasStoryFlag(StoryFlags.MidgaardGateSurveyComplete) ? "survey paid and gates noted" : "starts or completes the gate survey";
                 case ObjectType.KingHall: return "the king assigns road work";

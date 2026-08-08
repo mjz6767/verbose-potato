@@ -63,6 +63,9 @@ namespace AshenHalls
         public const int PreviousHeight = 32;
         public const int LegacyWidth = 46;
         public const int LegacyHeight = 30;
+        public const string OldRoadName = "The Old Road";
+        public const string OldRoadWestJunctionId = "pilgrim-fork";
+        public const string OldRoadEastJunctionId = "lanternless-cross";
 
         private static readonly object RegionalCacheSync = new object();
         private static readonly Dictionary<RegionalCacheKey, WorldMapJunction[]> RegionalJunctionCache =
@@ -116,6 +119,48 @@ namespace AshenHalls
                 RegionalJunctionCache.Add(key, junctions);
                 return junctions;
             }
+        }
+
+        public static bool TryOldRoadEndpoints(
+            int width,
+            int height,
+            int startX,
+            int startY,
+            out WorldMapJunction west,
+            out WorldMapJunction east)
+        {
+            west = default(WorldMapJunction);
+            east = default(WorldMapJunction);
+            foreach (WorldMapJunction junction in RegionalJunctions(width, height, startX, startY))
+            {
+                if (string.Equals(junction.Id, OldRoadWestJunctionId, StringComparison.Ordinal))
+                {
+                    west = junction;
+                }
+                else if (string.Equals(junction.Id, OldRoadEastJunctionId, StringComparison.Ordinal))
+                {
+                    east = junction;
+                }
+            }
+
+            return !string.IsNullOrEmpty(west.Id)
+                && !string.IsNullOrEmpty(east.Id)
+                && west.Y == east.Y
+                && west.X <= east.X;
+        }
+
+        public static bool IsOldRoadCenterlineCell(
+            int width,
+            int height,
+            int startX,
+            int startY,
+            int x,
+            int y)
+        {
+            return TryOldRoadEndpoints(width, height, startX, startY, out WorldMapJunction west, out WorldMapJunction east)
+                && y == west.Y
+                && x >= west.X
+                && x <= east.X;
         }
 
         public static WorldMapSite[] RegionalSites(int width, int height, int startX, int startY)

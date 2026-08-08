@@ -302,7 +302,25 @@ namespace AshenHalls
             ExplorationMaterial material,
             ExplorationCellRole roles)
         {
+            return ShouldDrawMaterialPathStroke(material, roles, false);
+        }
+
+        public static bool ShouldDrawMaterialPathStroke(
+            ExplorationMaterial material,
+            ExplorationCellRole roles,
+            bool authoredRegionalSiteCell)
+        {
             if (!ExplorationSurfaceRules.IsPath(roles)) return false;
+            // Authored regional interiors already paint their roads into the floor
+            // material. Repeating a full cardinal stroke on every Room cell turns
+            // those sites into a translucent circuit board. Thresholds and bridges
+            // retain a stroke so the outside approach remains unmistakable.
+            if (authoredRegionalSiteCell
+                && (roles & ExplorationCellRole.Room) != 0
+                && (roles & (ExplorationCellRole.Threshold | ExplorationCellRole.Bridge)) == 0)
+            {
+                return false;
+            }
             // The 3x3 approach clearings outside Midgaard can retain generated
             // road roles beneath their Plaza role. Painting every connection there
             // produces a dark tic-tac-toe grid over otherwise coherent packed dirt.

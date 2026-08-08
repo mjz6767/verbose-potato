@@ -2696,9 +2696,10 @@ namespace AshenHalls
             GUI.Label(new Rect(rect.x + 16f, y, rect.width - 32f, anchorH), FitText(anchor, rect.width - 32f, CenterLeftStyle(11, ink)), CenterLeftStyle(11, ink));
             y += anchorH + 6f;
             bool showMidgaardTracker = ShouldShowMidgaardTracker();
-            bool showKoboldTracker = !showMidgaardTracker && ShouldShowKoboldRouteTracker();
-            bool showRouteTracker = showMidgaardTracker || showKoboldTracker;
-            float trackerTarget = showMidgaardTracker ? 112f : showKoboldTracker ? 92f : 30f;
+            bool showBoneRoadTracker = !showMidgaardTracker && ShouldShowBoneRoadTracker();
+            bool showKoboldTracker = !showMidgaardTracker && !showBoneRoadTracker && ShouldShowKoboldRouteTracker();
+            bool showRouteTracker = showMidgaardTracker || showKoboldTracker || showBoneRoadTracker;
+            float trackerTarget = showMidgaardTracker ? 112f : showKoboldTracker || showBoneRoadTracker ? 92f : 30f;
             float reservedBottom = showRouteTracker ? trackerTarget + 10f : 38f;
             if (rect.height > 172f)
             {
@@ -2723,6 +2724,10 @@ namespace AshenHalls
             else if (showKoboldTracker && trackerH >= 64f)
             {
                 DrawKoboldRouteTracker(new Rect(rect.x + 12f, y, rect.width - 24f, Mathf.Min(92f, trackerH)));
+            }
+            else if (showBoneRoadTracker && trackerH >= 64f)
+            {
+                DrawBoneRoadTracker(new Rect(rect.x + 12f, y, rect.width - 24f, Mathf.Min(92f, trackerH)));
             }
             else if (trackerH >= 30f)
             {
@@ -2998,7 +3003,7 @@ namespace AshenHalls
             if (!ContentSetCatalog.IsFullPrototype(activeContentSet) && !HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)) return $"Bring sewer proof to the armorer. Proof {RatPeltCount()}/{ContentSetCatalog.SewerSliceRequiredProofCount}.";
             if (!HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)) return $"Bring pelts to the armorer. Pelts {RatPeltCount()}/4.";
             if (!HasStoryFlag(StoryFlags.OldRoadTeaserUnlocked)) return "Speak with the Old Road scout.";
-            return "Old Road open: descend at Sluice Steps toward Dusk Market.";
+            return "Old Road open: travel east through Lanternless Cross toward Dusk Market.";
         }
 
         private void DrawPowerImpactEchoes(Rect grid, float cell)
@@ -3701,7 +3706,7 @@ namespace AshenHalls
                 case ObjectType.Sewer: return "Sewer";
                 case ObjectType.Armorer: return "Armorer";
                 case ObjectType.OldRoadScout: return "Old Road Scout";
-                case ObjectType.Stairs: return "Sluice Steps";
+                case ObjectType.Stairs: return "Eastbound Old Road";
                 case ObjectType.MarketClerk: return "Market Clerk";
                 case ObjectType.TempleHealer: return "Mira";
                 case ObjectType.TavernKeeper: return "Tavern Keeper";
@@ -3728,12 +3733,99 @@ namespace AshenHalls
         private bool ShouldShowKoboldRouteTracker()
         {
             if (state == null) return false;
+            if (state.Depth > 2) return false;
             if (state.Depth == 2) return true;
             return HasStoryFlag(StoryFlags.KoboldAmbushSprung)
                 || HasStoryFlag(StoryFlags.KoboldAmbushSurvived)
                 || HasStoryFlag(StoryFlags.KoboldCaveFound)
                 || HasStoryFlag(StoryFlags.KoboldCaveCleared)
                 || HasStoryFlag(StoryFlags.KoboldKingDefeated);
+        }
+
+        private bool ShouldShowBoneRoadTracker()
+        {
+            if (state == null || state.Depth > 3) return false;
+            return ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags)
+                && HasStoryFlag(StoryFlags.KoboldKingDefeated);
+        }
+
+        private void DrawBoneRoadTracker(Rect rect)
+        {
+            if (rect.height < 54f) return;
+            DrawRect(rect, Hex("080b0d", 0.62f));
+            DrawBorder(rect, violet.WithAlpha(0.62f), 1);
+            Rect icon = new Rect(rect.x + 8f, rect.y + 8f, 30f, 30f);
+            if (!TryDrawWorldMapProgressionOverlayAtlasIcon(icon, BoneRoadProgressionIcon(), Color.white.WithAlpha(0.92f)))
+            {
+                DrawTinyUiIcon(icon, "quest", violet);
+            }
+            GUI.Label(new Rect(rect.x + 46f, rect.y + 7f, rect.width - 56f, 16f), "Names Under Stone", CenterLeftStyle(12, violet));
+            GUI.Label(
+                new Rect(rect.x + 46f, rect.y + 23f, rect.width - 56f, 15f),
+                FitText(BoneRoadStatusLine(), rect.width - 56f, CenterLeftStyle(9, muted)),
+                CenterLeftStyle(9, muted));
+
+            string[] labels = { "Watch", "Ritual", "Warden", "Gate" };
+            float chipGap = 4f;
+            float chipW = Mathf.Max(44f, (rect.width - 16f - chipGap * 3f) / 4f);
+            float chipY = rect.y + Mathf.Min(52f, rect.height - 28f);
+            int active = BoneRoadActiveStep();
+            for (int i = 0; i < labels.Length; i++)
+            {
+                bool done = BoneRoadStepComplete(i);
+                Rect chip = new Rect(rect.x + 8f + i * (chipW + chipGap), chipY, chipW, 22f);
+                Color accent = done ? teal : i == active ? gold : line;
+                DrawRect(chip, Hex("151b20", done ? 0.86f : 0.62f));
+                DrawBorder(chip, accent.WithAlpha(i == active ? 0.92f : 0.62f), i == active ? 2 : 1);
+                GUI.Label(
+                    new Rect(chip.x + 4f, chip.y + 2f, chip.width - 8f, chip.height - 2f),
+                    FitText(done ? labels[i] + " ok" : labels[i], chip.width - 8f, CenterStyle(8, done ? teal : ink)),
+                    CenterStyle(8, done ? teal : ink));
+            }
+        }
+
+        private string BoneRoadStatusLine()
+        {
+            if (state == null) return "";
+            if (HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)) return "Frontier charted; return to Midgaard for the next expedition.";
+            if (HasStoryFlag(StoryFlags.RedGateWarningRecovered)) return "Warning recovered; survey the Glass-and-Ash frontier.";
+            if (state.Depth <= 1) return "Take the Old Road east and resume beyond Varkh's hall.";
+            if (state.Depth == 2) return "Enter the passage beyond Varkh's broken shield hall.";
+            if (HasStoryFlag(StoryFlags.GloamWardenDefeated)) return "Carry the tally to the Red Gate Seal.";
+            if (HasStoryFlag(StoryFlags.GloamRitualBroken)) return "Confront the Ossuary Warden below the crypt.";
+            if (HasStoryFlag(StoryFlags.BoneRoadWatchDefeated)) return "Break the reliquary choir in Gloam Deep Crypt.";
+            if (HasStoryFlag(StoryFlags.BoneRoadWatchSprung)) return "The road watch has risen. Hold the approach.";
+            return "Follow Courtward Arch to Gloam Deep Crypt.";
+        }
+
+        private int BoneRoadActiveStep()
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                if (!BoneRoadStepComplete(i)) return i;
+            }
+            return 3;
+        }
+
+        private int BoneRoadProgressionIcon()
+        {
+            int step = BoneRoadActiveStep();
+            if (step == 0) return 17;
+            if (step == 1) return 7;
+            if (step == 2) return 12;
+            return 16;
+        }
+
+        private bool BoneRoadStepComplete(int index)
+        {
+            switch (index)
+            {
+                case 0: return HasStoryFlag(StoryFlags.BoneRoadWatchDefeated);
+                case 1: return HasStoryFlag(StoryFlags.GloamRitualBroken);
+                case 2: return HasStoryFlag(StoryFlags.GloamWardenDefeated);
+                case 3: return HasStoryFlag(StoryFlags.RedGateWarningRecovered);
+                default: return false;
+            }
         }
 
         private void DrawKoboldRouteTracker(Rect rect)
@@ -3770,8 +3862,18 @@ namespace AshenHalls
         {
             if (state == null) return "";
             if (state.Depth > 2) return "Route complete; the road points deeper.";
-            if (HasStoryFlag(StoryFlags.KoboldKingDefeated)) return "King defeated. Find stairs toward the Bone Road.";
-            if (HasStoryFlag(StoryFlags.KoboldCaveCleared)) return "Return to the cave mouth for the king's hall.";
+            if (state.Depth == 1 && HasKoboldStoryProgress())
+            {
+                if (HasStoryFlag(StoryFlags.KoboldKingDefeated)) return "Varkh is defeated. The Old Road remains open.";
+                if (HasStoryFlag(StoryFlags.KoboldCaveCleared)) return "Take the Old Road east, then use the cave mouth for Varkh's Hall.";
+                if (HasStoryFlag(StoryFlags.KoboldAmbushSurvived)) return "Take the Old Road east to the revealed smoke cave.";
+                return "Take the Old Road east to rejoin the Dusk Market fight.";
+            }
+            if (HasStoryFlag(StoryFlags.KoboldKingDefeated))
+            {
+                return "Varkh defeated. The Bone Road passage is open beyond his hall.";
+            }
+            if (HasStoryFlag(StoryFlags.KoboldCaveCleared)) return "Camp if needed, then use the cave mouth again for Varkh's Hall.";
             if (HasStoryFlag(StoryFlags.KoboldAmbushSurvived)) return "Find the smoke cave behind the market charms.";
             if (HasStoryFlag(StoryFlags.KoboldAmbushSprung)) return "Ambush sprung. Hold formation.";
             return "Reach Dusk Market and watch for bone whistles.";
@@ -3801,7 +3903,9 @@ namespace AshenHalls
                 case 0: return HasStoryFlag(StoryFlags.KoboldAmbushSurvived);
                 case 1: return HasStoryFlag(StoryFlags.KoboldCaveCleared);
                 case 2: return HasStoryFlag(StoryFlags.KoboldKingDefeated);
-                case 3: return state != null && state.Depth > 2;
+                case 3:
+                    return HasStoryFlag(StoryFlags.BoneRoadEntered)
+                        || state != null && state.Depth > 2;
                 default: return false;
             }
         }
@@ -5704,6 +5808,10 @@ namespace AshenHalls
         }
 
         private const string KoboldStoryCaveId = "dusk-market-smoke-cave";
+        private const string BoneRoadPassageId = "bone-road-passage-varkh-hall";
+        private const string GlassAndAshPassageId = "glass-and-ash-passage-red-gate";
+        private const string GloamDeepCryptSiteId = "gloam-deep-crypt";
+        private const string RedGateSealSiteId = "red-gate-seal";
 
         private bool IsKoboldStoryCave(MapObject cave)
         {
@@ -5717,7 +5825,7 @@ namespace AshenHalls
             if (!ContentSetCatalog.AllowKoboldChapter(activeContentSet, state?.StoryFlags)) return false;
             if (state?.Map == null || state.Mode != GameMode.Explore) return false;
             if (state.Depth != 2 || HasStoryFlag(StoryFlags.KoboldAmbushSurvived) || HasStoryFlag(StoryFlags.KoboldKingDefeated)) return false;
-            if (ZoneAt(state.PlayerX, state.PlayerY)?.Id != "dusk-market") return false;
+            if (!IsKoboldAmbushApproachCell(state.PlayerX, state.PlayerY)) return false;
 
             SetStoryFlag(StoryFlags.KoboldAmbushSprung);
             state.ActiveStory = "Chapter II: Kobold Smoke. Survive the Dusk Market ambush and find the cave mouth behind the bone charms.";
@@ -5727,45 +5835,522 @@ namespace AshenHalls
             return true;
         }
 
-        private void EnsureKoboldKingCaveMarker()
+        private bool MaybeTriggerBoneRoadWatch()
         {
-            if (!ContentSetCatalog.AllowKoboldChapter(activeContentSet, state?.StoryFlags)) return;
-            if (state?.Map?.Objects == null || state.Depth != 2 || HasStoryFlag(StoryFlags.KoboldKingDefeated)) return;
-            if (state.Map.FindObjectById(KoboldStoryCaveId) != null) return;
-            MapObject existingDuskCave = state.Map.Objects
-                .Where(o => o != null
-                    && o.Type == ObjectType.Cave
-                    && ZoneIdFor(o.X, o.Y, state.Map, state.Depth) == "dusk-market")
-                .OrderByDescending(o => Distance(o.X, o.Y, state.Map.StartX, state.Map.StartY))
-                .FirstOrDefault();
-            if (existingDuskCave != null)
+            if (!ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state?.StoryFlags)) return false;
+            if (state?.Map == null || state.Mode != GameMode.Explore || state.Depth != 3) return false;
+            if (HasStoryFlag(StoryFlags.BoneRoadWatchDefeated)
+                || HasStoryFlag(StoryFlags.RedGateWarningRecovered))
             {
-                existingDuskCave.Id = KoboldStoryCaveId;
-                state.Map.InvalidateObjectLookup();
-                return;
+                return false;
+            }
+            if (!TryBoneRoadStorySite(out WorldMapSite crypt)) return false;
+            if (Mathf.Max(Mathf.Abs(state.PlayerX - crypt.X), Mathf.Abs(state.PlayerY - crypt.Y)) > crypt.Radius)
+            {
+                return false;
             }
 
-            List<Point> candidates = new List<Point>();
-            for (int y = 1; y < state.Map.Height - 1; y++)
-            for (int x = 1; x < state.Map.Width - 1; x++)
+            SetStoryFlag(StoryFlags.BoneRoadWatchSprung);
+            state.ActiveStory = BoneRoadObjectiveForProgress();
+            PushLog("A bell made from finger bones answers beneath the court. The road watch rises between the party and the crypt doors.", Tone.Warn);
+            ShowBanner("Bone Road Watch");
+            StartCombat(EncounterId.BoneRoadWatch);
+            return true;
+        }
+
+        private bool TryBoneRoadStorySite(out WorldMapSite site)
+        {
+            return TryStoryRegionalSite(GloamDeepCryptSiteId, out site);
+        }
+
+        private bool TryRedGateStorySite(out WorldMapSite site)
+        {
+            return TryStoryRegionalSite(RedGateSealSiteId, out site);
+        }
+
+        private bool TryStoryRegionalSite(string siteId, out WorldMapSite site)
+        {
+            site = default;
+            if (state?.Map == null || string.IsNullOrEmpty(siteId)) return false;
+            site = WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY)
+                .FirstOrDefault(candidate => string.Equals(candidate.Id, siteId, StringComparison.Ordinal));
+            return !string.IsNullOrEmpty(site.Id);
+        }
+
+        private bool HasBoneRoadStoryProgress()
+        {
+            return HasStoryFlag(StoryFlags.KoboldKingDefeated)
+                || HasStoryFlag(StoryFlags.BoneRoadEntered)
+                || HasStoryFlag(StoryFlags.BoneRoadWatchSprung)
+                || HasStoryFlag(StoryFlags.BoneRoadWatchDefeated)
+                || HasStoryFlag(StoryFlags.GloamRitualBroken)
+                || HasStoryFlag(StoryFlags.GloamWardenDefeated)
+                || HasStoryFlag(StoryFlags.RedGateWarningRecovered)
+                || HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed);
+        }
+
+        private string BoneRoadObjectiveForProgress()
+        {
+            int depth = state?.Depth ?? 1;
+            if (HasStoryFlag(StoryFlags.RedGateWarningRecovered))
             {
-                if (TileAt(state.Map, x, y) == 1
-                    && ObjectAt(state.Map, x, y) == null
-                    && CanPlaceGeneratedExploreObject(state.Map, x, y, ObjectType.Cave)
-                    && ZoneIdFor(x, y, state.Map, state.Depth) == "dusk-market")
+                if (ContentSetCatalog.IsFullPrototype(activeContentSet) && depth != 3)
                 {
-                    candidates.Add(new Point(x, y));
+                    return StoryObjectiveForDepth(Mathf.Max(4, depth));
+                }
+                return HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                    ? "Chapter III complete: Names Under Stone. The Glass-and-Ash frontier is charted. Return to Midgaard, outfit the company, and wait for the next expedition."
+                    : "Chapter III complete: Names Under Stone. The Red Gate warning is recorded; survey the Glass-and-Ash frontier before returning to Midgaard.";
+            }
+            if (HasStoryFlag(StoryFlags.GloamWardenDefeated))
+            {
+                return "Chapter III: Names Under Stone. Carry the recovered tally south-east to the Red Gate Seal and read it against the outer sigils.";
+            }
+            if (HasStoryFlag(StoryFlags.GloamRitualBroken))
+            {
+                return "Chapter III: Names Under Stone. Return to the Gloam Deep Crypt and confront the Ossuary Warden below the broken choir.";
+            }
+            if (HasStoryFlag(StoryFlags.BoneRoadWatchDefeated))
+            {
+                return "Chapter III: Names Under Stone. Enter the Gloam Deep Crypt and break the reliquary choir before it names another road company.";
+            }
+            if (depth <= 1)
+            {
+                return "Chapter III: Names Under Stone. Take the Old Road east through Lanternless Cross, then follow Varkh's opened passage to the Bone Road.";
+            }
+            if (depth == 2)
+            {
+                return "Chapter III: Names Under Stone. Use the Bone Road passage beyond Varkh's Hall and carry the king's tally into the Gloam Courts.";
+            }
+            if (HasStoryFlag(StoryFlags.BoneRoadWatchSprung))
+            {
+                return "Chapter III: Names Under Stone. Break the Bone Road watch outside the Gloam Deep Crypt.";
+            }
+            return "Chapter III: Names Under Stone. Carry Varkh's tally north through Courtward Arch to the Gloam Deep Crypt.";
+        }
+
+        private void RepairBoneRoadStoryObjective(bool force = false)
+        {
+            if (state == null || state.Depth > 4 || !HasBoneRoadStoryProgress()) return;
+            string current = state.ActiveStory ?? "";
+            bool boneRoadObjective = string.IsNullOrWhiteSpace(current)
+                || current.IndexOf("Chapter III", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Gloam", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Ossuary", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Red Gate warning", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!force && !boneRoadObjective) return;
+            state.ActiveStory = BoneRoadObjectiveForProgress();
+        }
+
+        private bool TryKoboldStorySite(out WorldMapSite site)
+        {
+            site = default;
+            if (state?.Map == null || state.Depth != 2) return false;
+            site = WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY)
+                .FirstOrDefault(candidate => string.Equals(
+                    candidate.Id,
+                    "dusk-market-hideout",
+                    StringComparison.Ordinal));
+            return !string.IsNullOrEmpty(site.Id);
+        }
+
+        private bool IsKoboldAmbushApproachCell(int x, int y)
+        {
+            if (state?.Map == null
+                || !UsesRegionalSiteLayout(state.Map)
+                || !TryKoboldStorySite(out WorldMapSite site))
+            {
+                return ZoneAt(x, y)?.Id == "dusk-market";
+            }
+
+            return Mathf.Max(Mathf.Abs(x - site.X), Mathf.Abs(y - site.Y)) <= site.Radius;
+        }
+
+        private string KoboldStoryObjectiveForProgress()
+        {
+            bool inMidgaard = state != null && state.Depth == 1;
+            if (HasStoryFlag(StoryFlags.KoboldKingDefeated))
+            {
+                return ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state?.StoryFlags)
+                    ? BoneRoadObjectiveForProgress()
+                    : inMidgaard
+                        ? "Chapter II complete: Varkh is defeated. The Old Road remains open for further exploration."
+                        : "Chapter II complete: The Dusk Market cave drums are silent. Recall to Midgaard (Y), or continue exploring the Old Road.";
+            }
+            if (HasStoryFlag(StoryFlags.KoboldCaveCleared))
+            {
+                if (inMidgaard)
+                {
+                    return "Chapter II: Kobold Smoke. Return to Lanternless Cross, follow the Old Road east, then use the smoke cave mouth for Varkh's Hall.";
+                }
+                return "Chapter II: Kobold Smoke. Camp if needed, then use the same cave mouth again to descend into Varkh's Hall.";
+            }
+            if (HasStoryFlag(StoryFlags.KoboldAmbushSurvived))
+            {
+                if (inMidgaard)
+                {
+                    return "Chapter II: Kobold Smoke. Return to Lanternless Cross and follow the Old Road east to the revealed smoke cave.";
+                }
+                return "Chapter II: Kobold Smoke. Find the cave mouth behind the Dusk Market bone charms.";
+            }
+            if (HasStoryFlag(StoryFlags.KoboldAmbushSprung))
+            {
+                if (inMidgaard)
+                {
+                    return "Chapter II: Kobold Smoke. Return to Lanternless Cross and follow the Old Road east to rejoin the Dusk Market fight.";
+                }
+                return "Chapter II: Kobold Smoke. Survive the Dusk Market ambush, then follow the fleeing kobolds to their cave mouth.";
+            }
+            return StoryObjectiveForDepth(2);
+        }
+
+        private bool HasKoboldStoryProgress()
+        {
+            return HasStoryFlag(StoryFlags.KoboldAmbushSprung)
+                || HasStoryFlag(StoryFlags.KoboldAmbushSurvived)
+                || HasStoryFlag(StoryFlags.KoboldCaveFound)
+                || HasStoryFlag(StoryFlags.KoboldCaveCleared)
+                || HasStoryFlag(StoryFlags.KoboldKingDefeated);
+        }
+
+        private void RepairKoboldStoryObjective(bool force = false)
+        {
+            if (state == null || state.Depth > 2 || !HasKoboldStoryProgress()) return;
+            string current = state.ActiveStory ?? "";
+            bool koboldObjective = string.IsNullOrWhiteSpace(current)
+                || current.IndexOf("Chapter II", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Kobold", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Dusk Market", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Varkh", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!force && !koboldObjective) return;
+            state.ActiveStory = KoboldStoryObjectiveForProgress();
+        }
+
+        private bool HasVisitedExplorationDepth(int depth)
+        {
+            int safeDepth = Mathf.Max(1, depth);
+            string prefix = safeDepth + ":";
+            if (state?.DiscoveredZones != null
+                && state.DiscoveredZones.Any(key => key != null && key.StartsWith(prefix, StringComparison.Ordinal)))
+            {
+                return true;
+            }
+
+            // Older Chapter II saves may predate reliable depth-scoped discovery
+            // keys. Their chapter or kobold state is still durable visit evidence.
+            if (state == null) return false;
+            if (safeDepth == 2) return state.StoryChapter >= 2 || HasKoboldStoryProgress();
+            if (safeDepth == 3) return HasStoryFlag(StoryFlags.BoneRoadEntered);
+            return false;
+        }
+
+        private bool TryCertifiedKoboldStoryAnchor(out Point anchor)
+        {
+            anchor = null;
+            if (state?.Map == null
+                || !UsesRegionalSiteLayout(state.Map)
+                || !TryKoboldStorySite(out WorldMapSite site))
+            {
+                return false;
+            }
+
+            MapObject landmark = state.Map.FindObjectById(RegionalSiteObjectId(site));
+            int x = site.X + 2;
+            int y = site.Y;
+            if (landmark == null
+                || landmark.X != site.X
+                || landmark.Y != site.Y
+                || x <= 0
+                || y <= 0
+                || x >= state.Map.Width - 1
+                || y >= state.Map.Height - 1
+                || TileAt(state.Map, x, y) != 1
+                || ZoneIdFor(x, y, state.Map, state.Depth) != "dusk-market")
+            {
+                return false;
+            }
+
+            anchor = new Point(x, y);
+            return true;
+        }
+
+        private Point FindReachableKoboldStoryAnchor(
+            IReadOnlyCollection<MapObject> stableMarkers,
+            out MapObject reusableCave)
+        {
+            reusableCave = null;
+            if (state?.Map?.Objects == null) return null;
+
+            Point routeAnchor = FindCriticalRouteAnchor(state.Map);
+            bool[,] reachable = routeAnchor == null
+                ? null
+                : ExplorationTraversalRules.ReachableMask(state.Map, routeAnchor.X, routeAnchor.Y);
+            if (reachable != null)
+            {
+                int targetX = state.Map.StartX;
+                int targetY = state.Map.StartY;
+                if (TryKoboldStorySite(out WorldMapSite site))
+                {
+                    targetX = site.X + 2;
+                    targetY = site.Y;
+                }
+
+                reusableCave = state.Map.Objects
+                    .Where(candidate => candidate != null
+                        && candidate.Type == ObjectType.Cave
+                        && ZoneIdFor(candidate.X, candidate.Y, state.Map, state.Depth) == "dusk-market"
+                        && ExplorationTraversalRules.CanReachObject(reachable, state.Map, candidate))
+                    .OrderBy(candidate => stableMarkers != null && stableMarkers.Contains(candidate) ? 0 : 1)
+                    .ThenBy(candidate => Distance(candidate.X, candidate.Y, targetX, targetY))
+                    .ThenBy(candidate => candidate.Y)
+                    .ThenBy(candidate => candidate.X)
+                    .FirstOrDefault();
+                if (reusableCave != null) return new Point(reusableCave.X, reusableCave.Y);
+
+                MapObject placementProbe = new MapObject(targetX, targetY, ObjectType.Cave, KoboldStoryCaveId);
+                Point reachablePlacement = FindCriticalExplorePlacement(
+                    state.Map,
+                    placementProbe,
+                    reachable,
+                    "dusk-market",
+                    true);
+                if (reachablePlacement != null) return reachablePlacement;
+            }
+
+            reusableCave = state.Map.Objects
+                .Where(candidate => candidate != null
+                    && candidate.Type == ObjectType.Cave
+                    && ZoneIdFor(candidate.X, candidate.Y, state.Map, state.Depth) == "dusk-market")
+                .OrderBy(candidate => stableMarkers != null && stableMarkers.Contains(candidate) ? 0 : 1)
+                .ThenBy(candidate => Distance(candidate.X, candidate.Y, state.Map.StartX, state.Map.StartY))
+                .FirstOrDefault();
+            return reusableCave == null ? null : new Point(reusableCave.X, reusableCave.Y);
+        }
+
+        private void EnsureKoboldKingCaveMarker()
+        {
+            RepairKoboldStoryObjective();
+            if (!ContentSetCatalog.AllowKoboldChapter(activeContentSet, state?.StoryFlags)) return;
+            if (state?.Map?.Objects == null || state.Depth != 2) return;
+            if (HasStoryFlag(StoryFlags.KoboldKingDefeated))
+            {
+                EnsureBoneRoadPassageMarker();
+                return;
+            }
+            List<MapObject> markers = state.Map.Objects
+                .Where(candidate => candidate != null && string.Equals(
+                    candidate.Id,
+                    KoboldStoryCaveId,
+                    StringComparison.Ordinal))
+                .ToList();
+            bool certifiedSiteAnchor = TryCertifiedKoboldStoryAnchor(out Point anchor);
+            MapObject storyCave;
+            if (certifiedSiteAnchor)
+            {
+                storyCave = markers.FirstOrDefault(candidate =>
+                        candidate.Type == ObjectType.Cave
+                        && ZoneIdFor(candidate.X, candidate.Y, state.Map, state.Depth) == "dusk-market")
+                    ?? markers.FirstOrDefault();
+            }
+            else
+            {
+                anchor = FindReachableKoboldStoryAnchor(markers, out MapObject reusableCave);
+                storyCave = reusableCave ?? markers.FirstOrDefault();
+            }
+            if (anchor == null) return;
+
+            MapObject anchorOccupant = ObjectAt(state.Map, anchor.X, anchor.Y);
+            if (storyCave == null && anchorOccupant != null && anchorOccupant.Type == ObjectType.Cave)
+            {
+                storyCave = anchorOccupant;
+            }
+            if (storyCave == null)
+            {
+                storyCave = new MapObject(anchor.X, anchor.Y, ObjectType.Cave, KoboldStoryCaveId);
+                state.Map.Objects.Add(storyCave);
+            }
+
+            if (anchorOccupant != null && !ReferenceEquals(anchorOccupant, storyCave))
+            {
+                Point replacement = FindSafeGeneratedObjectTile(
+                    state.Map,
+                    anchorOccupant,
+                    ZoneIdFor(anchorOccupant.X, anchorOccupant.Y, state.Map, state.Depth))
+                    ?? FindSafeGeneratedObjectTile(state.Map, anchorOccupant, "");
+                if (replacement != null)
+                {
+                    anchorOccupant.X = replacement.X;
+                    anchorOccupant.Y = replacement.Y;
+                }
+                else
+                {
+                    state.Map.Objects.Remove(anchorOccupant);
                 }
             }
 
-            Point chosen = candidates
-                .OrderByDescending(p => Distance(p.X, p.Y, state.Map.StartX, state.Map.StartY))
-                .FirstOrDefault();
-            if (chosen != null)
+            state.Map.Objects.RemoveAll(candidate => candidate != null
+                && !ReferenceEquals(candidate, storyCave)
+                && string.Equals(candidate.Id, KoboldStoryCaveId, StringComparison.Ordinal));
+            storyCave.X = anchor.X;
+            storyCave.Y = anchor.Y;
+            storyCave.Type = ObjectType.Cave;
+            storyCave.Id = KoboldStoryCaveId;
+            SetExploreCell(
+                state.Map,
+                anchor.X,
+                anchor.Y,
+                1,
+                ExplorationMaterial.RuinedPaving,
+                ExplorationCellRole.Room | ExplorationCellRole.Road | ExplorationCellRole.Threshold);
+            state.Map.InvalidateObjectLookup();
+        }
+
+        private void EnsureBoneRoadPassageMarker()
+        {
+            if (!ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state?.StoryFlags)) return;
+            if (state?.Map?.Objects == null || state.Depth != 2) return;
+
+            List<MapObject> markers = state.Map.Objects
+                .Where(candidate => candidate != null
+                    && (string.Equals(candidate.Id, BoneRoadPassageId, StringComparison.Ordinal)
+                        || string.Equals(candidate.Id, KoboldStoryCaveId, StringComparison.Ordinal)))
+                .ToList();
+            MapObject passage = markers.FirstOrDefault(candidate => string.Equals(
+                    candidate.Id,
+                    BoneRoadPassageId,
+                    StringComparison.Ordinal))
+                ?? markers.FirstOrDefault();
+
+            Point anchor = null;
+            if (!TryCertifiedKoboldStoryAnchor(out anchor))
             {
-                state.Map.Objects.Add(new MapObject(chosen.X, chosen.Y, ObjectType.Cave, KoboldStoryCaveId));
-                state.Map.InvalidateObjectLookup();
+                anchor = passage == null ? null : new Point(passage.X, passage.Y);
+                if (anchor == null)
+                {
+                    anchor = FindReachableKoboldStoryAnchor(markers, out MapObject reusable);
+                    passage = passage ?? reusable;
+                }
             }
+            if (anchor == null) return;
+
+            MapObject occupant = ObjectAt(state.Map, anchor.X, anchor.Y);
+            if (passage == null && occupant != null
+                && (occupant.Type == ObjectType.Cave || occupant.Type == ObjectType.Stairs))
+            {
+                passage = occupant;
+            }
+            if (passage == null)
+            {
+                passage = new MapObject(anchor.X, anchor.Y, ObjectType.Stairs, BoneRoadPassageId);
+                state.Map.Objects.Add(passage);
+            }
+
+            if (occupant != null && !ReferenceEquals(occupant, passage))
+            {
+                Point replacement = FindSafeGeneratedObjectTile(
+                    state.Map,
+                    occupant,
+                    ZoneIdFor(occupant.X, occupant.Y, state.Map, state.Depth))
+                    ?? FindSafeGeneratedObjectTile(state.Map, occupant, "");
+                if (replacement != null)
+                {
+                    occupant.X = replacement.X;
+                    occupant.Y = replacement.Y;
+                }
+                else
+                {
+                    state.Map.Objects.Remove(occupant);
+                }
+            }
+
+            state.Map.Objects.RemoveAll(candidate => candidate != null
+                && !ReferenceEquals(candidate, passage)
+                && (string.Equals(candidate.Id, BoneRoadPassageId, StringComparison.Ordinal)
+                    || string.Equals(candidate.Id, KoboldStoryCaveId, StringComparison.Ordinal)));
+            passage.X = anchor.X;
+            passage.Y = anchor.Y;
+            passage.Type = ObjectType.Stairs;
+            passage.Id = BoneRoadPassageId;
+            SetExploreCell(
+                state.Map,
+                anchor.X,
+                anchor.Y,
+                1,
+                ExplorationMaterial.RuinedPaving,
+                ExplorationCellRole.Room | ExplorationCellRole.Road | ExplorationCellRole.Threshold);
+            state.Map.InvalidateObjectLookup();
+        }
+
+        private void EnsureGlassAndAshPassageMarker()
+        {
+            if (!ContentSetCatalog.BoneRoadComplete(state?.StoryFlags)) return;
+            if (state?.Map?.Objects == null || state.Depth != 3 || !TryRedGateStorySite(out WorldMapSite site)) return;
+
+            int x = site.X;
+            int y = site.Y - site.Radius;
+            if (x <= 0 || y <= 0 || x >= state.Map.Width - 1 || y >= state.Map.Height - 1)
+            {
+                return;
+            }
+
+            List<MapObject> markers = state.Map.Objects
+                .Where(candidate => candidate != null
+                    && string.Equals(candidate.Id, GlassAndAshPassageId, StringComparison.Ordinal))
+                .ToList();
+            MapObject passage = markers.FirstOrDefault();
+            MapObject occupant = ObjectAt(state.Map, x, y);
+            if (passage == null && occupant != null && occupant.Type == ObjectType.Stairs)
+            {
+                passage = occupant;
+            }
+            if (passage == null)
+            {
+                passage = new MapObject(x, y, ObjectType.Stairs, GlassAndAshPassageId);
+                state.Map.Objects.Add(passage);
+            }
+
+            if (occupant != null && !ReferenceEquals(occupant, passage))
+            {
+                Point replacement = FindSafeGeneratedObjectTile(
+                    state.Map,
+                    occupant,
+                    ZoneIdFor(occupant.X, occupant.Y, state.Map, state.Depth))
+                    ?? FindSafeGeneratedObjectTile(state.Map, occupant, "");
+                if (replacement != null)
+                {
+                    occupant.X = replacement.X;
+                    occupant.Y = replacement.Y;
+                }
+                else
+                {
+                    state.Map.Objects.Remove(occupant);
+                }
+            }
+
+            state.Map.Objects.RemoveAll(candidate => candidate != null
+                && !ReferenceEquals(candidate, passage)
+                && string.Equals(candidate.Id, GlassAndAshPassageId, StringComparison.Ordinal));
+            passage.X = x;
+            passage.Y = y;
+            passage.Type = ObjectType.Stairs;
+            passage.Id = GlassAndAshPassageId;
+            SetExploreCell(
+                state.Map,
+                x,
+                y,
+                1,
+                ExplorationMaterial.RedAsh,
+                ExplorationCellRole.Room | ExplorationCellRole.Road | ExplorationCellRole.Clearing | ExplorationCellRole.Threshold);
+            state.Map.InvalidateObjectLookup();
         }
 
         private MapObject FindKoboldStoryCave()
@@ -5877,7 +6462,7 @@ namespace AshenHalls
                     SetStoryFlag(StoryFlags.KoboldCaveFound);
                     if (!HasStoryFlag(StoryFlags.KoboldCaveCleared))
                     {
-                        state.ActiveStory = "Chapter II: Kobold Smoke. Clear the smoke caves, then return to the cave mouth for the king's hall.";
+                        state.ActiveStory = "Chapter II: Kobold Smoke. Clear the smoke cave, then camp if needed and use this mouth again for Varkh's Hall.";
                         PushLog("Drums answer from the cave mouth. Kobold shields scrape over stone.", Tone.Warn);
                         ShowBanner("Kobold Cave");
                         StartCombat(EncounterId.KoboldCave);
@@ -5952,6 +6537,8 @@ namespace AshenHalls
                 PushLog(site.Name + " is added to the party's road chart. " + site.Summary, Tone.Good);
             }
 
+            if (TryResolveBoneRoadStorySite(site)) return true;
+
             if (!WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
             {
                 PushLog(site.Summary, Tone.Normal);
@@ -5991,6 +6578,64 @@ namespace AshenHalls
             ShowBanner(site.Name);
             PlaySfx(WorldSitePresentationRules.InspectCueFor(site.Id), 0.68f);
             return true;
+        }
+
+        private bool TryResolveBoneRoadStorySite(WorldMapSite site)
+        {
+            if (!ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state?.StoryFlags)
+                || state == null
+                || state.Depth != 3)
+            {
+                return false;
+            }
+
+            if (string.Equals(site.Id, GloamDeepCryptSiteId, StringComparison.Ordinal)
+                && !HasStoryFlag(StoryFlags.GloamWardenDefeated))
+            {
+                if (!HasStoryFlag(StoryFlags.BoneRoadWatchDefeated))
+                {
+                    SetStoryFlag(StoryFlags.BoneRoadWatchSprung);
+                    state.ActiveStory = BoneRoadObjectiveForProgress();
+                    PushLog("The crypt approach belongs to the Bone Road watch. The dead close ranks around its bell standard.", Tone.Warn);
+                    ShowBanner("Bone Road Watch");
+                    StartCombat(EncounterId.BoneRoadWatch);
+                    return true;
+                }
+
+                if (!HasStoryFlag(StoryFlags.GloamRitualBroken))
+                {
+                    state.ActiveStory = "Chapter III: Names Under Stone. Break the reliquary choir inside the Gloam Deep Crypt.";
+                    PushLog("The crypt doors open on a choir of stolen names. A bone priest turns the dead toward the party.", Tone.Warn);
+                    ShowBanner("Reliquary Choir");
+                    StartCombat(EncounterId.GloamCryptRitual);
+                    return true;
+                }
+
+                state.ActiveStory = "Chapter III: Names Under Stone. Defeat the Ossuary Warden and recover Varkh's road tally.";
+                PushLog("Below the broken choir, the Ossuary Warden locks the tally behind shield and oath.", Tone.Warn);
+                ShowBanner("Ossuary Warden");
+                StartCombat(EncounterId.GloamWarden);
+                return true;
+            }
+
+            if (!string.Equals(site.Id, RedGateSealSiteId, StringComparison.Ordinal)
+                || !HasStoryFlag(StoryFlags.GloamWardenDefeated)
+                || HasStoryFlag(StoryFlags.RedGateWarningRecovered))
+            {
+                return false;
+            }
+
+            SetStoryFlag(StoryFlags.RedGateWarningRecovered);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 4);
+            state.ActiveStory = BoneRoadObjectiveForProgress();
+            EnsureGlassAndAshPassageMarker();
+            AwardWorldExperience(48, "Chapter III completed");
+            PushLog("Varkh's tally fits the outer sigils. It names a drow levy, a meteor-crowned master, and a war road hidden behind glass and ash.", Tone.Good);
+            PushLog(state.ActiveStory, Tone.Good);
+            ShowBanner("Names Under Stone Complete");
+            PlaySfx("wayfind", 0.88f);
+            AutosaveCheckpoint("Red Gate warning recovered");
+            return false;
         }
 
         private bool TryApplyWorldSiteFirstReward(
@@ -8030,7 +8675,7 @@ namespace AshenHalls
             }
             else if (!fullPrototype)
             {
-                PushLog("The king marks the sewer work complete. Sluice Steps now opens the Old Road toward Dusk Market.", Tone.Good);
+                PushLog("The king marks the sewer work complete. The East Gate now opens the Old Road toward Dusk Market.", Tone.Good);
                 ShowBanner("Sewer Contract Complete");
             }
             else
@@ -8191,18 +8836,39 @@ namespace AshenHalls
 
         private void ShowYaraConversation()
         {
+            bool varkhDefeated = HasStoryFlag(StoryFlags.KoboldKingDefeated);
+            bool warningRecovered = HasStoryFlag(StoryFlags.RedGateWarningRecovered);
+            DialogueChoiceView[] choices = warningRecovered
+                ? new[]
+                {
+                    MakeDialogueChoice("warning", "Read the Red Gate warning with me.", "What the recovered tally says about the road ahead."),
+                    MakeDialogueChoice("glassroad", "What lies beyond the seal?", "Yara's best reading of the Glass-and-Ash road."),
+                    MakeDialogueChoice("cover", "Remind me about road cover.", "Using roots and stone without becoming trapped behind them.")
+                }
+                : varkhDefeated
+                    ? new[]
+                    {
+                        MakeDialogueChoice("tally", "Varkh carried this tally. What is it?", "Why kobold names and Gloam court marks share one sheet."),
+                        MakeDialogueChoice("gloam", "What do you know about Gloam Courts?", "The Bone Road, its grave watch, and the deep crypt."),
+                        MakeDialogueChoice("cover", "What still works as cover out there?", "Using roots and stone without becoming trapped behind them.")
+                    }
+                    : new[]
+                    {
+                        MakeDialogueChoice("shrine", "How is Green Shrine Road?", "Roots, old shrines, and narrow approaches."),
+                        MakeDialogueChoice("quarry", "And the quarry?", "Open sight lines, broken levels, and heavy enemies."),
+                        MakeDialogueChoice("cover", "What actually holds as cover?", "Using roots and stone without becoming trapped behind them.")
+                    };
             ShowDialogueChoices(
                 "Old Road Scout",
                 "Yara",
-                "I have current notes on Green Shrine Road and the old quarry. I can also show you how the cover changes along the western route. Which do you need?",
+                warningRecovered
+                    ? "Set it here. Those scratches are not treasure marks; they are marching counts. I was hoping I had read them wrong."
+                    : varkhDefeated
+                        ? "You smell like kobold smoke, and that cord around the tally is Gloam work. Let me see it before anyone calls this road clear."
+                        : "The west road changed again after the rain. I have fresh marks for the shrine bend and the quarry cuts. Where are you headed?",
                 ObjectType.OldRoadScout,
                 moss,
-                new[]
-                {
-                    MakeDialogueChoice("shrine", "What is Green Shrine Road like?", "Roots, old shrines, and narrow approaches."),
-                    MakeDialogueChoice("quarry", "What should we expect at the quarry?", "Open sight lines, broken levels, and heavy enemies."),
-                    MakeDialogueChoice("cover", "How reliable is the cover?", "Using roots and stone without becoming trapped behind them.")
-                },
+                choices,
                 ResolveYaraDialogueChoice);
         }
 
@@ -8210,14 +8876,26 @@ namespace AshenHalls
         {
             switch (choice)
             {
+                case "warning":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Three columns. Drow levy, dead road-keepers, and something marked with a falling star. The last line is not a destination; it is an order to open the old glass road from the far side. Midgaard has time, but not much of it.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "glassroad":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Broken mirror country first, then ash that keeps footprints for days. But the far-side seal still answers someone else, and no company road is cut through the glass storms. Chart what you can from the threshold, then come home before curiosity spends the whole company.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "tally":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "It is a road-company tally, but the names are payments, not recruits. Varkh was feeding captives north to a crypt in Gloam Courts. This notch means the route stayed open after each delivery. His hall was only the tollhouse.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "gloam":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Courtward Arch still points north. Beyond it, listen for a bone bell and do not chase the first scout off the paving. The Deep Crypt sits behind them. If the dead start speaking names, break the circle before you look for whoever commands it.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
                 case "quarry":
-                    ShowDialogueResponse("Old Road Scout", "Yara", "The quarry floor is open, but the old cuts split it into ledges. You will see heavy tracks near the ramps and loose stone below them. Bring ranged weapons, keep the group from bunching at the climbs, and leave yourself a way off any ledge you take.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Open floor, bad ledges. The heavy tracks stay near the ramps, so do not bunch there. Put a bow above the first cut and keep one route back down.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
                     break;
                 case "cover":
-                    ShowDialogueResponse("Old Road Scout", "Yara", "Roots and low stone will stop a charge or spoil a shot, but they will not hold forever. Use them while you fire, then move before the enemy works around them. Keep a blade ready for anything that closes past your bow.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Roots spoil a charge; low stone spoils a shot. Neither is a home. Fire from it, move before they turn it, and keep a blade ready for whoever comes around the side.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
                     break;
                 default:
-                    ShowDialogueResponse("Old Road Scout", "Yara", "Green Shrine Road narrows between old stones and thick roots. The western bend is wet, and the shrines hide anyone standing downhill from you. Keep your healer in the middle, check both sides before approaching a light, and remember that enemies use the same cover you do.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Wet at the western bend. The shrines hide anyone downhill, friendly or otherwise. Keep your healer in the middle and look past the first lamp before you step toward it.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
                     break;
             }
         }
@@ -8426,7 +9104,7 @@ namespace AshenHalls
                     DiscoverZoneHint(1, "green-shrine-road");
                     DiscoverZoneHint(1, "old-quarry");
                     state.ActiveStory = ContentSetCatalog.IsSewerSlice(activeContentSet)
-                        ? "Chapter II unlocked: follow the Salt Cisterns road to Sluice Steps and descend toward Dusk Market."
+                        ? "Chapter II unlocked: follow the Old Road east through Lanternless Cross toward Dusk Market."
                         : "Chapter I complete: the Old Road scout marks Green Shrine Road and Old Quarry as the next routes.";
                     AutosaveCheckpoint("chapter reward repaired");
                 }
@@ -8451,7 +9129,7 @@ namespace AshenHalls
                 EnsureOldRoadDescentMarker();
                 DiscoverZoneHint(1, "green-shrine-road");
                 DiscoverZoneHint(1, "old-quarry");
-                state.ActiveStory = "Chapter II unlocked: follow the Salt Cisterns road to Sluice Steps and descend toward Dusk Market.";
+                state.ActiveStory = "Chapter II unlocked: follow the Old Road east through Lanternless Cross toward Dusk Market.";
                 ShowDialogueThenLoot(
                     "Rat-Pelt Workbench",
                     "Borin",
@@ -8465,7 +9143,7 @@ namespace AshenHalls
                     sewerEquipNote,
                     "Rat-Pelt Armor");
                 PushLog($"The armorer stitches the proof into {sewerReward.DisplayName}. {sewerEquipNote}", Tone.Good);
-                PushLog("The Old Road opens: Sluice Steps now descends toward Dusk Market and the kobold smoke route.", Tone.Good);
+                PushLog("The Old Road opens eastbound through Lanternless Cross toward Dusk Market and the kobold smoke route.", Tone.Good);
                 ShowBanner("Rat-Pelt Armor");
                 PlaySfx("cache", 0.78f);
                 AutosaveCheckpoint("chapter reward claimed");
@@ -8576,6 +9254,8 @@ namespace AshenHalls
                 InvalidateExplorationController();
             }
             EnsureWorldLandmarks();
+            RepairKoboldStoryObjective(true);
+            RepairBoneRoadStoryObjective(true);
             MapObject recall = state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.RecallCircle)
                 ?? state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.Fountain)
                 ?? state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.Temple);
@@ -8624,6 +9304,7 @@ namespace AshenHalls
 
         private void EnsureOldRoadDescentMarker()
         {
+            RepairKoboldStoryObjective();
             if (!ContentSetCatalog.IsSewerSlice(activeContentSet)
                 || !ContentSetCatalog.AllowKoboldChapter(activeContentSet, state?.StoryFlags)
                 || state?.Map?.Objects == null
@@ -8632,29 +9313,59 @@ namespace AshenHalls
                 return;
             }
 
-            MapObject existing = state.Map.FindObjectById(OldRoadDescentId);
-            if (existing != null)
-            {
-                existing.Type = ObjectType.Stairs;
-                return;
-            }
-
             WorldMapJunction junction = WorldMapGenerationRules
                 .RegionalJunctions(state.Map.Width, state.Map.Height, state.Map.StartX, state.Map.StartY)
-                .FirstOrDefault(candidate => candidate.Id == "sluice-steps");
+                .FirstOrDefault(candidate => candidate.Id == WorldMapGenerationRules.OldRoadEastJunctionId);
             if (string.IsNullOrEmpty(junction.Id)) return;
 
+            List<MapObject> markers = state.Map.Objects
+                .Where(candidate => candidate != null
+                    && string.Equals(candidate.Id, OldRoadDescentId, StringComparison.Ordinal))
+                .ToList();
+            MapObject existing = markers.FirstOrDefault();
             MapObject occupant = ObjectAt(state.Map, junction.X, junction.Y);
-            if (occupant != null)
+            if (existing == null && occupant != null && occupant.Type == ObjectType.Stairs)
             {
-                if (occupant.Type != ObjectType.Stairs) return;
-                occupant.Id = OldRoadDescentId;
-                state.Map.InvalidateObjectLookup();
-                return;
+                existing = occupant;
+            }
+            if (occupant != null && !ReferenceEquals(occupant, existing))
+            {
+                Point replacement = FindSafeGeneratedObjectTile(
+                    state.Map,
+                    occupant,
+                    ZoneIdFor(occupant.X, occupant.Y, state.Map, state.Depth))
+                    ?? FindSafeGeneratedObjectTile(state.Map, occupant, "");
+                if (replacement != null)
+                {
+                    occupant.X = replacement.X;
+                    occupant.Y = replacement.Y;
+                }
+                else
+                {
+                    state.Map.Objects.Remove(occupant);
+                }
             }
 
-            state.Map.Objects.Add(new MapObject(junction.X, junction.Y, ObjectType.Stairs, OldRoadDescentId));
+            if (existing == null)
+            {
+                existing = new MapObject(junction.X, junction.Y, ObjectType.Stairs, OldRoadDescentId);
+                state.Map.Objects.Add(existing);
+            }
+            existing.X = junction.X;
+            existing.Y = junction.Y;
+            existing.Type = ObjectType.Stairs;
+            existing.Id = OldRoadDescentId;
+            state.Map.Objects.RemoveAll(candidate => candidate != null
+                && !ReferenceEquals(candidate, existing)
+                && string.Equals(candidate.Id, OldRoadDescentId, StringComparison.Ordinal));
             state.Map.InvalidateObjectLookup();
+            SetExploreCell(
+                state.Map,
+                junction.X,
+                junction.Y,
+                1,
+                ExplorationMaterial.PackedDirt,
+                ExplorationCellRole.Road | ExplorationCellRole.Clearing | ExplorationCellRole.Threshold);
             ExplorationSurfaceRules.AddRoles(
                 state.Map,
                 junction.X,
@@ -8668,38 +9379,130 @@ namespace AshenHalls
             MapObject obj = ObjectAt(state.Map, state.PlayerX, state.PlayerY);
             if (obj == null || obj.Type != ObjectType.Stairs) return false;
             if (ContentSetCatalog.IsFullPrototype(activeContentSet)) return true;
-            return state.Depth == 1
-                && ContentSetCatalog.AllowKoboldChapter(activeContentSet, state.StoryFlags)
-                && string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal);
+            if (state.Depth == 1)
+            {
+                return ContentSetCatalog.AllowKoboldChapter(activeContentSet, state.StoryFlags)
+                    && string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal);
+            }
+            if (state.Depth == 2)
+            {
+                return ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags)
+                    && string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal);
+            }
+            return false;
+        }
+
+        private bool CanSurveyGlassAndAshFrontier()
+        {
+            if (!ContentSetCatalog.IsSewerSlice(activeContentSet)
+                || state?.Map == null
+                || state.Depth != 3
+                || !ContentSetCatalog.BoneRoadComplete(state.StoryFlags))
+            {
+                return false;
+            }
+            MapObject obj = ObjectAt(state.Map, state.PlayerX, state.PlayerY);
+            return obj != null
+                && obj.Type == ObjectType.Stairs
+                && string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal);
         }
 
         private void Descend()
         {
+            if (CanSurveyGlassAndAshFrontier())
+            {
+                bool firstSurvey = !HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed);
+                SetStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed);
+                state.ActiveStory = BoneRoadObjectiveForProgress();
+                PushLog(firstSurvey
+                    ? "Beyond the Red Gate, glass dust moves like weather and no safe company road is cut yet. The route is charted for a later expedition."
+                    : "The Glass-and-Ash frontier remains charted, but no safe company road crosses it yet.",
+                    firstSurvey ? Tone.Good : Tone.Normal);
+                ShowBanner(firstSurvey ? "Frontier Charted" : "Next Expedition");
+                PlaySfx(firstSurvey ? "wayfind" : "blocked", firstSurvey ? 0.72f : 0.50f);
+                if (firstSurvey) AutosaveCheckpoint("Glass-and-Ash frontier surveyed");
+                return;
+            }
             if (ContentSetCatalog.IsSewerSlice(activeContentSet)
+                && state.Depth == 1
                 && !ContentSetCatalog.AllowKoboldChapter(activeContentSet, state?.StoryFlags))
             {
-                PushLog("The Old Road descent opens after the sewer contract and Borin's reward.", Tone.Normal);
+                PushLog("The eastbound Old Road opens after the sewer contract and Borin's reward.", Tone.Normal);
                 ShowBanner("Old Road Locked");
+                return;
+            }
+            if (ContentSetCatalog.IsSewerSlice(activeContentSet)
+                && state.Depth == 2
+                && !ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state?.StoryFlags))
+            {
+                PushLog("The Bone Road passage opens only after Varkh falls.", Tone.Normal);
+                ShowBanner("Bone Road Locked");
+                return;
+            }
+            if (ContentSetCatalog.IsSewerSlice(activeContentSet)
+                && state.Depth == 3)
+            {
+                PushLog(ContentSetCatalog.BoneRoadComplete(state?.StoryFlags)
+                    ? "The Glass-and-Ash frontier is charted, but the next expedition is not ready to cross it."
+                    : "The Glass-and-Ash frontier can be surveyed after the Red Gate warning is recovered.", Tone.Normal);
+                ShowBanner(ContentSetCatalog.BoneRoadComplete(state?.StoryFlags) ? "Next Expedition" : "Red Gate Locked");
                 return;
             }
             if (!CanDescend())
             {
-                PushLog("No stairway lies underfoot.", Tone.Warn);
+                PushLog("No chapter route lies underfoot.", Tone.Warn);
                 return;
             }
+            bool travelingEastbound = state.Depth == 1
+                && string.Equals(
+                    ObjectAt(state.Map, state.PlayerX, state.PlayerY)?.Id,
+                    OldRoadDescentId,
+                    StringComparison.Ordinal);
+            bool travelingBoneRoad = state.Depth == 2
+                && string.Equals(
+                    ObjectAt(state.Map, state.PlayerX, state.PlayerY)?.Id,
+                    BoneRoadPassageId,
+                    StringComparison.Ordinal);
+            bool travelingGlassRoad = state.Depth == 3
+                && string.Equals(
+                    ObjectAt(state.Map, state.PlayerX, state.PlayerY)?.Id,
+                    GlassAndAshPassageId,
+                    StringComparison.Ordinal);
             state.ActiveRouteWaypointKey = "";
-            state.Depth++;
-            state.StoryChapter = Mathf.Max(state.StoryChapter + 1, state.Depth);
-            state.ActiveStory = StoryObjectiveForDepth(state.Depth);
-            state.Supplies += 2;
+            int targetDepth = state.Depth + 1;
+            bool firstArrival = !HasVisitedExplorationDepth(targetDepth);
+            state.Depth = targetDepth;
+            if (targetDepth == 3) SetStoryFlag(StoryFlags.BoneRoadEntered);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, targetDepth);
+            if (targetDepth == 2 && ContentSetCatalog.AllowKoboldChapter(activeContentSet, state.StoryFlags))
+            {
+                state.ActiveStory = KoboldStoryObjectiveForProgress();
+            }
+            else if (targetDepth == 3 && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
+            {
+                state.ActiveStory = BoneRoadObjectiveForProgress();
+            }
+            else
+            {
+                state.ActiveStory = StoryObjectiveForDepth(targetDepth);
+            }
+            if (firstArrival) state.Supplies += 2;
             state.Map = GenerateMap(state.Depth, state.Seed);
             InvalidateExplorationController();
             EnsureWorldLandmarks();
             PlacePlayerAtExplorationStart();
             lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
             DiscoverCurrentZone(true);
-            PushLog($"The party descends to depth {state.Depth}. {state.ActiveStory}", Tone.Good);
-            AwardWorldExperience(18 + state.Depth * 6, $"Chapter {state.Depth} reached");
+            PushLog(
+                travelingEastbound
+                    ? $"The party follows the Old Road east through Lanternless Cross. {state.ActiveStory}"
+                    : travelingBoneRoad
+                        ? $"The party passes beneath Varkh's broken shield hall and reaches the Bone Road. {state.ActiveStory}"
+                        : travelingGlassRoad
+                            ? $"The Red Gate's outer passage opens onto glass and ash. {state.ActiveStory}"
+                    : $"The party descends to depth {state.Depth}. {state.ActiveStory}",
+                Tone.Good);
+            if (firstArrival) AwardWorldExperience(18 + state.Depth * 6, $"Chapter {state.Depth} reached");
             ShowBanner(StoryChapterTitle());
             PlaySfx("encounter", 0.8f);
             if (state.Depth >= FinalBossDepth)
@@ -9298,6 +10101,16 @@ namespace AshenHalls
                 }
             }
 
+            if (encounter.Id == EncounterId.GloamWarden)
+            {
+                CombatUnit warden = enemies.FirstOrDefault(enemy => enemy.Role == "gloamknight");
+                if (warden != null)
+                {
+                    warden.Rank = "";
+                    warden.Name = "Ossuary Warden";
+                }
+            }
+
             if (encounter.WoundFirstEnemy && enemies.Count > 0)
             {
                 CombatUnit enemy = enemies[0];
@@ -9357,6 +10170,18 @@ namespace AshenHalls
         {
             if (!ContentSetCatalog.IsFullPrototype(activeContentSet))
             {
+                if (depth <= 1)
+                {
+                    return new[] { "sewerrat", "giantrat", "ratfolk", "ratcutthroat", "ratmage", "ratbrute" };
+                }
+                if (depth == 2)
+                {
+                    return new[] { "koboldraider", "koboldslinger", "koboldshield", "koboldshaman", "ratfolk", "ratcutthroat" };
+                }
+                if (depth == 3)
+                {
+                    return new[] { "drowscout", "drowcrossbow", "drowmage", "drowpriest", "husk", "reaver", "shade", "bonepriest", "gloamknight" };
+                }
                 return ContentSetCatalog.SewerSliceEnemyIds.ToArray();
             }
 
@@ -9842,7 +10667,10 @@ namespace AshenHalls
                 FinishKoboldKingVictory(foundGold, xp);
                 return;
             }
-            InventoryItem battleLoot = ContentSetCatalog.IsSewerSliceEncounterStyle(encounterStyle) ? null : MakeCombatLootItem(encounterStyle, false);
+            InventoryItem battleLoot = ContentSetCatalog.IsSewerSliceEncounterStyle(encounterStyle)
+                || ContentSetCatalog.IsBoneRoadEncounterStyle(encounterStyle)
+                    ? null
+                    : MakeCombatLootItem(encounterStyle, false);
             state.Mode = GameMode.Explore;
             state.Combat = null;
             InvalidateCombatController();
@@ -9851,6 +10679,7 @@ namespace AshenHalls
             showAbilityPanel = false;
             ResolveRoamingThreatVictory(roamingThreatId);
             ApplyKoboldStoryVictory(encounterStyle);
+            ApplyBoneRoadStoryVictory(encounterStyle);
             ApplyMidgaardStoryVictory(encounterStyle);
             if (battleLoot != null)
             {
@@ -9900,10 +10729,73 @@ namespace AshenHalls
             else if (encounterStyle == "koboldcave")
             {
                 SetStoryFlag(StoryFlags.KoboldCaveCleared);
-                state.ActiveStory = "Chapter II: Kobold Smoke. Return to the cave mouth and challenge the Kobold King's shield hall.";
-                PushLog("The smoke cave falls quiet. Deeper drums mark the king's hall beyond the same cave mouth.", Tone.Good);
+                state.ActiveStory = "Chapter II: Kobold Smoke. Camp if needed, then use the same cave mouth again to descend into Varkh's Hall.";
+                PushLog("The smoke cave falls quiet. Make camp if needed; deeper drums mark Varkh's Hall beyond this same mouth.", Tone.Good);
                 EnsureKoboldKingCaveMarker();
             }
+        }
+
+        private void ApplyBoneRoadStoryVictory(string encounterStyle)
+        {
+            if (!ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state?.StoryFlags)
+                || !ContentSetCatalog.IsBoneRoadEncounterStyle(encounterStyle))
+            {
+                return;
+            }
+
+            if (string.Equals(encounterStyle, "bone-road-watch", StringComparison.OrdinalIgnoreCase))
+            {
+                SetStoryFlag(StoryFlags.BoneRoadWatchDefeated);
+                state.ActiveStory = BoneRoadObjectiveForProgress();
+                PushLog("The last road watcher falls. Its bell-rope is braided with names taken from older companies; the trail runs into the Gloam Deep Crypt.", Tone.Good);
+                return;
+            }
+
+            if (string.Equals(encounterStyle, "gloam-crypt-ritual", StringComparison.OrdinalIgnoreCase))
+            {
+                SetStoryFlag(StoryFlags.GloamRitualBroken);
+                state.ActiveStory = BoneRoadObjectiveForProgress();
+                PushLog("The reliquary choir breaks. Behind the dead voices, an armored warden drags Varkh's stolen tally toward the lower vault.", Tone.Good);
+                return;
+            }
+
+            if (!string.Equals(encounterStyle, "gloam-warden-boss", StringComparison.OrdinalIgnoreCase)) return;
+            bool firstVictory = !HasStoryFlag(StoryFlags.GloamWardenDefeated);
+            SetStoryFlag(StoryFlags.GloamWardenDefeated);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 3);
+            state.ActiveStory = BoneRoadObjectiveForProgress();
+            if (!firstVictory) return;
+
+            EnsureInventoryList();
+            InventoryItem reward = MakeGloamReliquaryMail();
+            state.Inventory.Add(reward);
+            string equipNote = AutoEquipItem(reward);
+            state.Supplies += 1;
+            ShowLootPanel(
+                reward,
+                0,
+                1,
+                0,
+                "Recovered beside the road tally. " + (string.IsNullOrEmpty(equipNote) ? "It goes into the pack." : equipNote),
+                "Ossuary Warden's Reliquary");
+            PushLog("The Ossuary Warden breaks. Gloamward mail and the first Red Gate warning remain under its shield.", Tone.Good);
+        }
+
+        private InventoryItem MakeGloamReliquaryMail()
+        {
+            return new InventoryItem
+            {
+                Mark = "gloamward",
+                Material = "reliquary scale",
+                Form = "scale mail",
+                Trait = "warding",
+                Slot = "armor",
+                Bonus = 4,
+                IntelligenceBonus = 1,
+                HealthBonus = 2,
+                Rarity = "quest",
+                DisplayName = "+4 gloamward reliquary scale mail"
+            };
         }
 
         private void FinishKoboldKingVictory(int foundGold, int xp)
@@ -9930,14 +10822,14 @@ namespace AshenHalls
             string swordNote = "Taken from a fallen adventurer in the king's hoard. " + (string.IsNullOrEmpty(equipNote) ? "It goes into the pack." : equipNote);
             ShowLootPanel(trophy, bonusGold, 2, 1, swordNote, "Kobold King's Hoard");
 
-            MapObject cave = state.Map?.Objects?.FirstOrDefault(IsKoboldStoryCave);
-            if (cave != null) RemoveObject(cave);
+            EnsureBoneRoadPassageMarker();
 
-            state.ActiveStory = "Chapter II complete: The Dusk Market cave drums are silent. Find the next stair and push toward the Bone Road.";
+            state.ActiveStory = KoboldStoryObjectiveForProgress();
             PushLog($"Varkh falls. The king's hoard adds {bonusGold} gold, supplies, an elixir, and the {trophy.DisplayName}.", Tone.Good);
             PushLog(state.ActiveStory, Tone.Good);
             ShowBanner("Kobold King Falls");
             PlaySfx("victory", 1.08f);
+            AutosaveCheckpoint("kobold king defeated");
         }
 
         private void FinishCampaignVictory(int foundGold, int xp)
@@ -10279,14 +11171,20 @@ namespace AshenHalls
         {
             if (!IsDisruptableRitual(ritual) || state?.Combat?.Units == null) return false;
             Point spawn = FindRitualSpawnTile(ritual);
-            string role = CombatRitualRules.SpawnRole(ritual.Kind);
+            string encounterStyle = state.Combat.EncounterStyle ?? "";
+            string role = ContentSetCatalog.RitualSpawnRoleForEncounter(encounterStyle, ritual.Kind);
             if (spawn == null || string.IsNullOrEmpty(role)) return false;
 
             CombatUnit enemy = MakeEnemy(role, state.Combat.Units.Count, "ritual");
             enemy.X = spawn.X;
             enemy.Y = spawn.Y;
             enemy.Origin = "ritual";
-            enemy.Name = ritual.Kind == "demonrift" ? "Rift-born Lesser Demon" : "Glyph-born Kobold";
+            bool boneRoadRitual = ContentSetCatalog.IsBoneRoadEncounterStyle(encounterStyle);
+            enemy.Name = boneRoadRitual
+                ? role == "bonepriest" ? "Reliquary Bone Priest"
+                    : role == "shade" ? "Ossuary Shade"
+                    : "Rift-bound Gloam Knight"
+                : ritual.Kind == "demonrift" ? "Rift-born Lesser Demon" : "Glyph-born Kobold";
             state.Combat.Obstacles.Remove(ritual);
             state.Combat.Units.Add(enemy);
             if (state.Combat.InitiativeQueue == null) state.Combat.InitiativeQueue = new List<string>();
@@ -10297,9 +11195,11 @@ namespace AshenHalls
             AddEpicBurst(spawn.X, spawn.Y, Color.Lerp(color, ritual.Kind == "demonrift" ? blood : gold, 0.42f), ritual.Kind == "demonrift" ? 28 : 20, ritual.Kind == "demonrift" ? 1.62f : 1.34f);
             AddFlash(spawn.X, spawn.Y, color);
             AddFloat(spawn.X, spawn.Y, "BREACH", color);
-            PushLog(ritual.Kind == "demonrift"
-                ? "The demon rift tears open. A lesser demon joins the enemy line."
-                : "The summoning glyph cracks open. A kobold reinforcement joins the fight.", Tone.Warn);
+            PushLog(boneRoadRitual
+                ? $"The {RitualName(ritual)} tears open. {enemy.Name} joins the oath-bound line."
+                : ritual.Kind == "demonrift"
+                    ? "The demon rift tears open. A lesser demon joins the enemy line."
+                    : "The summoning glyph cracks open. A kobold reinforcement joins the fight.", Tone.Warn);
             PlaySfx("death", ritual.Kind == "demonrift" ? 0.82f : 0.62f);
             PlaySfx("resonance", 0.48f);
             return true;
@@ -16558,6 +17458,32 @@ namespace AshenHalls
             return extra;
         }
 
+        private string RitualReinforcementName(Point ritual)
+        {
+            string role = ContentSetCatalog.RitualSpawnRoleForEncounter(
+                state?.Combat?.EncounterStyle ?? "",
+                ritual?.Kind ?? "");
+            if (role == "bonepriest") return "reliquary bone priest";
+            if (role == "shade") return "ossuary shade";
+            if (role == "gloamknight") return "rift-bound Gloam Knight";
+            if (role == "lesserdemon") return "lesser demon";
+            if (role == "koboldraider") return "kobold reinforcement";
+            return "hostile reinforcement";
+        }
+
+        private string RitualReinforcementWarning(Point ritual)
+        {
+            string role = ContentSetCatalog.RitualSpawnRoleForEncounter(
+                state?.Combat?.EncounterStyle ?? "",
+                ritual?.Kind ?? "");
+            if (role == "bonepriest") return "before a reliquary bone priest answers";
+            if (role == "shade") return "before an ossuary shade answers";
+            if (role == "gloamknight") return "before a rift-bound Gloam Knight crosses";
+            if (role == "lesserdemon") return "before a lesser demon crosses";
+            if (role == "koboldraider") return "before kobolds answer";
+            return "before hostile reinforcements arrive";
+        }
+
         private string TerrainPreviewLine(Point terrain)
         {
             if (terrain == null) return "";
@@ -16571,8 +17497,8 @@ namespace AshenHalls
             if (terrain.Kind == "ice") return $"\nice: slip risk, +1 move, fire/cold/shock reactive{rounds}";
             if (terrain.Kind == "sanctuary") return $"\nsanctuary: allies mend/ward/cleanse, enemies burn{rounds}";
             if (terrain.Kind == "curse") return $"\ncurse: mind harm, hex risk, cracks wards, +1 move{rounds}";
-            if (terrain.Kind == "glyph") return $"\nsummon glyph: {RitualIntegrity(terrain)} integrity, opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")} as kobold reinforcement; +1 move";
-            if (terrain.Kind == "demonrift") return $"\ndemon rift: {RitualIntegrity(terrain)} integrity, opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")} as lesser demon; +1 move";
+            if (terrain.Kind == "glyph") return $"\nsummon glyph: {RitualIntegrity(terrain)} integrity, opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")} as {RitualReinforcementName(terrain)}; +1 move";
+            if (terrain.Kind == "demonrift") return $"\ndemon rift: {RitualIntegrity(terrain)} integrity, opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")} as {RitualReinforcementName(terrain)}; +1 move";
             return "";
         }
 
@@ -16586,8 +17512,8 @@ namespace AshenHalls
             if (terrain.Kind == "ice") return "Ice may slip the next step; fire melts it and shock conducts through it.";
             if (terrain.Kind == "sanctuary") return "Sanctuary wards and cleanses allies while burning enemies at turn start.";
             if (terrain.Kind == "curse") return "Doomed ground harms the mind, cracks wards, and may hex anyone lingering there.";
-            if (terrain.Kind == "glyph") return $"The summoning glyph opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")}. Attack it or cast Rift Seal before kobolds answer.";
-            if (terrain.Kind == "demonrift") return $"The demon rift opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")}. Attack it or cast Rift Seal before a lesser demon crosses.";
+            if (terrain.Kind == "glyph") return $"The summoning glyph opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")}. Attack it or cast Rift Seal {RitualReinforcementWarning(terrain)}.";
+            if (terrain.Kind == "demonrift") return $"The demon rift opens in {Mathf.Max(1, terrain.Duration)} round{(terrain.Duration == 1 ? "" : "s")}. Attack it or cast Rift Seal {RitualReinforcementWarning(terrain)}.";
             return "";
         }
 

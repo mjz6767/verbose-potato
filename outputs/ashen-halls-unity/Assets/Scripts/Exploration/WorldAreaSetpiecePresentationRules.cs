@@ -25,7 +25,9 @@ namespace AshenHalls
 
         public static float MapScale(bool wideView)
         {
-            return wideView ? 2.05f : 2.40f;
+            // Regional art identifies the landmark; it must not depict a two-cell
+            // platform when traversal blocks only the authored anchor cell.
+            return wideView ? 1.35f : 1.55f;
         }
 
         public static float BaselineFraction(bool wideView)

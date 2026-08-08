@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace AshenHalls
@@ -146,7 +147,8 @@ namespace AshenHalls
             int viewH,
             HashSet<int> guidanceCells)
         {
-            if (state?.Map == null || state.RoamingThreats == null || !IsWorldThreatHabitatAtlas()) return;
+            if (state?.Map == null || state.RoamingThreats == null) return;
+            bool habitatAtlasReady = IsWorldThreatHabitatAtlas();
             foreach (RoamingThreat threat in state.RoamingThreats)
             {
                 if (threat == null || threat.Depth != state.Depth) continue;
@@ -195,6 +197,7 @@ namespace AshenHalls
                     onObjectiveRoute,
                     threat.Active,
                     homeOccupied);
+                DrawRoamingThreatHabitatFootprint(homeCell, threat.Active, onObjectiveRoute);
                 WorldMapArtSpec spec = new WorldMapArtSpec(
                     0.98f,
                     new Vector2(
@@ -219,6 +222,11 @@ namespace AshenHalls
                         index,
                         Color.white.WithAlpha(alpha),
                         spec);
+                    if (WorldThreatHabitatPresentationRules.ShouldDrawFallback(habitatAtlasReady, threat.Active))
+                    {
+                        DrawRoamingThreatHabitatFallback(clippedRect, onObjectiveRoute);
+                        drawn = true;
+                    }
                 }
                 finally
                 {
@@ -229,6 +237,58 @@ namespace AshenHalls
                     DrawExploreArtDebugOverlay(homeCell, habitatRect, "Habitat: " + threat.Name);
                 }
             }
+        }
+
+        private void DrawRoamingThreatHabitatFallback(Rect habitatRect, bool onObjectiveRoute)
+        {
+            Color accent = onObjectiveRoute ? gold : blood;
+            float width = Mathf.Max(10f, habitatRect.width * 0.52f);
+            float height = Mathf.Max(10f, habitatRect.height * 0.44f);
+            Rect shelter = new Rect(
+                habitatRect.center.x - width * 0.5f,
+                habitatRect.yMax - height * 1.02f,
+                width,
+                height);
+            DrawRect(shelter, Hex("080706", 0.94f));
+            DrawRect(
+                new Rect(shelter.x - width * 0.08f, shelter.y, width * 1.16f, Mathf.Max(3f, height * 0.18f)),
+                accent.WithAlpha(0.92f));
+            DrawRect(
+                new Rect(shelter.center.x - Mathf.Max(2f, width * 0.06f), shelter.y + height * 0.28f, Mathf.Max(4f, width * 0.12f), height * 0.48f),
+                accent.WithAlpha(0.82f));
+            DrawBorder(shelter, accent.WithAlpha(0.78f), 2);
+        }
+
+        private void DrawRoamingThreatHabitatFootprint(
+            Rect homeCell,
+            bool active,
+            bool onObjectiveRoute)
+        {
+            Color accent = onObjectiveRoute ? gold : active ? blood : stone;
+            Rect footprint = new Rect(
+                homeCell.x + homeCell.width * 0.10f,
+                homeCell.y + homeCell.height * 0.68f,
+                homeCell.width * 0.80f,
+                homeCell.height * 0.20f);
+            if (active)
+            {
+                DrawRect(footprint, Hex("020303", 0.84f));
+                DrawRect(
+                    new Rect(
+                        footprint.x + footprint.width * 0.18f,
+                        footprint.yMax - Mathf.Max(2f, footprint.height * 0.18f),
+                        footprint.width * 0.64f,
+                        Mathf.Max(2f, footprint.height * 0.18f)),
+                    accent.WithAlpha(0.72f));
+                DrawBorder(footprint, accent.WithAlpha(0.44f), 1);
+                return;
+            }
+
+            // Cleared aftermath is walkable: two low debris shadows deliberately
+            // leave the middle open instead of drawing a solid collision slab.
+            float segment = footprint.width * 0.28f;
+            DrawRect(new Rect(footprint.x, footprint.y, segment, footprint.height * 0.62f), Hex("020303", 0.48f));
+            DrawRect(new Rect(footprint.xMax - segment, footprint.y, segment, footprint.height * 0.62f), Hex("020303", 0.48f));
         }
 
         private bool TryDrawWorldExteriorAmbientCitizen(
@@ -412,6 +472,17 @@ namespace AshenHalls
                 }
             }
             return false;
+        }
+
+        private bool IsActiveRoamingThreatHabitatCell(int x, int y)
+        {
+            if (state?.RoamingThreats == null) return false;
+            return state.RoamingThreats.Any(threat =>
+                threat != null
+                && threat.Active
+                && threat.Depth == state.Depth
+                && threat.HomeX == x
+                && threat.HomeY == y);
         }
 
         private HashSet<int> BuildCurrentExploreGuidanceCellSet()

@@ -3100,7 +3100,14 @@ namespace AshenHalls
             {
                 state.ActiveRouteWaypointKey = "";
             }
-            if (state.Depth == 2 && state.Map != null && !HasStoryFlag(StoryFlags.KoboldKingDefeated)) EnsureKoboldKingCaveMarker();
+            if (state.Depth >= 3 && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
+            {
+                SetStoryFlag(StoryFlags.BoneRoadEntered);
+            }
+            RepairKoboldStoryObjective();
+            RepairBoneRoadStoryObjective();
+            if (state.Depth == 2 && state.Map != null) EnsureKoboldKingCaveMarker();
+            if (state.Depth == 3 && state.Map != null) EnsureGlassAndAshPassageMarker();
         }
 
         private string SavePath()

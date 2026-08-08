@@ -132,19 +132,20 @@ namespace AshenHalls
 
         public static float MapScale(bool wideView, bool active, bool homeOccupied)
         {
-            // Active lairs remain prominent tactical landmarks. Once cleared, the
-            // aftermath sits closer to its one-cell footprint so it reads as
-            // walkable history rather than a still-occupied encounter.
-            if (active && homeOccupied) return wideView ? 1.35f : 1.65f;
-            if (active) return wideView ? 1.12f : 1.30f;
-            return wideView ? 1.10f : 1.25f;
+            // A physical lair remains the same landmark when its patrol leaves.
+            // Once cleared, distinct aftermath art sits closer to its one-cell
+            // footprint and becomes walkable history.
+            if (active) return wideView ? 1.35f : 1.65f;
+            return wideView ? 0.90f : 1.05f;
         }
 
         public static float HabitatAlpha(bool onObjectiveRoute, bool active, bool homeOccupied)
         {
-            if (active && homeOccupied) return onObjectiveRoute ? 1f : 0.78f;
-            if (active) return onObjectiveRoute ? 0.60f : 0.46f;
-            return 0.52f;
+            if (active) return onObjectiveRoute ? 1f : 0.90f;
+            // Cleared sites use distinct aftermath art. Keep that debris small but
+            // materially opaque, rather than presenting a ghost structure that the
+            // party can inexplicably walk through.
+            return onObjectiveRoute ? 0.84f : 0.76f;
         }
 
         public static float TintAlpha(bool onObjectiveRoute)
@@ -155,6 +156,14 @@ namespace AshenHalls
         public static bool ShouldDrawAtHome(bool homeInBounds, bool certifiedSafeRoad)
         {
             return homeInBounds && !certifiedSafeRoad;
+        }
+
+        public static bool ShouldDrawFallback(bool atlasReady, bool active)
+        {
+            // A missing or rejected atlas must never turn an active collision
+            // footprint into an invisible wall. Cleared homes keep only their
+            // low, walkable aftermath footprint.
+            return !atlasReady && active;
         }
 
         private static string NormalizeKey(string value)

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace AshenHalls
@@ -106,7 +107,18 @@ namespace AshenHalls
 
         public static List<Point> FindPath(MapData map, int startX, int startY, int targetX, int targetY)
         {
-            if (!IsStandable(map, startX, startY) || !IsStandable(map, targetX, targetY)) return new List<Point>();
+            return FindPath(map, startX, startY, targetX, targetY, (x, y) => IsStandable(map, x, y));
+        }
+
+        public static List<Point> FindPath(
+            MapData map,
+            int startX,
+            int startY,
+            int targetX,
+            int targetY,
+            Func<int, int, bool> canStand)
+        {
+            if (map == null || canStand == null || !canStand(startX, startY) || !canStand(targetX, targetY)) return new List<Point>();
             int width = map.Width;
             int height = map.Height;
             bool[,] visited = new bool[width, height];
@@ -126,7 +138,7 @@ namespace AshenHalls
                     int nx = current.X + dx[i];
                     int ny = current.Y + dy[i];
                     if (nx < 0 || ny < 0 || nx >= width || ny >= height || visited[nx, ny]) continue;
-                    if (!IsStandable(map, nx, ny)) continue;
+                    if (!canStand(nx, ny)) continue;
                     visited[nx, ny] = true;
                     parent[nx, ny] = current;
                     queue.Enqueue(new Point(nx, ny));
@@ -138,14 +150,24 @@ namespace AshenHalls
 
         public static List<Point> FindPathToObject(MapData map, int startX, int startY, MapObject obj)
         {
-            if (map == null || obj == null) return new List<Point>();
-            if (CanStandOnObject(obj)) return FindPath(map, startX, startY, obj.X, obj.Y);
+            return FindPathToObject(map, startX, startY, obj, (x, y) => IsStandable(map, x, y));
+        }
+
+        public static List<Point> FindPathToObject(
+            MapData map,
+            int startX,
+            int startY,
+            MapObject obj,
+            Func<int, int, bool> canStand)
+        {
+            if (map == null || obj == null || canStand == null) return new List<Point>();
+            if (CanStandOnObject(obj)) return FindPath(map, startX, startY, obj.X, obj.Y, canStand);
             List<Point> best = null;
             int[] dx = { 0, -1, 1, 0 };
             int[] dy = { -1, 0, 0, 1 };
             for (int i = 0; i < dx.Length; i++)
             {
-                List<Point> candidate = FindPath(map, startX, startY, obj.X + dx[i], obj.Y + dy[i]);
+                List<Point> candidate = FindPath(map, startX, startY, obj.X + dx[i], obj.Y + dy[i], canStand);
                 if (candidate.Count == 0) continue;
                 if (best == null || candidate.Count < best.Count) best = candidate;
             }

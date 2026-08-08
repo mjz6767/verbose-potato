@@ -101,7 +101,17 @@ namespace AshenHalls
             hash = unchecked(hash * 31 + (armoryInventoryTargetPickerOpen ? 1 : 0));
             hash = unchecked(hash * 31 + ArmoryGrowthDraftHash());
             hash = unchecked(hash * 31 + (state.ActiveRouteWaypointKey ?? "").GetHashCode());
+            hash = unchecked(hash * 31 + state.Depth);
+            hash = unchecked(hash * 31 + state.PlayerX);
+            hash = unchecked(hash * 31 + state.PlayerY);
             hash = unchecked(hash * 31 + (state.Gold));
+            if (state.StoryFlags != null)
+            {
+                foreach (string flag in state.StoryFlags.OrderBy(flag => flag ?? "", StringComparer.Ordinal))
+                {
+                    hash = unchecked(hash * 31 + (flag ?? "").GetHashCode());
+                }
+            }
             hash = unchecked(hash * 31 + (state.Inventory == null ? 0 : state.Inventory.Count));
             if (state.Inventory != null)
             {
@@ -702,6 +712,11 @@ namespace AshenHalls
             if (!ContentSetCatalog.ShowPrototypeScaffold(activeContentSet))
             {
                 BuildSewerSliceJournalRows(rows);
+                if (ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
+                {
+                    AddBoneRoadJournalRows(rows);
+                }
+                AddChartedRegionalSiteJournalRows(rows);
                 return rows;
             }
 
@@ -826,10 +841,10 @@ namespace AshenHalls
             string[] labels = { "Dusk Market Ambush", "Smoke Cave", "Varkh's Hall", "Bone Road" };
             string[] hints =
             {
-                "Follow Sluice Steps into the ruined market and survive the scouts among the broken stalls.",
+                "Follow the Old Road east through Lanternless Cross into the ruined market and survive the scouts among the broken stalls.",
                 "Find the cave mouth beyond the ambush, then break through smoke, webs, and shieldbearers.",
                 "Enter the Kobold King's hall, outlast Varkh's rally magic, and claim the route reward.",
-                "The king's fall opens the next chapter road; its deeper authored route remains in development."
+                "Take Varkh's east passage onto the Bone Road and break the grave-scout watch above Gloam Courts."
             };
             for (int i = 0; i < labels.Length; i++)
             {
@@ -846,6 +861,109 @@ namespace AshenHalls
                     BadgeAccentHex = ColorHtml(done ? teal : active ? gold : line)
                 });
             }
+        }
+
+        private void AddBoneRoadJournalRows(List<ArmoryRowView> rows)
+        {
+            if (rows == null || state == null) return;
+
+            bool[] done =
+            {
+                HasStoryFlag(StoryFlags.BoneRoadWatchDefeated),
+                HasStoryFlag(StoryFlags.GloamRitualBroken),
+                HasStoryFlag(StoryFlags.GloamWardenDefeated),
+                HasStoryFlag(StoryFlags.RedGateWarningRecovered)
+            };
+            int activeStep = Array.FindIndex(done, complete => !complete);
+            string watchHint = HasStoryFlag(StoryFlags.BoneRoadWatchSprung)
+                ? "The grave-scout watch has closed on the road. Hold formation and finish the ambush."
+                : HasStoryFlag(StoryFlags.BoneRoadEntered)
+                    ? "Advance along the exposed causeway and find the grave-scout watch before it cuts the road behind you."
+                    : "Take Varkh's east passage onto the Bone Road and follow the old causeway toward Gloam Courts.";
+            string[] labels =
+            {
+                "Bone Road Watch",
+                "Gloam Ritual",
+                "Ossuary Warden",
+                "Red Gate Warning"
+            };
+            string[] hints =
+            {
+                watchHint,
+                "Follow the courtward road to Gloam Deep Crypt and disrupt the marrow rite feeding its dead.",
+                "Press into Gloam Deep Crypt after the ritual breaks and bring down the Ossuary Warden.",
+                "Cross to the Red Gate Seal, read the outer ward, recover its warning, and chart the Glass-and-Ash frontier."
+            };
+
+            for (int i = 0; i < labels.Length; i++)
+            {
+                bool active = i == activeStep;
+                rows.Add(new ArmoryRowView
+                {
+                    Key = -1,
+                    Title = "Bone Road - " + labels[i],
+                    Subtitle = done[i] ? "done" : active ? "current" : "pending",
+                    Detail = hints[i],
+                    AccentHex = ColorHtml(done[i] ? teal : active ? gold : line),
+                    Badge = done[i] ? "DONE" : active ? "NEXT" : "",
+                    BadgeAccentHex = ColorHtml(done[i] ? teal : active ? gold : line)
+                });
+            }
+        }
+
+        private void AddChartedRegionalSiteJournalRows(List<ArmoryRowView> rows)
+        {
+            if (rows == null || state?.Map == null) return;
+            foreach (WorldMapSite site in WorldMapGenerationRules.RegionalSites(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY))
+            {
+                if (!HasStoryFlag(WorldSiteInteractionRules.ChartFlag(state.Depth, site.Id))
+                    || !WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile profile))
+                {
+                    continue;
+                }
+
+                int distance = Mathf.Abs(site.X - state.PlayerX) + Mathf.Abs(site.Y - state.PlayerY);
+                string bearing = distance == 0
+                    ? "current position"
+                    : RouteChartRules.DirectionLabel(state.PlayerX, state.PlayerY, site.X, site.Y)
+                        + " / " + RouteChartRules.DistanceLabel(distance);
+                WorldZone zone = ZoneAt(site.X, site.Y);
+                bool rewardClaimed = WorldSiteInteractionRules.RewardClaimed(
+                    state.StoryFlags,
+                    state.Depth,
+                    site.Id);
+                string rewardState = rewardClaimed ? "CLAIMED" : "READY";
+                string repeatCost = WorldSiteRepeatCost(profile);
+                rows.Add(new ArmoryRowView
+                {
+                    Key = -1,
+                    Title = site.Name,
+                    Subtitle = $"{(zone == null ? site.ZoneId : zone.Name)} / {bearing}",
+                    Detail = $"{rewardState}: {profile.RewardSummary}\n{profile.ServiceName} repeat service: {profile.RepeatSummary} Cost: {repeatCost}.",
+                    AccentHex = ColorHtml(rewardClaimed ? teal : gold),
+                    Badge = rewardState,
+                    BadgeAccentHex = ColorHtml(rewardClaimed ? teal : gold)
+                });
+            }
+        }
+
+        private static string WorldSiteRepeatCost(WorldSiteInteractionProfile profile)
+        {
+            if (profile == null) return "none";
+            List<string> costs = new List<string>();
+            if (profile.RepeatSupplyCost > 0)
+            {
+                costs.Add(profile.RepeatSupplyCost + (profile.RepeatSupplyCost == 1 ? " supply" : " supplies"));
+            }
+            if (profile.RepeatGoldCost > 0)
+            {
+                costs.Add(profile.RepeatGoldCost + " gold");
+            }
+            return costs.Count == 0 ? "none" : string.Join(" + ", costs);
         }
 
         private void BuildSewerSliceJournalRows(List<ArmoryRowView> rows)
@@ -901,7 +1019,7 @@ namespace AshenHalls
                 Title = "Armorer's Reward",
                 Subtitle = rewardClaimed ? "claimed" : rewardReady ? "ready" : $"proof {proof}/{ContentSetCatalog.SewerSliceRequiredProofCount}",
                 Detail = rewardClaimed
-                    ? "Rat-pelt armor is claimed. Sluice Steps now opens the Old Road toward Dusk Market."
+                    ? "Rat-pelt armor is claimed. The East Gate now opens the Old Road toward Dusk Market."
                     : rewardReady
                         ? "Return to the Midgaard armorer to trade the sewer proof for stitched rat-pelt armor."
                         : "Each authored sewer room yields one proof bundle. Bring three to the armorer.",
@@ -916,12 +1034,12 @@ namespace AshenHalls
                     Title = "Old Road Chapter II",
                     Subtitle = HasStoryFlag(StoryFlags.KoboldKingDefeated)
                         ? "Kobold Smoke complete"
-                        : state.Depth >= 2 ? "route in progress" : "Sluice Steps open",
+                        : state.Depth >= 2 ? "route in progress" : "Eastbound Old Road open",
                     Detail = HasStoryFlag(StoryFlags.KoboldKingDefeated)
                         ? "Varkh is defeated and the road beyond his hall is the next chapter frontier."
                         : state.Depth >= 2
                             ? "Follow the live route through Dusk Market, Smoke Cave, and the Kobold King's hall."
-                            : "Follow the Salt Cisterns road to Sluice Steps. The bounded Chapter II route is now playable.",
+                            : "Follow the Old Road east through Lanternless Cross. The bounded Chapter II route is now playable.",
                     AccentHex = ColorHtml(moss)
                 });
                 AddKoboldRouteJournalRows(rows);
@@ -995,7 +1113,7 @@ namespace AshenHalls
             if (tab == (int)ArmoryTab.Spells) return FormulaCasterSummary();
             if (tab == (int)ArmoryTab.Journal) return ContentSetCatalog.ShowPrototypeScaffold(activeContentSet)
                 ? "Story beats, city errands, charted roads, selectable waypoints, and future scaffold hooks."
-                : "Current sewer contract, reward, and the live Old Road route after Chapter I.";
+                : "Active road campaign: Midgaard Cisterns, Kobold Smoke, the Bone Road, and charted regional services.";
             if (tab == (int)ArmoryTab.Growth) return ArmoryGrowthSubtitle();
             return "Review every adventurer's current weapon, armor, and combat-facing stats.";
         }
@@ -1013,7 +1131,7 @@ namespace AshenHalls
             if (tab == (int)ArmoryTab.Growth) return ArmoryGrowthFooter();
             return ContentSetCatalog.ShowPrototypeScaffold(activeContentSet)
                 ? "Journal tab: mark any charted road turn to draw a path and replace automatic guidance."
-                : "Journal tab: finish the sewer reward to unlock the Old Road chart and selectable waypoints.";
+                : "Journal tab: follow the active road campaign; charted sites record one-time rewards and repeat services.";
         }
 
         private string LampRoundJournalStatus()
@@ -1034,6 +1152,7 @@ namespace AshenHalls
         {
             if (depth <= 1) return state != null && state.Depth > 1;
             if (depth == 2) return HasStoryFlag(StoryFlags.KoboldKingDefeated) || state != null && state.Depth > 2;
+            if (depth == 3) return ContentSetCatalog.BoneRoadComplete(state?.StoryFlags) || state != null && state.Depth > 3;
             return state != null && state.Depth > depth;
         }
 
@@ -1041,6 +1160,7 @@ namespace AshenHalls
         {
             if (state == null) return false;
             if (depth == 2 && !HasStoryFlag(StoryFlags.KoboldKingDefeated)) return state.Depth == 2;
+            if (depth == 3 && !ContentSetCatalog.BoneRoadComplete(state.StoryFlags)) return state.Depth == 3;
             return Mathf.Clamp(state.Depth, 1, FinalBossDepth) == depth;
         }
 

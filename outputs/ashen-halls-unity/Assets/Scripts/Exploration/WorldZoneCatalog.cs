@@ -38,11 +38,11 @@ namespace AshenHalls
 
         private static readonly WorldZone MidgaardRoad = Zone(
             "midgaard-road",
-            "Midgaard Road",
+            WorldMapGenerationRules.OldRoadName,
             "safe road",
             0,
-            "Midgaard's lamp road, patrol stones, and last warm windows.",
-            "This is the party's anchor: heal, regroup, then push outward.");
+            "wheel-worn cobbles, gate lamps, caravan ruts, and milestones leading east and west",
+            "The Old Road crosses Midgaard between Pilgrim Fork and Lanternless Cross, carrying the party from the city's open gates into the wider adventure network.");
 
         private static readonly WorldZone OldQuarry = Zone(
             "old-quarry",

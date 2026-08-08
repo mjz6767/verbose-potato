@@ -180,6 +180,81 @@ namespace AshenHalls
                     new Point(6, 4, "gas", 7),
                     new Point(7, 5, "web", 7)
                 }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.BoneRoadWatch,
+                LegacyStyle = "bone-road-watch",
+                Banner = "Bone Road Watch",
+                Intro = "A drow watch steps from the old mile stones while their dead auxiliaries close the road behind you.",
+                EnemyIds = new[] { "drowscout", "drowcrossbow", "husk", "reaver" },
+                FixedEnemyCount = 4,
+                EnemyPlacements = new[]
+                {
+                    new Point(9, 2),
+                    new Point(10, 5),
+                    new Point(8, 4),
+                    new Point(9, 6)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 1, "stone"),
+                    new Point(5, 6, "stone"),
+                    new Point(6, 3, "tree", 8),
+                    new Point(7, 5, "tree", 8)
+                }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.GloamCryptRitual,
+                LegacyStyle = "gloam-crypt-ritual",
+                Banner = "Gloam Crypt Ritual",
+                Intro = "A bone priest feeds the Gloam dead into a black rite. Break the circle before the crypt answers.",
+                EnemyIds = new[] { "bonepriest", "shade", "husk", "reaver", "drowmage" },
+                FixedEnemyCount = 5,
+                EnemyPlacements = new[]
+                {
+                    new Point(10, 3),
+                    new Point(9, 1),
+                    new Point(8, 5),
+                    new Point(10, 6),
+                    new Point(9, 4)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 2, "stone"),
+                    new Point(5, 5, "stone"),
+                    new Point(7, 2, "glyph", 7),
+                    new Point(7, 4, "gas", 7),
+                    new Point(6, 6, "web", 7)
+                }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.GloamWarden,
+                LegacyStyle = "gloam-warden-boss",
+                Banner = "Warden of Gloam",
+                Intro = "The Gloam Warden seals the Red Gate warning behind a wall of oath-bound dead and drow steel.",
+                EnemyIds = new[] { "gloamknight", "bonepriest", "drowpriest", "reaver", "shade", "drowcrossbow" },
+                FixedEnemyCount = 6,
+                EnemyPlacements = new[]
+                {
+                    new Point(10, 3),
+                    new Point(9, 1),
+                    new Point(9, 6),
+                    new Point(8, 2),
+                    new Point(8, 5),
+                    new Point(10, 5)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 1, "stone"),
+                    new Point(5, 6, "stone"),
+                    new Point(6, 2, "glyph", 8),
+                    new Point(6, 5, "glyph", 8),
+                    new Point(7, 3, "demonrift", 6),
+                    new Point(7, 4, "gas", 7)
+                }
             }
         };
 

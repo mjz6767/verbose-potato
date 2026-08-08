@@ -1,6 +1,14 @@
-Ash & Brimstone v2.9.0 - Steel, Sorcery, and Living Roads Candidate
+Ash & Brimstone v2.10.0 - Names Under Stone Candidate
 
-Current package version: v2.9.0. Save schema: v25.
+Current package version: v2.10.0. Save schema: v25.
+
+Names Under Stone v2.10.0 turns the road beyond Varkh into a complete Chapter III campaign. The opened passage now carries the company onto the Bone Road, where the grave-scout watch, the reliquary choir in Gloam Deep Crypt, and the named Ossuary Warden form a retryable three-encounter arc. Warden victory grants one +4 gloamward reliquary scale mail and one supply. Taking Varkh's recovered tally to the Red Gate records the warning, completes the chapter, and reveals a stable Glass-and-Ash frontier the company can survey—but not yet cross—without duplicating rewards or progression after recall, reload, or re-entry.
+
+Midgaard's main east-west route now reads and plays as the Old Road from the West Gate through town to the East Gate and Lanternless Cross. Building foundations and substantial fixtures are opaque, grounded, and mechanically blocking; passable world dressing is limited to low or yielding scenery rather than ghosted carts, wells, trees, pillars, fires, or rubble. NEXT, the Golden Thread, movement cues, and marked Journal routes use the live traversal rules, while authored regional interiors suppress redundant translucent road strokes and large setpieces keep their useful map scale at viewport edges.
+
+Chapter III has its own four-step tracker and production Journal record for the Bone Road Watch, Gloam Ritual, Ossuary Warden, and Red Gate Warning. The Journal also records only charted regional sites, including bearing, distance, one-time reward state, and honest repeat-service cost. Scout Yara can interpret Varkh's tally and the recovered warning, and guidance returns to the exact Old Road, Bone Road, crypt, Red Gate, or unsurveyed Glass-and-Ash frontier while preserving explicit player waypoints. Once the frontier is charted, the completed route releases guidance instead of sending the party back toward finished objectives.
+
+Development validation status: integrated RuleSmoke, full RuntimeBoot, and SpriteArtRuntimeSmoke pass for the v2.10 candidate. The clean Windows build, canonical package-integrity and clean-extract gates, packaged-player world-map review, physical-controller review, and a complete human Chapter I-III playthrough remain required before distribution. No runtime art was replaced: all accepted v2.9 and earlier atlas/provenance pins remain unchanged. Existing campaigns remain compatible; save schema remains v25.
 
 Steel, Sorcery, and Living Roads v2.9.0: combat now makes its current intent easier to read. Spellbook and Skillbook hover waits for an intentional pause and remains a passive Preview; committed Selection keeps one teal rail, while armed Targeting keeps its distinct gold state. The command palette adds clearer BLOCKED, ARMED, and NEXT tags, stronger unavailable treatment, and the correct sword or bow emblem for the action in hand. Combatants sit more cleanly on the board with contact light, faction rims, normalized footprints, and a restrained active-unit pulse.
 

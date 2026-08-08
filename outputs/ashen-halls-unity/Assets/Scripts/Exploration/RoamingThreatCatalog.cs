@@ -86,19 +86,22 @@ namespace AshenHalls
             Threat(2, "midgaard-plague-patrol-north", "Plague-Bell Scavengers", "ratcleric", 1, 1, "gloam-courts", 17, RoamingThreatFaction.Rats, "ratmage", "giantrat", "sewerrat"),
             Threat(3, "midgaard-rat-captain-south", "Dusk-Market Rat Captain", "ratcaptain", 1, 1, "dusk-market", 20, RoamingThreatFaction.Rats, "ratbrute", "ratcutthroat", "ratfolk"),
 
-            // The sewer-slice combat pool intentionally contains only rat-family
-            // enemies. If an old or development save reaches a later depth, keep
-            // the visible patrol and the combat it opens semantically aligned.
-            Threat(0, "old-road-rat-scavengers", "Old Road Rat Scavengers", "rats", 2, 6, "salt-cisterns", 11, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Rats, "sewerrat", "giantrat", "ratcutthroat"),
-            Threat(1, "old-road-ratfolk-holdouts", "Old Road Ratfolk Holdouts", "ratfolk", 2, 6, "green-shrine-road", 15, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Rats, "ratfolk", "ratbrute", "ratcutthroat"),
-            Threat(2, "old-road-plague-bearers", "Old Road Plague Bearers", "ratcleric", 2, 6, "ash-fen", 19, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Rats, "ratmage", "giantrat", "ratfolk"),
+            // A production save that reaches Chapter II meets the same kobold
+            // pressure signposted by the Old Road story, plus one ratfolk remnant.
+            Threat(2, "old-road-ratfolk-holdouts", "Old Road Ratfolk Holdouts", "ratfolk", 2, 2, "green-shrine-road", 19, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Rats, "ratfolk", "ratbrute", "ratcutthroat"),
 
             // Chapter II: kobold scouts lead the road pressure, with the first
             // drow and undead silhouettes appearing on their matching routes.
-            Threat(0, "dusk-market-kobold-raiders", "Dusk Market Kobold Raiders", "kobolds", 2, 2, "dusk-market", 11, RoamingThreatContentProfile.FullPrototype, RoamingThreatFaction.Kobolds, "koboldraider", "koboldslinger", "koboldshield"),
-            Threat(1, "quarry-kobold-hexers", "Quarry Kobold Hexers", "koboldshaman", 2, 2, "old-quarry", 15, RoamingThreatContentProfile.FullPrototype, RoamingThreatFaction.Kobolds, "koboldshaman", "koboldraider", "koboldslinger"),
+            Threat(0, "dusk-market-kobold-raiders", "Dusk Market Kobold Raiders", "kobolds", 2, 2, "dusk-market", 11, RoamingThreatFaction.Kobolds, "koboldraider", "koboldslinger", "koboldshield"),
+            Threat(1, "quarry-kobold-hexers", "Quarry Kobold Hexers", "koboldshaman", 2, 2, "old-quarry", 15, RoamingThreatFaction.Kobolds, "koboldshaman", "koboldraider", "koboldslinger"),
             Threat(2, "gloam-drow-scouts", "Gloam Drow Scouts", "drowscout", 2, 2, "gloam-courts", 18, RoamingThreatContentProfile.FullPrototype, RoamingThreatFaction.Drow, "drowscout", "drowcrossbow", "drowblade"),
             Threat(3, "fen-restless-dead", "Fen Restless Dead", "undead", 2, 2, "ash-fen", 21, RoamingThreatContentProfile.FullPrototype, RoamingThreatFaction.Undead, "husk", "reaver", "shade"),
+
+            // Chapter III's production route crosses occupied drow ground,
+            // disturbed crypts, and the grave watch before the Red Gate warning.
+            Threat(0, "bone-road-drow-watch", "Bone Road Drow Watch", "drowscout", 3, 3, "glass-warrens", 12, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Drow, "drowscout", "drowcrossbow", "drowmage", "drowpriest"),
+            Threat(1, "gloam-crypt-procession", "Gloam Crypt Procession", "bonepriest", 3, 3, "gloam-courts", 17, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "bonepriest", "shade", "husk", "reaver"),
+            Threat(2, "red-gate-grave-watch", "Red Gate Grave Watch", "revenant", 3, 3, "red-gate", 22, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "reaver", "bonepriest", "shade", "husk"),
 
             // Chapter III: organized drow and death-cult patrols replace the
             // tentative scouts while kobolds remain on their established roads.
@@ -217,9 +220,9 @@ namespace AshenHalls
                 case "reaver":
                 case "shade":
                 case "bonepriest":
+                case "gloamknight":
                     return RoamingThreatFaction.Undead;
                 case "cinderling":
-                case "gloamknight":
                 case "lesserdemon": return RoamingThreatFaction.Demons;
                 default: throw new ArgumentException("Enemy is not assigned to a roaming-threat faction: " + (enemyId ?? ""), nameof(enemyId));
             }

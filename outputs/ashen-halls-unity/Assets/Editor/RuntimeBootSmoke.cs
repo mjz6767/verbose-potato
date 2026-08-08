@@ -1317,6 +1317,31 @@ namespace AshenHalls.Editor
                 .Select(threat => $"{threat.Id}:{threat.HomeX},{threat.HomeY}"));
             Assert(patrolSignature == recoveredPatrolSignature, "roaming patrol repair deterministically recovers an invalid saved home");
 
+            RoamingThreat habitatProbe = state.RoamingThreats.Single(threat =>
+                threat != null && threat.Id == patrolDefinitions[0].Id);
+            int habitatProbeX = habitatProbe.X;
+            int habitatProbeY = habitatProbe.Y;
+            bool habitatProbeActive = habitatProbe.Active;
+            try
+            {
+                habitatProbe.X = -1;
+                habitatProbe.Y = -1;
+                Assert(
+                    !InvokePrivate<bool>(game, "CanStepExplore", habitatProbe.HomeX, habitatProbe.HomeY),
+                    habitatProbe.Name + " active lair remains solid while its patrol is away");
+                habitatProbe.Active = false;
+                Assert(
+                    InvokePrivate<bool>(game, "CanStepExplore", habitatProbe.HomeX, habitatProbe.HomeY),
+                    habitatProbe.Name + " cleared lair becomes passable aftermath scenery");
+            }
+            finally
+            {
+                habitatProbe.X = habitatProbeX;
+                habitatProbe.Y = habitatProbeY;
+                habitatProbe.Active = habitatProbeActive;
+            }
+            AssertGuidanceReroutesAroundActiveHabitat(game, state);
+
             foreach (RoamingThreatDefinition definition in patrolDefinitions)
             {
                 RoamingThreat patrol = state.RoamingThreats.Single(threat => threat != null && threat.Id == definition.Id);
@@ -1669,7 +1694,7 @@ namespace AshenHalls.Editor
             state.PlayerX = rewardReadyX;
             state.PlayerY = rewardReadyY;
             IReadOnlyList<ArmoryRowView> chapterTwoJournal = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows");
-            Assert(chapterTwoJournal.Any(row => row.Title == "Old Road Chapter II" && row.Subtitle == "Sluice Steps open"), "production Journal names the live Chapter II route after Borin's reward");
+            Assert(chapterTwoJournal.Any(row => row.Title == "Old Road Chapter II" && row.Subtitle == "Eastbound Old Road open"), "production Journal names the live eastbound Chapter II route after Borin's reward");
             Assert(chapterTwoJournal.Any(row => row.Title == "Kobold Smoke - Dusk Market Ambush" && row.Subtitle == "current"), "production Journal exposes the bounded Dusk Market step without prototype scaffolds");
             Assert(chapterTwoJournal.Any(row => row.Title == "Outer Road Chart"), "production Journal unlocks the route chart with the Old Road");
             Assert(chapterTwoJournal.All(row => ((row.Title ?? "") + " " + (row.Subtitle ?? "") + " " + (row.Detail ?? ""))
@@ -1722,14 +1747,53 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "RunArmoryRowAction", selectedWaypointRow.Key);
             Assert(string.IsNullOrEmpty(state.ActiveRouteWaypointKey), "Journal Clear action removes the route waypoint");
             ExplorationHudView restoredStoryGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
-            Assert(restoredStoryGuidance.WaypointLine.IndexOf("Sluice Steps", StringComparison.OrdinalIgnoreCase) >= 0
+            Assert(restoredStoryGuidance.WaypointLine.IndexOf("Eastbound Old Road", StringComparison.OrdinalIgnoreCase) >= 0
                 && restoredStoryGuidance.WaypointLine.IndexOf("Marked:", StringComparison.OrdinalIgnoreCase) < 0,
                 "clearing a Journal waypoint immediately restores the Chapter II story thread");
             SetPrivateField(game, "armoryTab", previousArmoryTab);
             MapObject oldRoadDescent = state.Map.FindObjectById("old-road-descent-sluice-steps");
-            Assert(oldRoadDescent != null && oldRoadDescent.Type == ObjectType.Stairs, "chapter reward creates one stable Sluice Steps descent");
+            Assert(oldRoadDescent != null && oldRoadDescent.Type == ObjectType.Stairs, "chapter reward creates one stable eastbound Old Road transition");
+            WorldMapJunction[] oldRoadJunctions = WorldMapGenerationRules.RegionalJunctions(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY);
+            WorldMapJunction pilgrimFork = oldRoadJunctions.Single(junction => junction.Id == "pilgrim-fork");
+            WorldMapJunction lanternlessCross = oldRoadJunctions.Single(junction => junction.Id == "lanternless-cross");
+            Assert(oldRoadDescent.X == lanternlessCross.X
+                && oldRoadDescent.Y == lanternlessCross.Y
+                && oldRoadDescent.Y == state.Map.StartY,
+                "the stable Chapter II transition sits at Lanternless Cross on the eastbound Old Road");
+            Assert(InvokePrivate<string>(game, "ObjectName", oldRoadDescent) == "Eastbound Old Road",
+                "the save-stable transition publishes its new eastbound Old Road identity");
+            int oldRoadWestX = Math.Min(pilgrimFork.X, lanternlessCross.X);
+            int oldRoadEastX = Math.Max(pilgrimFork.X, lanternlessCross.X);
+            for (int x = oldRoadWestX; x <= oldRoadEastX; x++)
+            {
+                int tileIndex = state.Map.StartY * state.Map.Width + x;
+                Assert(tileIndex >= 0
+                    && tileIndex < state.Map.Tiles.Count
+                    && state.Map.Tiles[tileIndex] == 1,
+                    $"Old Road cell {x},{state.Map.StartY} is open");
+                ExplorationCellRole oldRoadRoles = ExplorationSurfaceRules.RolesAt(state.Map, x, state.Map.StartY);
+                Assert(WorldMapGenerationRules.IsOldRoadCenterlineCell(
+                        state.Map.Width,
+                        state.Map.Height,
+                        state.Map.StartX,
+                        state.Map.StartY,
+                        x,
+                        state.Map.StartY)
+                    && (oldRoadRoles & ExplorationCellRole.Road) != 0,
+                    $"Old Road cell {x},{state.Map.StartY} retains its semantic Road role");
+                Assert((oldRoadRoles & (ExplorationCellRole.Room | ExplorationCellRole.Water | ExplorationCellRole.Hazard)) == 0,
+                    $"Old Road cell {x},{state.Map.StartY} has no room, water, or hazard role conflict");
+                Assert(state.Map.Objects
+                    .Where(obj => obj != null && obj.X == x && obj.Y == state.Map.StartY)
+                    .All(obj => ExplorationTraversalRules.CanStandOnObject(obj)),
+                    $"Old Road cell {x},{state.Map.StartY} has no blocking scenery; gates and the transition remain standable");
+            }
             bool[,] oldRoadReachable = ExplorationTraversalRules.ReachableMask(state.Map, state.PlayerX, state.PlayerY);
-            Assert(ExplorationTraversalRules.CanReachObject(oldRoadReachable, state.Map, oldRoadDescent), "Sluice Steps is reachable from the current Midgaard component");
+            Assert(ExplorationTraversalRules.CanReachObject(oldRoadReachable, state.Map, oldRoadDescent), "Lanternless Cross and its eastbound Old Road transition are reachable from the current Midgaard component");
             Assert(!ContentSetCatalog.ShowPrototypeScaffold(ContentSetCatalog.SewerSlice)
                 && !ContentSetCatalog.AllowPrototypeRouteTriggers(ContentSetCatalog.SewerSlice, state.StoryFlags), "unlocking Chapter II leaves generic prototype systems disabled");
             Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Dialogue, "chapter reward begins with Borin's dialogue");
@@ -1769,17 +1833,87 @@ namespace AshenHalls.Editor
 
             state.PlayerX = oldRoadDescent.X;
             state.PlayerY = oldRoadDescent.Y;
-            Assert(InvokePrivate<bool>(game, "CanDescend"), "the named Sluice Steps marker authorizes the first normal-play descent");
+            Assert(InvokePrivate<bool>(game, "CanDescend"), "the named eastbound Old Road marker authorizes the first normal-play transition");
             InvokePrivate(game, "Descend");
             Assert(state.Depth == 2 && state.Map != null, "normal sewer-slice play descends into the Chapter II regional map");
             Assert(state.Map.Width == WorldMapGenerationRules.Width && state.Map.Height == WorldMapGenerationRules.Height, "Chapter II uses the expanded fresh-map dimensions");
-            MapObject smokeCave = state.Map.FindObjectById("dusk-market-smoke-cave");
-            Assert(smokeCave != null && smokeCave.Type == ObjectType.Cave, "Chapter II promotes one stable Dusk Market smoke cave");
+            int firstArrivalSupplies = state.Supplies;
+            int firstArrivalChapter = state.StoryChapter;
+            string firstArrivalProgression = string.Join("|", state.Party.Select(member =>
+                $"{member.Id}:{member.Level}:{member.Experience}:{member.SkillPoints}:{member.StatPoints}"));
+            Assert((state.ActiveStory ?? "").IndexOf("Chapter II", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("Dusk Market", StringComparison.OrdinalIgnoreCase) >= 0
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName").IndexOf("Dusk Market", StringComparison.OrdinalIgnoreCase) >= 0,
+                "first Chapter II arrival publishes a depth-aware objective and Dusk Market guidance");
+
+            InvokePrivate(game, "RecallToTempleSquare");
+            Assert(state.Depth == 1 && state.Map != null && state.Map.Depth == 1,
+                "actual Recall returns Chapter II explorers to the Midgaard map");
+            Assert((state.ActiveStory ?? "").IndexOf("Chapter II", StringComparison.OrdinalIgnoreCase) >= 0
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName").IndexOf("Eastbound Old Road", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Recall preserves the live Chapter II objective while guidance refreshes to the eastbound Old Road");
+            MapObject reentryRoad = state.Map.FindObjectById("old-road-descent-sluice-steps");
+            Assert(reentryRoad != null && reentryRoad.Type == ObjectType.Stairs,
+                "Recall rebuilds the stable Midgaard re-entry marker");
+            state.PlayerX = reentryRoad.X;
+            state.PlayerY = reentryRoad.Y;
+            Assert(InvokePrivate<bool>(game, "CanDescend"), "the recalled party can re-enter Chapter II through the real Old Road transition");
+            InvokePrivate(game, "Descend");
+            string reentryProgression = string.Join("|", state.Party.Select(member =>
+                $"{member.Id}:{member.Level}:{member.Experience}:{member.SkillPoints}:{member.StatPoints}"));
+            Assert(state.Depth == 2
+                && state.Map != null
+                && state.Map.Depth == 2
+                && state.Supplies == firstArrivalSupplies
+                && state.StoryChapter == firstArrivalChapter
+                && reentryProgression == firstArrivalProgression,
+                "Recall plus Chapter II re-entry grants no duplicate supplies, experience, levels, points, or chapter advancement");
+            Assert((state.ActiveStory ?? "").IndexOf("Chapter II", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("Dusk Market", StringComparison.OrdinalIgnoreCase) >= 0
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName").IndexOf("Dusk Market", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Chapter II re-entry refreshes the depth-aware objective and live Dusk Market guidance");
+            InvokePrivate(game, "EnsureKoboldKingCaveMarker");
+            List<MapObject> stableSmokeCaves = state.Map.Objects
+                .Where(obj => obj != null && obj.Id == "dusk-market-smoke-cave")
+                .ToList();
+            Assert(stableSmokeCaves.Count == 1 && stableSmokeCaves[0].Type == ObjectType.Cave,
+                "Chapter II promotes exactly one stable Dusk Market smoke cave");
+            MapObject smokeCave = stableSmokeCaves[0];
+            int smokeCaveX = smokeCave.X;
+            int smokeCaveY = smokeCave.Y;
+            InvokePrivate(game, "EnsureKoboldKingCaveMarker");
+            Assert(state.Map.Objects.Count(obj => obj != null && obj.Id == "dusk-market-smoke-cave") == 1
+                && state.Map.FindObjectById("dusk-market-smoke-cave")?.X == smokeCaveX
+                && state.Map.FindObjectById("dusk-market-smoke-cave")?.Y == smokeCaveY,
+                "re-ensuring the kobold marker preserves one exact stable cave");
             bool[,] chapterTwoReachable = ExplorationTraversalRules.ReachableMask(state.Map, state.PlayerX, state.PlayerY);
             Assert(ExplorationTraversalRules.CanReachObject(chapterTwoReachable, state.Map, smokeCave), "Dusk Market smoke cave remains reachable after descent");
             Assert(InvokePrivate<bool>(game, "IsKoboldStoryCave", smokeCave), "the stable Dusk Market smoke cave owns the Chapter II cave route");
+            WorldMapSite duskMarketSite = WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY)
+                .Single(site => site.ZoneId == "dusk-market");
+            Assert(smokeCave.X == duskMarketSite.X + 2 && smokeCave.Y == duskMarketSite.Y,
+                "the stable Smoke Cave marker sits exactly two cells east of the authored Dusk Market regional site");
+            AssertLegacyKoboldCaveMigration(game, state);
+            MapObject duskMarketLandmark = state.Map.FindObjectById("regional-site:" + duskMarketSite.Id);
+            Assert(duskMarketLandmark != null
+                && InvokePrivate<bool>(game, "IsEligibleExploreWaypoint", duskMarketLandmark)
+                && !InvokePrivate<bool>(game, "IsEligibleExploreWaypoint", smokeCave),
+                "before the ambush, guidance admits Dusk Market but withholds the unrevealed stable cave");
+            Assert(!InvokePrivate<bool>(game, "IsKoboldStoryObject", smokeCave),
+                "before the ambush, the stable cave does not receive story-route presentation");
+            string preAmbushGuidanceTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName");
+            Assert(preAmbushGuidanceTarget.IndexOf("Dusk Market", StringComparison.OrdinalIgnoreCase) >= 0
+                && preAmbushGuidanceTarget.IndexOf("Smoke Cave", StringComparison.OrdinalIgnoreCase) < 0,
+                "before the ambush, the Golden Thread leads to Dusk Market without revealing the Smoke Cave Mouth");
             MapObject ordinaryDuskCave = new MapObject(smokeCave.X, smokeCave.Y, ObjectType.Cave, "ordinary-dusk-cave");
             Assert(!InvokePrivate<bool>(game, "IsKoboldStoryCave", ordinaryDuskCave), "an ordinary Dusk Market cave cannot impersonate the Chapter II route");
+            Assert(!InvokePrivate<bool>(game, "IsKoboldStoryObject", ordinaryDuskCave)
+                && InvokePrivate<int>(game, "ProgressionOverlayIndex", ordinaryDuskCave) == 11,
+                "ordinary Dusk Market caves remain ordinary cave art without story or special progression overlays");
             InvokePrivate(game, "ResolveExploreObject", smokeCave);
             Assert(!state.StoryFlags.Contains(StoryFlags.KoboldCaveFound) && state.Mode == GameMode.Explore, "the smoke cave stays sealed until the Dusk Market ambush is survived");
             Assert(!state.Map.Objects.Any(obj => obj != null && (obj.Type == ObjectType.Encounter || obj.Type == ObjectType.Stairs)), "normal Chapter II map still prunes generic patrol and stair scaffolds");
@@ -1798,28 +1932,673 @@ namespace AshenHalls.Editor
             Assert(state.Map.Objects
                 .Where(obj => obj != null && scaffoldTypes.Contains(obj.Type))
                 .All(obj => !string.IsNullOrEmpty(obj.Id) && obj.Id.StartsWith("regional-site:", StringComparison.Ordinal)), "only the eight explicitly authored regional sites reuse scaffold landmark types");
-            if (!state.StoryFlags.Contains(StoryFlags.KoboldAmbushSprung))
+            Point legalAmbushCell = null;
+            for (int y = Mathf.Max(1, duskMarketSite.Y - duskMarketSite.Radius); y <= Mathf.Min(state.Map.Height - 2, duskMarketSite.Y + duskMarketSite.Radius); y++)
+            for (int x = Mathf.Max(1, duskMarketSite.X - duskMarketSite.Radius); x <= Mathf.Min(state.Map.Width - 2, duskMarketSite.X + duskMarketSite.Radius); x++)
             {
-                state.StoryFlags.Add(StoryFlags.KoboldAmbushSprung);
+                if (x == smokeCave.X && y == smokeCave.Y) continue;
+                if (!InvokePrivate<bool>(game, "IsKoboldAmbushApproachCell", x, y)
+                    || !InvokePrivate<bool>(game, "CanStepExplore", x, y)) continue;
+                WorldZone candidateZone = InvokePrivate<WorldZone>(game, "ZoneFor", x, y, state.Map, state.Depth);
+                if (candidateZone == null || candidateZone.Id != "dusk-market") continue;
+                IReadOnlyList<Point> candidatePath = InvokePrivate<List<Point>>(game, "FindLiveExplorePath", x, y);
+                if (candidatePath.Count == 0) continue;
+                legalAmbushCell = new Point(x, y);
+                break;
             }
-            state.PlayerX = smokeCave.X;
-            state.PlayerY = smokeCave.Y;
+            Assert(legalAmbushCell != null
+                && (legalAmbushCell.X != smokeCave.X || legalAmbushCell.Y != smokeCave.Y),
+                "Dusk Market exposes a legal reachable ambush cell away from the solid Smoke Cave object");
+            state.PlayerX = legalAmbushCell.X;
+            state.PlayerY = legalAmbushCell.Y;
+            Assert(InvokePrivate<bool>(game, "CanStepExplore", state.PlayerX, state.PlayerY)
+                && !state.StoryFlags.Contains(StoryFlags.KoboldAmbushSprung),
+                "the fresh kobold ambush begins from a standable Dusk Market cell");
+            Assert(InvokePrivate<bool>(game, "MaybeTriggerKoboldAmbush"), "entering the legal Dusk Market cell triggers the first kobold ambush");
+            Assert(state.StoryFlags.Contains(StoryFlags.KoboldAmbushSprung)
+                && state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "koboldambush",
+                "the legal Dusk Market trigger opens the bounded kobold ambush encounter");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
             Assert(InvokePrivate<bool>(game, "MaybeTriggerKoboldAmbush"), "an unresolved sprung ambush retriggers after retreat");
             Assert(state.Mode == GameMode.Combat && state.Combat?.EncounterStyle == "koboldambush", "the retry opens the bounded kobold ambush encounter");
             InvokePrivate(game, "ApplyKoboldStoryVictory", "koboldambush");
             Assert(state.StoryFlags.Contains(StoryFlags.KoboldAmbushSurvived), "Chapter II ambush victory advances the promoted route");
             state.Mode = GameMode.Explore;
             state.Combat = null;
+            Assert(InvokePrivate<bool>(game, "IsKoboldStoryObject", smokeCave)
+                && InvokePrivate<string>(game, "ObjectName", smokeCave) == "Smoke Cave Mouth",
+                "after the ambush, the stable cave becomes the named Smoke Cave Mouth story object");
+            Assert(TryFindAdjacentProbeTile(game, state, smokeCave, out int smokeApproachX, out int smokeApproachY),
+                "the revealed Smoke Cave Mouth has a reachable approach tile");
+            state.PlayerX = smokeApproachX;
+            state.PlayerY = smokeApproachY;
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Smoke Cave Mouth",
+                "after the ambush, the Golden Thread advances to the revealed Smoke Cave Mouth");
             InvokePrivate(game, "ResolveExploreObject", smokeCave);
             Assert(state.StoryFlags.Contains(StoryFlags.KoboldCaveFound)
                 && state.Mode == GameMode.Combat
                 && state.Combat?.EncounterStyle == "koboldcave", "the stable smoke cave opens only after the ambush victory");
             InvokePrivate(game, "ApplyKoboldStoryVictory", "koboldcave");
             Assert(state.StoryFlags.Contains(StoryFlags.KoboldCaveCleared), "Chapter II smoke-cave victory advances to the king's hall");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "EnsureKoboldKingCaveMarker");
+            MapObject varkhMouth = state.Map.FindObjectById("dusk-market-smoke-cave");
+            Assert(varkhMouth != null
+                && varkhMouth.X == smokeCaveX
+                && varkhMouth.Y == smokeCaveY
+                && InvokePrivate<string>(game, "ObjectName", varkhMouth) == "Varkh's Hall",
+                "clearing the cave advances the same stable mouth to Varkh's Hall");
+            Assert(TryFindAdjacentProbeTile(game, state, varkhMouth, out int varkhApproachX, out int varkhApproachY),
+                "Varkh's route remains reachable through the same cave mouth");
+            state.PlayerX = varkhApproachX;
+            state.PlayerY = varkhApproachY;
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Varkh's Hall",
+                "after the cave clear, the Golden Thread advances through the same mouth to Varkh");
+            InvokePrivate(game, "ResolveExploreObject", varkhMouth);
+            Assert(state.Mode == GameMode.Combat && state.Combat?.EncounterStyle == "koboldking",
+                "after the cave clear, using the same Smoke Cave Mouth advances directly to Varkh");
             IReadOnlyList<ArmoryRowView> kingRoadJournal = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows");
             Assert(kingRoadJournal.Any(row => row.Title == "Kobold Smoke - Dusk Market Ambush" && row.Subtitle == "complete"), "production Journal retains completed ambush state");
             Assert(kingRoadJournal.Any(row => row.Title == "Kobold Smoke - Smoke Cave" && row.Subtitle == "complete"), "production Journal retains completed smoke-cave state");
             Assert(kingRoadJournal.Any(row => row.Title == "Kobold Smoke - Varkh's Hall" && row.Subtitle == "current"), "production Journal promotes Varkh's Hall as the next live route step");
+            InvokePrivate(game, "FinishKoboldKingVictory", 0, 0);
+            Assert(state.StoryFlags.Contains(StoryFlags.KoboldKingDefeated), "invoking Varkh's victory completes the bounded kobold chapter");
+            Assert(!state.Map.Objects.Any(obj => obj != null && obj.Id == "dusk-market-smoke-cave"),
+                "Varkh's defeat removes the completed Smoke Cave marker");
+            InvokePrivate(game, "EnsureKoboldKingCaveMarker");
+            Assert(!state.Map.Objects.Any(obj => obj != null && obj.Id == "dusk-market-smoke-cave"),
+                "the completed Smoke Cave marker is not recreated after Varkh");
+            string kingVictoryCopy = state.ActiveStory ?? "";
+            Assert(kingVictoryCopy.IndexOf("Chapter III", StringComparison.OrdinalIgnoreCase) >= 0
+                && kingVictoryCopy.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Varkh's victory immediately opens the named Chapter III route");
+            AssertBoneRoadStoryFlow(game, state, duskMarketSite, smokeCaveX, smokeCaveY);
+        }
+
+        private static void AssertBoneRoadStoryFlow(
+            AshenHallsGame game,
+            GameState state,
+            WorldMapSite duskMarketSite,
+            int stablePassageX,
+            int stablePassageY)
+        {
+            const string boneRoadPassageId = "bone-road-passage-varkh-hall";
+            const string glassAndAshPassageId = "glass-and-ash-passage-red-gate";
+            InvokePrivate(game, "DismissLootPopup");
+            InvokePrivate(game, "LateUpdate");
+
+            List<MapObject> varkhPassages = state.Map.Objects
+                .Where(obj => obj != null && obj.Id == boneRoadPassageId)
+                .ToList();
+            Assert(varkhPassages.Count == 1
+                && varkhPassages[0].Type == ObjectType.Stairs
+                && varkhPassages[0].X == stablePassageX
+                && varkhPassages[0].Y == stablePassageY
+                && stablePassageX == duskMarketSite.X + 2
+                && stablePassageY == duskMarketSite.Y,
+                "Varkh's completion creates exactly one Bone Road passage at the stable Dusk Market anchor");
+            MapObject boneRoadPassage = varkhPassages[0];
+            bool[,] varkhReachable = ExplorationTraversalRules.ReachableMask(state.Map, state.PlayerX, state.PlayerY);
+            Assert(ExplorationTraversalRules.CanReachObject(varkhReachable, state.Map, boneRoadPassage),
+                "Varkh's Bone Road passage is reachable from the live Chapter II component");
+
+            // Model the load path for a pre-Chapter-III Varkh save: the old cave
+            // survived, the promoted passage did not, and its objective is stale.
+            boneRoadPassage.Id = "dusk-market-smoke-cave";
+            boneRoadPassage.Type = ObjectType.Cave;
+            state.Map.Objects.RemoveAll(obj => obj != null && obj.Id == boneRoadPassageId);
+            state.Map.InvalidateObjectLookup();
+            state.ActiveStory = "Chapter II complete: seek the next stair.";
+            InvokePrivate(game, "EnsureWorldState", state.SaveVersion);
+            InvokePrivate(game, "EnsureWorldLandmarks");
+            varkhPassages = state.Map.Objects.Where(obj => obj != null && obj.Id == boneRoadPassageId).ToList();
+            Assert(varkhPassages.Count == 1
+                && !state.Map.Objects.Any(obj => obj != null && obj.Id == "dusk-market-smoke-cave")
+                && varkhPassages[0].X == stablePassageX
+                && varkhPassages[0].Y == stablePassageY,
+                "load repair upgrades a legacy post-Varkh cave into one stable Bone Road passage");
+            Assert((state.ActiveStory ?? "").IndexOf("Chapter III", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) >= 0,
+                "load repair replaces the stale Varkh objective with the current Bone Road objective");
+
+            state.Map.Objects.RemoveAll(obj => obj != null && obj.Id == boneRoadPassageId);
+            state.Map.InvalidateObjectLookup();
+            InvokePrivate(game, "EnsureWorldState", state.SaveVersion);
+            InvokePrivate(game, "EnsureWorldLandmarks");
+            varkhPassages = state.Map.Objects.Where(obj => obj != null && obj.Id == boneRoadPassageId).ToList();
+            Assert(varkhPassages.Count == 1, "load repair recreates a missing post-Varkh Bone Road passage exactly once");
+            state.Map.Objects.Add(new MapObject(stablePassageX, stablePassageY, ObjectType.Stairs, boneRoadPassageId));
+            state.Map.InvalidateObjectLookup();
+            InvokePrivate(game, "EnsureWorldState", state.SaveVersion);
+            InvokePrivate(game, "EnsureWorldLandmarks");
+            varkhPassages = state.Map.Objects.Where(obj => obj != null && obj.Id == boneRoadPassageId).ToList();
+            Assert(varkhPassages.Count == 1, "load repair collapses duplicate post-Varkh Bone Road markers");
+            boneRoadPassage = varkhPassages[0];
+
+            state.PlayerX = boneRoadPassage.X;
+            state.PlayerY = boneRoadPassage.Y;
+            state.StoryFlags.Remove(StoryFlags.KoboldKingDefeated);
+            Assert(!InvokePrivate<bool>(game, "CanDescend"), "the Bone Road remains locked before Varkh's defeat flag");
+            state.StoryFlags.Add(StoryFlags.KoboldKingDefeated);
+            Assert(InvokePrivate<bool>(game, "CanDescend"), "Varkh's stable passage authorizes Chapter II to Chapter III travel");
+            boneRoadPassage.Id = "wrong-bone-road-stair";
+            state.Map.InvalidateObjectLookup();
+            Assert(!InvokePrivate<bool>(game, "CanDescend"), "an arbitrary Chapter II stair cannot impersonate the Bone Road passage");
+            boneRoadPassage.Id = boneRoadPassageId;
+            state.Map.InvalidateObjectLookup();
+            Assert(InvokePrivate<bool>(game, "CanDescend"), "restoring the stable Bone Road id restores travel authorization");
+
+            IReadOnlyList<RoamingThreatDefinition> depthTwoPatrols = RoamingThreatCatalog.ForDepth(2, false);
+            Assert(depthTwoPatrols.Count == 3
+                && depthTwoPatrols.Count(definition => definition.Faction == RoamingThreatFaction.Kobolds) == 2
+                && depthTwoPatrols.Count(definition => definition.Faction == RoamingThreatFaction.Rats) == 1
+                && depthTwoPatrols.SelectMany(definition => definition.EnemyIds)
+                    .All(id => ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, id)),
+                "production Chapter II owns exactly two kobold patrols and one ratfolk patrol with active combat rosters");
+
+            RoamingThreat cooledDepthTwoPatrol = state.RoamingThreats
+                .First(threat => threat != null && threat.Active && threat.Depth == 2);
+            string cooledDepthTwoPatrolId = cooledDepthTwoPatrol.Id;
+            int cooledDepthTwoHomeX = cooledDepthTwoPatrol.HomeX;
+            int cooledDepthTwoHomeY = cooledDepthTwoPatrol.HomeY;
+            RoamingThreat sameIdOtherDepth = new RoamingThreat
+            {
+                Id = cooledDepthTwoPatrolId,
+                Name = "Other-depth sentinel",
+                Archetype = cooledDepthTwoPatrol.Archetype,
+                Depth = 1,
+                X = 1,
+                Y = 1,
+                HomeX = 1,
+                HomeY = 1,
+                Active = true,
+                Alerted = true,
+                GraceSteps = 77,
+                RespawnSteps = 66
+            };
+            state.RoamingThreats.Insert(0, sameIdOtherDepth);
+            InvokePrivate(game, "ResolveRoamingThreatRetreat", cooledDepthTwoPatrolId);
+            Assert(sameIdOtherDepth.Active
+                && sameIdOtherDepth.Alerted
+                && sameIdOtherDepth.GraceSteps == 77
+                && sameIdOtherDepth.RespawnSteps == 66,
+                "retreat resolution changes only the same-id patrol on the current depth");
+            InvokePrivate(game, "ResolveRoamingThreatVictory", cooledDepthTwoPatrolId);
+            int cooledDepthTwoRespawnSteps = cooledDepthTwoPatrol.RespawnSteps;
+            Assert(!cooledDepthTwoPatrol.Active
+                && cooledDepthTwoRespawnSteps == RoamingThreatRules.DefeatRespawnSteps
+                && sameIdOtherDepth.Active
+                && sameIdOtherDepth.RespawnSteps == 66,
+                "defeating a Chapter II patrol records its quiet-road cooldown before leaving the depth");
+
+            int suppliesBeforeFirstBoneRoadArrival = state.Supplies;
+            string progressionBeforeFirstBoneRoadArrival = PartyProgressionSignature(state);
+            InvokePrivate(game, "Descend");
+            Assert(state.Depth == 3
+                && state.Map != null
+                && state.Map.Depth == 3
+                && state.StoryFlags.Contains(StoryFlags.BoneRoadEntered),
+                "the stable Varkh passage reaches the production Bone Road chapter");
+            Assert(state.Supplies == suppliesBeforeFirstBoneRoadArrival + 2
+                && PartyProgressionSignature(state) != progressionBeforeFirstBoneRoadArrival,
+                "first Bone Road arrival grants its one-time supplies and chapter experience");
+
+            IReadOnlyList<RoamingThreatDefinition> depthThreePatrols = RoamingThreatCatalog.ForDepth(3, false);
+            Assert(depthThreePatrols.Count == 3
+                && depthThreePatrols.All(definition =>
+                    definition.Faction == RoamingThreatFaction.Drow
+                    || definition.Faction == RoamingThreatFaction.Undead)
+                && depthThreePatrols.SelectMany(definition => definition.EnemyIds)
+                    .All(id => ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, id)),
+                "production Chapter III owns exactly three active drow-or-undead patrol definitions");
+
+            WorldMapSite[] chapterThreeSites = WorldMapGenerationRules.RegionalSites(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY);
+            IReadOnlyList<ArmoryRowView> unchartedJournal = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows");
+            Assert(chapterThreeSites.All(site => unchartedJournal.All(row => row.Title != site.Name)),
+                "production Journal withholds every uncharted regional site");
+
+            WorldMapSite cryptSite = chapterThreeSites.Single(site => site.Id == "gloam-deep-crypt");
+            MapObject cryptLandmark = state.Map.FindObjectById("regional-site:gloam-deep-crypt");
+            Assert(cryptLandmark != null && cryptLandmark.X == cryptSite.X && cryptLandmark.Y == cryptSite.Y,
+                "Chapter III owns the exact Gloam Deep Crypt regional site");
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Gloam Deep Crypt",
+                "first Bone Road guidance targets the exact Gloam Deep Crypt");
+
+            Point cryptApproach = null;
+            for (int y = Mathf.Max(1, cryptSite.Y - cryptSite.Radius); y <= Mathf.Min(state.Map.Height - 2, cryptSite.Y + cryptSite.Radius); y++)
+            for (int x = Mathf.Max(1, cryptSite.X - cryptSite.Radius); x <= Mathf.Min(state.Map.Width - 2, cryptSite.X + cryptSite.Radius); x++)
+            {
+                if (!InvokePrivate<bool>(game, "CanStepExplore", x, y)) continue;
+                IReadOnlyList<Point> path = InvokePrivate<List<Point>>(game, "FindLiveExplorePath", x, y);
+                if (path.Count == 0) continue;
+                cryptApproach = new Point(x, y);
+                break;
+            }
+            Assert(cryptApproach != null, "Gloam Deep Crypt has a reachable walkable footprint cell for its watch trigger");
+            state.PlayerX = cryptApproach.X;
+            state.PlayerY = cryptApproach.Y;
+            Assert(InvokePrivate<bool>(game, "MaybeTriggerBoneRoadWatch"), "entering the Gloam Deep Crypt footprint triggers the Bone Road watch");
+            Assert(state.StoryFlags.Contains(StoryFlags.BoneRoadWatchSprung)
+                && state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "bone-road-watch",
+                "the footprint trigger opens the exact Bone Road watch encounter");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            Assert(InvokePrivate<bool>(game, "MaybeTriggerBoneRoadWatch")
+                && state.Combat?.EncounterStyle == "bone-road-watch",
+                "an unresolved Bone Road watch retriggers after retreat");
+
+            InvokePrivate(game, "ApplyBoneRoadStoryVictory", "bone-road-watch");
+            Assert(state.StoryFlags.Contains(StoryFlags.BoneRoadWatchDefeated)
+                && !state.StoryFlags.Contains(StoryFlags.GloamRitualBroken),
+                "watch victory advances only to the Gloam ritual step");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Gloam Deep Crypt",
+                "watch victory keeps guidance on the exact crypt entrance");
+
+            InvokePrivate(game, "ResolveExploreObject", cryptLandmark);
+            Assert(state.Mode == GameMode.Combat && state.Combat?.EncounterStyle == "gloam-crypt-ritual",
+                "first crypt interaction after the watch starts the reliquary ritual encounter");
+            Point cryptRitualGlyph = state.Combat.Obstacles.Single(CombatRitualRules.IsRitual);
+            string cryptRitualPreview = InvokePrivate<string>(game, "TerrainPreviewLine", cryptRitualGlyph);
+            string cryptRitualWarning = InvokePrivate<string>(game, "TerrainLogWarning", cryptRitualGlyph);
+            Assert(cryptRitualPreview.IndexOf("reliquary bone priest", StringComparison.OrdinalIgnoreCase) >= 0
+                && cryptRitualWarning.IndexOf("reliquary bone priest", StringComparison.OrdinalIgnoreCase) >= 0
+                && cryptRitualPreview.IndexOf("kobold", StringComparison.OrdinalIgnoreCase) < 0
+                && cryptRitualWarning.IndexOf("kobold", StringComparison.OrdinalIgnoreCase) < 0,
+                "Gloam ritual hover and warning copy name the Bone Priest that will actually arrive");
+            Assert(InvokePrivate<bool>(game, "TryOpenEnemyRitual", cryptRitualGlyph)
+                && state.Combat.Units.Any(unit => unit.Side == UnitSide.Enemy
+                    && unit.Origin == "ritual"
+                    && unit.Role == "bonepriest"
+                    && unit.Name == "Reliquary Bone Priest"),
+                "the live Gloam ritual resolves its glyph into a production-active Bone Priest");
+            IReadOnlyList<ArmoryRowView> readyCryptJournal = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows");
+            ArmoryRowView readyCryptRow = readyCryptJournal.Single(row => row.Title == "Gloam Deep Crypt");
+            Assert(readyCryptRow.Badge == "READY" && readyCryptRow.Detail.IndexOf("Reliquary Vigil", StringComparison.OrdinalIgnoreCase) >= 0,
+                "charted crypt appears in the Journal with its ready regional service");
+
+            InvokePrivate(game, "ApplyBoneRoadStoryVictory", "gloam-crypt-ritual");
+            Assert(state.StoryFlags.Contains(StoryFlags.GloamRitualBroken)
+                && !state.StoryFlags.Contains(StoryFlags.GloamWardenDefeated),
+                "ritual victory advances only to the Ossuary Warden step");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            InvokePrivate(game, "ResolveExploreObject", cryptLandmark);
+            CombatUnit ossuaryWarden = state.Combat?.Units?.SingleOrDefault(unit => unit.Side == UnitSide.Enemy && unit.Role == "gloamknight");
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "gloam-warden-boss"
+                && ossuaryWarden != null
+                && ossuaryWarden.Name == "Ossuary Warden",
+                "second crypt interaction opens the named Ossuary Warden boss encounter");
+            Point wardenRift = state.Combat.Obstacles.Single(point => point.Kind == "demonrift");
+            string wardenRiftPreview = InvokePrivate<string>(game, "TerrainPreviewLine", wardenRift);
+            string wardenRiftWarning = InvokePrivate<string>(game, "TerrainLogWarning", wardenRift);
+            Assert(wardenRiftPreview.IndexOf("Gloam Knight", StringComparison.OrdinalIgnoreCase) >= 0
+                && wardenRiftWarning.IndexOf("Gloam Knight", StringComparison.OrdinalIgnoreCase) >= 0
+                && wardenRiftPreview.IndexOf("lesser demon", StringComparison.OrdinalIgnoreCase) < 0
+                && wardenRiftWarning.IndexOf("lesser demon", StringComparison.OrdinalIgnoreCase) < 0,
+                "Warden breach hover and warning copy name the Gloam Knight that will actually arrive");
+            Assert(InvokePrivate<bool>(game, "TryOpenEnemyRitual", wardenRift)
+                && state.Combat.Units.Any(unit => unit.Side == UnitSide.Enemy
+                    && unit.Origin == "ritual"
+                    && unit.Role == "gloamknight"
+                    && unit.Name == "Rift-bound Gloam Knight"),
+                "the live Warden breach resolves into a production-active Gloam Knight instead of prototype demon content");
+
+            int reliquaryMailBefore = state.Inventory.Count(item => item != null && item.DisplayName == "+4 gloamward reliquary scale mail");
+            int suppliesBeforeWardenReward = state.Supplies;
+            InvokePrivate(game, "ApplyBoneRoadStoryVictory", "gloam-warden-boss");
+            Assert(state.StoryFlags.Contains(StoryFlags.GloamWardenDefeated)
+                && state.Inventory.Count(item => item != null && item.DisplayName == "+4 gloamward reliquary scale mail") == reliquaryMailBefore + 1
+                && state.Supplies == suppliesBeforeWardenReward + 1
+                && GetPrivateField<string>(game, "lootPanelTitle").IndexOf("Ossuary Warden", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Ossuary Warden victory grants its named reliquary reward once");
+            InvokePrivate(game, "ApplyBoneRoadStoryVictory", "gloam-warden-boss");
+            Assert(state.Inventory.Count(item => item != null && item.DisplayName == "+4 gloamward reliquary scale mail") == reliquaryMailBefore + 1
+                && state.Supplies == suppliesBeforeWardenReward + 1,
+                "replaying the Warden victory callback cannot duplicate its reward");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            InvokePrivate(game, "DismissLootPopup");
+            InvokePrivate(game, "ResolveExploreObject", cryptLandmark);
+            ArmoryRowView claimedCryptRow = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows")
+                .Single(row => row.Title == "Gloam Deep Crypt");
+            Assert(claimedCryptRow.Badge == "CLAIMED", "claiming the charted crypt service updates its Journal row from ready to claimed");
+
+            WorldMapSite redGateSite = chapterThreeSites.Single(site => site.Id == "red-gate-seal");
+            MapObject redGateLandmark = state.Map.FindObjectById("regional-site:red-gate-seal");
+            Assert(redGateLandmark != null
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Red Gate Seal",
+                "Warden victory advances guidance to the exact Red Gate Seal");
+            InvokePrivate(game, "ResolveExploreObject", redGateLandmark);
+            Assert(state.StoryFlags.Contains(StoryFlags.RedGateWarningRecovered)
+                && ContentSetCatalog.BoneRoadComplete(state.StoryFlags),
+                "Red Gate interaction records the warning and completes Chapter III");
+            List<MapObject> glassPassages = state.Map.Objects
+                .Where(obj => obj != null && obj.Id == glassAndAshPassageId)
+                .ToList();
+            Assert(glassPassages.Count == 1
+                && glassPassages[0].Type == ObjectType.Stairs
+                && glassPassages[0].X == redGateSite.X
+                && glassPassages[0].Y == redGateSite.Y - redGateSite.Radius,
+                "Red Gate warning creates one Glass-and-Ash frontier at the stable outer-seal anchor");
+            bool[,] redGateReachable = ExplorationTraversalRules.ReachableMask(state.Map, state.PlayerX, state.PlayerY);
+            Assert(ExplorationTraversalRules.CanReachObject(redGateReachable, state.Map, glassPassages[0])
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Glass-and-Ash Frontier",
+                "the new Glass-and-Ash frontier is reachable and immediately owns guidance");
+
+            state.Map.Objects.RemoveAll(obj => obj != null && obj.Id == glassAndAshPassageId);
+            state.Map.InvalidateObjectLookup();
+            state.ActiveStory = "Chapter III: stale objective at the crypt.";
+            InvokePrivate(game, "EnsureWorldState", state.SaveVersion);
+            InvokePrivate(game, "EnsureWorldLandmarks");
+            glassPassages = state.Map.Objects.Where(obj => obj != null && obj.Id == glassAndAshPassageId).ToList();
+            Assert(glassPassages.Count == 1
+                && (state.ActiveStory ?? "").IndexOf("complete", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("survey", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("frontier", StringComparison.OrdinalIgnoreCase) >= 0,
+                "load repair restores a missing Glass-and-Ash frontier and replaces stale travel copy");
+
+            int settledSupplies = state.Supplies;
+            int settledChapter = state.StoryChapter;
+            string settledProgression = PartyProgressionSignature(state);
+            InvokePrivate(game, "RecallToTempleSquare");
+            Assert(state.Depth == 1, "Bone Road recall returns to Midgaard before the re-entry probe");
+            MapObject oldRoadReentry = state.Map.FindObjectById("old-road-descent-sluice-steps");
+            state.PlayerX = oldRoadReentry.X;
+            state.PlayerY = oldRoadReentry.Y;
+            InvokePrivate(game, "Descend");
+            MapObject boneRoadReentry = state.Map.FindObjectById(boneRoadPassageId);
+            Assert(state.Depth == 2 && boneRoadReentry != null, "completed campaign can re-enter Varkh's stable Bone Road passage");
+            RoamingThreat persistedDepthTwoPatrol = state.RoamingThreats
+                .Single(threat => threat != null
+                    && threat.Depth == 2
+                    && threat.Id == cooledDepthTwoPatrolId);
+            Assert(!persistedDepthTwoPatrol.Active
+                && persistedDepthTwoPatrol.HomeX == cooledDepthTwoHomeX
+                && persistedDepthTwoPatrol.HomeY == cooledDepthTwoHomeY
+                && persistedDepthTwoPatrol.RespawnSteps == cooledDepthTwoRespawnSteps
+                && InvokePrivate<bool>(game, "CanStepExplore", cooledDepthTwoHomeX, cooledDepthTwoHomeY),
+                "recall and re-entry preserve the defeated patrol cooldown, home, and walkable aftermath");
+            state.PlayerX = boneRoadReentry.X;
+            state.PlayerY = boneRoadReentry.Y;
+            InvokePrivate(game, "Descend");
+            Assert(state.Depth == 3
+                && state.Supplies == settledSupplies
+                && state.StoryChapter == settledChapter
+                && PartyProgressionSignature(state) == settledProgression,
+                "Bone Road re-entry duplicates no supplies, chapter progress, experience, levels, or points");
+
+            MapObject reentryGlassPassage = state.Map.FindObjectById(glassAndAshPassageId);
+            Assert(reentryGlassPassage != null, "completed Chapter III regenerates its stable Glass-and-Ash frontier on re-entry");
+            state.PlayerX = reentryGlassPassage.X;
+            state.PlayerY = reentryGlassPassage.Y;
+            Assert(!InvokePrivate<bool>(game, "CanDescend")
+                && InvokePrivate<bool>(game, "CanSurveyGlassAndAshFrontier"),
+                "the completed Red Gate route is an interactive surveyed frontier, not an empty Chapter IV descent");
+            reentryGlassPassage.Id = "wrong-glass-road-stair";
+            state.Map.InvalidateObjectLookup();
+            Assert(!InvokePrivate<bool>(game, "CanDescend")
+                && !InvokePrivate<bool>(game, "CanSurveyGlassAndAshFrontier"),
+                "an arbitrary Chapter III stair cannot impersonate the Glass-and-Ash frontier");
+            reentryGlassPassage.Id = glassAndAshPassageId;
+            state.Map.InvalidateObjectLookup();
+            int frontierSupplies = state.Supplies;
+            string frontierProgression = PartyProgressionSignature(state);
+            InvokePrivate(game, "Descend");
+            string completedGuidanceTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") ?? "";
+            ExplorationHudView completedFrontierView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(state.Depth == 3
+                && state.Map != null
+                && state.Map.Depth == 3
+                && state.StoryFlags.Contains(StoryFlags.GlassAndAshFrontierSurveyed)
+                && state.Supplies == frontierSupplies
+                && PartyProgressionSignature(state) == frontierProgression
+                && (state.ActiveStory ?? "").IndexOf("Return to Midgaard", StringComparison.OrdinalIgnoreCase) >= 0
+                && completedFrontierView.ObjectiveSummary.IndexOf("Chapter III is complete", StringComparison.OrdinalIgnoreCase) >= 0
+                && completedGuidanceTarget.IndexOf("Glass-and-Ash", StringComparison.OrdinalIgnoreCase) < 0
+                && completedGuidanceTarget.IndexOf("Red Gate", StringComparison.OrdinalIgnoreCase) < 0
+                && completedGuidanceTarget.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) < 0
+                && completedGuidanceTarget.IndexOf("Old Road", StringComparison.OrdinalIgnoreCase) < 0,
+                "surveying the frontier completes its epilogue without entering unfinished content or duplicating progression");
+            InvokePrivate(game, "Descend");
+            Assert(state.Depth == 3
+                && state.Supplies == frontierSupplies
+                && PartyProgressionSignature(state) == frontierProgression,
+                "re-surveying the frontier remains safe and reward-free");
+
+            InvokePrivate(game, "RecallToTempleSquare");
+            string completedMidgaardTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") ?? "";
+            ExplorationHudView completedMidgaardView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(state.Depth == 1
+                && (state.ActiveStory ?? "").IndexOf("Chapter III complete", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) < 0
+                && (state.ActiveStory ?? "").IndexOf("gate key", StringComparison.OrdinalIgnoreCase) < 0
+                && completedMidgaardView.ObjectiveSummary.IndexOf("Chapter III is complete", StringComparison.OrdinalIgnoreCase) >= 0
+                && completedMidgaardTarget.IndexOf("Old Road", StringComparison.OrdinalIgnoreCase) < 0
+                && completedMidgaardTarget.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) < 0
+                && completedMidgaardTarget.IndexOf("Glass-and-Ash", StringComparison.OrdinalIgnoreCase) < 0,
+                "completed production campaigns keep an honest Chapter III epilogue after Recall and release stale road guidance");
+
+            MapObject completedOldRoad = state.Map.FindObjectById("old-road-descent-sluice-steps");
+            state.PlayerX = completedOldRoad.X;
+            state.PlayerY = completedOldRoad.Y;
+            InvokePrivate(game, "Descend");
+            string completedDepthTwoTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") ?? "";
+            Assert(state.Depth == 2
+                && (state.ActiveStory ?? "").IndexOf("Chapter III complete", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) < 0
+                && completedDepthTwoTarget.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) < 0,
+                "completed Chapter III remains the production objective during optional Bone Road re-entry without reopening its guidance");
+        }
+
+        private static string PartyProgressionSignature(GameState state)
+        {
+            return state?.Party == null
+                ? ""
+                : string.Join("|", state.Party.Select(member =>
+                    $"{member.Id}:{member.Level}:{member.Experience}:{member.SkillPoints}:{member.StatPoints}"));
+        }
+
+        private static void AssertLegacyKoboldCaveMigration(AshenHallsGame game, GameState state)
+        {
+            MapData originalMap = state.Map;
+            List<RoamingThreat> originalThreats = state.RoamingThreats;
+            int originalDepth = state.Depth;
+            int originalPlayerX = state.PlayerX;
+            int originalPlayerY = state.PlayerY;
+
+            try
+            {
+                int width = WorldMapGenerationRules.PreviousWidth;
+                int height = WorldMapGenerationRules.PreviousHeight;
+                int startX = WorldMapGenerationRules.StartX(width);
+                int startY = WorldMapGenerationRules.StartY(height);
+                MapData legacyMap = new MapData
+                {
+                    Width = width,
+                    Height = height,
+                    Depth = 2,
+                    StartX = startX,
+                    StartY = startY,
+                    Tiles = Enumerable.Repeat(1, width * height).ToList(),
+                    SurfaceMaterials = Enumerable.Repeat((int)ExplorationMaterial.RuinedPaving, width * height).ToList(),
+                    SurfaceRoles = Enumerable.Repeat((int)ExplorationCellRole.None, width * height).ToList(),
+                    Objects = new List<MapObject>()
+                };
+                WorldMapSite staticDuskSite = WorldMapGenerationRules.RegionalSites(width, height, startX, startY)
+                    .Single(site => site.ZoneId == "dusk-market");
+                Point savedCaveCell = null;
+                Point legacyAmbushCell = null;
+                for (int y = 1; y < height - 1; y++)
+                for (int x = 1; x < width - 1; x++)
+                {
+                    WorldZone zone = InvokePrivate<WorldZone>(game, "ZoneFor", x, y, legacyMap, 2);
+                    if (zone == null || zone.Id != "dusk-market") continue;
+                    int siteDistance = Math.Max(Math.Abs(x - staticDuskSite.X), Math.Abs(y - staticDuskSite.Y));
+                    if (siteDistance <= staticDuskSite.Radius + 1) continue;
+                    if (savedCaveCell == null)
+                    {
+                        savedCaveCell = new Point(x, y);
+                    }
+                    else if (Math.Abs(x - savedCaveCell.X) + Math.Abs(y - savedCaveCell.Y) > 1)
+                    {
+                        legacyAmbushCell = new Point(x, y);
+                        break;
+                    }
+                }
+                Assert(savedCaveCell != null && legacyAmbushCell != null,
+                    "a previous-size Chapter II map exposes Dusk Market cells outside the unauthored static site footprint");
+
+                MapObject migratedCave = new MapObject(
+                    savedCaveCell.X,
+                    savedCaveCell.Y,
+                    ObjectType.Cave,
+                    "dusk-market-smoke-cave");
+                legacyMap.Objects.Add(migratedCave);
+                legacyMap.InvalidateObjectLookup();
+                state.Map = legacyMap;
+                state.RoamingThreats = new List<RoamingThreat>();
+                state.Depth = 2;
+                state.PlayerX = startX;
+                state.PlayerY = startY;
+                InvokePrivate(game, "InvalidateExplorationController");
+                InvokePrivate(game, "EnsureKoboldKingCaveMarker");
+                MapObject repairedCave = legacyMap.FindObjectById("dusk-market-smoke-cave");
+                Assert(repairedCave != null
+                    && repairedCave.X == savedCaveCell.X
+                    && repairedCave.Y == savedCaveCell.Y
+                    && legacyMap.Objects.Count(obj => obj != null && obj.Id == "dusk-market-smoke-cave") == 1,
+                    "previous-size saves preserve one reachable stable Dusk Market cave instead of snapping to unauthored site coordinates");
+                InvokePrivate(game, "EnsureKoboldKingCaveMarker");
+                Assert(legacyMap.FindObjectById("dusk-market-smoke-cave")?.X == savedCaveCell.X
+                    && legacyMap.FindObjectById("dusk-market-smoke-cave")?.Y == savedCaveCell.Y,
+                    "previous-size Smoke Cave repair is idempotent");
+                Assert(InvokePrivate<bool>(game, "IsKoboldAmbushApproachCell", legacyAmbushCell.X, legacyAmbushCell.Y),
+                    "previous-size saves trigger the kobold ambush from the real Dusk Market zone rather than an unauthored site radius");
+            }
+            finally
+            {
+                state.Map = originalMap;
+                state.RoamingThreats = originalThreats;
+                state.Depth = originalDepth;
+                state.PlayerX = originalPlayerX;
+                state.PlayerY = originalPlayerY;
+                InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+                InvokePrivate(game, "InvalidateExplorationController");
+            }
+        }
+
+        private static void AssertGuidanceReroutesAroundActiveHabitat(AshenHallsGame game, GameState state)
+        {
+            MapData originalMap = state.Map;
+            List<RoamingThreat> originalThreats = state.RoamingThreats;
+            List<string> originalDiscoveries = state.DiscoveredZones;
+            int originalDepth = state.Depth;
+            int originalPlayerX = state.PlayerX;
+            int originalPlayerY = state.PlayerY;
+            string originalWaypointKey = state.ActiveRouteWaypointKey;
+
+            try
+            {
+                const int width = WorldMapGenerationRules.LegacyWidth;
+                const int height = WorldMapGenerationRules.LegacyHeight;
+                int startX = WorldMapGenerationRules.StartX(width);
+                int startY = WorldMapGenerationRules.StartY(height);
+                WorldMapJunction waypoint = WorldMapGenerationRules.RegionalJunctions(width, height, startX, startY)
+                    .Single(candidate => candidate.Id == "quarry-turn");
+                int pathStartX = waypoint.X - 4;
+                int habitatX = waypoint.X - 2;
+                int pathY = waypoint.Y;
+                int detourY = pathY + 1;
+                MapData probeMap = new MapData
+                {
+                    Width = width,
+                    Height = height,
+                    Depth = 1,
+                    StartX = startX,
+                    StartY = startY,
+                    Tiles = Enumerable.Repeat(0, width * height).ToList(),
+                    SurfaceMaterials = Enumerable.Repeat((int)ExplorationMaterial.PackedDirt, width * height).ToList(),
+                    SurfaceRoles = Enumerable.Repeat((int)ExplorationCellRole.None, width * height).ToList(),
+                    Objects = new List<MapObject>()
+                };
+                for (int x = pathStartX; x <= waypoint.X; x++)
+                {
+                    int directIndex = pathY * width + x;
+                    int detourIndex = detourY * width + x;
+                    probeMap.Tiles[directIndex] = 1;
+                    probeMap.Tiles[detourIndex] = 1;
+                    probeMap.SurfaceRoles[directIndex] = (int)ExplorationCellRole.Road;
+                    probeMap.SurfaceRoles[detourIndex] = (int)ExplorationCellRole.Road;
+                }
+
+                RoamingThreat habitat = new RoamingThreat
+                {
+                    Id = "guidance-habitat-probe",
+                    Name = "Guidance Habitat Probe",
+                    Archetype = "kobolds",
+                    Depth = 1,
+                    X = -1,
+                    Y = -1,
+                    HomeX = habitatX,
+                    HomeY = pathY,
+                    Active = true
+                };
+                state.Map = probeMap;
+                state.RoamingThreats = new List<RoamingThreat> { habitat };
+                state.Depth = 1;
+                state.PlayerX = pathStartX;
+                state.PlayerY = pathY;
+                state.DiscoveredZones = new List<string> { RouteChartRules.DiscoveryKey(1, waypoint.Id) };
+                state.ActiveRouteWaypointKey = RouteChartRules.WaypointKey(1, waypoint.Id);
+                InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+
+                int activeFingerprint = InvokePrivate<int>(game, "ExploreNavigationTopologyFingerprint");
+                IReadOnlyList<Point> activePath = InvokePrivate<IReadOnlyList<Point>>(game, "CurrentExploreGuidancePath").ToArray();
+                Assert(!InvokePrivate<bool>(game, "CanStepExplore", habitat.HomeX, habitat.HomeY)
+                    && activePath.Count > 0
+                    && activePath.All(step => step.X != habitat.HomeX || step.Y != habitat.HomeY),
+                    "live Golden Thread guidance detours around an active roaming-habitat home");
+
+                habitat.Active = false;
+                int clearedFingerprint = InvokePrivate<int>(game, "ExploreNavigationTopologyFingerprint");
+                IReadOnlyList<Point> clearedPath = InvokePrivate<IReadOnlyList<Point>>(game, "CurrentExploreGuidancePath").ToArray();
+                string activeSignature = string.Join(">", activePath.Select(step => $"{step.X},{step.Y}"));
+                string clearedSignature = string.Join(">", clearedPath.Select(step => $"{step.X},{step.Y}"));
+                Assert(InvokePrivate<bool>(game, "CanStepExplore", habitat.HomeX, habitat.HomeY)
+                    && clearedFingerprint != activeFingerprint
+                    && clearedPath.Any(step => step.X == habitat.HomeX && step.Y == habitat.HomeY)
+                    && clearedPath.Count < activePath.Count
+                    && clearedSignature != activeSignature,
+                    "clearing the habitat changes the navigation fingerprint and refreshes Golden Thread onto the shorter aftermath route");
+            }
+            finally
+            {
+                state.Map = originalMap;
+                state.RoamingThreats = originalThreats;
+                state.DiscoveredZones = originalDiscoveries;
+                state.Depth = originalDepth;
+                state.PlayerX = originalPlayerX;
+                state.PlayerY = originalPlayerY;
+                state.ActiveRouteWaypointKey = originalWaypointKey;
+                InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+                InvokePrivate(game, "InvalidateExplorationController");
+            }
         }
 
         private static void AssertCombatPresentationRuntime(AshenHallsGame game)

@@ -78,5 +78,20 @@ namespace AshenHalls
     public enum ActionMode { Move, Attack, Cast, Ability, Guard, Elixir, Wait }
     public enum CombatPhase { ChooseAction, ChooseTarget, Resolving, EnemyThinking }
     public enum TweenKind { Move, Lunge }
-    public enum EncounterId { RandomEncounter, Patrol, Guard, FinalGate, BetaLab, MartialLab, KoboldKing, KoboldCave, KoboldAmbush, MidgaardSewer }
+    public enum EncounterId
+    {
+        RandomEncounter,
+        Patrol,
+        Guard,
+        FinalGate,
+        BetaLab,
+        MartialLab,
+        KoboldKing,
+        KoboldCave,
+        KoboldAmbush,
+        MidgaardSewer,
+        BoneRoadWatch,
+        GloamCryptRitual,
+        GloamWarden
+    }
 }

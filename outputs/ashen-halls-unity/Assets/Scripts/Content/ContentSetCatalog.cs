@@ -23,7 +23,20 @@ namespace AshenHalls
             "aimedshot", "pinningshot", "scoutmark", "volley", "broadheadshot", "disruptingshot", "quickshot",
             "riftpounce", "abyssalwhirl", "soulrend", "dreadroar"
         };
-        private static readonly string[] sewerSliceEnemyIds = { "sewerrat", "giantrat", "ratfolk", "ratcutthroat", "ratmage", "ratbrute" };
+        private static readonly string[] sewerSliceEnemyIds =
+        {
+            "sewerrat", "giantrat", "ratfolk", "ratcutthroat", "ratmage", "ratbrute",
+            "koboldraider", "koboldslinger", "koboldshield", "koboldshaman",
+            "drowscout", "drowcrossbow", "drowmage", "drowpriest",
+            "husk", "reaver", "shade", "bonepriest", "gloamknight"
+        };
+
+        private static readonly EncounterId[] boneRoadEncounterIds =
+        {
+            EncounterId.BoneRoadWatch,
+            EncounterId.GloamCryptRitual,
+            EncounterId.GloamWarden
+        };
 
         private static readonly EncounterDefinition[] sewerSliceEncounters =
         {
@@ -94,6 +107,14 @@ namespace AshenHalls
             return IsSewerSlice(contentSet)
                 && flags != null
                 && flags.Contains(StoryFlags.OldRoadTeaserUnlocked);
+        }
+
+        public static bool AllowBoneRoadChapter(string contentSet, IReadOnlyCollection<string> flags)
+        {
+            if (IsFullPrototype(contentSet)) return true;
+            return IsSewerSlice(contentSet)
+                && flags != null
+                && flags.Contains(StoryFlags.KoboldKingDefeated);
         }
 
         public static bool IsKnown(string contentSet)
@@ -187,6 +208,13 @@ namespace AshenHalls
         public static bool SewerSliceComplete(IReadOnlyCollection<string> flags)
         {
             return flags != null && flags.Contains(StoryFlags.SewerRewardClaimed) && flags.Contains(StoryFlags.OldRoadTeaserUnlocked);
+        }
+
+        public static bool BoneRoadComplete(IReadOnlyCollection<string> flags)
+        {
+            return flags != null
+                && flags.Contains(StoryFlags.GloamWardenDefeated)
+                && flags.Contains(StoryFlags.RedGateWarningRecovered);
         }
 
         public static void MarkSewerSliceRewardClaimed(ICollection<string> flags)
@@ -359,6 +387,32 @@ namespace AshenHalls
         public static bool IsSewerSliceEncounterStyle(string style)
         {
             return sewerSliceEncounters.Any(encounter => string.Equals(encounter.LegacyStyle, style, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static bool IsBoneRoadEncounterStyle(string style)
+        {
+            return boneRoadEncounterIds.Any(id =>
+                string.Equals(EncounterCatalog.For(id).LegacyStyle, style, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static string RitualSpawnRoleForEncounter(string encounterStyle, string ritualKind)
+        {
+            if (!IsBoneRoadEncounterStyle(encounterStyle))
+            {
+                return CombatRitualRules.SpawnRole(ritualKind);
+            }
+
+            if (string.Equals(ritualKind, "demonrift", StringComparison.OrdinalIgnoreCase))
+            {
+                return "gloamknight";
+            }
+            if (string.Equals(ritualKind, "glyph", StringComparison.OrdinalIgnoreCase))
+            {
+                return string.Equals(encounterStyle, "gloam-crypt-ritual", StringComparison.OrdinalIgnoreCase)
+                    ? "bonepriest"
+                    : "shade";
+            }
+            return "";
         }
 
         public static string ClearedFlagForEncounterStyle(string style)

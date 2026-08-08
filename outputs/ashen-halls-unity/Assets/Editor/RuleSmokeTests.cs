@@ -154,6 +154,7 @@ namespace AshenHalls.Editor
             CombatRitualsHaveCounterplayAndOutcomeWeight();
             RuntimeControllersAreCachedAccessors();
             EncounterCatalogDefinesExplicitValidEncounters();
+            BoneRoadProductionArcDefinitionsAreStable();
             SewerSliceContentSetDefinesCompleteFirstPlayPath();
             SewerSliceEncountersHaveConciseGuidance();
             SewerSliceFirstPlayContractProgressionIsIdempotent();
@@ -2008,8 +2009,8 @@ namespace AshenHalls.Editor
             AssertEqual(true, ExplorationReadabilityRules.DecorativeDensityScale(true) < ExplorationReadabilityRules.DecorativeDensityScale(false), "region map uses fewer decorative props");
             AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(false, 0f) >= 0.76f, "close-map ambient city props remain legible");
             AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(false, 1f) <= 0.86f, "close-map ambient city props remain subordinate to blockers");
-            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 0f) >= 0.78f, "close-map biome props remain legible");
-            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 1f) <= 0.90f, "close-map biome props remain subordinate to blockers");
+            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 0f) >= 0.94f, "approved close-map soft scenery keeps an opaque readable core");
+            AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(false, 1f) <= 0.98f, "approved close-map soft-scenery opacity remains bounded");
             AssertEqual(true, ExplorationReadabilityRules.MidgaardPropAlpha(true, 1f) < ExplorationReadabilityRules.MidgaardPropAlpha(false, 1f), "region-map city props yield to semantic targets");
             AssertEqual(true, ExplorationReadabilityRules.BiomePropAlpha(true, 1f) < ExplorationReadabilityRules.BiomePropAlpha(false, 1f), "region-map biome props yield to semantic targets");
 
@@ -2191,7 +2192,10 @@ namespace AshenHalls.Editor
             AssertEqual(-1, WorldAreaSetpiecePresentationRules.IconIndex("unknown-site"), "unknown sites retain the generic landmark fallback");
             AssertEqual(-1, WorldAreaSetpiecePresentationRules.IconIndex(null), "missing site identity retains the generic landmark fallback");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.MapScale(false) > WorldAreaSetpiecePresentationRules.MapScale(true), "local view gives authored set-pieces more visual weight");
-            AssertEqual(true, WorldAreaSetpiecePresentationRules.MapScale(true) >= 2f, "region-map set-pieces remain prominent landmarks");
+            AssertEqual(true,
+                WorldAreaSetpiecePresentationRules.MapScale(true) >= 1.25f
+                && WorldAreaSetpiecePresentationRules.MapScale(true) <= 1.60f,
+                "region-map set-pieces remain prominent without implying a multi-cell collision platform");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.BaselineFraction(false) > WorldAreaSetpiecePresentationRules.BaselineFraction(true), "local set-pieces keep their authored ground baseline");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.BaselineFraction(true) > 0.70f && WorldAreaSetpiecePresentationRules.BaselineFraction(false) < 0.90f, "set-piece baselines stay inside their map cells");
             AssertEqual(true, WorldAreaSetpiecePresentationRules.PreserveScaleAtViewportEdge, "edge-crossing set-pieces preserve world-space scale and clip to the map");
@@ -2205,6 +2209,19 @@ namespace AshenHalls.Editor
             AssertEqual(4, WorldThreatHabitatPresentationRules.Columns, "v2.4 habitat atlas columns");
             AssertEqual(2, WorldThreatHabitatPresentationRules.Rows, "v2.4 habitat atlas rows");
             AssertEqual(8, WorldThreatHabitatPresentationRules.CellCount, "v2.4 habitat atlas cell count");
+            int[] passableBiomePropIndices = { 3, 5, 6, 7, 14, 16, 19 };
+            foreach (int index in passableBiomePropIndices)
+            {
+                AssertEqual(true, ExplorationReadabilityRules.IsPassableBiomePropIndex(index), $"low-profile biome prop {index} remains eligible for passable scenery");
+            }
+            int[] solidBiomePropIndices = { 0, 1, 2, 4, 8, 9, 10, 11, 12, 13, 15, 17, 18 };
+            foreach (int index in solidBiomePropIndices)
+            {
+                AssertEqual(false, ExplorationReadabilityRules.IsPassableBiomePropIndex(index), $"solid biome prop {index} cannot masquerade as passable scenery");
+            }
+            AssertEqual(false, ExplorationReadabilityRules.IsPassableBiomePropIndex(-1), "invalid biome prop indices remain ineligible for passable scenery");
+            AssertEqual(false, ExplorationReadabilityRules.IsPassableBiomePropIndex(20), "out-of-range biome prop indices remain ineligible for passable scenery");
+            AssertEqual(false, ExplorationReadabilityRules.AllowPassableMidgaardFixtures, "procedural Midgaard fixtures cannot occupy walkable cells");
             AssertEqual(0, WorldThreatHabitatPresentationRules.ArchetypeIndex("rats"), "rat patrols use the warren habitat");
             AssertEqual(1, WorldThreatHabitatPresentationRules.ArchetypeIndex("ratcleric"), "plague patrols use the bell midden habitat");
             AssertEqual(2, WorldThreatHabitatPresentationRules.ArchetypeIndex("kobolds"), "kobold patrols use the ambush camp habitat");
@@ -2222,14 +2239,40 @@ namespace AshenHalls.Editor
             AssertEqual(true, WorldThreatHabitatPresentationRules.PreserveScaleAtViewportEdge, "edge-crossing habitats preserve world-space scale and clip to the map");
             AssertEqual(false, WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, true), "habitats stay off certified safe roads");
             AssertEqual(true, WorldThreatHabitatPresentationRules.ShouldDrawAtHome(true, false), "valid threat homes receive habitat art");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.ShouldDrawFallback(false, true), "a missing habitat atlas receives a visible fallback on active collision cells");
+            AssertEqual(false, WorldThreatHabitatPresentationRules.ShouldDrawFallback(true, true), "the approved habitat atlas remains the preferred active presentation");
+            AssertEqual(false, WorldThreatHabitatPresentationRules.ShouldDrawFallback(false, false), "walkable cleared aftermath stays low even when the atlas is unavailable");
             AssertEqual(true, WorldThreatHabitatPresentationRules.MapScale(false, false) < WorldThreatHabitatPresentationRules.MapScale(false, true), "cleared habitats shrink into walkable aftermath");
             AssertEqual(true, WorldThreatHabitatPresentationRules.MapScale(true, false) < WorldThreatHabitatPresentationRules.MapScale(true, true), "region-map aftermath stays subordinate to active lairs");
-            AssertEqual(true, WorldThreatHabitatPresentationRules.MapScale(false, true, false) < WorldThreatHabitatPresentationRules.MapScale(false, true, true), "an active lair yields visually after its patrol leaves home");
-            AssertEqual(true, WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, false) < WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, true), "an unoccupied active lair becomes visibly subordinate to its roaming token");
+            AssertEqual(WorldThreatHabitatPresentationRules.MapScale(false, true, true), WorldThreatHabitatPresentationRules.MapScale(false, true, false), "active local-map lair scale remains physical while its patrol roams");
+            AssertEqual(WorldThreatHabitatPresentationRules.MapScale(true, true, true), WorldThreatHabitatPresentationRules.MapScale(true, true, false), "active region-map lair scale remains physical while its patrol roams");
+            AssertEqual(WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, true), WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, false), "active lair opacity no longer changes with patrol occupancy");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, false) >= 0.90f, "active lairs retain a strongly opaque physical silhouette");
+            AssertEqual(true, WorldThreatHabitatPresentationRules.HabitatAlpha(false, false, false) < WorldThreatHabitatPresentationRules.HabitatAlpha(false, true, false), "cleared aftermath remains visibly subordinate to an active lair");
             AssertEqual(true, ExplorationArtRules.MidgaardBuildingFoundationWidthInCells(false) <= 1f, "local-view building ground contact matches its one-cell collision footprint");
             AssertEqual(true, ExplorationArtRules.MidgaardBuildingFoundationWidthInCells(true) <= 1f, "region-view building ground contact matches its one-cell collision footprint");
             AssertEqual(true, ExplorationArtRules.MidgaardBuildingSpriteScale(false) > 1f, "local-view building art may still rise beyond its collision footprint");
             AssertEqual(true, ExplorationArtRules.MidgaardBuildingSpriteScale(true) > 1f, "region-view building silhouettes remain readable");
+
+            AssertEqual("The Old Road", WorldMapGenerationRules.OldRoadName, "Midgaard's east-west artery keeps its authored name");
+            AssertEqual("pilgrim-fork", WorldMapGenerationRules.OldRoadWestJunctionId, "the Old Road retains its western adventure endpoint");
+            AssertEqual("lanternless-cross", WorldMapGenerationRules.OldRoadEastJunctionId, "the Old Road retains its eastern adventure endpoint");
+            AssertEqual(true, MidgaardDistrictRules.IsOldRoadOffset(-10, 0), "the Old Road begins at Midgaard's western gate centerline");
+            AssertEqual(true, MidgaardDistrictRules.IsOldRoadOffset(10, 0), "the Old Road reaches Midgaard's eastern gate centerline");
+            AssertEqual(false, MidgaardDistrictRules.IsOldRoadOffset(-11, 0), "the Old Road district contract stops outside Midgaard's west wall");
+            AssertEqual(false, MidgaardDistrictRules.IsOldRoadOffset(11, 0), "the Old Road district contract stops outside Midgaard's east wall");
+            AssertEqual(false, MidgaardDistrictRules.IsOldRoadOffset(0, 1), "parallel civic paving is not mislabeled as the Old Road");
+            for (int dx = -10; dx <= 10; dx++)
+            {
+                AssertEqual(true, MidgaardDistrictRules.IsOldRoadOffset(dx, 0), $"Old Road centerline includes Midgaard offset {dx},0");
+                ExplorationCellRole centerlineRoles = MidgaardDistrictRules.RolesAtOffset(dx, 0);
+                AssertEqual(true, (centerlineRoles & ExplorationCellRole.Road) != 0, $"Old Road centerline offset {dx},0 carries the Road role");
+                AssertEqual(
+                    ExplorationCellRole.None,
+                    centerlineRoles & (ExplorationCellRole.Room | ExplorationCellRole.Water | ExplorationCellRole.Hazard),
+                    $"Old Road centerline offset {dx},0 is free of room, water, and hazard conflicts");
+                AssertEqual(WorldMapGenerationRules.OldRoadName, MidgaardDistrictRules.DistrictAtOffset(dx, 0), $"Old Road centerline offset {dx},0 carries the named district identity");
+            }
 
             string[] roles = { "shield", "pike", "bow", "knife", "mender", "ember", "hex", "ward" };
             for (int index = 0; index < roles.Length; index++)
@@ -2305,7 +2348,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.9.0", VersionInfo.PackageVersion, "package version matches the v2.9 release");
+            AssertEqual("v2.10.0", VersionInfo.PackageVersion, "package version matches the v2.10 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -3505,6 +3548,27 @@ namespace AshenHalls.Editor
                     ExplorationMaterial.CityPaving,
                     ExplorationCellRole.Road | ExplorationCellRole.Plaza),
                 "city plaza roads retain their deliberate street connection");
+            AssertEqual(
+                false,
+                ExplorationArtRules.ShouldDrawMaterialPathStroke(
+                    ExplorationMaterial.PackedDirt,
+                    ExplorationCellRole.Road | ExplorationCellRole.Room | ExplorationCellRole.Clearing,
+                    true),
+                "authored regional rooms rely on painted route material instead of a circuit-board stroke");
+            AssertEqual(
+                true,
+                ExplorationArtRules.ShouldDrawMaterialPathStroke(
+                    ExplorationMaterial.PackedDirt,
+                    ExplorationCellRole.Road | ExplorationCellRole.Room | ExplorationCellRole.Threshold,
+                    true),
+                "authored regional thresholds keep a visible outside approach stroke");
+            AssertEqual(
+                true,
+                ExplorationArtRules.ShouldDrawMaterialPathStroke(
+                    ExplorationMaterial.PackedDirt,
+                    ExplorationCellRole.Road | ExplorationCellRole.Room,
+                    false),
+                "procedural roads crossing ordinary rooms keep their visible route stroke");
 
             AssertEqual(0, ExplorationArtRules.WorldMapTileIndex(1, "road", 80, false), "road maps to detailed road tile");
             AssertEqual(13, ExplorationArtRules.WorldMapTileIndex(1, "road", 80, true), "connected road junction maps to intersection art");
@@ -6557,18 +6621,28 @@ namespace AshenHalls.Editor
             AssertEqual(true, chapterOne.Any(definition => definition.Id == "midgaard-rat-patrol-west"), "west patrol keeps its save-compatible identity");
             AssertEqual(true, chapterOne.Any(definition => definition.Id == "midgaard-rat-patrol-east"), "east patrol keeps its save-compatible identity");
 
-            for (int depth = 2; depth <= 6; depth++)
-            {
-                IReadOnlyList<RoamingThreatDefinition> safeRoster = RoamingThreatCatalog.ForDepth(depth, false);
-                AssertRoamingThreatRoster(safeRoster, depth, 3, "sewer-slice fallback patrol roster");
-                AssertEqual(
-                    true,
-                    safeRoster.All(definition =>
-                        definition.Archetype == "rats"
-                        || definition.Archetype == "ratfolk"
-                        || definition.Archetype == "ratcleric"),
-                    "sewer-slice later-depth patrols stay aligned with its rat-only combat pool at depth " + depth);
-            }
+            IReadOnlyList<RoamingThreatDefinition> productionChapterTwo = RoamingThreatCatalog.ForDepth(2, false);
+            AssertRoamingThreatRoster(productionChapterTwo, 2, 3, "production Chapter II patrol roster");
+            AssertEqual(
+                "dusk-market-kobold-raiders|quarry-kobold-hexers|old-road-ratfolk-holdouts",
+                string.Join("|", productionChapterTwo.Select(definition => definition.Id)),
+                "production Chapter II patrol identities stay deterministic");
+            AssertEqual(2, productionChapterTwo.Count(definition => definition.Faction == RoamingThreatFaction.Kobolds), "production Chapter II owns two kobold patrols");
+            AssertEqual(1, productionChapterTwo.Count(definition => definition.Faction == RoamingThreatFaction.Rats), "production Chapter II keeps one ratfolk holdout patrol");
+            AssertEqual(true, productionChapterTwo.SelectMany(definition => definition.EnemyIds)
+                .All(id => ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, id)), "production Chapter II patrol enemies are active in its content set");
+
+            IReadOnlyList<RoamingThreatDefinition> productionChapterThree = RoamingThreatCatalog.ForDepth(3, false);
+            AssertRoamingThreatRoster(productionChapterThree, 3, 3, "production Chapter III patrol roster");
+            AssertEqual(
+                "bone-road-drow-watch|gloam-crypt-procession|red-gate-grave-watch",
+                string.Join("|", productionChapterThree.Select(definition => definition.Id)),
+                "production Chapter III patrol identities stay deterministic");
+            AssertEqual(true, productionChapterThree.All(definition =>
+                definition.Faction == RoamingThreatFaction.Drow
+                || definition.Faction == RoamingThreatFaction.Undead), "production Chapter III patrols stay drow-or-undead only");
+            AssertEqual(true, productionChapterThree.SelectMany(definition => definition.EnemyIds)
+                .All(id => ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, id)), "production Chapter III patrol enemies are active in its content set");
 
             int[] prototypeCounts = { 0, 4, 4, 5, 5, 5 };
             for (int depth = 2; depth <= 6; depth++)
@@ -7421,11 +7495,75 @@ namespace AshenHalls.Editor
             AssertThrows<ArgumentException>(() => EncounterCatalog.IdForLegacyStyle("not-a-real-encounter"), "unknown encounter style throws");
         }
 
+        private static void BoneRoadProductionArcDefinitionsAreStable()
+        {
+            List<string> flags = new List<string>();
+            AssertEqual(false, ContentSetCatalog.AllowBoneRoadChapter(ContentSetCatalog.SewerSlice, flags), "production Bone Road stays locked before Varkh falls");
+            flags.Add(StoryFlags.KoboldKingDefeated);
+            AssertEqual(true, ContentSetCatalog.AllowBoneRoadChapter(ContentSetCatalog.SewerSlice, flags), "Varkh's defeat opens the production Bone Road chapter");
+            AssertEqual(true, ContentSetCatalog.AllowBoneRoadChapter(ContentSetCatalog.FullPrototype, null), "full prototype keeps the Bone Road available without production flags");
+
+            EncounterDefinition watch = EncounterCatalog.For(EncounterId.BoneRoadWatch);
+            EncounterDefinition ritual = EncounterCatalog.For(EncounterId.GloamCryptRitual);
+            EncounterDefinition warden = EncounterCatalog.For(EncounterId.GloamWarden);
+            EncounterDefinition[] chapterEncounters = { watch, ritual, warden };
+            AssertEqual("bone-road-watch", watch.LegacyStyle, "Bone Road watch owns its stable encounter style");
+            AssertEqual("gloam-crypt-ritual", ritual.LegacyStyle, "Gloam crypt ritual owns its stable encounter style");
+            AssertEqual("gloam-warden-boss", warden.LegacyStyle, "Gloam Warden owns its stable encounter style");
+            AssertEqual("drowscout|drowcrossbow|husk|reaver", string.Join("|", watch.EnemyIds), "Bone Road watch has the exact drow-and-undead roster");
+            AssertEqual("bonepriest|shade|husk|reaver|drowmage", string.Join("|", ritual.EnemyIds), "Gloam ritual has the exact caster-pressure roster");
+            AssertEqual("gloamknight|bonepriest|drowpriest|reaver|shade|drowcrossbow", string.Join("|", warden.EnemyIds), "Ossuary Warden encounter has the exact boss roster");
+
+            foreach (EncounterDefinition encounter in chapterEncounters)
+            {
+                AssertEqual(false, encounter.UsesGeneratedEnemyPool, encounter.LegacyStyle + " remains an authored encounter");
+                AssertEqual(encounter.EnemyIds.Length, encounter.FixedEnemyCount, encounter.LegacyStyle + " spawns its exact roster once");
+                AssertEqual(true, ContentSetCatalog.IsBoneRoadEncounterStyle(encounter.LegacyStyle), encounter.LegacyStyle + " is recognized as Chapter III combat");
+                AssertEqual(true, encounter.EnemyIds.All(enemyId => ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, enemyId)), encounter.LegacyStyle + " uses production-active enemies");
+                AssertEqual(true, encounter.EnemyIds.All(enemyId =>
+                {
+                    RoamingThreatFaction faction = RoamingThreatCatalog.FactionForEnemy(enemyId);
+                    return faction == RoamingThreatFaction.Drow || faction == RoamingThreatFaction.Undead;
+                }), encounter.LegacyStyle + " cannot drift outside its drow-and-undead faction contract");
+                foreach (Point obstacle in encounter.Obstacles.Where(CombatRitualRules.IsRitual))
+                {
+                    string spawnRole = ContentSetCatalog.RitualSpawnRoleForEncounter(
+                        encounter.LegacyStyle,
+                        obstacle.Kind);
+                    AssertEqual(true,
+                        ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, spawnRole),
+                        encounter.LegacyStyle + " ritual resolves to a production-active enemy");
+                    RoamingThreatFaction spawnFaction = RoamingThreatCatalog.FactionForEnemy(spawnRole);
+                    AssertEqual(true,
+                        spawnFaction == RoamingThreatFaction.Drow || spawnFaction == RoamingThreatFaction.Undead,
+                        encounter.LegacyStyle + " ritual reinforcement stays drow-or-undead");
+                }
+            }
+
+            AssertEqual(false, ContentSetCatalog.IsBoneRoadEncounterStyle("koboldking"), "Varkh remains Chapter II combat");
+            AssertEqual(false, ContentSetCatalog.IsBoneRoadEncounterStyle("guard"), "generic guard combat cannot advance Chapter III");
+            AssertEqual("bonepriest", ContentSetCatalog.RitualSpawnRoleForEncounter(ritual.LegacyStyle, "glyph"), "crypt glyph opens into a production Bone Priest");
+            AssertEqual("shade", ContentSetCatalog.RitualSpawnRoleForEncounter(warden.LegacyStyle, "glyph"), "Warden glyph opens into an Ossuary Shade");
+            AssertEqual("gloamknight", ContentSetCatalog.RitualSpawnRoleForEncounter(warden.LegacyStyle, "demonrift"), "Warden breach opens into a Gloam Knight");
+            AssertEqual("koboldraider", ContentSetCatalog.RitualSpawnRoleForEncounter("koboldking", "glyph"), "non-Chapter-III glyph behavior remains stable");
+            AssertEqual(2, warden.Obstacles.Count(point => point.Kind == "glyph" && point.Duration == 8), "Ossuary Warden board owns two long ritual glyphs");
+            AssertEqual(true, warden.Obstacles.Any(point => point.X == 7 && point.Y == 3 && point.Kind == "demonrift" && point.Duration == 6), "Ossuary Warden board owns its central breach obstacle");
+            AssertEqual(
+                "5,1:stone:0|5,6:stone:0|6,2:glyph:8|6,5:glyph:8|7,3:demonrift:6|7,4:gas:7",
+                string.Join("|", warden.Obstacles.Select(point => $"{point.X},{point.Y}:{point.Kind}:{point.Duration}")),
+                "Ossuary Warden obstacle pattern remains deterministic");
+
+            List<string> completionFlags = new List<string> { StoryFlags.GloamWardenDefeated };
+            AssertEqual(false, ContentSetCatalog.BoneRoadComplete(completionFlags), "defeating the Warden alone does not skip the Red Gate warning");
+            completionFlags.Add(StoryFlags.RedGateWarningRecovered);
+            AssertEqual(true, ContentSetCatalog.BoneRoadComplete(completionFlags), "Warden victory plus the recovered warning completes Chapter III");
+        }
+
         private static void SewerSliceContentSetDefinesCompleteFirstPlayPath()
         {
             AssertEqual(27, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
             AssertEqual(25, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice permanent and derived ability count");
-            AssertEqual(6, ContentSetCatalog.SewerSliceEnemyIds.Count, "sewer slice enemy count");
+            AssertEqual(19, ContentSetCatalog.SewerSliceEnemyIds.Count, "production campaign enemy count through the Bone Road");
             AssertEqual(3, ContentSetCatalog.SewerSliceEncounters.Count, "sewer slice encounter count");
 
             foreach (string code in ContentSetCatalog.SewerSliceFormulaCodes)

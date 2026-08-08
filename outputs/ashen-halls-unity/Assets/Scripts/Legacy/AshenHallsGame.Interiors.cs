@@ -186,11 +186,11 @@ namespace AshenHalls
                 MidgaardInteriorRules.GrandHearthDoorId,
                 MidgaardInteriorRules.GrandHearthExitId);
             ConfigurePortal(
-                ObjectAt(map, sx - 4, sy),
+                ObjectAt(map, sx - 4, sy - 1),
                 MidgaardInteriorRules.ArmorerDoorId,
                 MidgaardInteriorRules.ArmorerExitId);
             ConfigurePortal(
-                ObjectAt(map, sx + 4, sy),
+                ObjectAt(map, sx + 4, sy - 1),
                 MidgaardInteriorRules.WeaponDoorId,
                 MidgaardInteriorRules.WeaponExitId);
             ConfigurePortal(

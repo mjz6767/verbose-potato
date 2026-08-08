@@ -22,7 +22,7 @@ namespace AshenHalls
                 || dy == 3 && dx >= -7 && dx <= 7
                 || dx == -5 && dy >= -5 && dy <= 5
                 || dx == 5 && dy >= -3 && dy <= 5;
-            if (secondaryLane) roles |= ExplorationCellRole.Road;
+            if (IsOldRoadOffset(dx, dy) || secondaryLane) roles |= ExplorationCellRole.Road;
 
             bool precinct = dy <= -5 && Math.Abs(dx) <= 5
                 || dy >= -1 && dy <= 1 && dx >= -2 && dx <= 3
@@ -31,8 +31,15 @@ namespace AshenHalls
             return roles;
         }
 
+        public static bool IsOldRoadOffset(int dx, int dy)
+        {
+            return dy == 0 && Math.Abs(dx) <= 10;
+        }
+
         public static string DistrictAtOffset(int dx, int dy)
         {
+            if (IsOldRoadOffset(dx, dy)) return WorldMapGenerationRules.OldRoadName;
+
             ExplorationMaterial material = MaterialAtOffset(dx, dy);
             switch (material)
             {

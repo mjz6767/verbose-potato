@@ -56,5 +56,13 @@ namespace AshenHalls
         public const string KoboldCaveFound = "kobold_cave_found";
         public const string KoboldCaveCleared = "kobold_cave_cleared";
         public const string KoboldKingDefeated = "kobold_king_defeated";
+
+        public const string BoneRoadEntered = "bone_road_entered";
+        public const string BoneRoadWatchSprung = "bone_road_watch_sprung";
+        public const string BoneRoadWatchDefeated = "bone_road_watch_defeated";
+        public const string GloamRitualBroken = "gloam_ritual_broken";
+        public const string GloamWardenDefeated = "gloam_warden_defeated";
+        public const string RedGateWarningRecovered = "red_gate_warning_recovered";
+        public const string GlassAndAshFrontierSurveyed = "glass_and_ash_frontier_surveyed";
     }
 }

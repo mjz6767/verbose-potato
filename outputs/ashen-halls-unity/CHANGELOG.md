@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.10.0 - Names Under Stone
+
+- Completed the normal-play Chapter III Bone Road campaign after Varkh. His east passage now leads to a retryable Bone Road Watch, the reliquary ritual and named Ossuary Warden encounters at Gloam Deep Crypt, and a final Red Gate warning interaction that reveals a stable, surveyable Glass-and-Ash frontier without entering unfinished Chapter IV content.
+- Added durable, one-time Chapter III rewards and progression. The Warden grants +4 gloamward reliquary scale mail and one supply; the Red Gate awards the chapter completion experience and records the warning. Retreat, recall, load repair, repeated victory callbacks, and depth re-entry restore the correct markers and objectives without duplicating equipment, supplies, experience, levels, or unspent points.
+- Made the Old Road a clear east-west spine through Midgaard, linking the West Gate, town center, East Gate, Lanternless Cross, Dusk Market, Varkh's hall, and the Bone Road. Automatic guidance now follows the exact live route and keeps an explicit Journal waypoint authoritative until the player clears it.
+- Reconciled world-map appearance with collision. Buildings and substantial props keep opaque grounded silhouettes and block overlap; only low or yielding biome dressing remains passable. Movement and adjacent-use cues use the live traversal predicate, authored regional rooms no longer receive repeated translucent road grids, large setpieces and habitats preserve their intended edge scale, and semantic draw order keeps routes, actors, threats, and the party legible.
+- Expanded the production Journal and exploration tracker with four Bone Road steps plus charted-only regional-site entries showing bearing, distance, reward readiness, and repeat-service cost. Scout Yara gains natural follow-up dialogue about Varkh's tally, Gloam Courts, the Red Gate warning, and the road beyond the seal.
+- Added deterministic rule and runtime coverage for collision/opacity contracts, Old Road continuity, exact story routing, all three Chapter III encounters, retreat and retry, unique rewards, chapter completion, marker repair, recall and re-entry, Journal state, and the survey-only frontier boundary. Integrated RuleSmoke, full RuntimeBoot, and SpriteArtRuntimeSmoke pass on the release candidate; final clean build/package and packaged-player review remain release gates. Runtime art and provenance pins remain unchanged, and save schema stays v25.
+
 ## v2.9.0 - Steel, Sorcery, and Living Roads
 
 - Refined the combat HUD and both power books around a steadier decision language. Pointer hover now waits for intentional dwell, Preview remains passive, committed Selection keeps one teal rail, armed Targeting keeps its gold identity, and BLOCKED / ARMED / NEXT command tags, responsive melee-versus-ranged emblems, stronger disabled states, and truthful target context make the current action easier to read.

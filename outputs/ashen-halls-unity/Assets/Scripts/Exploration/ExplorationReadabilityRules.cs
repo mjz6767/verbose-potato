@@ -23,6 +23,12 @@ namespace AshenHalls
 
     public static class ExplorationReadabilityRules
     {
+        // Midgaard's procedural prop atlases are made of substantial fixtures
+        // (carts, wells, stalls, anvils, fences, and statuary). Drawing those as
+        // passable scenery made collision feel arbitrary, so only authored map
+        // objects may use those silhouettes now. Ground decals and citizens remain.
+        public static readonly bool AllowPassableMidgaardFixtures = false;
+
         public static WorldMapCellAccessKind ClassifyCellAccess(
             int tile,
             MapObject mapObject,
@@ -162,7 +168,10 @@ namespace AshenHalls
 
         public static float DecorativeAlphaScale(bool wideView)
         {
-            return wideView ? 0.78f : 0.92f;
+            // Soft scenery is communicated by its low-profile silhouette, not by
+            // ghosting it out. Keep the region view slightly subordinate while
+            // retaining an opaque, readable core in the local view.
+            return wideView ? 0.96f : 1f;
         }
 
         public static float MidgaardPropAlpha(bool wideView, float noise01)
@@ -177,8 +186,29 @@ namespace AshenHalls
         public static float BiomePropAlpha(bool wideView, float noise01)
         {
             return wideView
-                ? Lerp(0.52f, 0.64f, noise01)
-                : Lerp(0.80f, 0.88f, noise01);
+                ? Lerp(0.82f, 0.90f, noise01)
+                : Lerp(0.94f, 0.98f, noise01);
+        }
+
+        public static bool IsPassableBiomePropIndex(int index)
+        {
+            // 5x4 biome atlas, row-major. Only low or yielding scenery belongs
+            // in this passable layer: bush, cattails, mushrooms, reeds, bones,
+            // flowers, and grass. Trees, logs, rubble, pillars, fires, crystals,
+            // cairns, signs, lanterns, and root arches require authored collision.
+            switch (index)
+            {
+                case 3:  // bush
+                case 5:  // cattails
+                case 6:  // mushrooms
+                case 7:  // reeds
+                case 14: // bones
+                case 16: // flowers
+                case 19: // grass
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         public static float DecorativeDensityScale(bool wideView)
