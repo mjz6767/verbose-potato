@@ -8,7 +8,7 @@ The Mirror Index must be recovered at Glass Lore Library before the far Red Gate
 
 Maud's temporary enchantment now stops at a visible, mutation-free purchase review before charging. It names the weapon, affinity, damage, duration, existing runes, price, and remaining balance, and requires an explicit confirmation before gold or item state changes.
 
-v2.11 source validation status: RuleSmoke, full RuntimeBoot, focused shopkeeper runtime smoke, focused roaming-threat runtime smoke, and SpriteArtRuntimeSmoke pass. The Windows build, canonical package-integrity gate, clean-extracted packaged boot, final-binary visual review, physical-controller review, and a complete human Chapter I-IV playthrough remain release checks. Approved runtime-art pins are unchanged.
+v2.11 release validation status: RuleSmoke, full RuntimeBoot, focused shopkeeper runtime smoke, focused roaming-threat runtime smoke, SpriteArtRuntimeSmoke, the clean Windows build, canonical package-integrity gate, clean-extracted packaged boot, and four-capture final-binary visual review pass. Physical-controller review and a complete human Chapter I-IV playthrough remain manual checks. Approved runtime-art pins are unchanged.
 
 Names Under Stone v2.10.0 release history:
 
