@@ -103,6 +103,13 @@ namespace AshenHalls
             Threat(1, "gloam-crypt-procession", "Gloam Crypt Procession", "bonepriest", 3, 3, "gloam-courts", 17, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "bonepriest", "shade", "husk", "reaver"),
             Threat(2, "red-gate-grave-watch", "Red Gate Grave Watch", "revenant", 3, 3, "red-gate", 22, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "reaver", "bonepriest", "shade", "husk"),
 
+            // Chapter IV keeps normal play bounded to three authored faction
+            // bands. No production definition extends into the unfinished fifth
+            // depth, and every roster uses an explicitly active campaign enemy.
+            Threat(0, "glassward-drow-levy", "Glassward Drow Levy", "drowmage", 4, 4, "glass-warrens", 12, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Drow, "drowscout", "drowcrossbow", "drowmage", "glassmage"),
+            Threat(1, "ash-fen-bone-procession", "Ash Fen Bone Procession", "bonepriest", 4, 4, "ash-fen", 17, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "bonepriest", "shade", "husk", "reaver"),
+            Threat(2, "red-gate-cinder-pact", "Red Gate Cinder Pact", "lesserdemon", 4, 4, "red-gate", 22, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Demons, "lesserdemon", "cinderling", "cinderling"),
+
             // Chapter III: organized drow and death-cult patrols replace the
             // tentative scouts while kobolds remain on their established roads.
             Threat(0, "quarry-kobold-vanguard", "Quarry Kobold Vanguard", "kobolds", 3, 3, "old-quarry", 11, RoamingThreatContentProfile.FullPrototype, RoamingThreatFaction.Kobolds, "koboldshield", "koboldraider", "koboldslinger", "koboldshaman"),
@@ -215,7 +222,8 @@ namespace AshenHalls
                 case "drowblade":
                 case "drowcrossbow":
                 case "drowmage":
-                case "drowpriest": return RoamingThreatFaction.Drow;
+                case "drowpriest":
+                case "glassmage": return RoamingThreatFaction.Drow;
                 case "husk":
                 case "reaver":
                 case "shade":

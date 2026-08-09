@@ -167,6 +167,87 @@ namespace AshenHalls
             ShowTessaConversation();
         }
 
+        private void ShowMaudPurchaseReview(int partyIndex, string affinityId, bool permanent)
+        {
+            int cost = permanent
+                ? WeaponEnchantmentRules.PermanentCost
+                : WeaponEnchantmentRules.TemporaryCost;
+            WeaponEnchantmentDefinition definition = WeaponEnchantmentRules.Find(affinityId);
+            PartyMember target = state?.Party != null
+                && partyIndex >= 0
+                && partyIndex < state.Party.Count
+                    ? state.Party[partyIndex]
+                    : null;
+            if (definition == null
+                || target == null
+                || string.IsNullOrWhiteSpace(target.WeaponName)
+                || state.Gold < cost)
+            {
+                ShowMaudConversation();
+                return;
+            }
+
+            string weaponName = TrimGearName(target.WeaponName);
+            string duration = permanent
+                ? "permanent"
+                : $"{WeaponEnchantmentRules.TemporaryVictories} victories";
+            string currentMark = CompactMaudRuneStatus(EquippedInventoryItem(target, true));
+            string currentMarkNote = string.IsNullOrWhiteSpace(currentMark)
+                ? ""
+                : $" Replaces {currentMark}.";
+            string review =
+                $"Maud sets {target.Name}'s {weaponName} to {definition.Name}: {definition.DamageType} damage, {duration}. "
+                + $"{cost} gold; {state.Gold - cost} gold remains.{currentMarkNote}";
+            ShowDialogueChoices(
+                "Review Maud's Work",
+                "Maud",
+                review,
+                ObjectType.Enchanter,
+                violet,
+                new[]
+                {
+                    MakePrimaryDialogueChoice(
+                        ConfirmShopPurchaseChoice,
+                        permanent
+                            ? $"Bind {definition.Name} to {target.Name}'s weapon - {cost} gold"
+                            : $"Temper {target.Name}'s weapon with {definition.Name} - {cost} gold",
+                        $"Confirm {definition.Name.ToLowerInvariant()} {(permanent ? "binding" : "temper")} | {state.Gold - cost} gold remaining."),
+                    MakeDialogueChoice(
+                        KeepBrowsingChoice,
+                        "Change the weapon or rune",
+                        "Return to Maud's services without spending gold.")
+                },
+                choice => ResolveMaudPurchaseReview(choice, partyIndex, affinityId, permanent));
+        }
+
+        private static string CompactMaudRuneStatus(InventoryItem item)
+        {
+            if (item == null) return "";
+            WeaponEnchantmentDefinition temporary = item.TemporaryEnchantmentVictoriesRemaining > 0
+                ? WeaponEnchantmentRules.Find(item.TemporaryEnchantmentId)
+                : null;
+            WeaponEnchantmentDefinition permanent = WeaponEnchantmentRules.Find(item.PermanentEnchantmentId);
+            string temporaryText = temporary == null
+                ? ""
+                : $"{temporary.Name} temporary ({item.TemporaryEnchantmentVictoriesRemaining} wins)";
+            string permanentText = permanent == null ? "" : permanent.Name + " permanent";
+            if (string.IsNullOrEmpty(temporaryText)) return permanentText;
+            return string.IsNullOrEmpty(permanentText)
+                ? temporaryText
+                : temporaryText + " over " + permanentText;
+        }
+
+        private void ResolveMaudPurchaseReview(string choice, int partyIndex, string affinityId, bool permanent)
+        {
+            if (string.Equals(choice, ConfirmShopPurchaseChoice, StringComparison.Ordinal))
+            {
+                PurchaseMaudEnchantment(partyIndex, affinityId, permanent);
+                return;
+            }
+
+            ShowMaudConversation();
+        }
+
         private InventoryItem GetOrCreateTessaWeaponQuote()
         {
             PartyMember lead = state?.Party != null && state.Party.Count > 0 ? state.Party[0] : null;

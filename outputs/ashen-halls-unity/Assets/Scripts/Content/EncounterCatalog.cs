@@ -255,6 +255,82 @@ namespace AshenHalls
                     new Point(7, 3, "demonrift", 6),
                     new Point(7, 4, "gas", 7)
                 }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.GlasswardAmbush,
+                LegacyStyle = "glassward-ambush",
+                Banner = "Glassward Ambush",
+                Intro = "Drow scouts step through reflected lanes while a Glass Mage seals the road behind them.",
+                EnemyIds = new[] { "drowscout", "drowcrossbow", "drowmage", "glassmage" },
+                FixedEnemyCount = 4,
+                EnemyPlacements = new[]
+                {
+                    new Point(9, 2),
+                    new Point(10, 5),
+                    new Point(8, 4),
+                    new Point(10, 1)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 1, "stone"),
+                    new Point(5, 6, "stone"),
+                    new Point(6, 2, "ice", 6),
+                    new Point(6, 5, "ice", 6),
+                    new Point(7, 3, "stone")
+                }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.GlassIndexKeepers,
+                LegacyStyle = "glass-index-keepers",
+                Banner = "Keepers of the Glass Index",
+                Intro = "The Glass Index wakes under cold sigils. Its keepers turn every broken shelf into a firing lane.",
+                EnemyIds = new[] { "glassmage", "glassmage", "drowpriest", "drowcrossbow", "shade" },
+                FixedEnemyCount = 5,
+                EnemyPlacements = new[]
+                {
+                    new Point(10, 3),
+                    new Point(9, 1),
+                    new Point(9, 6),
+                    new Point(8, 2),
+                    new Point(10, 5)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 2, "stone"),
+                    new Point(5, 5, "stone"),
+                    new Point(7, 2, "ice", 8),
+                    new Point(7, 4, "ice", 8),
+                    new Point(6, 6, "web", 7)
+                }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.AshenPactWarden,
+                LegacyStyle = "ashen-pact-warden-boss",
+                Banner = "Warden of the Ashen Pact",
+                Intro = "The pact warden braces the far seal as cinderlings spill across the basalt approach.",
+                EnemyIds = new[] { "lesserdemon", "cinderling", "cinderling", "glassmage", "drowpriest", "drowscout" },
+                FixedEnemyCount = 6,
+                EnemyPlacements = new[]
+                {
+                    new Point(10, 3),
+                    new Point(9, 1),
+                    new Point(9, 6),
+                    new Point(8, 2),
+                    new Point(8, 5),
+                    new Point(10, 5)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 1, "stone"),
+                    new Point(5, 6, "stone"),
+                    new Point(6, 2, "fire", 7),
+                    new Point(6, 5, "fire", 7),
+                    new Point(7, 3, "ice", 7),
+                    new Point(7, 4, "gas", 7)
+                }
             }
         };
 

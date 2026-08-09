@@ -716,6 +716,11 @@ namespace AshenHalls
                 {
                     AddBoneRoadJournalRows(rows);
                 }
+                if (HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                    || HasGlassAndAshStoryProgress())
+                {
+                    AddGlassAndAshJournalRows(rows);
+                }
                 AddChartedRegionalSiteJournalRows(rows);
                 return rows;
             }
@@ -911,6 +916,49 @@ namespace AshenHalls
             }
         }
 
+        private void AddGlassAndAshJournalRows(List<ArmoryRowView> rows)
+        {
+            if (rows == null || state == null) return;
+
+            bool[] done =
+            {
+                HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted),
+                HasStoryFlag(StoryFlags.GlasswardAmbushDefeated),
+                HasStoryFlag(StoryFlags.GlassIndexRecovered),
+                HasStoryFlag(StoryFlags.EmberglassGateKeyRecovered)
+            };
+            int activeStep = Array.FindIndex(done, complete => !complete);
+            string[] labels =
+            {
+                "Yara's Briefing",
+                "Glass-Warren Levy",
+                "Mirror Index",
+                "Ashen Pact"
+            };
+            string[] hints =
+            {
+                "Return the frontier survey to Yara in Midgaard. Review the library route, far seal, and recall rule before crossing.",
+                "Cross at the Red Gate passage, reach the Glass Lore Library in the north-east warrens, and break the drow levy.",
+                "Return to the library after the levy falls and defeat the reflected keepers guarding its true-road Index.",
+                "Carry the Mirror Index south-east to the far seal, break its cinder pact, and recover the Emberglass key."
+            };
+
+            for (int i = 0; i < labels.Length; i++)
+            {
+                bool active = i == activeStep;
+                rows.Add(new ArmoryRowView
+                {
+                    Key = -1,
+                    Title = "Glass and Ash - " + labels[i],
+                    Subtitle = done[i] ? "done" : active ? "current" : "pending",
+                    Detail = hints[i],
+                    AccentHex = ColorHtml(done[i] ? teal : active ? gold : line),
+                    Badge = done[i] ? "DONE" : active ? "NEXT" : "",
+                    BadgeAccentHex = ColorHtml(done[i] ? teal : active ? gold : line)
+                });
+            }
+        }
+
         private void AddChartedRegionalSiteJournalRows(List<ArmoryRowView> rows)
         {
             if (rows == null || state?.Map == null) return;
@@ -1063,8 +1111,8 @@ namespace AshenHalls
             rows.Add(JournalContactRow("Dusk Market Scout", "route witness", "Ambush clues and cave charm rumors.", HasStoryFlag(StoryFlags.KoboldAmbushSurvived) || state.Depth >= 2, gold));
             rows.Add(JournalContactRow("Green Shrine Priest", "tree-cover tutor", "Priest formula lessons and shrine lore.", ZoneWasDiscovered("green-shrine-road"), moss));
             rows.Add(JournalContactRow("Old Quarry Mason", "gear workbench", "Stone blocks, bridges, and heavy armor notes.", ZoneWasDiscovered("old-quarry"), stone));
-            rows.Add(JournalContactRow("Glass Warren Adept", "future rival", "Mirror routes and caster pressure.", ZoneWasDiscovered("glass-warrens"), frost));
-            rows.Add(JournalContactRow("Red Gate Herald", "late-route warning", "Drow priests, bone wizards, and gate keys.", ZoneWasDiscovered("red-gate") || state.Depth >= 5, blood));
+            rows.Add(JournalContactRow("Glass Warren Adept", "hostile archivist", "Mirror routes, false aisles, and caster pressure.", ZoneWasDiscovered("glass-warrens"), frost));
+            rows.Add(JournalContactRow("Ashen Pact Warden", "far-seal keybearer", "Cinder troops, drow rent, and the Emberglass key.", ZoneWasDiscovered("red-gate") || state.Depth >= 4, blood));
         }
 
         private ArmoryRowView JournalContactRow(string name, string role, string note, bool available, Color accent)

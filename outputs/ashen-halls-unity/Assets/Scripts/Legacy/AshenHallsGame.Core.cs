@@ -3104,8 +3104,13 @@ namespace AshenHalls
             {
                 SetStoryFlag(StoryFlags.BoneRoadEntered);
             }
+            if (state.Depth >= 4 && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags))
+            {
+                SetStoryFlag(StoryFlags.GlassAndAshEntered);
+            }
             RepairKoboldStoryObjective();
             RepairBoneRoadStoryObjective();
+            RepairGlassAndAshStoryObjective();
             if (state.Depth == 2 && state.Map != null) EnsureKoboldKingCaveMarker();
             if (state.Depth == 3 && state.Map != null) EnsureGlassAndAshPassageMarker();
         }

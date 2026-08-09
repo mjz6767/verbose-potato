@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.11.0 - Glass and Ash
+
+- Opened Chapter IV as an authored production expedition rather than exposing a generic deeper stair. After surveying the frontier, the company must return to Scout Yara in Midgaard, review and explicitly accept her briefing, then follow the exact Old Road -> Bone Road -> Red Gate passage into the Glass-and-Ash country. Yara's later dialogue remains a durable debrief that reflects the recovered index, pact, and key instead of resetting the expedition.
+- Added three ordered Chapter IV fights: the Glassward Ambush at Glass Lore Library, the Glass Index Keepers on the repeat library interaction, and the named Ashen Pact Warden at the far Red Gate seal. Three matching production patrol bands: Glassward Drow Levy, Ash Fen Bone Procession, and Red Gate Cinder Pact. These make the depth-four road active without substituting random scaffolding for the story encounters.
+- Made the Mirror Index the required bridge between the library and far seal. The Warden cannot be skipped; victory records the Emberglass gate key and grants exactly one `+5 ashglass mirrorweave road mantle`. Retreat, repeated callbacks, recall, repaired objectives, and depth-four re-entry preserve progress without duplicating rewards, experience, supplies, levels, or points.
+- Kept the campaign boundary honest. Completed companies may revisit depth four through the same Red Gate passage, while production still exposes no depth-five route or generic continuation stair.
+- Added a visible, mutation-free review before Maud charges for a temporary weapon enchantment. The review names the target, affinity, damage, duration, price, balance, and existing runes, and offers an explicit confirm or return choice before any gold or item state changes.
+- Added deterministic rule and runtime coverage for the briefing gate, exact route, three story fights, three patrols, Mirror Index order, one-time key and mantle reward, durable debrief/revisit behavior, depth-five boundary, and Maud's review. RuleSmoke, full RuntimeBoot, focused shopkeeper runtime smoke, focused roaming-threat runtime smoke, and SpriteArtRuntimeSmoke pass on the integrated source. Windows build, canonical package, clean-extracted packaged boot, final-binary visual review, physical-controller review, and a complete human Chapter I-IV playthrough remain release checks. Save schema stays v25 and approved runtime-art pins are unchanged.
+
 ## v2.10.0 - Names Under Stone
 
 - Completed the normal-play Chapter III Bone Road campaign after Varkh. His east passage now leads to a retryable Bone Road Watch, the reliquary ritual and named Ossuary Warden encounters at Gloam Deep Crypt, and a final Red Gate warning interaction that reveals a stable, surveyable Glass-and-Ash frontier without entering unfinished Chapter IV content.

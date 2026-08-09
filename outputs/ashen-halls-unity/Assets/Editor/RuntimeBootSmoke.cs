@@ -139,6 +139,7 @@ namespace AshenHalls.Editor
                 AssertKateServiceConversation(game, state);
                 AssertExplicitServiceConversation(game, state, "VisitMidgaardArmorer", StoryFlags.MidgaardBasicArmorBought, 28, "Borin");
                 AssertExplicitServiceConversation(game, state, "VisitWeaponVendor", StoryFlags.MidgaardBasicWeaponBought, 32, "Tessa");
+                AssertWeaponEnchanterConversation(game, state);
             }
             finally
             {
@@ -531,7 +532,9 @@ namespace AshenHalls.Editor
                         .Where(threat => threat != null && threat.Depth == depth)
                         .OrderBy(threat => threat.Id)
                         .ToList();
-                    int expectedCount = fullPrototype ? (depth <= 3 ? 4 : 5) : 3;
+                    int expectedCount = fullPrototype
+                        ? (depth <= 3 ? 4 : 5)
+                        : depth <= 4 ? 3 : 0;
                     string label = contentSet + " depth " + depth;
                     Assert(definitions.Count == expectedCount, label + " catalog has the expected patrol count");
                     Assert(patrols.Count == expectedCount, label + " generated map instantiates every catalog patrol");
@@ -2388,11 +2391,16 @@ namespace AshenHalls.Editor
                 && (state.ActiveStory ?? "").IndexOf("Chapter III complete", StringComparison.OrdinalIgnoreCase) >= 0
                 && (state.ActiveStory ?? "").IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) < 0
                 && (state.ActiveStory ?? "").IndexOf("gate key", StringComparison.OrdinalIgnoreCase) < 0
-                && completedMidgaardView.ObjectiveSummary.IndexOf("Chapter III is complete", StringComparison.OrdinalIgnoreCase) >= 0
-                && completedMidgaardTarget.IndexOf("Old Road", StringComparison.OrdinalIgnoreCase) < 0
+                && completedMidgaardView.ObjectiveSummary.IndexOf("Yara", StringComparison.OrdinalIgnoreCase) >= 0
+                && completedMidgaardView.ObjectiveSummary.IndexOf("Glass Road", StringComparison.OrdinalIgnoreCase) >= 0
+                && (completedMidgaardTarget.IndexOf("Yara", StringComparison.OrdinalIgnoreCase) >= 0
+                    || completedMidgaardTarget.IndexOf("Old Road Scout", StringComparison.OrdinalIgnoreCase) >= 0
+                    || completedMidgaardTarget.IndexOf("Town Hall storm doors", StringComparison.OrdinalIgnoreCase) >= 0)
+                && completedMidgaardTarget.IndexOf("Eastbound Old Road", StringComparison.OrdinalIgnoreCase) < 0
                 && completedMidgaardTarget.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) < 0
                 && completedMidgaardTarget.IndexOf("Glass-and-Ash", StringComparison.OrdinalIgnoreCase) < 0,
-                "completed production campaigns keep an honest Chapter III epilogue after Recall and release stale road guidance");
+                "a surveyed Chapter III campaign returns to Yara without silently opening Chapter IV or retaining stale road guidance"
+                + $" (story='{state.ActiveStory}', objective='{completedMidgaardView.ObjectiveSummary}', target='{completedMidgaardTarget}')");
 
             MapObject completedOldRoad = state.Map.FindObjectById("old-road-descent-sluice-steps");
             state.PlayerX = completedOldRoad.X;
@@ -2404,6 +2412,312 @@ namespace AshenHalls.Editor
                 && (state.ActiveStory ?? "").IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) < 0
                 && completedDepthTwoTarget.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) < 0,
                 "completed Chapter III remains the production objective during optional Bone Road re-entry without reopening its guidance");
+
+            AssertGlassAndAshStoryFlow(game, state);
+        }
+
+        private static void AssertGlassAndAshStoryFlow(AshenHallsGame game, GameState state)
+        {
+            const string oldRoadPassageId = "old-road-descent-sluice-steps";
+            const string boneRoadPassageId = "bone-road-passage-varkh-hall";
+            const string glassRoadPassageId = "glass-and-ash-passage-red-gate";
+            const string glassLibraryObjectId = "regional-site:glass-lore-library";
+            const string redGateObjectId = "regional-site:red-gate-seal";
+            const string mantleName = "+5 ashglass mirrorweave road mantle";
+
+            InvokePrivate(game, "RecallToTempleSquare");
+            Assert(state.Depth == 1
+                && !state.StoryFlags.Contains(StoryFlags.GlassAndAshExpeditionAccepted),
+                "a surveyed v2.10 campaign returns to Midgaard before Chapter IV is accepted");
+            string yaraGuidance = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") ?? "";
+            Assert(yaraGuidance.IndexOf("Yara", StringComparison.OrdinalIgnoreCase) >= 0
+                || yaraGuidance.IndexOf("Old Road Scout", StringComparison.OrdinalIgnoreCase) >= 0
+                || yaraGuidance.IndexOf("Town Hall storm doors", StringComparison.OrdinalIgnoreCase) >= 0,
+                "the completed frontier survey guides the party to Yara instead of reopening the road silently");
+
+            string progressionBeforeBriefing = PartyProgressionSignature(state);
+            InvokePrivate(game, "ShowYaraConversation");
+            InvokePrivate(game, "LateUpdate");
+            DialogueScreen dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
+            DialogueChoiceView[] choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            Assert(dialogue != null
+                && choices.Length == 3
+                && choices[0].Id == "expedition"
+                && choices[0].Primary,
+                "Yara presents the Glass Road plan as the clear next campaign choice");
+
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            string briefing = GetPrivateField<string>(game, "dialogueBody") ?? "";
+            Assert(dialogue.VisibleChoiceCountForTest == 2
+                && choices.Length == 2
+                && choices[0].Id == "accept_expedition"
+                && choices[0].Primary
+                && briefing.IndexOf("Glass Lore Library", StringComparison.OrdinalIgnoreCase) >= 0
+                && briefing.IndexOf("recall", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Yara's review names the exact first landmark and retreat rule before campaign mutation");
+            Assert(!state.StoryFlags.Contains(StoryFlags.GlassAndAshExpeditionAccepted)
+                && PartyProgressionSignature(state) == progressionBeforeBriefing,
+                "opening the Glass Road briefing changes no story or party progression");
+
+            dialogue.InvokeChoiceForTest(1);
+            InvokePrivate(game, "LateUpdate");
+            Assert(!state.StoryFlags.Contains(StoryFlags.GlassAndAshExpeditionAccepted)
+                && GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices").Length == 3,
+                "backing out of Yara's briefing returns to conversation without accepting Chapter IV");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            Assert(state.StoryFlags.Contains(StoryFlags.GlassAndAshExpeditionAccepted)
+                && (state.ActiveStory ?? "").IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) >= 0
+                && PartyProgressionSignature(state) != progressionBeforeBriefing,
+                "explicit acceptance opens Glass and Ash and awards its one-time briefing experience");
+            InvokePrivate(game, "CloseDialogue");
+            InvokePrivate(game, "LateUpdate");
+
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Eastbound Old Road",
+                "accepted Chapter IV guidance begins on Midgaard's named eastbound Old Road");
+            MapObject oldRoad = state.Map.FindObjectById(oldRoadPassageId);
+            Assert(oldRoad != null, "the Chapter IV return route preserves the stable Old Road marker");
+            state.PlayerX = oldRoad.X;
+            state.PlayerY = oldRoad.Y;
+            InvokePrivate(game, "Descend");
+            MapObject boneRoad = state.Map.FindObjectById(boneRoadPassageId);
+            Assert(state.Depth == 2
+                && boneRoad != null
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Bone Road Passage",
+                "the Glass Road expedition reuses Varkh's stable Chapter II passage without a teleport");
+            state.PlayerX = boneRoad.X;
+            state.PlayerY = boneRoad.Y;
+            InvokePrivate(game, "Descend");
+            MapObject glassRoad = state.Map.FindObjectById(glassRoadPassageId);
+            Assert(state.Depth == 3
+                && glassRoad != null,
+                "the accepted expedition regains the stable Red Gate passage on the Bone Road");
+            state.PlayerX = glassRoad.X;
+            state.PlayerY = glassRoad.Y;
+            Assert(!InvokePrivate<bool>(game, "CanSurveyGlassAndAshFrontier")
+                && InvokePrivate<bool>(game, "CanDescend"),
+                "after Yara's briefing the frontier changes from survey action to authorized crossing");
+            glassRoad.Id = "wrong-glass-crossing";
+            state.Map.InvalidateObjectLookup();
+            Assert(!InvokePrivate<bool>(game, "CanDescend"),
+                "an arbitrary Chapter III stair cannot impersonate the accepted Glass Road crossing");
+            glassRoad.Id = glassRoadPassageId;
+            state.Map.InvalidateObjectLookup();
+
+            int suppliesBeforeFirstCrossing = state.Supplies;
+            string progressionBeforeFirstCrossing = PartyProgressionSignature(state);
+            InvokePrivate(game, "Descend");
+            Assert(state.Depth == 4
+                && state.Map != null
+                && state.Map.Depth == 4
+                && state.StoryFlags.Contains(StoryFlags.GlassAndAshEntered)
+                && state.Supplies == suppliesBeforeFirstCrossing + 2
+                && PartyProgressionSignature(state) != progressionBeforeFirstCrossing,
+                "the exact passage enters authored Chapter IV and grants first-arrival progression once");
+            Assert(state.RoamingThreats.Count(threat => threat != null && threat.Depth == 4) == 3
+                && state.RoamingThreats.Where(threat => threat != null && threat.Depth == 4)
+                    .All(threat => threat.Active),
+                "Glass and Ash arrives with exactly three live production patrol bands");
+            Assert(!state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs),
+                "Chapter IV exposes no generic stair or accidental Chapter V route");
+
+            MapObject glassLibrary = state.Map.FindObjectById(glassLibraryObjectId);
+            MapObject farSeal = state.Map.FindObjectById(redGateObjectId);
+            Assert(glassLibrary != null
+                && farSeal != null
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Glass Lore Library",
+                "first Chapter IV guidance targets the exact Glass Lore Library while preserving the far seal");
+
+            InvokePrivate(game, "ResolveExploreObject", farSeal);
+            Assert(state.Mode == GameMode.Explore
+                && !state.StoryFlags.Contains(StoryFlags.EmberglassGateKeyRecovered),
+                "the far seal cannot skip the missing Mirror Index or start its boss early");
+
+            InvokePrivate(game, "ResolveExploreObject", glassLibrary);
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "glassward-ambush",
+                "first library interaction opens the authored Glass-Warren levy");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            InvokePrivate(game, "ResolveExploreObject", glassLibrary);
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "glassward-ambush",
+                "retreating from the levy leaves its exact encounter available for retry");
+            InvokePrivate(game, "ApplyGlassAndAshStoryVictory", "glassward-ambush");
+            Assert(state.StoryFlags.Contains(StoryFlags.GlasswardAmbushDefeated)
+                && !state.StoryFlags.Contains(StoryFlags.GlassIndexRecovered),
+                "levy victory advances only to the Mirror Index step");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+
+            int suppliesBeforeIndex = state.Supplies;
+            InvokePrivate(game, "ResolveExploreObject", glassLibrary);
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "glass-index-keepers",
+                "returning to the library opens the distinct Mirror Index keepers encounter");
+            InvokePrivate(game, "ApplyGlassAndAshStoryVictory", "glass-index-keepers");
+            Assert(state.StoryFlags.Contains(StoryFlags.GlassIndexRecovered)
+                && state.Supplies == suppliesBeforeIndex + 1,
+                "Index victory records the true-road map and its one-time field supply");
+            InvokePrivate(game, "ApplyGlassAndAshStoryVictory", "glass-index-keepers");
+            Assert(state.Supplies == suppliesBeforeIndex + 1,
+                "replaying the Index victory callback cannot duplicate its supply reward");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Red Gate Seal",
+                "the recovered Mirror Index advances guidance to the exact far seal");
+
+            int mantleBefore = state.Inventory.Count(item => item != null && item.DisplayName == mantleName);
+            int suppliesBeforeWarden = state.Supplies;
+            InvokePrivate(game, "ResolveExploreObject", farSeal);
+            CombatUnit pactWarden = state.Combat?.Units?.FirstOrDefault(unit => unit != null
+                && unit.Side == UnitSide.Enemy
+                && unit.Role == "lesserdemon");
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "ashen-pact-warden-boss"
+                && pactWarden?.Name == "Warden of the Ashen Pact",
+                "the Mirror Index opens the named Ashen Pact boss instead of a generic depth-five fight");
+            InvokePrivate(game, "ApplyGlassAndAshStoryVictory", "ashen-pact-warden-boss");
+            Assert(ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                && state.Inventory.Count(item => item != null && item.DisplayName == mantleName) == mantleBefore + 1
+                && state.Supplies == suppliesBeforeWarden + 2
+                && state.StoryChapter == 5
+                && (state.ActiveStory ?? "").IndexOf("Chapter IV complete", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Ashen Pact victory grants the Emberglass key, unique mantle, supplies, and honest chapter endpoint");
+            InvokePrivate(game, "ApplyGlassAndAshStoryVictory", "ashen-pact-warden-boss");
+            Assert(state.Inventory.Count(item => item != null && item.DisplayName == mantleName) == mantleBefore + 1
+                && state.Supplies == suppliesBeforeWarden + 2,
+                "replaying the Ashen Pact callback cannot duplicate the unique reward");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+
+            IReadOnlyList<ArmoryRowView> completedJournal = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows");
+            Assert(completedJournal.Count(row => row.Title.StartsWith("Glass and Ash - ", StringComparison.Ordinal)) == 4
+                && completedJournal.Where(row => row.Title.StartsWith("Glass and Ash - ", StringComparison.Ordinal))
+                    .All(row => row.Subtitle == "done"),
+                "the production Journal records all four Glass and Ash beats as complete");
+            Assert(!state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs)
+                && !InvokePrivate<bool>(game, "CanDescend"),
+                "the completed chapter still cannot leak into unfinished Chapter V");
+
+            int settledSupplies = state.Supplies;
+            string settledProgression = PartyProgressionSignature(state);
+            InvokePrivate(game, "RecallToTempleSquare");
+            string completedTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") ?? "";
+            ExplorationHudView awaitingDebriefView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(state.Depth == 1
+                && !state.StoryFlags.Contains(StoryFlags.GlassAndAshDebriefed)
+                && (state.ActiveStory ?? "").IndexOf("Chapter IV complete", StringComparison.OrdinalIgnoreCase) >= 0
+                && awaitingDebriefView.ObjectiveSummary.IndexOf("Yara", StringComparison.OrdinalIgnoreCase) >= 0
+                && (completedTarget.IndexOf("Yara", StringComparison.OrdinalIgnoreCase) >= 0
+                    || completedTarget.IndexOf("Old Road Scout", StringComparison.OrdinalIgnoreCase) >= 0
+                    || completedTarget.IndexOf("Town Hall storm doors", StringComparison.OrdinalIgnoreCase) >= 0)
+                && completedTarget.IndexOf("Eastbound Old Road", StringComparison.OrdinalIgnoreCase) < 0
+                && completedTarget.IndexOf("Bone Road", StringComparison.OrdinalIgnoreCase) < 0
+                && completedTarget.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) < 0,
+                "Chapter IV recall routes the recovered key to Yara without reopening a completed road objective");
+
+            InvokePrivate(game, "ShowYaraConversation");
+            InvokePrivate(game, "LateUpdate");
+            dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
+            ExplorationHudView debriefedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(state.StoryFlags.Contains(StoryFlags.GlassAndAshDebriefed)
+                && (state.ActiveStory ?? "").IndexOf("No safe company road", StringComparison.OrdinalIgnoreCase) >= 0
+                && debriefedView.ObjectiveSummary.IndexOf("Yara copied", StringComparison.OrdinalIgnoreCase) >= 0
+                && debriefedView.ObjectiveSummary.IndexOf("bring Yara", StringComparison.OrdinalIgnoreCase) < 0
+                && (GetPrivateField<string>(game, "dialogueBody") ?? "").IndexOf("brought back a road", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Yara's first post-key conversation closes the debrief durably and states the honest Chapter V boundary");
+            InvokePrivate(game, "CloseDialogue");
+            InvokePrivate(game, "LateUpdate");
+
+            oldRoad = state.Map.FindObjectById(oldRoadPassageId);
+            state.PlayerX = oldRoad.X;
+            state.PlayerY = oldRoad.Y;
+            InvokePrivate(game, "Descend");
+            boneRoad = state.Map.FindObjectById(boneRoadPassageId);
+            state.PlayerX = boneRoad.X;
+            state.PlayerY = boneRoad.Y;
+            InvokePrivate(game, "Descend");
+            glassRoad = state.Map.FindObjectById(glassRoadPassageId);
+            state.PlayerX = glassRoad.X;
+            state.PlayerY = glassRoad.Y;
+            Assert(InvokePrivate<bool>(game, "CanDescend"),
+                "a completed company may revisit the secured Glass-and-Ash map through the same exact passage");
+            InvokePrivate(game, "Descend");
+            Assert(state.Depth == 4
+                && state.Supplies == settledSupplies
+                && PartyProgressionSignature(state) == settledProgression
+                && !state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs),
+                "Chapter IV re-entry duplicates no progression and still exposes no Chapter V stair");
+
+            AssertAdvancedFullPrototypeRecallPreservesStory(game, state);
+        }
+
+        private static void AssertAdvancedFullPrototypeRecallPreservesStory(AshenHallsGame game, GameState productionState)
+        {
+            string previousContentSet = GetPrivateField<string>(game, "activeContentSet");
+            string previousStateContentSet = productionState.ContentSetId;
+            GameState prototypeState = new GameState
+            {
+                SaveVersion = VersionInfo.SaveVersion,
+                ContentSetId = ContentSetCatalog.FullPrototype,
+                Mode = GameMode.Explore,
+                Depth = 6,
+                Seed = 21106,
+                StoryChapter = 6,
+                ActiveStory = "Chapter VI: Meteor Crown. Preserve the advanced prototype road.",
+                Gold = productionState.Gold,
+                Supplies = productionState.Supplies,
+                Elixirs = productionState.Elixirs,
+                Party = productionState.Party == null
+                    ? new List<PartyMember>()
+                    : productionState.Party.Select(member => member.CloneForPreview()).ToList(),
+                StoryFlags = new List<string>
+                {
+                    StoryFlags.KoboldKingDefeated,
+                    StoryFlags.RedGateWarningRecovered
+                }
+            };
+
+            try
+            {
+                SetPrivateField(game, "state", prototypeState);
+                InvokePrivate(game, "SetActiveContentSet", ContentSetCatalog.FullPrototype);
+                prototypeState.Map = InvokePrivate<MapData>(game, "GenerateMap", prototypeState.Depth, prototypeState.Seed);
+                prototypeState.PlayerX = prototypeState.Map.StartX;
+                prototypeState.PlayerY = prototypeState.Map.StartY;
+                InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+                Assert(prototypeState.StoryFlags.Contains(StoryFlags.GlassAndAshEntered)
+                    && prototypeState.StoryChapter == 6
+                    && (prototypeState.ActiveStory ?? "").IndexOf("Chapter VI", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "loading an advanced prototype save may repair visited depth four without rewriting its later chapter");
+
+                InvokePrivate(game, "RecallToTempleSquare");
+                ExplorationHudView recalledView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                Assert(prototypeState.Depth == 1
+                    && prototypeState.StoryChapter == 6
+                    && (prototypeState.ActiveStory ?? "").IndexOf("Chapter VI", StringComparison.OrdinalIgnoreCase) >= 0
+                    && (prototypeState.ActiveStory ?? "").IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) < 0
+                    && recalledView.ObjectiveSummary.IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) < 0
+                    && recalledView.ObjectiveSummary.IndexOf("Glass Road", StringComparison.OrdinalIgnoreCase) < 0,
+                    "Recall preserves a pre-v2.11 depth-six prototype objective instead of rewinding it to Glass and Ash");
+            }
+            finally
+            {
+                SetPrivateField(game, "state", productionState);
+                InvokePrivate(game, "SetActiveContentSet", previousContentSet);
+                productionState.ContentSetId = previousStateContentSet;
+                InvokePrivate(game, "InvalidateExplorationController");
+                InvokePrivate(game, "MarkUiDirty");
+            }
         }
 
         private static string PartyProgressionSignature(GameState state)
@@ -5140,10 +5454,12 @@ namespace AshenHalls.Editor
             int temporaryTargetIndex = state.Party.IndexOf(temporaryTarget);
             int permanentTargetIndex = state.Party.IndexOf(permanentTarget);
             string temporaryBaseName = temporaryTarget.WeaponName;
+            string temporaryOriginalType = temporaryTarget.WeaponDamageType;
             string temporaryBaseType = string.IsNullOrWhiteSpace(temporaryTarget.WeaponDamageType)
                 ? "physical"
                 : temporaryTarget.WeaponDamageType;
             string permanentBaseName = permanentTarget.WeaponName;
+            string permanentOriginalType = permanentTarget.WeaponDamageType;
             int inventoryBefore = state.Inventory.Count;
             state.StoryFlags.Remove(StoryFlags.MidgaardWeaponEnchanted);
             state.Gold = 240;
@@ -5182,7 +5498,49 @@ namespace AshenHalls.Editor
 
             dialogue.InvokeChoiceForTest(0);
             InvokePrivate(game, "LateUpdate");
-            Assert(state.Gold == goldBefore - WeaponEnchantmentRules.TemporaryCost, "temporary fire spends exactly 18 gold after affinity confirmation");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            string temporaryReview = GetPrivateField<string>(game, "dialogueBody");
+            Assert(state.Gold == goldBefore
+                && state.Inventory.Count == inventoryBefore
+                && temporaryTarget.WeaponName == temporaryBaseName
+                && temporaryTarget.WeaponDamageType == temporaryOriginalType
+                && !state.StoryFlags.Contains(StoryFlags.MidgaardWeaponEnchanted),
+                "choosing Maud's temporary affinity opens a mutation-free order review");
+            Assert(dialogue.VisibleChoiceCountForTest == 2
+                && choices.Length == 2
+                && choices[0].Id == "confirm_purchase"
+                && choices[0].Primary
+                && choices[1].Id == "keep_browsing",
+                "Maud's temporary review presents one clear confirmation and a way back"
+                + $" (visible={dialogue.VisibleChoiceCountForTest}, ids={string.Join(",", choices.Select(choice => choice.Id))}, primary={(choices.Length > 0 && choices[0].Primary)})");
+            Assert(temporaryReview.IndexOf(temporaryTarget.Name, StringComparison.OrdinalIgnoreCase) >= 0
+                && temporaryReview.IndexOf(InvokePrivate<string>(game, "TrimGearName", temporaryBaseName), StringComparison.OrdinalIgnoreCase) >= 0
+                && temporaryReview.IndexOf("fire", StringComparison.OrdinalIgnoreCase) >= 0
+                && temporaryReview.IndexOf(WeaponEnchantmentRules.TemporaryVictories + " victories", StringComparison.OrdinalIgnoreCase) >= 0
+                && temporaryReview.IndexOf(WeaponEnchantmentRules.TemporaryCost + " gold", StringComparison.OrdinalIgnoreCase) >= 0
+                && temporaryReview.IndexOf((goldBefore - WeaponEnchantmentRules.TemporaryCost) + " gold", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Maud's temporary review names the target, affinity, duration, price, and remaining balance");
+
+            dialogue.InvokeChoiceForTest(1);
+            InvokePrivate(game, "LateUpdate");
+            Assert(dialogue.VisibleChoiceCountForTest == 3
+                && state.Gold == goldBefore
+                && state.Inventory.Count == inventoryBefore
+                && temporaryTarget.WeaponName == temporaryBaseName,
+                "backing out of Maud's review returns to her services without changing the party");
+
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(temporaryTargetIndex);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            Assert(choices.Length == 2 && choices[0].Id == "confirm_purchase",
+                "returning to the temporary order reaches the same explicit review");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            Assert(state.Gold == goldBefore - WeaponEnchantmentRules.TemporaryCost, "temporary fire spends exactly 18 gold after order confirmation");
             Assert(state.Inventory.Count == inventoryBefore + 1, "temporary fire creates one inventory item for the starter weapon");
             InventoryItem temporaryItem = state.Inventory.Single(item =>
                 item != null
@@ -5218,6 +5576,26 @@ namespace AshenHalls.Editor
                 && choices[0].Enabled
                 && choices[1].Enabled, "Maud remains available after a temporary enchantment");
 
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(temporaryTargetIndex);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(2);
+            InvokePrivate(game, "LateUpdate");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            string replacementReview = GetPrivateField<string>(game, "dialogueBody");
+            Assert(dialogue.VisibleChoiceCountForTest == 2
+                && choices.Length == 2
+                && choices[0].Id == "confirm_purchase"
+                && replacementReview.IndexOf("Replaces Fire temporary", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Maud's re-enchantment review keeps the current rune and both decisions visible on one page");
+            dialogue.InvokeChoiceForTest(1);
+            InvokePrivate(game, "LateUpdate");
+            Assert(dialogue.VisibleChoiceCountForTest == 3
+                && state.Gold == goldBefore - WeaponEnchantmentRules.TemporaryCost
+                && temporaryItem.TemporaryEnchantmentId == "fire",
+                "backing out of a replacement rune preserves the current enchantment and balance");
+
             dialogue.InvokeChoiceForTest(1);
             InvokePrivate(game, "LateUpdate");
             choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
@@ -5231,9 +5609,34 @@ namespace AshenHalls.Editor
 
             dialogue.InvokeChoiceForTest(1);
             InvokePrivate(game, "LateUpdate");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            string permanentReview = GetPrivateField<string>(game, "dialogueBody");
+            int permanentBalance = goldBefore
+                - WeaponEnchantmentRules.TemporaryCost
+                - WeaponEnchantmentRules.PermanentCost;
+            Assert(state.Gold == goldBefore - WeaponEnchantmentRules.TemporaryCost
+                && state.Inventory.Count == inventoryBefore + 1
+                && permanentTarget.WeaponName == permanentBaseName
+                && permanentTarget.WeaponDamageType == permanentOriginalType,
+                "choosing Maud's permanent affinity opens a mutation-free order review");
+            Assert(dialogue.VisibleChoiceCountForTest == 2
+                && choices.Length == 2
+                && choices[0].Id == "confirm_purchase"
+                && choices[0].Primary,
+                "Maud's permanent review requires an explicit confirmation");
+            Assert(permanentReview.IndexOf(permanentTarget.Name, StringComparison.OrdinalIgnoreCase) >= 0
+                && permanentReview.IndexOf(InvokePrivate<string>(game, "TrimGearName", permanentBaseName), StringComparison.OrdinalIgnoreCase) >= 0
+                && permanentReview.IndexOf("ice", StringComparison.OrdinalIgnoreCase) >= 0
+                && permanentReview.IndexOf("permanent", StringComparison.OrdinalIgnoreCase) >= 0
+                && permanentReview.IndexOf(WeaponEnchantmentRules.PermanentCost + " gold", StringComparison.OrdinalIgnoreCase) >= 0
+                && permanentReview.IndexOf(permanentBalance + " gold", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Maud's permanent review names the target, affinity, duration, price, and remaining balance");
+
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
             Assert(state.Gold == goldBefore
                 - WeaponEnchantmentRules.TemporaryCost
-                - WeaponEnchantmentRules.PermanentCost, "permanent ice spends exactly 90 additional gold");
+                - WeaponEnchantmentRules.PermanentCost, "permanent ice spends exactly 90 additional gold after order confirmation");
             Assert(state.Inventory.Count == inventoryBefore + 2, "permanent ice creates one linked item for the other starter weapon");
             InventoryItem permanentItem = state.Inventory.Single(item =>
                 item != null

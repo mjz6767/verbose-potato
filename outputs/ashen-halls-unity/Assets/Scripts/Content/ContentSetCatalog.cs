@@ -28,7 +28,8 @@ namespace AshenHalls
             "sewerrat", "giantrat", "ratfolk", "ratcutthroat", "ratmage", "ratbrute",
             "koboldraider", "koboldslinger", "koboldshield", "koboldshaman",
             "drowscout", "drowcrossbow", "drowmage", "drowpriest",
-            "husk", "reaver", "shade", "bonepriest", "gloamknight"
+            "husk", "reaver", "shade", "bonepriest", "gloamknight",
+            "glassmage", "cinderling", "lesserdemon"
         };
 
         private static readonly EncounterId[] boneRoadEncounterIds =
@@ -36,6 +37,13 @@ namespace AshenHalls
             EncounterId.BoneRoadWatch,
             EncounterId.GloamCryptRitual,
             EncounterId.GloamWarden
+        };
+
+        private static readonly EncounterId[] glassAndAshEncounterIds =
+        {
+            EncounterId.GlasswardAmbush,
+            EncounterId.GlassIndexKeepers,
+            EncounterId.AshenPactWarden
         };
 
         private static readonly EncounterDefinition[] sewerSliceEncounters =
@@ -115,6 +123,15 @@ namespace AshenHalls
             return IsSewerSlice(contentSet)
                 && flags != null
                 && flags.Contains(StoryFlags.KoboldKingDefeated);
+        }
+
+        public static bool AllowGlassAndAshChapter(string contentSet, IReadOnlyCollection<string> flags)
+        {
+            if (IsFullPrototype(contentSet)) return true;
+            return IsSewerSlice(contentSet)
+                && flags != null
+                && flags.Contains(StoryFlags.GlassAndAshFrontierSurveyed)
+                && flags.Contains(StoryFlags.GlassAndAshExpeditionAccepted);
         }
 
         public static bool IsKnown(string contentSet)
@@ -215,6 +232,11 @@ namespace AshenHalls
             return flags != null
                 && flags.Contains(StoryFlags.GloamWardenDefeated)
                 && flags.Contains(StoryFlags.RedGateWarningRecovered);
+        }
+
+        public static bool GlassAndAshComplete(IReadOnlyCollection<string> flags)
+        {
+            return flags != null && flags.Contains(StoryFlags.EmberglassGateKeyRecovered);
         }
 
         public static void MarkSewerSliceRewardClaimed(ICollection<string> flags)
@@ -335,6 +357,24 @@ namespace AshenHalls
             };
         }
 
+        public static InventoryItem CreateAshglassRoadMantle()
+        {
+            return new InventoryItem
+            {
+                Mark = "ashglass",
+                Material = "mirrorweave",
+                Form = "road mantle",
+                Trait = "warding",
+                Slot = "armor",
+                Bonus = 5,
+                IntelligenceBonus = 2,
+                AgilityBonus = 1,
+                HealthBonus = 1,
+                Rarity = "quest",
+                DisplayName = "+5 ashglass mirrorweave road mantle"
+            };
+        }
+
         public static bool HasSewerSafeRoomChoice(IReadOnlyCollection<string> flags)
         {
             return flags != null && flags.Contains(StoryFlags.SewerSafeRoomChoiceClaimed);
@@ -392,6 +432,12 @@ namespace AshenHalls
         public static bool IsBoneRoadEncounterStyle(string style)
         {
             return boneRoadEncounterIds.Any(id =>
+                string.Equals(EncounterCatalog.For(id).LegacyStyle, style, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static bool IsGlassAndAshEncounterStyle(string style)
+        {
+            return glassAndAshEncounterIds.Any(id =>
                 string.Equals(EncounterCatalog.For(id).LegacyStyle, style, StringComparison.OrdinalIgnoreCase));
         }
 

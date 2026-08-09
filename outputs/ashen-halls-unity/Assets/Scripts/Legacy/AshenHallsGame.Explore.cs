@@ -1361,6 +1361,17 @@ namespace AshenHalls
                 if (glassPassage != null) critical.Add(glassPassage);
             }
 
+            if (map.Depth == 4
+                && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state?.StoryFlags)
+                && !ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags))
+            {
+                string targetSiteId = HasStoryFlag(StoryFlags.GlassIndexRecovered)
+                    ? RedGateSealSiteId
+                    : GlassLoreLibrarySiteId;
+                MapObject chapterTarget = map.FindObjectById(RegionalSiteIdPrefix + targetSiteId);
+                if (chapterTarget != null) critical.Add(chapterTarget);
+            }
+
             if (ContentSetCatalog.ShowPrototypeScaffold(activeContentSet))
             {
                 critical.AddRange(map.Objects.Where(o => o != null && IsRouteScaffoldObject(o.Type)));
@@ -4185,10 +4196,28 @@ namespace AshenHalls
             if (obj == null) return "Use";
             if (string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal)) return "Travel east";
             if (string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal)) return "Enter Bone Road";
-            if (string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal)) return "Survey frontier";
+            if (string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal))
+            {
+                if (ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags)) return "Revisit frontier";
+                return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted) ? "Cross frontier" : "Survey frontier";
+            }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite)
                 && WorldSiteInteractionRules.TryGet(regionalSite.Id, out WorldSiteInteractionProfile interaction))
             {
+                if (state?.Depth == 4
+                    && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
+                    && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+                {
+                    if (string.Equals(regionalSite.Id, GlassLoreLibrarySiteId, StringComparison.Ordinal)
+                        && !HasStoryFlag(StoryFlags.GlassIndexRecovered))
+                    {
+                        return HasStoryFlag(StoryFlags.GlasswardAmbushDefeated) ? "Take Index" : "Face levy";
+                    }
+                    if (string.Equals(regionalSite.Id, RedGateSealSiteId, StringComparison.Ordinal))
+                    {
+                        return HasStoryFlag(StoryFlags.GlassIndexRecovered) ? "Break pact" : "Read seal";
+                    }
+                }
                 if (state?.Depth == 3
                     && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
                 {
@@ -6646,7 +6675,7 @@ namespace AshenHalls
             if (depth <= 1) return "Chapter I: The Midgaard Cisterns. Meet King Halvard, accept the sewer contract, and clear three chambers beneath Midgaard.";
             if (depth == 2) return "Chapter II: Kobold Smoke. Survive the Dusk Market ambush, clear the cave mouth, then break the Kobold King's shield hall.";
             if (depth == 3) return "Chapter III: The Bone Road. Break caster pressure in the Gloam Courts and recover the first Red Gate warning.";
-            if (depth == 4) return "Chapter IV: Glass and Ash. Cross the Glass Warrens, survive warlock bargains, and search for a gate key.";
+            if (depth == 4) return "Chapter IV: Glass and Ash. Break the levy at the Glass Lore Library, recover the Mirror Index, and take the Emberglass key from the far seal.";
             if (depth == 5) return "Chapter V: The Red Gate. Push through drow priests, bone wizards, and lesser demons to find the sealed descent.";
             if (depth >= FinalBossDepth) return "Chapter VI: Meteor Crown. Break the ritual heart and defeat Vhal Rakh before the Old Road burns open.";
             return "Chapter V: Below the Old Road. The scaffold now points toward bosses, factions, and deeper world-state choices.";
@@ -6937,12 +6966,38 @@ namespace AshenHalls
             }
             if (obj != null && string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal))
             {
+                if (ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags))
+                {
+                    return "revisit the secured Glass-and-Ash road; no deeper production road is open";
+                }
+                if (HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted))
+                {
+                    return "cross the surveyed frontier for Yara's Glass Road expedition";
+                }
                 return HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
-                    ? "charted frontier; return to Midgaard before the next expedition"
+                    ? "charted frontier; return to Midgaard and brief Yara before crossing"
                     : "survey the glass storms beyond the recovered Red Gate warning";
             }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite))
             {
+                if (state?.Depth == 4
+                    && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
+                    && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+                {
+                    if (string.Equals(regionalSite.Id, GlassLoreLibrarySiteId, StringComparison.Ordinal)
+                        && !HasStoryFlag(StoryFlags.GlassIndexRecovered))
+                    {
+                        return regionalSite.Summary + (HasStoryFlag(StoryFlags.GlasswardAmbushDefeated)
+                            ? " The levy is broken, but the Mirror Index has awakened its keepers."
+                            : " A drow levy holds the approach through reflected firing lanes.");
+                    }
+                    if (string.Equals(regionalSite.Id, RedGateSealSiteId, StringComparison.Ordinal))
+                    {
+                        return regionalSite.Summary + (HasStoryFlag(StoryFlags.GlassIndexRecovered)
+                            ? " The Mirror Index names this as the Ashen Pact's keyward."
+                            : " The missing Mirror Index is required to read a true route through the seal.");
+                    }
+                }
                 if (state?.Depth == 3
                     && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
                 {

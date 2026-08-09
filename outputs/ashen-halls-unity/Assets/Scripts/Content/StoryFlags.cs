@@ -64,5 +64,12 @@ namespace AshenHalls
         public const string GloamWardenDefeated = "gloam_warden_defeated";
         public const string RedGateWarningRecovered = "red_gate_warning_recovered";
         public const string GlassAndAshFrontierSurveyed = "glass_and_ash_frontier_surveyed";
+
+        public const string GlassAndAshExpeditionAccepted = "glass_and_ash_expedition_accepted";
+        public const string GlassAndAshEntered = "glass_and_ash_entered";
+        public const string GlasswardAmbushDefeated = "glassward_ambush_defeated";
+        public const string GlassIndexRecovered = "glass_index_recovered";
+        public const string EmberglassGateKeyRecovered = "emberglass_gate_key_recovered";
+        public const string GlassAndAshDebriefed = "glass_and_ash_debriefed";
     }
 }

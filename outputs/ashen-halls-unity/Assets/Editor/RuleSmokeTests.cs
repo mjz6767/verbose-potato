@@ -155,6 +155,7 @@ namespace AshenHalls.Editor
             RuntimeControllersAreCachedAccessors();
             EncounterCatalogDefinesExplicitValidEncounters();
             BoneRoadProductionArcDefinitionsAreStable();
+            GlassAndAshProductionArcDefinitionsAreStable();
             SewerSliceContentSetDefinesCompleteFirstPlayPath();
             SewerSliceEncountersHaveConciseGuidance();
             SewerSliceFirstPlayContractProgressionIsIdempotent();
@@ -2348,7 +2349,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.10.0", VersionInfo.PackageVersion, "package version matches the v2.10 release");
+            AssertEqual("v2.11.0", VersionInfo.PackageVersion, "package version matches the v2.11 release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -7559,11 +7560,85 @@ namespace AshenHalls.Editor
             AssertEqual(true, ContentSetCatalog.BoneRoadComplete(completionFlags), "Warden victory plus the recovered warning completes Chapter III");
         }
 
+        private static void GlassAndAshProductionArcDefinitionsAreStable()
+        {
+            List<string> flags = new List<string>();
+            AssertEqual(false, ContentSetCatalog.AllowGlassAndAshChapter(ContentSetCatalog.SewerSlice, flags), "production Glass and Ash stays locked before the frontier survey");
+            flags.Add(StoryFlags.GlassAndAshFrontierSurveyed);
+            AssertEqual(false, ContentSetCatalog.AllowGlassAndAshChapter(ContentSetCatalog.SewerSlice, flags), "surveying the frontier alone does not skip Yara's expedition briefing");
+            flags.Add(StoryFlags.GlassAndAshExpeditionAccepted);
+            AssertEqual(true, ContentSetCatalog.AllowGlassAndAshChapter(ContentSetCatalog.SewerSlice, flags), "the surveyed and accepted expedition opens production Chapter IV");
+            AssertEqual(true, ContentSetCatalog.AllowGlassAndAshChapter(ContentSetCatalog.FullPrototype, null), "full prototype keeps Glass and Ash available without production flags");
+
+            EncounterDefinition ambush = EncounterCatalog.For(EncounterId.GlasswardAmbush);
+            EncounterDefinition keepers = EncounterCatalog.For(EncounterId.GlassIndexKeepers);
+            EncounterDefinition warden = EncounterCatalog.For(EncounterId.AshenPactWarden);
+            EncounterDefinition[] chapterEncounters = { ambush, keepers, warden };
+            AssertEqual("glassward-ambush", ambush.LegacyStyle, "Glassward Ambush owns its stable encounter style");
+            AssertEqual("glass-index-keepers", keepers.LegacyStyle, "Glass Index Keepers own their stable encounter style");
+            AssertEqual("ashen-pact-warden-boss", warden.LegacyStyle, "Ashen Pact Warden owns its stable encounter style");
+            AssertEqual("drowscout|drowcrossbow|drowmage|glassmage", string.Join("|", ambush.EnemyIds), "Glassward Ambush has the exact scout-and-caster roster");
+            AssertEqual("glassmage|glassmage|drowpriest|drowcrossbow|shade", string.Join("|", keepers.EnemyIds), "Glass Index Keepers have the exact reflected-caster roster");
+            AssertEqual("lesserdemon|cinderling|cinderling|glassmage|drowpriest|drowscout", string.Join("|", warden.EnemyIds), "Ashen Pact Warden has the exact far-seal roster");
+
+            foreach (EncounterDefinition encounter in chapterEncounters)
+            {
+                AssertEqual(false, encounter.UsesGeneratedEnemyPool, encounter.LegacyStyle + " remains an authored encounter");
+                AssertEqual(encounter.EnemyIds.Length, encounter.FixedEnemyCount, encounter.LegacyStyle + " spawns its exact roster once");
+                AssertEqual(true, ContentSetCatalog.IsGlassAndAshEncounterStyle(encounter.LegacyStyle), encounter.LegacyStyle + " is recognized as Chapter IV combat");
+                AssertEqual(true, encounter.EnemyIds.All(enemyId => ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, enemyId)), encounter.LegacyStyle + " uses production-active enemies");
+                AssertEqual(false, encounter.Obstacles.Any(CombatRitualRules.IsRitual), encounter.LegacyStyle + " cannot open an unrelated prototype reinforcement");
+            }
+
+            AssertEqual(false, ContentSetCatalog.IsGlassAndAshEncounterStyle("gloam-warden-boss"), "the Ossuary Warden remains Chapter III combat");
+            AssertEqual(false, ContentSetCatalog.IsGlassAndAshEncounterStyle("guard"), "generic guard combat cannot advance Chapter IV");
+            AssertEqual(2, ambush.Obstacles.Count(point => point.Kind == "ice" && point.Duration == 6), "Glassward Ambush owns two readable cold lanes");
+            AssertEqual(2, keepers.EnemyIds.Count(id => id == "glassmage"), "Glass Index Keepers center their pressure on two Glass Mages");
+            AssertEqual(2, warden.EnemyIds.Count(id => id == "cinderling"), "Ashen Pact Warden owns two cinderling outriders");
+            AssertEqual(true, warden.EnemyIds.First() == "lesserdemon", "the first Ashen Pact enemy remains the named boss role for presentation wiring");
+
+            List<string> completionFlags = new List<string> { StoryFlags.GlassIndexRecovered };
+            AssertEqual(false, ContentSetCatalog.GlassAndAshComplete(completionFlags), "recovering the Glass Index does not skip the far-seal fight");
+            completionFlags.Add(StoryFlags.EmberglassGateKeyRecovered);
+            AssertEqual(true, ContentSetCatalog.GlassAndAshComplete(completionFlags), "the recovered Emberglass gate key completes Chapter IV");
+            AssertEqual("glass_and_ash_debriefed", StoryFlags.GlassAndAshDebriefed, "the post-key Yara debrief has a stable save flag");
+
+            InventoryItem mantle = ContentSetCatalog.CreateAshglassRoadMantle();
+            AssertEqual("+5 ashglass mirrorweave road mantle", mantle.DisplayName, "Chapter IV reward has a stable player-facing identity");
+            AssertEqual("armor", mantle.Slot, "Chapter IV reward is equippable armor rather than a sellable gate key");
+            AssertEqual(5, mantle.Bonus, "Chapter IV reward advances beyond the Gloam reliquary reward");
+            AssertEqual(2, mantle.IntelligenceBonus, "Chapter IV reward carries its exact mirror ward bonus");
+            AssertEqual(1, mantle.AgilityBonus, "Chapter IV reward carries its exact road movement bonus");
+            AssertEqual("quest", mantle.Rarity, "Chapter IV reward remains a unique quest item");
+
+            IReadOnlyList<RoamingThreatDefinition> productionChapterFour = RoamingThreatCatalog.ForDepth(4, false);
+            AssertRoamingThreatRoster(productionChapterFour, 4, 3, "production Chapter IV patrol roster");
+            AssertEqual(
+                "glassward-drow-levy|ash-fen-bone-procession|red-gate-cinder-pact",
+                string.Join("|", productionChapterFour.Select(definition => definition.Id)),
+                "production Chapter IV patrol identities stay deterministic");
+            AssertEqual(
+                "drowscout|drowcrossbow|drowmage|glassmage",
+                string.Join("|", productionChapterFour.Single(definition => definition.Id == "glassward-drow-levy").EnemyIds),
+                "Glassward patrol has the exact drow-and-glass roster");
+            AssertEqual(
+                "bonepriest|shade|husk|reaver",
+                string.Join("|", productionChapterFour.Single(definition => definition.Id == "ash-fen-bone-procession").EnemyIds),
+                "Ash Fen patrol has the exact undead roster");
+            AssertEqual(
+                "lesserdemon|cinderling|cinderling",
+                string.Join("|", productionChapterFour.Single(definition => definition.Id == "red-gate-cinder-pact").EnemyIds),
+                "Red Gate patrol has the exact demon roster");
+            AssertEqual(true, productionChapterFour.SelectMany(definition => definition.EnemyIds)
+                .All(id => ContentSetCatalog.EnemyActive(ContentSetCatalog.SewerSlice, id)), "production Chapter IV patrol enemies are active in its content set");
+            AssertEqual(0, RoamingThreatCatalog.ForDepth(5, false).Count, "production patrol catalog does not expose unfinished Chapter V");
+        }
+
         private static void SewerSliceContentSetDefinesCompleteFirstPlayPath()
         {
             AssertEqual(27, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
             AssertEqual(25, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice permanent and derived ability count");
-            AssertEqual(19, ContentSetCatalog.SewerSliceEnemyIds.Count, "production campaign enemy count through the Bone Road");
+            AssertEqual(22, ContentSetCatalog.SewerSliceEnemyIds.Count, "production campaign enemy count through Glass and Ash");
             AssertEqual(3, ContentSetCatalog.SewerSliceEncounters.Count, "sewer slice encounter count");
 
             foreach (string code in ContentSetCatalog.SewerSliceFormulaCodes)

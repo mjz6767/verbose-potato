@@ -92,6 +92,9 @@ namespace AshenHalls
         MidgaardSewer,
         BoneRoadWatch,
         GloamCryptRitual,
-        GloamWarden
+        GloamWarden,
+        GlasswardAmbush,
+        GlassIndexKeepers,
+        AshenPactWarden
     }
 }

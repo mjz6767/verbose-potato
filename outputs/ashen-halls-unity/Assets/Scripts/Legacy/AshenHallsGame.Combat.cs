@@ -2695,11 +2695,12 @@ namespace AshenHalls
             }
             GUI.Label(new Rect(rect.x + 16f, y, rect.width - 32f, anchorH), FitText(anchor, rect.width - 32f, CenterLeftStyle(11, ink)), CenterLeftStyle(11, ink));
             y += anchorH + 6f;
-            bool showMidgaardTracker = ShouldShowMidgaardTracker();
-            bool showBoneRoadTracker = !showMidgaardTracker && ShouldShowBoneRoadTracker();
-            bool showKoboldTracker = !showMidgaardTracker && !showBoneRoadTracker && ShouldShowKoboldRouteTracker();
-            bool showRouteTracker = showMidgaardTracker || showKoboldTracker || showBoneRoadTracker;
-            float trackerTarget = showMidgaardTracker ? 112f : showKoboldTracker || showBoneRoadTracker ? 92f : 30f;
+            bool showGlassRoadTracker = ShouldShowGlassAndAshTracker();
+            bool showMidgaardTracker = !showGlassRoadTracker && ShouldShowMidgaardTracker();
+            bool showBoneRoadTracker = !showGlassRoadTracker && !showMidgaardTracker && ShouldShowBoneRoadTracker();
+            bool showKoboldTracker = !showGlassRoadTracker && !showMidgaardTracker && !showBoneRoadTracker && ShouldShowKoboldRouteTracker();
+            bool showRouteTracker = showMidgaardTracker || showKoboldTracker || showBoneRoadTracker || showGlassRoadTracker;
+            float trackerTarget = showMidgaardTracker ? 112f : showKoboldTracker || showBoneRoadTracker || showGlassRoadTracker ? 92f : 30f;
             float reservedBottom = showRouteTracker ? trackerTarget + 10f : 38f;
             if (rect.height > 172f)
             {
@@ -2728,6 +2729,10 @@ namespace AshenHalls
             else if (showBoneRoadTracker && trackerH >= 64f)
             {
                 DrawBoneRoadTracker(new Rect(rect.x + 12f, y, rect.width - 24f, Mathf.Min(92f, trackerH)));
+            }
+            else if (showGlassRoadTracker && trackerH >= 64f)
+            {
+                DrawGlassAndAshTracker(new Rect(rect.x + 12f, y, rect.width - 24f, Mathf.Min(92f, trackerH)));
             }
             else if (trackerH >= 30f)
             {
@@ -3648,6 +3653,25 @@ namespace AshenHalls
         {
             type = ObjectType.Market;
             if (state == null || state.Depth != 1) return false;
+            if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                && !HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
+            {
+                type = ObjectType.OldRoadScout;
+                return true;
+            }
+            if (HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                && !HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted))
+            {
+                type = ObjectType.OldRoadScout;
+                return true;
+            }
+            if (HasGlassAndAshStoryProgress()
+                && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                && state.Map?.FindObjectById(OldRoadDescentId) != null)
+            {
+                type = ObjectType.Stairs;
+                return true;
+            }
             if (ContentSetCatalog.ShowPrototypeScaffold(activeContentSet) && HasStoryFlag(StoryFlags.MidgaardLampRoundStarted) && !HasStoryFlag(StoryFlags.MidgaardLampRoundComplete))
             {
                 if (!HasStoryFlag(StoryFlags.MidgaardLampRoundMarket)) type = ObjectType.MarketClerk;
@@ -3742,6 +3766,90 @@ namespace AshenHalls
                 || HasStoryFlag(StoryFlags.KoboldKingDefeated);
         }
 
+        private bool ShouldShowGlassAndAshTracker()
+        {
+            if (state == null || state.Depth > 4) return false;
+            return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted);
+        }
+
+        private void DrawGlassAndAshTracker(Rect rect)
+        {
+            if (rect.height < 54f) return;
+            DrawRect(rect, Hex("080b0d", 0.62f));
+            DrawBorder(rect, frost.WithAlpha(0.66f), 1);
+            Rect icon = new Rect(rect.x + 8f, rect.y + 8f, 30f, 30f);
+            if (!TryDrawWorldMapProgressionOverlayAtlasIcon(icon, GlassAndAshProgressionIcon(), Color.white.WithAlpha(0.94f)))
+            {
+                DrawTinyUiIcon(icon, GlassAndAshActiveStep() >= 3 ? "blocked" : "magic", frost);
+            }
+            GUI.Label(new Rect(rect.x + 46f, rect.y + 7f, rect.width - 56f, 16f), "Glass and Ash", CenterLeftStyle(12, frost));
+            GUI.Label(
+                new Rect(rect.x + 46f, rect.y + 23f, rect.width - 56f, 15f),
+                FitText(GlassAndAshStatusLine(), rect.width - 56f, CenterLeftStyle(9, muted)),
+                CenterLeftStyle(9, muted));
+
+            string[] labels = { "Brief", "Levy", "Index", "Key" };
+            float chipGap = 4f;
+            float chipW = Mathf.Max(44f, (rect.width - 16f - chipGap * 3f) / 4f);
+            float chipY = rect.y + Mathf.Min(52f, rect.height - 28f);
+            int active = GlassAndAshActiveStep();
+            for (int i = 0; i < labels.Length; i++)
+            {
+                bool done = GlassAndAshStepComplete(i);
+                Rect chip = new Rect(rect.x + 8f + i * (chipW + chipGap), chipY, chipW, 22f);
+                Color accent = done ? teal : i == active ? gold : line;
+                DrawRect(chip, Hex("151b20", done ? 0.86f : 0.62f));
+                DrawBorder(chip, accent.WithAlpha(i == active ? 0.92f : 0.62f), i == active ? 2 : 1);
+                GUI.Label(
+                    new Rect(chip.x + 4f, chip.y + 2f, chip.width - 8f, chip.height - 2f),
+                    FitText(done ? labels[i] + " ok" : labels[i], chip.width - 8f, CenterStyle(8, done ? teal : ink)),
+                    CenterStyle(8, done ? teal : ink));
+            }
+        }
+
+        private string GlassAndAshStatusLine()
+        {
+            if (state == null) return "";
+            if (HasStoryFlag(StoryFlags.GlassAndAshDebriefed)) return "Key copied; the road beyond the far seal remains closed.";
+            if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)) return "Emberglass key recovered; bring it to Yara.";
+            if (state.Depth <= 1) return "Take the Old Road east and cross at the Red Gate passage.";
+            if (state.Depth == 2) return "Use Varkh's passage to regain the Bone Road.";
+            if (state.Depth == 3) return "Cross the surveyed frontier at the outer seal.";
+            if (HasStoryFlag(StoryFlags.GlassIndexRecovered)) return "Carry the Mirror Index south-east to the far seal.";
+            if (HasStoryFlag(StoryFlags.GlasswardAmbushDefeated)) return "Return to the Glass Lore Library and open its Index.";
+            return "Reach the Glass Lore Library and break the levy.";
+        }
+
+        private int GlassAndAshActiveStep()
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                if (!GlassAndAshStepComplete(i)) return i;
+            }
+            return 3;
+        }
+
+        private int GlassAndAshProgressionIcon()
+        {
+            int step = GlassAndAshActiveStep();
+            if (step == 0) return 16;
+            if (step == 1) return 11;
+            if (step == 2) return 7;
+            return 18;
+        }
+
+        private bool GlassAndAshStepComplete(int index)
+        {
+            switch (index)
+            {
+                case 0: return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted);
+                case 1: return HasStoryFlag(StoryFlags.GlasswardAmbushDefeated);
+                case 2: return HasStoryFlag(StoryFlags.GlassIndexRecovered);
+                case 3: return HasStoryFlag(StoryFlags.EmberglassGateKeyRecovered);
+                default: return false;
+            }
+        }
+
         private bool ShouldShowBoneRoadTracker()
         {
             if (state == null || state.Depth > 3) return false;
@@ -3787,7 +3895,7 @@ namespace AshenHalls
         private string BoneRoadStatusLine()
         {
             if (state == null) return "";
-            if (HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)) return "Frontier charted; return to Midgaard for the next expedition.";
+            if (HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)) return "Frontier charted; bring the survey to Yara.";
             if (HasStoryFlag(StoryFlags.RedGateWarningRecovered)) return "Warning recovered; survey the Glass-and-Ash frontier.";
             if (state.Depth <= 1) return "Take the Old Road east and resume beyond Varkh's hall.";
             if (state.Depth == 2) return "Enter the passage beyond Varkh's broken shield hall.";
@@ -5811,6 +5919,7 @@ namespace AshenHalls
         private const string BoneRoadPassageId = "bone-road-passage-varkh-hall";
         private const string GlassAndAshPassageId = "glass-and-ash-passage-red-gate";
         private const string GloamDeepCryptSiteId = "gloam-deep-crypt";
+        private const string GlassLoreLibrarySiteId = "glass-lore-library";
         private const string RedGateSealSiteId = "red-gate-seal";
 
         private bool IsKoboldStoryCave(MapObject cave)
@@ -5868,6 +5977,11 @@ namespace AshenHalls
             return TryStoryRegionalSite(RedGateSealSiteId, out site);
         }
 
+        private bool TryGlassLoreLibraryStorySite(out WorldMapSite site)
+        {
+            return TryStoryRegionalSite(GlassLoreLibrarySiteId, out site);
+        }
+
         private bool TryStoryRegionalSite(string siteId, out WorldMapSite site)
         {
             site = default;
@@ -5895,6 +6009,8 @@ namespace AshenHalls
 
         private string BoneRoadObjectiveForProgress()
         {
+            if (ShouldPreserveAdvancedFullPrototypeStory()) return AdvancedFullPrototypeObjective();
+            if (HasGlassAndAshStoryProgress()) return GlassAndAshObjectiveForProgress();
             int depth = state?.Depth ?? 1;
             if (HasStoryFlag(StoryFlags.RedGateWarningRecovered))
             {
@@ -5903,7 +6019,7 @@ namespace AshenHalls
                     return StoryObjectiveForDepth(Mathf.Max(4, depth));
                 }
                 return HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
-                    ? "Chapter III complete: Names Under Stone. The Glass-and-Ash frontier is charted. Return to Midgaard, outfit the company, and wait for the next expedition."
+                    ? "Chapter III complete: Names Under Stone. The Glass-and-Ash frontier is charted. Return to Midgaard and ask Yara to plan the crossing."
                     : "Chapter III complete: Names Under Stone. The Red Gate warning is recorded; survey the Glass-and-Ash frontier before returning to Midgaard.";
             }
             if (HasStoryFlag(StoryFlags.GloamWardenDefeated))
@@ -5935,6 +6051,7 @@ namespace AshenHalls
 
         private void RepairBoneRoadStoryObjective(bool force = false)
         {
+            if (HasGlassAndAshStoryProgress()) return;
             if (state == null || state.Depth > 4 || !HasBoneRoadStoryProgress()) return;
             string current = state.ActiveStory ?? "";
             bool boneRoadObjective = string.IsNullOrWhiteSpace(current)
@@ -5945,6 +6062,93 @@ namespace AshenHalls
                 || current.IndexOf("Red Gate warning", StringComparison.OrdinalIgnoreCase) >= 0;
             if (!force && !boneRoadObjective) return;
             state.ActiveStory = BoneRoadObjectiveForProgress();
+        }
+
+        private bool HasGlassAndAshStoryProgress()
+        {
+            if (ShouldPreserveAdvancedFullPrototypeStory()) return false;
+            return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)
+                || HasStoryFlag(StoryFlags.GlassAndAshEntered)
+                || HasStoryFlag(StoryFlags.GlasswardAmbushDefeated)
+                || HasStoryFlag(StoryFlags.GlassIndexRecovered)
+                || HasStoryFlag(StoryFlags.EmberglassGateKeyRecovered)
+                || HasStoryFlag(StoryFlags.GlassAndAshDebriefed);
+        }
+
+        private bool ShouldPreserveAdvancedFullPrototypeStory()
+        {
+            return state != null
+                && ContentSetCatalog.IsFullPrototype(activeContentSet)
+                && state.StoryChapter >= 5
+                && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags);
+        }
+
+        private string AdvancedFullPrototypeObjective()
+        {
+            string current = state?.ActiveStory ?? "";
+            if (current.IndexOf("Chapter V", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Chapter VI", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Meteor Crown", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Below the Old Road", StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return current;
+            }
+            return StoryObjectiveForDepth(Mathf.Max(5, state?.StoryChapter ?? 5));
+        }
+
+        private string GlassAndAshObjectiveForProgress()
+        {
+            if (ShouldPreserveAdvancedFullPrototypeStory()) return AdvancedFullPrototypeObjective();
+            int depth = state?.Depth ?? 1;
+            if (ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags))
+            {
+                if (HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
+                {
+                    return "Chapter IV complete: Glass and Ash. Yara has copied the Emberglass key. No safe company road beyond the far seal is charted yet.";
+                }
+                return "Chapter IV complete: Glass and Ash. The Emberglass gate key is recovered. Recall to Midgaard and let Yara read what the far seal was guarding.";
+            }
+            if (!HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)
+                && !ContentSetCatalog.IsFullPrototype(activeContentSet))
+            {
+                return "Chapter III complete: Names Under Stone. Return to Midgaard and ask Yara to plan the Glass Road crossing.";
+            }
+            if (depth <= 1)
+            {
+                return "Chapter IV: Glass and Ash. Follow the Old Road east, regain the Red Gate passage, and cross the surveyed frontier.";
+            }
+            if (depth == 2)
+            {
+                return "Chapter IV: Glass and Ash. Pass beneath Varkh's broken hall and regain the Red Gate passage from the Bone Road.";
+            }
+            if (depth == 3)
+            {
+                return "Chapter IV: Glass and Ash. Use the surveyed passage at the Red Gate Seal to begin Yara's expedition.";
+            }
+            if (HasStoryFlag(StoryFlags.GlassIndexRecovered))
+            {
+                return "Chapter IV: Glass and Ash. Carry the Mirror Index south-east to the Red Gate Seal and break the Ashen Pact holding the Emberglass key.";
+            }
+            if (HasStoryFlag(StoryFlags.GlasswardAmbushDefeated))
+            {
+                return "Chapter IV: Glass and Ash. Return to the Glass Lore Library and take the Mirror Index from its awakened keepers.";
+            }
+            return "Chapter IV: Glass and Ash. Reach the Glass Lore Library in the north-east warrens and break the drow levy on its approach.";
+        }
+
+        private void RepairGlassAndAshStoryObjective(bool force = false)
+        {
+            if (state == null || state.Depth > 4 || !HasGlassAndAshStoryProgress()) return;
+            string current = state.ActiveStory ?? "";
+            bool glassObjective = string.IsNullOrWhiteSpace(current)
+                || current.IndexOf("Chapter III", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Glass", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Mirror Index", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Emberglass", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("next expedition", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!force && !glassObjective) return;
+            state.ActiveStory = GlassAndAshObjectiveForProgress();
         }
 
         private bool TryKoboldStorySite(out WorldMapSite site)
@@ -6038,6 +6242,9 @@ namespace AshenHalls
         private bool HasVisitedExplorationDepth(int depth)
         {
             int safeDepth = Mathf.Max(1, depth);
+            // Yara can annotate depth-four regions before the company crosses the
+            // frontier. Only the durable entry flag proves an actual visit there.
+            if (safeDepth == 4) return HasStoryFlag(StoryFlags.GlassAndAshEntered);
             string prefix = safeDepth + ":";
             if (state?.DiscoveredZones != null
                 && state.DiscoveredZones.Any(key => key != null && key.StartsWith(prefix, StringComparison.Ordinal)))
@@ -6538,6 +6745,7 @@ namespace AshenHalls
             }
 
             if (TryResolveBoneRoadStorySite(site)) return true;
+            if (TryResolveGlassAndAshStorySite(site)) return true;
 
             if (!WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
             {
@@ -6636,6 +6844,55 @@ namespace AshenHalls
             PlaySfx("wayfind", 0.88f);
             AutosaveCheckpoint("Red Gate warning recovered");
             return false;
+        }
+
+        private bool TryResolveGlassAndAshStorySite(WorldMapSite site)
+        {
+            if (!ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state?.StoryFlags)
+                || state == null
+                || state.Depth != 4)
+            {
+                return false;
+            }
+
+            if (string.Equals(site.Id, GlassLoreLibrarySiteId, StringComparison.Ordinal)
+                && !HasStoryFlag(StoryFlags.GlassIndexRecovered))
+            {
+                if (!HasStoryFlag(StoryFlags.GlasswardAmbushDefeated))
+                {
+                    state.ActiveStory = GlassAndAshObjectiveForProgress();
+                    PushLog("Black-fletched bolts strike the mirror stacks. The drow levy has been waiting for the first company to cross the storm.", Tone.Warn);
+                    ShowBanner("Glass-Warren Levy");
+                    StartCombat(EncounterId.GlasswardAmbush);
+                    return true;
+                }
+
+                state.ActiveStory = GlassAndAshObjectiveForProgress();
+                PushLog("The library's broken index turns by itself. Glass mages and oath-bound keepers step from the reflected aisles.", Tone.Warn);
+                ShowBanner("Mirror Index Keepers");
+                StartCombat(EncounterId.GlassIndexKeepers);
+                return true;
+            }
+
+            if (!string.Equals(site.Id, RedGateSealSiteId, StringComparison.Ordinal)
+                || ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+            {
+                return false;
+            }
+
+            if (!HasStoryFlag(StoryFlags.GlassIndexRecovered))
+            {
+                PushLog("The far seal reflects the party back toward the Glass Lore Library. Its missing Index is the only route through the ashward sigils.", Tone.Warn);
+                ShowBanner("Mirror Index Required");
+                PlaySfx("blocked", 0.58f);
+                return true;
+            }
+
+            state.ActiveStory = GlassAndAshObjectiveForProgress();
+            PushLog("The Mirror Index names the far seal. A cinder-bound warden tears free with the Emberglass key chained beneath its ribs.", Tone.Warn);
+            ShowBanner("Warden of the Ashen Pact");
+            StartCombat(EncounterId.AshenPactWarden);
+            return true;
         }
 
         private bool TryApplyWorldSiteFirstReward(
@@ -8362,7 +8619,7 @@ namespace AshenHalls
 
         private void ResolveMaudAffinityChoice(string affinityId)
         {
-            PurchaseMaudEnchantment(maudEnchantmentTargetIndex, affinityId, maudPermanentEnchantment);
+            ShowMaudPurchaseReview(maudEnchantmentTargetIndex, affinityId, maudPermanentEnchantment);
         }
 
         private void PurchaseMaudEnchantment(int partyIndex, string affinityId, bool permanent)
@@ -8838,7 +9095,42 @@ namespace AshenHalls
         {
             bool varkhDefeated = HasStoryFlag(StoryFlags.KoboldKingDefeated);
             bool warningRecovered = HasStoryFlag(StoryFlags.RedGateWarningRecovered);
-            DialogueChoiceView[] choices = warningRecovered
+            bool frontierSurveyed = HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed);
+            bool expeditionAccepted = HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted);
+            bool glassRoadComplete = ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags);
+            bool firstGlassRoadDebrief = glassRoadComplete
+                && !HasStoryFlag(StoryFlags.GlassAndAshDebriefed);
+            if (firstGlassRoadDebrief)
+            {
+                SetStoryFlag(StoryFlags.GlassAndAshDebriefed);
+                state.ActiveStory = GlassAndAshObjectiveForProgress();
+                PushLog("Yara copies every cut of the Emberglass key and closes the Glass Road contract. The inner road remains sealed until a safe route is charted.", Tone.Good);
+                AutosaveCheckpoint("Glass Road expedition debriefed");
+                ShowBanner("Glass Road Debriefed");
+                PlaySfx("wayfind", 0.76f);
+            }
+            DialogueChoiceView[] choices = glassRoadComplete
+                ? new[]
+                {
+                    MakeDialogueChoice("emberkey", "What does the Emberglass key open?", "Yara's reading of the key and the sealed war road."),
+                    MakeDialogueChoice("pact", "Who held the far seal?", "What the Ashen Pact was buying with the road."),
+                    MakeDialogueChoice("cover", "Remind me about road cover.", "Using roots and stone without becoming trapped behind them.")
+                }
+                : expeditionAccepted
+                    ? new[]
+                    {
+                        MakeDialogueChoice("expeditionroute", "Run the crossing with me again.", "The library, Mirror Index, far seal, and recall plan."),
+                        MakeDialogueChoice("mirrorindex", "What are we looking for in the library?", "Why the Mirror Index matters to the road."),
+                        MakeDialogueChoice("cover", "Remind me about road cover.", "Using roots and stone without becoming trapped behind them.")
+                    }
+                : frontierSurveyed
+                    ? new[]
+                    {
+                        MakePrimaryDialogueChoice("expedition", "Plan the Glass Road crossing.", "Review Yara's route, retreat rule, and expedition objective."),
+                        MakeDialogueChoice("warning", "Read the Red Gate warning with me.", "What the recovered tally says about the road ahead."),
+                        MakeDialogueChoice("cover", "Remind me about road cover.", "Using roots and stone without becoming trapped behind them.")
+                    }
+                : warningRecovered
                 ? new[]
                 {
                     MakeDialogueChoice("warning", "Read the Red Gate warning with me.", "What the recovered tally says about the road ahead."),
@@ -8861,7 +9153,15 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Old Road Scout",
                 "Yara",
-                warningRecovered
+                glassRoadComplete
+                    ? firstGlassRoadDebrief
+                        ? "Set the key here. I will copy every cut while the glass is still warm. You brought back a road, not just a trophy—and we are not opening its inner lock blind."
+                        : "The copy is dry. The long tooth points below the far seal, but no safe company road reaches that lock yet. The key stays wrapped until our map catches up."
+                    : expeditionAccepted
+                        ? "The route has not changed because we want it to. Library first, far seal second, and no wandering after the ash starts keeping your footprints."
+                    : frontierSurveyed
+                        ? "Good. You looked and came back. That is the difference between a survey and a funeral. Now we can plan a crossing instead of guessing at one."
+                    : warningRecovered
                     ? "Set it here. Those scratches are not treasure marks; they are marching counts. I was hoping I had read them wrong."
                     : varkhDefeated
                         ? "You smell like kobold smoke, and that cord around the tally is Gloam work. Let me see it before anyone calls this road clear."
@@ -8876,6 +9176,21 @@ namespace AshenHalls
         {
             switch (choice)
             {
+                case "expedition":
+                    ShowGlassAndAshExpeditionReview();
+                    break;
+                case "expeditionroute":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Take the known roads back to the outer seal. In the warrens, keep north-east until you find the Glass Lore Library. The Mirror Index there should name a safe line to the far seal. If it does not, or if the ash closes behind you, recall. A living company can try a road twice.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "mirrorindex":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Not a book. More like a map that remembers which reflection is real. The warning says the far seal was keyed from the library after every glass storm. Without that Index, the south-east ward will only lead you back to your own tracks.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "emberkey":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "The small teeth fit the Red Gate's inner lock. The long tooth points somewhere below it. We have the right to open the next road now, not the sense to do it blind. Let me copy every cut before anyone carries it near the seal again.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "pact":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Drow levy kept the glass side; a cinder thing kept the key. That is not an alliance. It is rent. Someone beyond the Gate paid both sides to keep Midgaard companies off the old war road until the locks were ready.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
                 case "warning":
                     ShowDialogueResponse("Old Road Scout", "Yara", "Three columns. Drow levy, dead road-keepers, and something marked with a falling star. The last line is not a destination; it is an order to open the old glass road from the far side. Midgaard has time, but not much of it.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
                     break;
@@ -9256,6 +9571,7 @@ namespace AshenHalls
             EnsureWorldLandmarks();
             RepairKoboldStoryObjective(true);
             RepairBoneRoadStoryObjective(true);
+            RepairGlassAndAshStoryObjective(true);
             MapObject recall = state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.RecallCircle)
                 ?? state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.Fountain)
                 ?? state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.Temple);
@@ -9389,6 +9705,11 @@ namespace AshenHalls
                 return ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags)
                     && string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal);
             }
+            if (state.Depth == 3)
+            {
+                return ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
+                    && string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal);
+            }
             return false;
         }
 
@@ -9397,6 +9718,7 @@ namespace AshenHalls
             if (!ContentSetCatalog.IsSewerSlice(activeContentSet)
                 || state?.Map == null
                 || state.Depth != 3
+                || HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)
                 || !ContentSetCatalog.BoneRoadComplete(state.StoryFlags))
             {
                 return false;
@@ -9440,12 +9762,13 @@ namespace AshenHalls
                 return;
             }
             if (ContentSetCatalog.IsSewerSlice(activeContentSet)
-                && state.Depth == 3)
+                && state.Depth == 3
+                && !ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state?.StoryFlags))
             {
                 PushLog(ContentSetCatalog.BoneRoadComplete(state?.StoryFlags)
-                    ? "The Glass-and-Ash frontier is charted, but the next expedition is not ready to cross it."
+                    ? "The frontier is charted, but Yara has not briefed this crossing. Return to Midgaard with the survey."
                     : "The Glass-and-Ash frontier can be surveyed after the Red Gate warning is recovered.", Tone.Normal);
-                ShowBanner(ContentSetCatalog.BoneRoadComplete(state?.StoryFlags) ? "Next Expedition" : "Red Gate Locked");
+                ShowBanner(ContentSetCatalog.BoneRoadComplete(state?.StoryFlags) ? "Yara's Briefing" : "Red Gate Locked");
                 return;
             }
             if (!CanDescend())
@@ -9473,6 +9796,7 @@ namespace AshenHalls
             bool firstArrival = !HasVisitedExplorationDepth(targetDepth);
             state.Depth = targetDepth;
             if (targetDepth == 3) SetStoryFlag(StoryFlags.BoneRoadEntered);
+            if (targetDepth == 4) SetStoryFlag(StoryFlags.GlassAndAshEntered);
             state.StoryChapter = Mathf.Max(state.StoryChapter, targetDepth);
             if (targetDepth == 2 && ContentSetCatalog.AllowKoboldChapter(activeContentSet, state.StoryFlags))
             {
@@ -9481,6 +9805,10 @@ namespace AshenHalls
             else if (targetDepth == 3 && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
             {
                 state.ActiveStory = BoneRoadObjectiveForProgress();
+            }
+            else if (targetDepth == 4 && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags))
+            {
+                state.ActiveStory = GlassAndAshObjectiveForProgress();
             }
             else
             {
@@ -9886,6 +10214,72 @@ namespace AshenHalls
             }
         }
 
+        private void ShowGlassAndAshExpeditionReview()
+        {
+            if (!HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                || HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted))
+            {
+                ShowYaraConversation();
+                return;
+            }
+
+            ShowDialogueChoices(
+                "Glass Road Expedition",
+                "Yara",
+                "Take the Old Road to Red Gate, then north-east to the Glass Lore Library. The Mirror Index leads to the far seal. If glass storms close or packs run thin, recall and follow our marks back. Bring home the road key—not a heroic corpse.",
+                ObjectType.OldRoadScout,
+                frost,
+                new[]
+                {
+                    MakePrimaryDialogueChoice(
+                        "accept_expedition",
+                        "Take the Glass Road contract",
+                        "Begin Chapter IV and open the surveyed frontier for travel."),
+                    MakeDialogueChoice(
+                        "not_yet",
+                        "Not yet - keep the route on the table",
+                        "Return to Yara's questions without changing the campaign.")
+                },
+                ResolveGlassAndAshExpeditionReview);
+        }
+
+        private void ResolveGlassAndAshExpeditionReview(string choice)
+        {
+            if (!string.Equals(choice, "accept_expedition", StringComparison.Ordinal))
+            {
+                ShowYaraConversation();
+                return;
+            }
+            if (!HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed))
+            {
+                ShowYaraConversation();
+                return;
+            }
+
+            bool firstAcceptance = !HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted);
+            SetStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 4);
+            state.ActiveStory = GlassAndAshObjectiveForProgress();
+            EnsureOldRoadDescentMarker();
+            DiscoverZoneHint(4, "glass-warrens");
+            DiscoverZoneHint(4, "red-gate");
+            if (firstAcceptance)
+            {
+                AwardWorldExperience(12, "Glass Road expedition briefed");
+                PushLog("Yara marks the Glass Lore Library, the far seal, and a hard recall rule on the company chart.", Tone.Good);
+                AutosaveCheckpoint("Glass Road expedition accepted");
+            }
+            ShowDialogueResponse(
+                "Glass Road Expedition",
+                "Yara",
+                "Then we have a route. Library first. Index second. Far seal only when the map agrees with your feet. Come home with the key, or come home without it; just come home able to tell me which road failed.",
+                ObjectType.OldRoadScout,
+                frost,
+                ShowYaraConversation);
+            ShowBanner("Glass and Ash Begins");
+            PlaySfx("wayfind", 0.82f);
+        }
+
         private void ApplyGearStatBonuses(PartyMember member, InventoryItem item, bool weapon)
         {
             if (member == null || item == null) return;
@@ -10108,6 +10502,16 @@ namespace AshenHalls
                 {
                     warden.Rank = "";
                     warden.Name = "Ossuary Warden";
+                }
+            }
+
+            if (encounter.Id == EncounterId.AshenPactWarden)
+            {
+                CombatUnit warden = enemies.FirstOrDefault(enemy => enemy.Role == "lesserdemon");
+                if (warden != null)
+                {
+                    warden.Rank = "";
+                    warden.Name = "Warden of the Ashen Pact";
                 }
             }
 
@@ -10669,6 +11073,7 @@ namespace AshenHalls
             }
             InventoryItem battleLoot = ContentSetCatalog.IsSewerSliceEncounterStyle(encounterStyle)
                 || ContentSetCatalog.IsBoneRoadEncounterStyle(encounterStyle)
+                || ContentSetCatalog.IsGlassAndAshEncounterStyle(encounterStyle)
                     ? null
                     : MakeCombatLootItem(encounterStyle, false);
             state.Mode = GameMode.Explore;
@@ -10680,6 +11085,7 @@ namespace AshenHalls
             ResolveRoamingThreatVictory(roamingThreatId);
             ApplyKoboldStoryVictory(encounterStyle);
             ApplyBoneRoadStoryVictory(encounterStyle);
+            ApplyGlassAndAshStoryVictory(encounterStyle);
             ApplyMidgaardStoryVictory(encounterStyle);
             if (battleLoot != null)
             {
@@ -10694,7 +11100,10 @@ namespace AshenHalls
                 PushLog($"The field is won. {foundGold} gold and {xp} XP recovered{(foundElixirs > 0 ? ", plus an elixir" : "")}.", Tone.Good);
             }
             AutosaveCheckpoint(string.IsNullOrWhiteSpace(encounterStyle) ? "combat victory" : encounterStyle + " cleared");
-            ShowBanner("Victory");
+            if (!string.Equals(encounterStyle, "ashen-pact-warden-boss", StringComparison.OrdinalIgnoreCase))
+            {
+                ShowBanner("Victory");
+            }
             PlaySfx("victory");
         }
 
@@ -10796,6 +11205,63 @@ namespace AshenHalls
                 Rarity = "quest",
                 DisplayName = "+4 gloamward reliquary scale mail"
             };
+        }
+
+        private void ApplyGlassAndAshStoryVictory(string encounterStyle)
+        {
+            if (!ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state?.StoryFlags)
+                || !ContentSetCatalog.IsGlassAndAshEncounterStyle(encounterStyle))
+            {
+                return;
+            }
+
+            if (string.Equals(encounterStyle, "glassward-ambush", StringComparison.OrdinalIgnoreCase))
+            {
+                bool firstVictory = !HasStoryFlag(StoryFlags.GlasswardAmbushDefeated);
+                SetStoryFlag(StoryFlags.GlasswardAmbushDefeated);
+                state.ActiveStory = GlassAndAshObjectiveForProgress();
+                if (firstVictory)
+                {
+                    PushLog("The levy breaks, but the library shutters turn toward the party. The Mirror Index has awakened its own keepers.", Tone.Good);
+                }
+                return;
+            }
+
+            if (string.Equals(encounterStyle, "glass-index-keepers", StringComparison.OrdinalIgnoreCase))
+            {
+                bool firstVictory = !HasStoryFlag(StoryFlags.GlassIndexRecovered);
+                SetStoryFlag(StoryFlags.GlassIndexRecovered);
+                state.ActiveStory = GlassAndAshObjectiveForProgress();
+                if (firstVictory)
+                {
+                    state.Supplies += 1;
+                    PushLog("The last false aisle goes dark. The Mirror Index fixes one true road through the ash and names the far seal south-east.", Tone.Good);
+                }
+                return;
+            }
+
+            if (!string.Equals(encounterStyle, "ashen-pact-warden-boss", StringComparison.OrdinalIgnoreCase)) return;
+            bool firstKeyRecovery = !HasStoryFlag(StoryFlags.EmberglassGateKeyRecovered);
+            SetStoryFlag(StoryFlags.EmberglassGateKeyRecovered);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 5);
+            state.ActiveStory = GlassAndAshObjectiveForProgress();
+            if (!firstKeyRecovery) return;
+
+            EnsureInventoryList();
+            InventoryItem reward = ContentSetCatalog.CreateAshglassRoadMantle();
+            state.Inventory.Add(reward);
+            state.Supplies += 2;
+            string equipNote = AutoEquipItem(reward);
+            ShowLootPanel(
+                reward,
+                0,
+                2,
+                0,
+                "Recovered with the Emberglass key. " + (string.IsNullOrEmpty(equipNote) ? "It goes into the pack." : equipNote),
+                "Ashen Pact Reliquary");
+            PushLog("The Ashen Pact breaks. The Emberglass key and an ashglass road mantle remain at the far seal.", Tone.Good);
+            PushLog(state.ActiveStory, Tone.Good);
+            ShowBanner("Glass and Ash Complete");
         }
 
         private void FinishKoboldKingVictory(int foundGold, int xp)

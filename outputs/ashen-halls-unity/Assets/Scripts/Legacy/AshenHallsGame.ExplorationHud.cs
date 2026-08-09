@@ -1008,8 +1008,24 @@ namespace AshenHalls
                     return $"Clear {next.Banner} ({cleared + 1}/{ContentSetCatalog.SewerSliceEncounters.Count}).";
                 }
                 if (target == ObjectType.Armorer) return "Bring three sewer proof bundles to Borin for starter armor.";
-                if (target == ObjectType.OldRoadScout) return "Ask the Old Road scout about the newly marked routes.";
-                if (target == ObjectType.Stairs) return "Follow the Old Road east through Lanternless Cross toward Dusk Market.";
+                if (target == ObjectType.OldRoadScout)
+                {
+                    if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                        && !HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
+                    {
+                        return "Bring the Emberglass key to Yara and close the Glass Road expedition.";
+                    }
+                    return HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                        && !HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)
+                            ? "Bring the frontier survey to Yara and plan the Glass Road crossing."
+                            : "Ask the Old Road scout about the newly marked routes.";
+                }
+                if (target == ObjectType.Stairs)
+                {
+                    return HasGlassAndAshStoryProgress()
+                        ? "Follow the Old Road east and regain the Red Gate passage for Yara's expedition."
+                        : "Follow the Old Road east through Lanternless Cross toward Dusk Market.";
+                }
             }
 
             if (TryBoneRoadObjectiveSummary(out string boneRoadObjective))
@@ -1249,14 +1265,28 @@ namespace AshenHalls
             {
                 return false;
             }
-            if (ContentSetCatalog.IsSewerSlice(activeContentSet)
+
+            string targetId = "";
+            bool glassRoadActive = HasGlassAndAshStoryProgress()
+                && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags);
+            if (glassRoadActive)
+            {
+                if (state.Depth == 1) targetId = OldRoadDescentId;
+                else if (state.Depth == 2) targetId = BoneRoadPassageId;
+                else if (state.Depth == 3) targetId = GlassAndAshPassageId;
+                else if (state.Depth == 4)
+                {
+                    targetId = HasStoryFlag(StoryFlags.GlassIndexRecovered)
+                        ? "regional-site:" + RedGateSealSiteId
+                        : "regional-site:" + GlassLoreLibrarySiteId;
+                }
+            }
+            else if (ContentSetCatalog.IsSewerSlice(activeContentSet)
                 && HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed))
             {
                 return false;
             }
-
-            string targetId = "";
-            if (state.Depth == 1 && HasStoryFlag(StoryFlags.KoboldKingDefeated))
+            else if (state.Depth == 1 && HasStoryFlag(StoryFlags.KoboldKingDefeated))
             {
                 targetId = OldRoadDescentId;
             }
@@ -1310,10 +1340,35 @@ namespace AshenHalls
                 return false;
             }
 
+            if (ShouldPreserveAdvancedFullPrototypeStory())
+            {
+                objective = AdvancedFullPrototypeObjective();
+                return true;
+            }
+
+            if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+            {
+                objective = HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
+                    ? "Chapter IV is complete. Yara copied the Emberglass key; no safe road beyond the far seal is charted yet."
+                    : "Chapter IV is complete. Recall to Midgaard and bring Yara the Emberglass key.";
+                return true;
+            }
+
+            if (HasGlassAndAshStoryProgress())
+            {
+                if (state.Depth <= 1) objective = "Take the Old Road east and regain the surveyed Red Gate passage.";
+                else if (state.Depth == 2) objective = "Pass beneath Varkh's hall and regain the Bone Road.";
+                else if (state.Depth == 3) objective = "Cross the surveyed Glass-and-Ash frontier at the Red Gate Seal.";
+                else if (HasStoryFlag(StoryFlags.GlassIndexRecovered)) objective = "Carry the Mirror Index south-east and break the Ashen Pact at the far seal.";
+                else if (HasStoryFlag(StoryFlags.GlasswardAmbushDefeated)) objective = "Return to the Glass Lore Library and recover its Mirror Index.";
+                else objective = "Reach the Glass Lore Library and break the drow levy on its approach.";
+                return true;
+            }
+
             if (ContentSetCatalog.IsSewerSlice(activeContentSet)
                 && HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed))
             {
-                objective = "Chapter III is complete. Return to Midgaard and prepare for the next expedition.";
+                objective = "Chapter III is complete. Return to Midgaard and ask Yara to plan the Glass Road crossing.";
                 return true;
             }
 
@@ -1332,7 +1387,7 @@ namespace AshenHalls
             if (HasStoryFlag(StoryFlags.RedGateWarningRecovered))
             {
                 objective = HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
-                    ? "Chapter III is complete. Return to Midgaard and prepare for the next expedition."
+                    ? "Chapter III is complete. Return to Midgaard and ask Yara to plan the Glass Road crossing."
                     : "Survey the Glass-and-Ash frontier, then return to Midgaard.";
             }
             else if (HasStoryFlag(StoryFlags.GloamWardenDefeated))
@@ -1365,7 +1420,12 @@ namespace AshenHalls
             if (target == null) return "Road marker";
             if (string.Equals(target.Id, OldRoadDescentId, StringComparison.Ordinal)) return "Eastbound Old Road";
             if (string.Equals(target.Id, BoneRoadPassageId, StringComparison.Ordinal)) return "Bone Road Passage";
-            if (string.Equals(target.Id, GlassAndAshPassageId, StringComparison.Ordinal)) return "Glass-and-Ash Frontier";
+            if (string.Equals(target.Id, GlassAndAshPassageId, StringComparison.Ordinal))
+            {
+                return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)
+                    ? "Glass Road Crossing"
+                    : "Glass-and-Ash Frontier";
+            }
             return ObjectName(target);
         }
 
@@ -1374,7 +1434,11 @@ namespace AshenHalls
             if (target == null) return "Use";
             if (string.Equals(target.Id, OldRoadDescentId, StringComparison.Ordinal)) return "Travel east";
             if (string.Equals(target.Id, BoneRoadPassageId, StringComparison.Ordinal)) return "Enter Bone Road";
-            if (string.Equals(target.Id, GlassAndAshPassageId, StringComparison.Ordinal)) return "Survey frontier";
+            if (string.Equals(target.Id, GlassAndAshPassageId, StringComparison.Ordinal))
+            {
+                if (ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags)) return "Revisit frontier";
+                return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted) ? "Cross frontier" : "Survey frontier";
+            }
             return ExploreContextVerb(target, 0, 0);
         }
 
@@ -1626,6 +1690,8 @@ namespace AshenHalls
             if (obj == null) return false;
             if (ContentSetCatalog.IsSewerSlice(activeContentSet)
                 && HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                && (!ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
+                    || ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
                 && (string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal)
                     || string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal)
                     || string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal)))
@@ -1642,8 +1708,23 @@ namespace AshenHalls
             {
                 return state.Depth == 3
                     && HasStoryFlag(StoryFlags.RedGateWarningRecovered)
-                    && !HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                    && (!HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
+                        || ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
+                            && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
                     && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags);
+            }
+            if (state.Depth == 4
+                && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
+                && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+            {
+                if (string.Equals(obj.Id, "regional-site:" + GlassLoreLibrarySiteId, StringComparison.Ordinal))
+                {
+                    return !HasStoryFlag(StoryFlags.GlassIndexRecovered);
+                }
+                if (string.Equals(obj.Id, "regional-site:" + RedGateSealSiteId, StringComparison.Ordinal))
+                {
+                    return HasStoryFlag(StoryFlags.GlassIndexRecovered);
+                }
             }
             if (state.Depth == 3
                 && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
@@ -1687,6 +1768,22 @@ namespace AshenHalls
                 || state == null
                 || !ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
             {
+                return false;
+            }
+            bool glassRoadActive = HasGlassAndAshStoryProgress()
+                && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags);
+            if (glassRoadActive)
+            {
+                if (state.Depth == 1) return string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal);
+                if (state.Depth == 2) return string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal);
+                if (state.Depth == 3) return string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal);
+                if (state.Depth == 4)
+                {
+                    string targetId = HasStoryFlag(StoryFlags.GlassIndexRecovered)
+                        ? "regional-site:" + RedGateSealSiteId
+                        : "regional-site:" + GlassLoreLibrarySiteId;
+                    return string.Equals(obj.Id, targetId, StringComparison.Ordinal);
+                }
                 return false;
             }
             if (ContentSetCatalog.IsSewerSlice(activeContentSet)

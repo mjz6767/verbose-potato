@@ -1,6 +1,16 @@
-Ash & Brimstone v2.10.0 - Names Under Stone
+Ash & Brimstone v2.11.0 - Glass and Ash
 
-Current package version: v2.10.0. Save schema: v25.
+Current candidate/package version: v2.11.0. Save schema: v25.
+
+Glass and Ash v2.11.0 continues normal production play beyond the frontier surveyed at the end of Names Under Stone. Return to Scout Yara in Midgaard, review and explicitly accept her expedition briefing, then follow the Old Road, Bone Road, and exact Red Gate passage into depth four. The road is defended by the Glassward Drow Levy, Ash Fen Bone Procession, and Red Gate Cinder Pact patrol bands, while the authored story advances through the Glassward Ambush, Glass Index Keepers, and named Ashen Pact Warden.
+
+The Mirror Index must be recovered at Glass Lore Library before the far Red Gate seal can be challenged. Defeating the Warden records the Emberglass gate key and grants exactly one +5 ashglass mirrorweave road mantle. Recall, repaired guidance, repeated victory callbacks, and depth-four re-entry preserve the expedition without duplicating permanent rewards or progression. Yara retains a state-aware debrief after the company returns. Completed companies may revisit depth four through the same passage, but there is deliberately no production depth-five route or generic continuation stair.
+
+Maud's temporary enchantment now stops at a visible, mutation-free purchase review before charging. It names the weapon, affinity, damage, duration, existing runes, price, and remaining balance, and requires an explicit confirmation before gold or item state changes.
+
+v2.11 source validation status: RuleSmoke, full RuntimeBoot, focused shopkeeper runtime smoke, focused roaming-threat runtime smoke, and SpriteArtRuntimeSmoke pass. The Windows build, canonical package-integrity gate, clean-extracted packaged boot, final-binary visual review, physical-controller review, and a complete human Chapter I-IV playthrough remain release checks. Approved runtime-art pins are unchanged.
+
+Names Under Stone v2.10.0 release history:
 
 Names Under Stone v2.10.0 turns the road beyond Varkh into a complete Chapter III campaign. The opened passage now carries the company onto the Bone Road, where the grave-scout watch, the reliquary choir in Gloam Deep Crypt, and the named Ossuary Warden form a retryable three-encounter arc. Warden victory grants one +4 gloamward reliquary scale mail and one supply. Taking Varkh's recovered tally to the Red Gate records the warning, completes the chapter, and reveals a stable Glass-and-Ash frontier the company can survey—but not yet cross—without duplicating rewards or progression after recall, reload, or re-entry.
 
