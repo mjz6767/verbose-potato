@@ -4,7 +4,7 @@ These images are original generated reference sheets for the v0.24.0 graphics di
 
 Later versioned entries in this folder also include approved live runtime assets and their preserved generation, cleanup, prompt, and validation provenance. `Docs/ART_INTAKE.md` and `RuntimeArtManifest` define which exact files are active and package-selected.
 
-The integrated v2.17 release candidate adds the dedicated title-menu glyph strip and deterministic combat-power aftermath sheet to the accepted presentation pins below. Together the approved assets bring `RuntimeArtManifest` to 56 exact pins and the expected packaged runtime-art inventory to 91 PNGs. Adjacent prompts and validation records preserve provenance but are not additional package-selected images.
+The integrated v2.17 release adds the dedicated title-menu glyph strip and deterministic combat-power aftermath sheet to the accepted presentation pins below. Together the approved assets bring `RuntimeArtManifest` to 56 exact pins and the packaged runtime-art inventory to 91 PNGs. Adjacent prompts and validation records preserve provenance but are not additional package-selected images.
 
 ## Files
 
