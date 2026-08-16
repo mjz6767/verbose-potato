@@ -2721,12 +2721,7 @@ namespace AshenHalls
                     !ShouldShowStartupSplash() &&
                     (state.Mode == GameMode.Explore || state.Mode == GameMode.Combat) &&
                     HasRenderableGameplayOverlay(activeOverlay);
-                bool combatHudHandledByUnityUi =
-                    state != null &&
-                    state.Mode == GameMode.Combat &&
-                    activeOverlay == UiOverlay.None &&
-                    combatHudScreen != null &&
-                    combatHudScreen.HasUsableCommandBar;
+                bool gameplayHudHandledByUnityUi = HasRenderableGameplayHud(activeOverlay);
                 bool handledByUnityUi =
                     state != null &&
                     !ShouldShowStartupSplash() &&
@@ -2734,7 +2729,7 @@ namespace AshenHalls
                     (state.Mode == GameMode.Muster && partySetupScreen != null) ||
                     ((state.Mode == GameMode.Defeat || state.Mode == GameMode.Victory) && endStateScreen != null) ||
                     gameplayOverlayHandledByUnityUi ||
-                    combatHudHandledByUnityUi);
+                    gameplayHudHandledByUnityUi);
                 if (!handledByUnityUi)
                 {
                     DrawRect(new Rect(0, 0, Screen.width, Screen.height), bg);
@@ -2847,6 +2842,20 @@ namespace AshenHalls
                 default:
                     return false;
             }
+        }
+
+        private bool HasRenderableGameplayHud(UiOverlay overlay)
+        {
+            if (state == null || overlay != UiOverlay.None) return false;
+            if (state.Mode == GameMode.Explore)
+            {
+                return explorationHudScreen != null && explorationHudScreen.HasUsableHud;
+            }
+            if (state.Mode == GameMode.Combat)
+            {
+                return combatHudScreen != null && combatHudScreen.HasUsableCommandBar;
+            }
+            return false;
         }
 
         private void TryRecoverMuster()

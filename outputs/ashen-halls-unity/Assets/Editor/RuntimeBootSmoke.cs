@@ -255,6 +255,8 @@ namespace AshenHalls.Editor
                 {
                     Assert(explorationHud.HasLaidOutHud, $"migrated exploration HUD has renderable command geometry at {Screen.width}x{Screen.height}");
                     Assert(explorationHud.HasUsableHud, "migrated exploration HUD owns the supported viewport without emergency fallback");
+                    Assert(InvokePrivate<bool>(game, "HasRenderableGameplayHud", UiOverlay.None),
+                        "legacy exploration rendering preserves the visible uGUI chrome instead of painting a full-frame backdrop over it");
                 }
                 Assert(explorationHud.HasVisibleCompactGuidance, "default exploration rail keeps objective and waypoint visible");
                 Assert(explorationHud.VisiblePartyRows == 4, "default exploration rail keeps all four party rows visible");
