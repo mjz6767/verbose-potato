@@ -1,6 +1,6 @@
 Ash & Brimstone v2.15.0 - Maps, Magic, and Music
 
-Current source candidate: v2.15.0. Save schema: v25.
+Current release update: v2.15.0. Save schema: v25.
 
 The integrated presentation update remasters the title overture and responsive menu, gives the wide World Map its own `Ashen Atlas` score, and makes music transitions fuller and steadier. Crossfades use equal-power gains, muted music keeps its place, and calm exploration routes wait for a stable change instead of rapidly restarting or switching themes.
 
@@ -8,7 +8,7 @@ The exploration HUD now has one persistent command deck for context, map view, J
 
 Mage/warlock, support/hex, class-skill, and travel art now stage authored anticipation, travel, impact, and aftermath more consistently. Fireball uses one canonical comet; multi-strike powers retain deterministic timing; all 56 formulas and all 25 skills have authored SFX profiles; and Reduced Motion suppresses the travel layer. The complete resource bank contains 54 original music masters and 161 authored SFX.
 
-Six accepted runtime-art pins from the v2.12.1, v2.13, v2.14, and v2.15 presentation slices bring the exact manifest to 54 pins and the expected packaged art inventory to 89 PNGs. Their historical provenance labels remain unchanged.
+Six accepted runtime-art pins from the v2.12.1, v2.13, v2.14, and v2.15 presentation slices bring the exact manifest to 54 pins and the packaged art inventory to 89 PNGs. Their historical provenance labels remain unchanged.
 
 The Red Gate v2.12.0 campaign remains the production story baseline inside v2.15. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
 
@@ -16,7 +16,7 @@ Chapter V crosses three authored sites in order. Break the Red Gate Vanguard at 
 
 Marshal victory grants exactly one +6 crownward emberglass warblade and two supplies. Inspect Salt Cistern Gate again to chart the sealed Meteor Crown threshold and complete the chapter. Recall, retry, save/load repair, and depth-five re-entry preserve progress without duplicating rewards or arrival progression. Production exposes no generic depth-six stair or final-boss trigger.
 
-v2.15 candidate validation status: RuleSmoke, full RuntimeBoot, focused title/music/combat/world-map/loot/art checks, the clean Windows build/package, clean-extracted packaged boot, final-binary visual and audio review, physical-controller review, and a complete human Chapter I-V playthrough remain required. This document records no completed v2.15 gate or package evidence.
+v2.15 validation status: RuleSmoke, full RuntimeBoot, focused sprite-art and combat-UI checks, deterministic 54-music/106-original-SFX bank validation, the clean Windows build/package, and clean-extracted packaged boot pass from source commit `43b9c9c985d59a273f39bdf14ea39f9d3f57e376`. `AshAndBrimstone-Windows-v2.15.0.zip` is 226,844,217 bytes with SHA-256 `d782e88eaee3e4684418f4d5923d2a94af50e68026169e15cae294dd007c46d1`; it contains 89 approved PNGs. Four final-player title, Region Map, minimum-size combat, and Fireball captures pass deterministic and manual visual review with capture-set SHA-256 `afe86e29f1b503b8001b68abd45a4a50ef87e0b4f34bab86e46b25c2facc7e15`. Subjective speaker/headphone listening, physical-controller review, the live Reduced Motion showcase comparison, and a complete human Chapter I-V playthrough remain manual checks. These evidence lines were committed after packaging: the immutable ZIP retains the pre-verification documentation snapshot from its source commit so its recorded hash remains reproducible, while the repository notes record the completed post-package gates.
 
 Glass and Ash v2.11.0 release history:
 
