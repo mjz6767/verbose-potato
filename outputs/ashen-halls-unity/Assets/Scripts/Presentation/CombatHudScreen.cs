@@ -99,19 +99,50 @@ namespace AshenHalls
             switch (state)
             {
                 case CombatHudCommandVisualState.Armed:
-                    return StartsWithState(sub, "ARMED") ? sub : "ARMED \u00b7 " + First(sub, "Choose a target");
+                    return WithoutStatePrefix(sub, "ARMED", "Choose a target");
                 case CombatHudCommandVisualState.Blocked:
                     return First(reason, sub, "Unavailable");
                 case CombatHudCommandVisualState.Promoted:
-                    return "READY \u00b7 Next combatant";
+                    return WithoutStatePrefix(sub, "READY", "Finish turn");
                 default:
                     return sub;
             }
         }
 
+        public static bool ShowsPersistentSecondary(CombatHudCommandView command, bool compact)
+        {
+            if (command == null || compact) return false;
+            CombatHudCommandVisualState state = Resolve(command);
+            return state == CombatHudCommandVisualState.Armed
+                || state == CombatHudCommandVisualState.Blocked
+                || command.Mode == ActionMode.Guard
+                || command.Mode == ActionMode.Elixir;
+        }
+
+        public static string PromptDetail(CombatHudCommandView command)
+        {
+            if (command == null) return "";
+            string sub = (command.SubLabel ?? "").Trim();
+            string reason = (command.DisabledReason ?? "").Trim();
+            string tooltip = (command.Tooltip ?? "").Trim();
+            if (command.Blocked || !command.Enabled) return First(reason, sub, tooltip, "Unavailable");
+            if (command.Mode == ActionMode.Elixir && !string.IsNullOrWhiteSpace(sub))
+            {
+                return sub + "  ·  Recover health and mana";
+            }
+            return First(tooltip, sub);
+        }
+
         private static bool StartsWithState(string value, string state)
         {
             return value.StartsWith(state, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string WithoutStatePrefix(string value, string state, string fallback)
+        {
+            if (!StartsWithState(value, state)) return First(value, fallback);
+            string remainder = value.Substring(state.Length).TrimStart().TrimStart('\u00b7', '-', ':', ' ');
+            return First(remainder, fallback);
         }
 
         private static string First(params string[] values)
@@ -284,11 +315,13 @@ namespace AshenHalls
     {
         public static float SideRailWidth(float width)
         {
+            if (width <= 1024f) return 240f;
             return Mathf.Clamp(width * 0.17f, 272f, 326f);
         }
 
         public static float CommandPaletteWidth(float width)
         {
+            if (width <= 1024f) return 84f;
             return Mathf.Clamp(width * 0.06f, 96f, 112f);
         }
 
@@ -316,7 +349,8 @@ namespace AshenHalls
 
         public static Rect BoardInner(Rect outer, int columns, int rows)
         {
-            Rect inner = new Rect(outer.x + 14f, outer.y + 14f, outer.width - 28f, outer.height - 28f);
+            float inset = outer.width < 700f ? 8f : 14f;
+            Rect inner = new Rect(outer.x + inset, outer.y + inset, outer.width - inset * 2f, outer.height - inset * 2f);
             float aspect = Mathf.Max(1f, columns) / Mathf.Max(1f, rows);
             if (inner.width / inner.height > aspect)
             {
@@ -350,9 +384,10 @@ namespace AshenHalls
 
         public static Rect[] CommandButtons(float width, float panelHeight, int commandCount, bool promoteEndTurn)
         {
-            const float padding = 6f;
-            const float gap = 5f;
-            const float groupGap = 11f;
+            bool compactRail = width <= 84f;
+            float padding = compactRail ? 4f : 6f;
+            float gap = compactRail ? 4f : 5f;
+            float groupGap = compactRail ? 8f : 11f;
             commandCount = Mathf.Max(0, commandCount);
             if (commandCount == 0) return Array.Empty<Rect>();
 
@@ -383,6 +418,37 @@ namespace AshenHalls
         public static bool UsesCompactCommandLayout(Rect button)
         {
             return button.height < 86f;
+        }
+
+        public static int TurnChipCapacity(float timelineWidth)
+        {
+            return timelineWidth < 260f ? 4 : 6;
+        }
+
+        public static int TurnChipColumns(float timelineWidth)
+        {
+            return timelineWidth < 260f ? 2 : 3;
+        }
+
+        public static float TurnChipNameWidth(float timelineWidth, bool reserveRoundMarker = false)
+        {
+            const float turnGap = 5f;
+            int columns = TurnChipColumns(timelineWidth);
+            float turnWidth = (timelineWidth - 24f - turnGap * (columns - 1)) / columns;
+            return Mathf.Max(24f, turnWidth - (reserveRoundMarker ? 58f : 44f));
+        }
+
+        public static Rect CommandHotkeyRect(Rect button)
+        {
+            bool compact = UsesCompactCommandLayout(button) || button.width <= 76f;
+            float width = compact ? 27f : 29f;
+            return new Rect(button.width - width - 4f, 4f, width, 14f);
+        }
+
+        public static Rect CommandStateTagRect(Rect button)
+        {
+            bool compact = UsesCompactCommandLayout(button) || button.width <= 76f;
+            return new Rect(compact ? 4f : 5f, 4f, compact ? 34f : 44f, 14f);
         }
 
         public static float CommandIconSize(Rect button)
@@ -429,10 +495,25 @@ namespace AshenHalls
             float total = activeH + targetH + timelineH + gap * 2f;
             if (total > side.height)
             {
-                float over = total - side.height;
-                float cardSpace = activeH + targetH;
-                activeH -= over * (activeH / cardSpace);
-                targetH -= over * (targetH / cardSpace);
+                if (timelineExpanded && side.width < 260f)
+                {
+                    const float minimumCardHeight = 121f;
+                    float availableCardSpace = side.height - timelineH - gap * 2f;
+                    if (availableCardSpace < minimumCardHeight * 2f)
+                    {
+                        timelineH = Mathf.Max(244f, side.height - minimumCardHeight * 2f - gap * 2f);
+                        availableCardSpace = side.height - timelineH - gap * 2f;
+                    }
+                    activeH = availableCardSpace * 0.5f;
+                    targetH = availableCardSpace - activeH;
+                }
+                else
+                {
+                    float over = total - side.height;
+                    float cardSpace = activeH + targetH;
+                    activeH -= over * (activeH / cardSpace);
+                    targetH -= over * (targetH / cardSpace);
+                }
             }
 
             active = new Rect(0f, 0f, side.width, activeH);
@@ -597,6 +678,7 @@ namespace AshenHalls
         private int displayedMovePoints;
         private int displayedMovePointsMaximum;
         private bool displayedActionReady;
+        private int visibleTurnChipCapacity = 6;
         private int hoveredCommandIndex = -1;
         private int focusedCommandIndex = -1;
         private bool pointerOwnsCommandContext;
@@ -636,8 +718,9 @@ namespace AshenHalls
             {
                 if (!HasRenderableGeometry || commandPanel == null) return false;
                 Rect rect = commandPanel.rect;
+                float minimumCommandWidth = CombatHudScreenLayout.CommandPaletteWidth(1024f);
                 if (!commandPanel.gameObject.activeInHierarchy
-                    || rect.width < 88f
+                    || rect.width + 0.01f < minimumCommandWidth
                     || rect.height < 320f
                     || expectedCommandCount <= 0)
                 {
@@ -720,9 +803,10 @@ namespace AshenHalls
             }
         }
         public bool HasTurnQueue => IsReady
-            && turnQueueText != null
-            && turnQueueText.gameObject.activeInHierarchy
-            && !string.IsNullOrWhiteSpace(turnQueueText.text);
+            && (VisibleTurnChipCountForTest > 0
+                || turnQueueText != null
+                && turnQueueText.gameObject.activeInHierarchy
+                && !string.IsNullOrWhiteSpace(turnQueueText.text));
 
         public bool OwnsSelection(GameObject selected)
         {
@@ -1064,7 +1148,7 @@ namespace AshenHalls
                     : view.PlayerTurn ? Hex("58b7a5", 1f) : Hex("c65c3b", 1f);
                 if (phaseFill != null) phaseFill.color = Color.Lerp(Hex("0a1114", 0.72f), phaseAccent, 0.10f);
                 Outline phaseOutline = phaseBackplate.GetComponent<Outline>();
-                if (phaseOutline != null) phaseOutline.effectColor = phaseAccent.WithAlpha(0.58f);
+                if (phaseOutline != null) phaseOutline.effectColor = phaseAccent.WithAlpha(0.44f);
             }
             roundStatText.text = string.IsNullOrWhiteSpace(view.RoundLabel)
                 ? "ROUND\n" + (view.RoundNumber > 0 ? view.RoundNumber.ToString() : "-")
@@ -1084,11 +1168,11 @@ namespace AshenHalls
             RefreshStatBackplate(roundStatBackplate, Hex("d7a84e", 1f), true);
             RefreshStatBackplate(moveStatBackplate, moveStatText.color, view.PlayerTurn && view.MovePoints > 0);
             RefreshStatBackplate(actionStatBackplate, actionStatText.color, view.ActionReady);
-            timelineTitle.text = string.IsNullOrEmpty(view.RoundLine) ? "Timeline" : "Timeline / " + view.RoundLine;
+            timelineTitle.text = "TURN ORDER";
             timelineButtonText.text = view.TimelineExpanded ? "Less" : "More";
-            turnQueueText.text = view.Turns == null || view.Turns.Count == 0
-                ? "INITIATIVE FORMING"
-                : "INITIATIVE  /  NEXT SIX";
+            bool hasTurns = view.Turns != null && view.Turns.Count > 0;
+            turnQueueText.text = hasTurns ? "" : "FORMING...";
+            turnQueueText.gameObject.SetActive(!hasTurns);
             RefreshTurnChips(view.Turns);
             tacticalPlanText.text = string.IsNullOrWhiteSpace(view.TacticalLine)
                 ? "TACTICAL READ  /  Hover a unit or tile to inspect danger and outcomes."
@@ -1102,9 +1186,11 @@ namespace AshenHalls
             {
                 targetContext = targetContext.Substring(repeatedSourcePrefix.Length);
             }
+            bool targetSourceAddsContext = !string.Equals(targetSource, "CURSOR", StringComparison.Ordinal)
+                && !string.Equals(targetSource, "HOVER", StringComparison.Ordinal);
             string targetCardTitle = view.TargetUnit == null
                 ? "INSPECT UNIT"
-                : targetSource + "  /  " + targetContext;
+                : targetSourceAddsContext ? targetSource + "  /  " + targetContext : targetContext;
             RefreshUnitCard(
                 view.TargetUnit,
                 targetTitle,
@@ -1133,6 +1219,8 @@ namespace AshenHalls
                 commandRows[i].Hotkey.text = command.Hotkey ?? "";
                 CombatHudCommandVisualState visualState = CombatHudCommandStyleRules.Resolve(command);
                 commandRows[i].SubLabel.text = CombatHudCommandStyleRules.SecondaryLine(command);
+                commandRows[i].SubLabel.gameObject.SetActive(
+                    CombatHudCommandStyleRules.ShowsPersistentSecondary(command, commandRows[i].Compact));
                 Sprite icon = UiRuntime.AtlasSprite(command.IconTexture, command.IconSource);
                 commandRows[i].Icon.sprite = icon;
                 commandRows[i].Icon.enabled = icon != null;
@@ -1149,9 +1237,9 @@ namespace AshenHalls
                     ? Hex("211809", 0.94f)
                     : command.Selected && available
                         ? Color.Lerp(Hex("080b0d", 0.92f), accent, 0.18f)
-                        : Color.Lerp(Hex("080b0d", 0.84f), accent, available ? 0.08f : 0.02f);
+                        : Color.Lerp(Hex("080b0d", 0.84f), accent, available ? 0.04f : 0.01f);
                 commandRows[i].IconOutline.effectColor = accent.WithAlpha(
-                    command.Promoted || command.Armed || command.Selected && available ? 0.95f : focused || hovered ? 0.82f : available ? 0.56f : 0.22f);
+                    command.Promoted || command.Armed || command.Selected && available ? 0.95f : focused || hovered ? 0.82f : available ? 0.36f : 0.16f);
                 commandRows[i].HotkeyBackground.color = command.Promoted || command.Armed || command.Selected && available
                     ? accent.WithAlpha(0.94f)
                     : Hex("263035", available ? 0.92f : 0.48f);
@@ -1210,7 +1298,7 @@ namespace AshenHalls
                         ? Hex("3c4544", 0.20f)
                     : command.Promoted || command.Armed || command.Selected && available
                         ? accent.WithAlpha(0.95f)
-                        : available ? Hex("3c4544", 0.34f) : Hex("3c4544", 0.18f);
+                        : available ? Hex("3c4544", 0.22f) : Hex("3c4544", 0.12f);
                 float outlineSize = focused ? 3f : command.Promoted || command.Armed || command.Selected && available ? 2f : 1f;
                 commandRows[i].Outline.effectDistance = new Vector2(outlineSize, -outlineSize);
             }
@@ -1584,10 +1672,11 @@ namespace AshenHalls
             SetLocalRect(timelineTitle.rectTransform, new Rect(12f, 8f, timeline.width - 100f, 24f));
             SetLocalRect(timelineButton.GetComponent<RectTransform>(), new Rect(timeline.width - 78f, 10f, 58f, 24f));
             SetLocalRect(turnQueueText.rectTransform, new Rect(12f, 35f, timeline.width - 24f, 13f));
-            const int turnColumns = 3;
+            int turnColumns = CombatHudScreenLayout.TurnChipColumns(timeline.width);
+            visibleTurnChipCapacity = CombatHudScreenLayout.TurnChipCapacity(timeline.width);
             const float turnGap = 5f;
             const float turnRowGap = 4f;
-            const float turnY = 50f;
+            const float turnY = 38f;
             const float turnH = 33f;
             float turnW = (timeline.width - 24f - turnGap * (turnColumns - 1)) / turnColumns;
             for (int i = 0; i < turnChips.Count; i++)
@@ -1600,8 +1689,8 @@ namespace AshenHalls
                 SetLocalRect(chip.Accent.rectTransform, new Rect(0f, 0f, 3f, turnH));
                 SetLocalRect(chip.Portrait.rectTransform, new Rect(7f, 3f, 27f, 27f));
                 SetLocalRect(chip.Fallback.rectTransform, new Rect(7f, 3f, 27f, 27f));
-                SetLocalRect(chip.Name.rectTransform, new Rect(38f, 4f, Mathf.Max(24f, turnW - 44f), 25f));
-                SetLocalRect(chip.Round.rectTransform, new Rect(turnW - 20f, 1f, 16f, 12f));
+                SetLocalRect(chip.Name.rectTransform, new Rect(38f, 4f, CombatHudScreenLayout.TurnChipNameWidth(timeline.width), 25f));
+                SetLocalRect(chip.Round.rectTransform, new Rect(turnW - 16f, 1f, 12f, 12f));
             }
             SetLocalRect(tacticalPlanPanel, new Rect(10f, 124f, timeline.width - 20f, 30f));
             SetLocalRect(tacticalPlanPanel.Find("Accent").GetComponent<RectTransform>(), new Rect(0f, 0f, 4f, 30f));
@@ -1635,17 +1724,18 @@ namespace AshenHalls
             {
                 SetLocalRect(commandRows[i].Root, buttons[i]);
                 bool compact = CombatHudScreenLayout.UsesCompactCommandLayout(buttons[i]);
+                commandRows[i].Compact = compact;
                 float iconSize = CombatHudScreenLayout.CommandIconSize(buttons[i]);
                 float iconX = (buttons[i].width - iconSize) * 0.5f;
                 float iconY = compact ? 4f : 6f;
                 float labelY = iconY + iconSize + 1f;
                 SetLocalRect(commandRows[i].IconWell.rectTransform, new Rect(iconX, iconY, iconSize, iconSize));
-                SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, new Rect(buttons[i].width - 35f, 4f, 29f, 14f));
+                SetLocalRect(commandRows[i].HotkeyBackground.rectTransform, CombatHudScreenLayout.CommandHotkeyRect(buttons[i]));
                 SetLocalRect(commandRows[i].StatePip.rectTransform, new Rect(iconX + iconSize - 8f, iconY + 2f, 8f, 8f));
-                SetLocalRect(commandRows[i].StateTagPanel, new Rect(5f, 4f, 44f, 14f));
+                SetLocalRect(commandRows[i].StateTagPanel, CombatHudScreenLayout.CommandStateTagRect(buttons[i]));
                 float labelHeight = compact ? 15f : 17f;
                 SetLocalRect(commandRows[i].Label.rectTransform, new Rect(4f, labelY, buttons[i].width - 8f, labelHeight));
-                commandRows[i].SubLabel.gameObject.SetActive(!compact);
+                commandRows[i].SubLabel.gameObject.SetActive(false);
                 if (!compact)
                 {
                     SetLocalRect(commandRows[i].SubLabel.rectTransform, new Rect(4f, labelY + labelHeight, buttons[i].width - 8f, Mathf.Max(9f, buttons[i].height - labelY - labelHeight - 2f)));
@@ -1765,7 +1855,7 @@ namespace AshenHalls
             for (int i = 0; i < turnChips.Count; i++)
             {
                 TurnChip chip = turnChips[i];
-                bool visible = i < turns.Count && turns[i] != null;
+                bool visible = i < visibleTurnChipCapacity && i < turns.Count && turns[i] != null;
                 chip.Root.gameObject.SetActive(visible);
                 if (!visible) continue;
 
@@ -1790,8 +1880,16 @@ namespace AshenHalls
                 chip.Fallback.gameObject.SetActive(sprite == null);
                 chip.Name.text = turn.Name ?? "";
                 chip.Name.color = turn.Active ? Hex("f8efda", 1f) : Hex("d8d0bf", 1f);
-                chip.Round.text = turn.StartsNextRound ? "↻" : turn.Active ? "▶" : "";
-                chip.Round.color = turn.StartsNextRound ? Hex("d7a84e", 1f) : accent;
+                bool showRoundMarker = turn.StartsNextRound;
+                float timelineWidth = timelinePanel == null ? 0f : timelinePanel.rect.width;
+                SetLocalRect(chip.Name.rectTransform, new Rect(
+                    38f,
+                    4f,
+                    CombatHudScreenLayout.TurnChipNameWidth(timelineWidth, showRoundMarker),
+                    25f));
+                chip.Round.text = showRoundMarker ? "↻" : "";
+                chip.Round.color = Hex("d7a84e", 1f);
+                chip.Round.gameObject.SetActive(showRoundMarker);
             }
         }
 
@@ -1802,11 +1900,11 @@ namespace AshenHalls
             if (fill != null)
             {
                 fill.color = emphasized
-                    ? Color.Lerp(Hex("11171c", 0.84f), accent, 0.12f)
+                    ? Color.Lerp(Hex("11171c", 0.84f), accent, 0.08f)
                     : Hex("11171c", 0.74f);
             }
             Outline outline = backplate.GetComponent<Outline>();
-            if (outline != null) outline.effectColor = accent.WithAlpha(emphasized ? 0.72f : 0.30f);
+            if (outline != null) outline.effectColor = accent.WithAlpha(emphasized ? 0.52f : 0.18f);
         }
 
         private static string UnitInitials(string value)
@@ -1893,12 +1991,7 @@ namespace AshenHalls
             if (contextualIndex >= 0)
             {
                 CombatHudCommandView command = commands[contextualIndex];
-                string blockedDetail = !string.IsNullOrWhiteSpace(command.DisabledReason)
-                    ? command.DisabledReason
-                    : !string.IsNullOrWhiteSpace(command.SubLabel) ? command.SubLabel : command.Tooltip;
-                string detail = command.Blocked
-                    ? blockedDetail
-                    : command.Enabled ? command.Tooltip : command.DisabledReason;
+                string detail = CombatHudCommandStyleRules.PromptDetail(command);
                 prompt = $"{command.Label} [{command.Hotkey}]  {detail}";
                 color = command.Promoted
                     ? Hex("d7a84e", 1f)
@@ -2217,6 +2310,7 @@ namespace AshenHalls
             public readonly Text StateTag;
             public readonly Image AccentRail;
             public ActionMode Mode;
+            public bool Compact;
 
             public CommandRow(RectTransform root, Button button, Outline outline, Text label, Text hotkey, Text subLabel, Image iconWell, Outline iconOutline, Image icon, Text iconFallback, Image hotkeyBackground, Image statePip, RectTransform stateTagPanel, Text stateTag, Image accentRail)
             {

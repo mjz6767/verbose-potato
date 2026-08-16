@@ -1,12 +1,19 @@
 # Ashen Halls Runtime Art Audit
 
+## Newly connected for v2.17.0 - title menu icons
+
+- `title-menu-icon-atlas-runtime-v2.16.0.png` replaces borrowed tavern-atlas cells with five purpose-built title actions: Continue, New Game, Settings, Exit, and the development-only Beta Lab.
+- The exact RGBA contract is 1280 by 256, five columns by one row, with 256-pixel square cells. Runtime exact-pins the sheet, validates its transparency and visible coverage, rejects incorrect geometry, and preserves the tavern sheet as a fail-closed fallback.
+- `Tools/BuildTitleMenuIconAtlas.ps1` regenerates the accepted PNG byte-for-byte. The verified SHA-256 is `B4AA9DC263E70805C3276E36541C0E81316AF80B93C8DE594915BB04CFEFD278`, overall transparency is 59.31%, and every cell has 33.65%-46.37% visible coverage.
+- The Windows package selector recognizes the dedicated `title-menu-icon-atlas-runtime-` family. Unity smoke/build and supported-resolution visual review remain part of the combined title-screen gate.
+
 The verified v2.9.0 candidate exact-pins expanded ability and signature-spell books plus a rebuilt combat-effects atlas, while improving combatant staging and the presentation of existing world-map art. Combined RuleSmoke, focused combat-UI runtime smoke, SpriteArtRuntimeSmoke, full RuntimeBoot, the clean Windows build, built-player visual matrix, canonical packaging, and clean-extracted packaged boot pass. Physical-controller review and a complete human playthrough remain manual. Older release sections are retained as historical records.
 
 ## Active Runtime Art
 
 These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have draw paths in the current immediate-mode UI:
 
-- Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI.
+- Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI, title scroll and focus art, and the dedicated five-cell title menu icon atlas.
 - Party/enemies: character combat atlas, enemy sprite atlas, creature/combat sprite fallback atlas, enemy roster, boss enemy fallback, Kobold King boss atlas.
 - World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, dedicated Grand Hearth floor/set-piece/ambience companions, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
 

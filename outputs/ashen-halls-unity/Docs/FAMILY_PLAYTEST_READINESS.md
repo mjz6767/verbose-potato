@@ -2,7 +2,16 @@
 
 ## Current Candidate
 
-`v2.16.0` is the current family-playtest release for the authored Chapter I-V road campaign. It keeps the v2.15 title, World Map score, combat/VFX, loot, and HUD presentation foundation while making the Region Map browsable without moving the party, adding an intentional keyboard/controller combat cursor, separating four previously similar route compositions, and hardening runtime-aligned audio validation. Save schema remains v25; the 54 runtime-art pins and 89 packaged PNGs are unchanged. Focused source/audio checks, RuleSmoke, full RuntimeBoot, clean packaging and extraction, and final-player visual review pass. Physical-controller feel, subjective listening, live drag/wheel feel, and a complete real Chapter I-V playthrough remain manual. The verified v2.15.0 package remains preserved as rollback history.
+`v2.17.0` is the current family-playtest candidate for the authored Chapter I-V road campaign. It keeps the v2.16 Region Map, combat cursor, route-score, and audio-validation foundation while adding purpose-built title actions, a calmer combat HUD, and exact cast-to-aftermath power timing. Save schema remains v25; the accepted art set grows to 56 exact pins and 91 packaged PNGs. Final combined RuleSmoke, full RuntimeBoot, source/art/audio validation, and built-player title review pass. Canonical clean packaging, clean extraction, the final combat-aftermath player review, physical-controller feel, subjective listening, live drag/wheel feel, and a complete real Chapter I-V playthrough remain gates. The verified v2.16.0 package remains preserved as rollback history.
+
+## Flame and Focus v2.17 - Integrated Gates Pass, Release Package Pending
+
+- The title menu uses one dedicated five-cell glyph strip and keeps Continue, New Game, Settings, and Exit Game readable from compact 4:3 through desktop layouts. Fireplace, storm, reveal, and focus motion respect Reduced Motion; Beta Lab is explicit Development-only content and is excluded from retail presentation.
+- Every production formula and targeted skill stages a deterministic cast, release, authored travel, exact impact sound, and bounded aftermath. Primary legacy duplicates are suppressed while meaningful chain, splash, satellite, multi-arrow, arrival, and return accents remain.
+- The new exact-pinned 4 by 4 aftermath atlas covers lingering elemental, restorative, warding, nature, solar, rift, soul, hex, poison, dream, web, summon, ascendance, and martial motifs. Reduced Motion clears travel and aftermath without changing combat results.
+- The combat HUD removes repeated low-value copy and expands the supported-minimum battlefield while retaining command legality, focus, targeting, forecasts, turn order, and pointer/controller ownership.
+- The exact art gate verifies all 56 `RuntimeArtManifest` entries and 91 package-selected PNGs. The audio bank remains 54 original music masters and 161 SFX, and save schema stays v25 because the new presentation state is transient.
+- Final combined RuleSmoke and full RuntimeBoot pass, as do static runtime/editor compilation, deterministic art/audio checks, and title captures at 1024x768 and 1280x720. A clean-source v2.17 package, clean-extracted boot, and final player aftermath review remain before release publication.
 
 ## Compass and Command v2.16 - Release Gates Pass
 

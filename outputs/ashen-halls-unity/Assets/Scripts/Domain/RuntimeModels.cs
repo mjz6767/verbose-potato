@@ -639,10 +639,14 @@ namespace AshenHalls
         public int TargetY;
         public string Color;
         public string Kind;
+        public string PowerKey;
         public int Intensity;
+        public int StableSeed;
         public bool Focused;
         public float Start;
+        public float ReleaseAt;
         public float ImpactAt;
+        public float AftermathAt;
         public float Duration;
     }
 
@@ -652,6 +656,19 @@ namespace AshenHalls
         public int SourceY;
         public int TargetX;
         public int TargetY;
+        public string Color;
+        public string PowerKey;
+        public int Intensity;
+        public int SequenceIndex;
+        public int StableSeed;
+        public float Start;
+        public float Duration;
+    }
+
+    public sealed class PowerAftermathVfx
+    {
+        public int X;
+        public int Y;
         public string Color;
         public string PowerKey;
         public int Intensity;

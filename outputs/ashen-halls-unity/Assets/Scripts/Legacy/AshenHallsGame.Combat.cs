@@ -31,6 +31,8 @@ namespace AshenHalls
 
         private readonly List<PowerTravelVfx> powerTravelVfx = new List<PowerTravelVfx>();
 
+        private readonly List<PowerAftermathVfx> powerAftermathVfx = new List<PowerAftermathVfx>();
+
         private readonly List<CombatUnitPresentationBeat> combatUnitPresentationBeats = new List<CombatUnitPresentationBeat>();
 
         private readonly List<Rect> combatTooltipBlockers = new List<Rect>(32);
@@ -151,6 +153,7 @@ namespace AshenHalls
             DrawCastGlyphs(grid, cell);
             DrawPowerCastAuras(grid, cell);
             DrawPowerImpactEchoes(grid, cell);
+            DrawPowerAftermathVfx(grid, cell);
 
             foreach (CombatUnit unit in state.Combat.Units)
             {
@@ -1689,7 +1692,8 @@ namespace AshenHalls
                     travel.Intensity,
                     progress,
                     false,
-                    travel.SequenceIndex);
+                    travel.SequenceIndex,
+                    travel.StableSeed);
                 if (!plan.HasTravel) continue;
 
                 Vector2 from = new Vector2(
@@ -1791,6 +1795,113 @@ namespace AshenHalls
                         new Rect(head.x - fallbackSize * 0.36f, head.y - fallbackSize * 0.36f, fallbackSize * 0.72f, fallbackSize * 0.72f),
                         cursorWhite.WithAlpha(trailColor.a * 0.86f));
                 }
+            }
+        }
+
+        private void DrawPowerAftermathVfx(Rect grid, float cell)
+        {
+            if (state == null || state.ReducedMotion || powerAftermathVfx.Count == 0) return;
+            float now = Time.time;
+            GUI.BeginClip(grid);
+            try
+            {
+                foreach (PowerAftermathVfx aftermath in powerAftermathVfx)
+                {
+                    if (aftermath == null || now < aftermath.Start || aftermath.Duration <= 0f) continue;
+                    float progress = CombatPowerAftermathVfxRules.AftermathProgress(
+                        now - aftermath.Start,
+                        aftermath.Duration);
+                    int sampleIndex = unchecked(aftermath.StableSeed ^ (aftermath.SequenceIndex * 397));
+                    CombatPowerAftermathVfxPlan plan = CombatPowerAftermathVfxRules.PlanFor(
+                        aftermath.PowerKey,
+                        aftermath.Intensity,
+                        progress,
+                        false,
+                        sampleIndex);
+                    if (!plan.HasAftermath) continue;
+
+                    Vector2 center = new Vector2(
+                        (aftermath.X + 0.5f) * cell,
+                        (aftermath.Y + 0.5f) * cell);
+                    Color accent = aftermath.Color.ToColor();
+                    float envelope = 1f - Mathf.SmoothStep(0.68f, 1f, progress);
+                    float pulse = Mathf.Clamp(plan.Pulse, 0.72f, 1.24f);
+                    float size = cell * plan.Scale * pulse;
+                    float opacity = plan.Opacity * envelope;
+                    if (opacity <= 0.01f) continue;
+
+                    if (aftermath.Intensity >= 2)
+                    {
+                        float haloSize = size * (1.04f + aftermath.Intensity * 0.08f);
+                        Rect halo = new Rect(
+                            center.x - haloSize * 0.5f,
+                            center.y - haloSize * 0.5f,
+                            haloSize,
+                            haloSize);
+                        DrawRect(
+                            Pad(halo, haloSize * 0.22f),
+                            Color.Lerp(accent, retroBlack, 0.64f).WithAlpha(opacity * 0.07f));
+                    }
+
+                    int layers = Mathf.Clamp(plan.LayerCount, 1, 3);
+                    bool drewArt = false;
+                    for (int layer = layers - 1; layer >= 0; layer--)
+                    {
+                        float layerScale = 1f + layer * 0.075f;
+                        float layerOpacity = opacity * (layer == 0 ? 1f : 0.18f / layer);
+                        float layerSize = size * layerScale;
+                        Rect art = new Rect(
+                            center.x - layerSize * 0.5f,
+                            center.y - layerSize * 0.5f,
+                            layerSize,
+                            layerSize);
+                        float angle = plan.Drift * 18f + layer * (layer % 2 == 0 ? 7f : -7f);
+                        drewArt |= DrawRotatedCombatPowerAftermathVfx(
+                            art,
+                            plan.AtlasCell,
+                            Color.Lerp(Color.white, accent, 0.08f).WithAlpha(layerOpacity),
+                            angle,
+                            center);
+                    }
+
+                    if (!drewArt)
+                    {
+                        float ringSize = cell * Mathf.Clamp(plan.Scale, 0.72f, 1.72f);
+                        Rect ring = new Rect(
+                            center.x - ringSize * 0.5f,
+                            center.y - ringSize * 0.5f,
+                            ringSize,
+                            ringSize);
+                        DrawBorder(ring, accent.WithAlpha(opacity * 0.68f), aftermath.Intensity >= 3 ? 2 : 1);
+                        DrawImpactBrackets(
+                            Pad(ring, ringSize * 0.18f),
+                            Color.Lerp(accent, cursorWhite, 0.30f).WithAlpha(opacity * 0.72f),
+                            Mathf.Max(1f, cell * 0.025f));
+                    }
+                }
+            }
+            finally
+            {
+                GUI.EndClip();
+            }
+        }
+
+        private bool DrawRotatedCombatPowerAftermathVfx(
+            Rect rect,
+            int atlasCell,
+            Color tint,
+            float angle,
+            Vector2 pivot)
+        {
+            Matrix4x4 previous = GUI.matrix;
+            try
+            {
+                GUIUtility.RotateAroundPivot(angle, pivot);
+                return TryDrawCombatPowerAftermathVfxAtlasIcon(rect, atlasCell, tint);
+            }
+            finally
+            {
+                GUI.matrix = previous;
             }
         }
 
@@ -3684,6 +3795,7 @@ namespace AshenHalls
 
                     if (now < echo.ImpactAt)
                     {
+                        if (!ShouldDrawCombatPowerImpactOmen(echo.Kind, echo.ImpactAt - now)) continue;
                         float travel = Mathf.Max(0.01f, echo.ImpactAt - echo.Start);
                         float t = Mathf.Clamp01((now - echo.Start) / travel);
                         float eased = Mathf.SmoothStep(0f, 1f, t);
@@ -3881,6 +3993,14 @@ namespace AshenHalls
             {
                 GUI.EndClip();
             }
+        }
+
+        private static bool ShouldDrawCombatPowerImpactOmen(string powerKey, float timeUntilImpact)
+        {
+            CombatPowerTravelVfxProfile travel = CombatPowerTravelVfxRules.ProfileFor(powerKey);
+            if (!travel.HasTravel) return true;
+            if (travel.Path == CombatPowerTravelPath.Rain || travel.Path == CombatPowerTravelPath.Vertical) return true;
+            return timeUntilImpact <= 0.065f;
         }
 
         private void DrawMageWarlockImpactAccent(
@@ -4231,11 +4351,17 @@ namespace AshenHalls
                     bool ritualPresentation = CombatPowerVisualRules.UsesRitualCastPresentation(aura.Kind);
                     Vector2 source = new Vector2((aura.SourceX + 0.5f) * cell, (aura.SourceY + 0.5f) * cell);
                     Vector2 target = new Vector2((aura.TargetX + 0.5f) * cell, (aura.TargetY + 0.5f) * cell);
-                    float chargeSpan = Mathf.Max(0.05f, aura.ImpactAt - aura.Start);
+                    float releaseBoundary = aura.ReleaseAt > aura.Start ? aura.ReleaseAt : aura.ImpactAt;
+                    float chargeSpan = Mathf.Max(0.05f, releaseBoundary - aura.Start);
                     float charge = Mathf.Clamp01((now - aura.Start) / chargeSpan);
                     float fade = now <= aura.ImpactAt
                         ? 1f
                         : 1f - Mathf.Clamp01((now - aura.ImpactAt) / Mathf.Max(0.08f, aura.Start + aura.Duration - aura.ImpactAt));
+                    if (now >= releaseBoundary && aura.ImpactAt > releaseBoundary)
+                    {
+                        float flight = Mathf.Clamp01((now - releaseBoundary) / (aura.ImpactAt - releaseBoundary));
+                        fade *= Mathf.Lerp(0.78f, 0.30f, flight);
+                    }
                     float wave = 0.70f + Mathf.Sin((now - aura.Start) * (12f + aura.Intensity * 2f)) * 0.22f;
 
                     AuthoredPowerVfxPlan authoredPlan;
@@ -4309,6 +4435,27 @@ namespace AshenHalls
                             fade * (usesAuthoredArt ? 0.58f : 1f),
                             focusColor,
                             aura.Intensity);
+                    }
+
+                    float releaseAge = now - releaseBoundary;
+                    if (releaseAge >= 0f && releaseAge < 0.14f)
+                    {
+                        float releaseProgress = Mathf.Clamp01(releaseAge / 0.14f);
+                        float releaseEnvelope = 1f - Mathf.SmoothStep(0f, 1f, releaseProgress);
+                        float releaseSize = cell * Mathf.Lerp(0.28f, 1.06f + aura.Intensity * 0.08f, releaseProgress);
+                        Rect releaseRing = new Rect(
+                            source.x - releaseSize * 0.5f,
+                            source.y - releaseSize * 0.5f,
+                            releaseSize,
+                            releaseSize);
+                        DrawBorder(
+                            releaseRing,
+                            Color.Lerp(focusColor, cursorWhite, 0.44f).WithAlpha(releaseEnvelope * 0.82f),
+                            aura.Intensity >= 3 ? 3 : 2);
+                        float coreSize = cell * Mathf.Lerp(0.24f, 0.08f, releaseProgress);
+                        DrawRect(
+                            new Rect(source.x - coreSize * 0.5f, source.y - coreSize * 0.5f, coreSize, coreSize),
+                            cursorWhite.WithAlpha(releaseEnvelope * 0.88f));
                     }
                 }
             }
@@ -5927,7 +6074,8 @@ namespace AshenHalls
                 impact.Y,
                 color,
                 false,
-                entry.Id);
+                entry.Id,
+                entry.StableSeed);
             StageBetaVfxShowcaseTravel(entry, source, impact, color, profile);
             ApplyCombatImpactFeedback(
                 profile,
@@ -5962,7 +6110,10 @@ namespace AshenHalls
                     impact.Y,
                     color,
                     CombatImpactRules.VisualIntensity(profile),
-                    arrivalDelay);
+                    arrivalDelay,
+                    0,
+                    0f,
+                    entry.StableSeed);
                 return;
             }
 
@@ -5988,7 +6139,8 @@ namespace AshenHalls
                     CombatImpactRules.VisualIntensity(profile),
                     arrivalDelay,
                     i,
-                    i * 0.045f);
+                    i * 0.045f,
+                    entry.StableSeed);
             }
         }
 
@@ -6043,16 +6195,60 @@ namespace AshenHalls
             powerCastAuras.Clear();
             powerImpactEchoes.Clear();
             powerTravelVfx.Clear();
+            powerAftermathVfx.Clear();
             particles.Clear();
             beams.Clear();
             flashes.Clear();
             castGlyphs.Clear();
+            tweens.Clear();
+            combatUnitPresentationBeats.Clear();
             combatShakeStarted = 0f;
             combatShakeUntil = 0f;
             combatShakeMagnitude = 0f;
             combatImpactFrameStarted = 0f;
             combatImpactFrameUntil = 0f;
             combatImpactFrameIntensity = 0;
+            ClearCombatAudioForReducedMotion();
+        }
+
+        private void ClearTransientCombatPresentation()
+        {
+            tweens.Clear();
+            floatTexts.Clear();
+            particles.Clear();
+            beams.Clear();
+            flashes.Clear();
+            castGlyphs.Clear();
+            powerCastAuras.Clear();
+            powerImpactEchoes.Clear();
+            powerTravelVfx.Clear();
+            powerAftermathVfx.Clear();
+            combatUnitPresentationBeats.Clear();
+            combatTooltipBlockers.Clear();
+            combatPowerReactions.Clear();
+            combatShakeStarted = 0f;
+            combatShakeUntil = 0f;
+            combatShakeMagnitude = 0f;
+            combatImpactFrameStarted = 0f;
+            combatImpactFrameUntil = 0f;
+            combatImpactFrameColor = "";
+            combatImpactFrameIntensity = 0;
+            combatVfxImpactDelay = 0f;
+            pendingCombatPowerOutcomeDelay = 0f;
+            enemyActionResolutionDelay = 0f;
+            enemyActionResolutionLabel = "";
+            targetedMartialHitConnected = true;
+            betaVfxShowcaseOpen = false;
+            betaVfxShowcaseIndex = 0;
+            combatPowerCue = default;
+            combatPowerCueTexture = null;
+            combatPowerCueSource = default;
+            combatPowerCueStarted = 0f;
+            combatPowerCueUntil = 0f;
+            combatPowerCueImpactAt = 0f;
+            combatPowerOutcomeText = "";
+            combatPowerOutcomeVisibleAt = 0f;
+            combatPowerPulseUntil = 0f;
             ClearCombatAudioForReducedMotion();
         }
 
@@ -12068,7 +12264,7 @@ namespace AshenHalls
         {
             if (encounter == null) throw new ArgumentNullException(nameof(encounter));
             CancelCombatResolutionBeat(false);
-            combatUnitPresentationBeats.Clear();
+            ClearTransientCombatPresentation();
             CloseTransientOverlays();
             state.Mode = GameMode.Combat;
             betaLabMode = encounter.DevelopmentOnly;
@@ -15309,7 +15505,7 @@ namespace AshenHalls
             active.Y = landing.Y;
             CombatLifecycle().ApplyMovementBudgetResult(true, 0, 0);
             AddTween(active.Id, from, new Vector2(active.X, active.Y), TweenKind.Move);
-            AddBeam(fromX, fromY, active.X, active.Y, violet, "arc");
+            AddLegacyPrimaryPowerBeam("riftpounce", fromX, fromY, active.X, active.Y, violet, "arc");
             int damage = DealDamage(target, RiftPounceRawDamage(active), "death", violet);
             AddFloat(target.X, target.Y, "RIFT POUNCE", violet);
             ImproveSkill(active, "hex", 2);
@@ -15359,7 +15555,7 @@ namespace AshenHalls
             int missing = Mathf.Max(0, active.MaxHp - active.Hp);
             int healed = Mathf.Min(missing, Mathf.Max(1, damage / 2));
             active.Hp += healed;
-            AddBeam(target.X, target.Y, active.X, active.Y, violet, "death");
+            AddBeamDelayed(target.X, target.Y, active.X, active.Y, violet, "death", combatVfxImpactDelay);
             AddFloat(target.X, target.Y, "SOUL REND", violet);
             if (healed > 0) AddFloat(active.X, active.Y, "+" + healed, teal);
             ImproveSkill(active, "hex", 3);
@@ -15517,7 +15713,7 @@ namespace AshenHalls
                 target.Bleeding = Mathf.Max(target.Bleeding, 2);
                 AddFloat(target.X, target.Y, "bleed", blood);
             }
-            AddBeam(active.X, active.Y, target.X, target.Y, Hex("d9d3c4"), "shot");
+            AddLegacyPrimaryPowerBeam("throwknife", active.X, active.Y, target.X, target.Y, Hex("d9d3c4"), "shot");
             AddFloat(target.X, target.Y, "knife", gold);
             ImproveSkill(active, "missile", 2);
             PushLog($"{active.Name} throws a knife at {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
@@ -15567,7 +15763,7 @@ namespace AshenHalls
         {
             if (!RollMartialHit(active, target, 18, "aimed shot", "missile")) return true;
             int damage = DealDamage(target, AimedShotRawDamage(active, target), "physical", gold);
-            AddBeam(active.X, active.Y, target.X, target.Y, gold, "shot");
+            AddLegacyPrimaryPowerBeam("aimedshot", active.X, active.Y, target.X, target.Y, gold, "shot");
             AddRangerTileGlyph(target.X, target.Y, 0, gold);
             ImproveSkill(active, "missile", 2);
             PushLog($"{active.Name} lands an aimed shot on {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
@@ -15584,7 +15780,7 @@ namespace AshenHalls
                 target.Webbed = Mathf.Max(target.Webbed, target.Range > 1 ? 2 : 1);
                 AddFloat(target.X, target.Y, "pinned", Hex("d9d3c4"));
             }
-            AddBeam(active.X, active.Y, target.X, target.Y, moss, "shot");
+            AddLegacyPrimaryPowerBeam("pinningshot", active.X, active.Y, target.X, target.Y, moss, "shot");
             AddRangerTileGlyph(target.X, target.Y, 1, moss);
             ImproveSkill(active, "missile", 2);
             PushLog($"{active.Name} pins {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
@@ -15611,7 +15807,10 @@ namespace AshenHalls
                 try
                 {
                     float deliveryStartDelay = Mathf.Max(0f, sequenceDelay - CombatPowerVisualRules.BeamDuration("arc"));
-                    AddBeamDelayed(active.X, active.Y, enemy.X, enemy.Y, gold, "arc", deliveryStartDelay);
+                    if (i > 0 || !HasAuthoredPowerTravel("volley"))
+                    {
+                        AddBeamDelayed(active.X, active.Y, enemy.X, enemy.Y, gold, "arc", deliveryStartDelay);
+                    }
                     int damage = DealDamage(enemy, enemy.Id == target.Id ? raw : Mathf.Max(2, raw / 2), "physical", gold);
                     AddFloat(enemy.X, enemy.Y, "volley", gold);
                     AddRangerTileGlyph(enemy.X, enemy.Y, 15, gold);
@@ -15636,7 +15835,7 @@ namespace AshenHalls
             target.GuardBonus = 0;
             target.Shielded = Mathf.Max(0, target.Shielded - wardRemoved);
             target.Hexed = Mathf.Max(target.Hexed, 2);
-            AddBeam(active.X, active.Y, target.X, target.Y, teal, "shot");
+            AddLegacyPrimaryPowerBeam("scoutmark", active.X, active.Y, target.X, target.Y, teal, "shot");
             AddFloat(target.X, target.Y, brokeGuard || wardRemoved > 0 ? "guard broken" : "marked", teal);
             AddRangerTileGlyph(target.X, target.Y, 3, teal);
             AddBurst(target.X, target.Y, teal);
@@ -15661,7 +15860,7 @@ namespace AshenHalls
                 target.Bleeding = Mathf.Max(target.Bleeding, 3);
                 AddFloat(target.X, target.Y, "bleed", blood);
             }
-            AddBeam(active.X, active.Y, target.X, target.Y, blood, "shot");
+            AddLegacyPrimaryPowerBeam("broadheadshot", active.X, active.Y, target.X, target.Y, blood, "shot");
             AddRangerTileGlyph(target.X, target.Y, CombatFeedbackRules.RangerImpactIndex("broadheadshot"), blood);
             ImproveSkill(active, "missile", 2);
             PushLog($"{active.Name} sinks a broadhead into {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Warn);
@@ -15679,7 +15878,7 @@ namespace AshenHalls
                 if (IsCasterEnemy(target)) target.Hexed = Mathf.Max(target.Hexed, 1);
                 AddFloat(target.X, target.Y, IsCasterEnemy(target) ? "spell broken" : "stun", teal);
             }
-            AddBeam(active.X, active.Y, target.X, target.Y, teal, "shot");
+            AddLegacyPrimaryPowerBeam("disruptingshot", active.X, active.Y, target.X, target.Y, teal, "shot");
             AddRangerTileGlyph(target.X, target.Y, CombatFeedbackRules.RangerImpactIndex("disruptingshot"), teal);
             ImproveSkill(active, "missile", 2);
             PushLog($"{active.Name} disrupts {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
@@ -15729,7 +15928,7 @@ namespace AshenHalls
             active.Y = landing.Y;
             CombatLifecycle().ApplyMovementBudgetResult(true, 0, 0);
             AddTween(active.Id, new Vector2(fromX, fromY), new Vector2(active.X, active.Y), TweenKind.Move);
-            AddBeam(fromX, fromY, active.X, active.Y, violet, "arc");
+            AddLegacyPrimaryPowerBeam("shadowstep", fromX, fromY, active.X, active.Y, violet, "arc");
             bool hit = RollMartialHit(active, target, hidden ? 20 : 10, "shadowstep");
             active.Stealthed = 0;
             if (!hit) return true;
@@ -15757,7 +15956,21 @@ namespace AshenHalls
                 {
                     if (!RollMartialHit(active, target, 5, arrow == 0 ? "first quick shot" : "second quick shot", "missile")) continue;
                     int damage = DealDamage(target, raw, "physical", arrow == 0 ? teal : gold);
-                    AddBeam(active.X, active.Y, target.X, target.Y, arrow == 0 ? teal : gold, "shot");
+                    if (arrow > 0 || !HasAuthoredPowerTravel("quickshot"))
+                    {
+                        float deliveryStartDelay = Mathf.Max(
+                            0f,
+                            CombatImpactRules.SequenceImpactDelay(profile, arrow)
+                                - CombatPowerVisualRules.BeamDuration("shot"));
+                        AddBeamDelayed(
+                            active.X,
+                            active.Y,
+                            target.X,
+                            target.Y,
+                            arrow == 0 ? teal : gold,
+                            "shot",
+                            deliveryStartDelay);
+                    }
                     AddRangerTileGlyph(target.X, target.Y, 0, arrow == 0 ? teal : gold);
                     totalDamage += damage;
                     hits++;
@@ -16568,7 +16781,7 @@ namespace AshenHalls
                 caster.Y = y;
                 CombatLifecycle().ApplyMovementBudgetResult(true, state.Combat.MovePoints, state.Combat.MovePoints);
                 AddTween(caster.Id, new Vector2(fromX, fromY), new Vector2(x, y), TweenKind.Move);
-                AddBeam(fromX, fromY, x, y, color, "arc");
+                AddLegacyPrimaryPowerBeam(formula.Code, fromX, fromY, x, y, color, "arc");
                 AddTileGlyph(x, y, formula, "impact", color);
                 AddEpicBurst(x, y, Color.Lerp(color, frost, 0.42f), 22, 1.55f);
                 AddFlash(x, y, color);
@@ -16686,7 +16899,7 @@ namespace AshenHalls
             {
                 int heal = formula.Power + SkillValue(caster.Skills, formula.Skill) / 2 + FormulaStatPowerBonus(formula, caster) + rng.Next(0, 5);
                 target.Hp = Mathf.Min(target.MaxHp, target.Hp + heal);
-                AddBeam(caster.X, caster.Y, target.X, target.Y, teal, FormulaBeamKind(formula, caster, target.X, target.Y));
+                AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, teal, FormulaBeamKind(formula, caster, target.X, target.Y));
                 AddFloat(target.X, target.Y, "+" + heal, teal);
                 AddBurst(target.X, target.Y, teal);
                 AddTileGlyph(target.X, target.Y, formula, formula.Splash ? "area" : "impact", teal);
@@ -16717,7 +16930,7 @@ namespace AshenHalls
                 target.Stunned = 0;
                 target.Sleeping = 0;
                 target.Hexed = 0;
-                AddBeam(caster.X, caster.Y, target.X, target.Y, teal, FormulaBeamKind(formula, caster, target.X, target.Y));
+                AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, teal, FormulaBeamKind(formula, caster, target.X, target.Y));
                 AddFloat(target.X, target.Y, "cleansed", teal);
                 AddBurst(target.X, target.Y, teal);
                 AddTileGlyph(target.X, target.Y, formula, "impact", teal);
@@ -16728,7 +16941,7 @@ namespace AshenHalls
 
             if (formula.Effect == "status")
             {
-                if (target != null) AddBeam(caster.X, caster.Y, target.X, target.Y, FormulaColor(formula), FormulaBeamKind(formula, caster, target.X, target.Y));
+                if (target != null) AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, FormulaColor(formula), FormulaBeamKind(formula, caster, target.X, target.Y));
                 if (target != null) AddTileGlyph(target.X, target.Y, formula, formula.Splash ? "area" : "impact", FormulaColor(formula));
                 bool applied = TryApplyStatus(target, formula.Status, formula.Duration, caster, 0.86f, formula.Target == "enemy");
                 int splashApplied = 0;
@@ -16750,7 +16963,7 @@ namespace AshenHalls
             if (formula.Effect == "drain")
             {
                 int damage = FormulaDamage(formula, caster, target);
-                AddBeam(caster.X, caster.Y, target.X, target.Y, FormulaColor(formula), FormulaBeamKind(formula, caster, target.X, target.Y));
+                AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, FormulaColor(formula), FormulaBeamKind(formula, caster, target.X, target.Y));
                 AddTileGlyph(target.X, target.Y, formula, "impact", FormulaColor(formula));
                 int dealt = DealDamage(target, damage, formula.DamageType, FormulaColor(formula));
                 string resonance = ApplyFormulaStatusResonance(formula, caster, target);
@@ -16770,7 +16983,7 @@ namespace AshenHalls
                 bool signatureFlourish = formula.Code == "FBL" || formula.Code == "MTR" || formula.Code == "AST";
                 if (!signatureFlourish)
                 {
-                    AddBeam(caster.X, caster.Y, target.X, target.Y, FormulaColor(formula), FormulaBeamKind(formula, caster, target.X, target.Y));
+                    AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, FormulaColor(formula), FormulaBeamKind(formula, caster, target.X, target.Y));
                     AddTileGlyph(target.X, target.Y, formula, formula.Splash ? "area" : "impact", FormulaColor(formula));
                 }
                 DealDamage(target, damage, formula.DamageType, FormulaColor(formula));
@@ -16814,10 +17027,6 @@ namespace AshenHalls
                 if (formula.Code == "MTR")
                 {
                     AddMeteorShowerFlourish(caster, target, formula);
-                }
-                else if (formula.Code == "FBL")
-                {
-                    AddFireballFlourish(caster, target, formula);
                 }
                 else if (formula.Code == "AST")
                 {
@@ -16966,7 +17175,10 @@ namespace AshenHalls
                     int fromX = previous == null ? caster.X : previous.X;
                     int fromY = previous == null ? caster.Y : previous.Y;
                     float travelStart = Mathf.Max(0f, delay - CombatPowerVisualRules.BeamDuration("lightning"));
-                    AddBeamDelayed(fromX, fromY, enemy.X, enemy.Y, color, "lightning", travelStart);
+                    if (i > 0 || !HasAuthoredPowerTravel(formula.Code))
+                    {
+                        AddBeamDelayed(fromX, fromY, enemy.X, enemy.Y, color, "lightning", travelStart);
+                    }
                     AddTileGlyphDelayed(enemy.X, enemy.Y, formula, "impact", color, delay);
                     int damage = LightningPowerRules.ChainDamage(baseDamage, i);
                     DealDamage(enemy, damage, "shock", color);
@@ -17051,7 +17263,10 @@ namespace AshenHalls
                     int fromX = center ? caster.X : enemy.X;
                     int fromY = center || enemy.Y <= 0 ? caster.Y : 0;
                     float travelStart = Mathf.Max(0f, delay - CombatPowerVisualRules.BeamDuration("lightning"));
-                    AddBeamDelayed(fromX, fromY, enemy.X, enemy.Y, color, "lightning", travelStart);
+                    if (!center || !HasAuthoredPowerTravel(formula.Code))
+                    {
+                        AddBeamDelayed(fromX, fromY, enemy.X, enemy.Y, color, "lightning", travelStart);
+                    }
                     AddTileGlyphDelayed(enemy.X, enemy.Y, formula, center ? "area" : "impact", color, delay);
                     int damage = LightningPowerRules.TempestDamage(baseDamage, center);
                     DealDamage(enemy, damage, "shock", color);
@@ -17115,13 +17330,6 @@ namespace AshenHalls
             return true;
         }
 
-        private void AddFireballFlourish(CombatUnit caster, CombatUnit target, FormulaDef formula)
-        {
-            if (caster == null || target == null || formula == null) return;
-            Color color = FormulaColor(formula);
-            AddFireballAftermathDelayed(target.X, target.Y, color, 0f);
-        }
-
         private void AddMeteorShowerFlourish(CombatUnit caster, CombatUnit target, FormulaDef formula)
         {
             if (caster == null || target == null || formula == null) return;
@@ -17143,7 +17351,10 @@ namespace AshenHalls
                 float impactDelay = CombatImpactRules.SequenceImpactDelay(profile, i);
                 string deliveryKind = i == 0 ? "meteor" : "meteor-small";
                 float travelDelay = Mathf.Max(0f, impactDelay - CombatPowerVisualRules.BeamDuration(deliveryKind));
-                AddBeamDelayed(Mathf.Clamp(tx - 2, 0, CombatW - 1), 0, tx, ty, color, deliveryKind, travelDelay);
+                if (i > 0 || !HasAuthoredPowerTravel(formula.Code))
+                {
+                    AddBeamDelayed(Mathf.Clamp(tx - 2, 0, CombatW - 1), 0, tx, ty, color, deliveryKind, travelDelay);
+                }
             }
             AddFloat(target.X, target.Y, "meteor", color);
         }
@@ -17153,7 +17364,7 @@ namespace AshenHalls
             if (caster == null || target == null || formula == null) return;
             Color color = FormulaColor(formula);
             CombatImpactProfile profile = CombatImpactRules.ForFormula(formula);
-            AddBeam(caster.X, caster.Y, target.X, target.Y, color, "arc");
+            AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, color, "arc");
 
             int[][] offsets =
             {
@@ -18657,14 +18868,16 @@ namespace AshenHalls
         {
             CombatPowerIdentity identity = CombatPowerPresentationRules.ForFormula(formula, caster?.Name, target?.Name, focused);
             TryGetFormulaPowerArt(formula, out Texture2D texture, out Rect source);
-            ShowCombatPowerCue(identity, texture, source, CombatImpactRules.ForFormula(formula).ImpactDelay);
+            CombatImpactProfile profile = CombatImpactRules.ForFormula(formula);
+            ShowCombatPowerCue(identity, texture, source, ResolvedCombatPowerSfxImpactDelay(profile, formula?.Code));
         }
 
         private void ShowAbilityPowerCue(CombatUnit active, MartialAbility ability, CombatUnit target)
         {
             CombatPowerIdentity identity = CombatPowerPresentationRules.ForAbility(ability, active?.Name, target?.Name);
             TryGetAbilityPowerArt(ability, out Texture2D texture, out Rect source);
-            ShowCombatPowerCue(identity, texture, source, CombatImpactRules.ForAbility(ability).ImpactDelay);
+            CombatImpactProfile profile = CombatImpactRules.ForAbility(ability);
+            ShowCombatPowerCue(identity, texture, source, ResolvedCombatPowerSfxImpactDelay(profile, ability?.Id));
         }
 
         private void ShowCombatPowerCue(
@@ -18734,12 +18947,24 @@ namespace AshenHalls
             int targetY,
             Color color,
             bool focused,
-            string visualKind = "")
+            string visualKind = "",
+            int stableSeed = 0)
         {
             if (state == null || state.ReducedMotion) return null;
             float now = Time.time;
             string resolvedVisualKind = string.IsNullOrWhiteSpace(visualKind) ? profile.CastSfx : visualKind;
-            float impactDelay = ResolvedCombatPowerSfxImpactDelay(profile, resolvedVisualKind);
+            int intensity = CombatImpactRules.VisualIntensity(profile);
+            int resolvedStableSeed = stableSeed > 0
+                ? stableSeed
+                : CombatPowerStableSeed(resolvedVisualKind, sourceX, sourceY, targetX, targetY, 0);
+            CombatPowerAnimationTimeline timeline = CombatPowerAnimationTimelineRules.For(
+                resolvedVisualKind,
+                resolvedStableSeed,
+                intensity,
+                false);
+            float impactDelay = timeline.Supported
+                ? timeline.ImpactAt
+                : ResolvedCombatPowerSfxImpactDelay(profile, resolvedVisualKind);
             PowerCastAura aura = new PowerCastAura
             {
                 SourceX = sourceX,
@@ -18748,10 +18973,14 @@ namespace AshenHalls
                 TargetY = targetY,
                 Color = color.ToHex(),
                 Kind = resolvedVisualKind,
-                Intensity = CombatImpactRules.VisualIntensity(profile),
+                PowerKey = timeline.Supported ? timeline.PowerKey : resolvedVisualKind,
+                Intensity = intensity,
+                StableSeed = resolvedStableSeed,
                 Focused = focused,
                 Start = now,
+                ReleaseAt = now + (timeline.Supported ? timeline.ReleaseAt : 0f),
                 ImpactAt = now + impactDelay,
+                AftermathAt = now + (timeline.Supported ? timeline.AftermathAt : CombatImpactRules.AftermathDelay(profile)),
                 Duration = CombatImpactRules.CastAuraDuration(profile)
             };
             powerCastAuras.Add(aura);
@@ -18770,7 +18999,8 @@ namespace AshenHalls
             int intensity,
             float arrivalDelay = -1f,
             int sequenceIndex = 0,
-            float startDelay = 0f)
+            float startDelay = 0f,
+            int stableSeed = 0)
         {
             if (state == null || state.ReducedMotion) return null;
             CombatPowerTravelVfxPlan plan = CombatPowerTravelVfxRules.PlanFor(
@@ -18781,10 +19011,36 @@ namespace AshenHalls
                 sequenceIndex);
             if (!plan.HasTravel) return null;
 
+            int resolvedStableSeed = stableSeed > 0
+                ? stableSeed
+                : CombatPowerStableSeed(plan.Key, sourceX, sourceY, targetX, targetY, sequenceIndex);
+            CombatPowerAnimationTimeline timeline = CombatPowerAnimationTimelineRules.For(
+                plan.Key,
+                resolvedStableSeed,
+                intensity,
+                false);
             float safeStartDelay = Mathf.Clamp(startDelay, 0f, 0.75f);
-            float duration = arrivalDelay > 0f
-                ? Mathf.Clamp(arrivalDelay, CombatPowerTravelVfxRules.MinimumDurationSeconds, CombatPowerTravelVfxRules.MaximumDurationSeconds)
-                : plan.DurationSeconds;
+            float releaseDelay;
+            float resolvedArrivalDelay;
+            if (timeline.Supported && timeline.HasTravel)
+            {
+                releaseDelay = timeline.ReleaseAt;
+                resolvedArrivalDelay = timeline.ImpactAt;
+            }
+            else
+            {
+                ResolveCombatPowerTravelPhaseDelays(
+                    exactPowerKey,
+                    intensity,
+                    arrivalDelay,
+                    plan.DurationSeconds,
+                    out releaseDelay,
+                    out resolvedArrivalDelay);
+            }
+            float duration = Mathf.Clamp(
+                resolvedArrivalDelay - releaseDelay,
+                CombatPowerTravelVfxRules.MinimumDurationSeconds,
+                CombatPowerTravelVfxRules.MaximumDurationSeconds);
             PowerTravelVfx travel = new PowerTravelVfx
             {
                 SourceX = sourceX,
@@ -18795,21 +19051,73 @@ namespace AshenHalls
                 PowerKey = plan.Key,
                 Intensity = Mathf.Clamp(intensity, 1, 3),
                 SequenceIndex = Mathf.Max(0, sequenceIndex),
-                StableSeed = Mathf.Max(
-                    1,
-                    unchecked(
-                        CombatPowerTravelVfxRules.StableTravelHash(plan.Key, sequenceIndex, 7)
-                        ^ (sourceX * 73856093)
-                        ^ (sourceY * 19349663)
-                        ^ (targetX * 83492791)
-                        ^ (targetY * 297121507)) & int.MaxValue),
-                Start = Time.time + safeStartDelay,
+                StableSeed = resolvedStableSeed,
+                Start = Time.time + releaseDelay + safeStartDelay,
                 Duration = duration
             };
             powerTravelVfx.Add(travel);
             if (powerTravelVfx.Count > 24) powerTravelVfx.RemoveRange(0, powerTravelVfx.Count - 24);
             MarkUiDirty();
             return travel;
+        }
+
+        private static void ResolveCombatPowerTravelPhaseDelays(
+            string exactPowerKey,
+            int intensity,
+            float requestedArrivalDelay,
+            float fallbackTravelDuration,
+            out float releaseDelay,
+            out float arrivalDelay)
+        {
+            releaseDelay = 0f;
+            arrivalDelay = requestedArrivalDelay;
+            CombatPowerSfxPlan audioPlan = default;
+            bool hasExactPlan = false;
+            if (CombatPowerSfxRules.IsSupportedFormula(exactPowerKey))
+            {
+                audioPlan = CombatPowerSfxRules.PlanForFormula(exactPowerKey, intensity);
+                hasExactPlan = true;
+            }
+            else if (CombatPowerSfxRules.IsSupportedAbility(exactPowerKey))
+            {
+                audioPlan = CombatPowerSfxRules.PlanForAbility(exactPowerKey, intensity);
+                hasExactPlan = true;
+            }
+
+            if (hasExactPlan)
+            {
+                if (audioPlan.Release.Enabled) releaseDelay = audioPlan.Release.Delay;
+                if (arrivalDelay <= 0f && audioPlan.Impact.Enabled) arrivalDelay = audioPlan.Impact.Delay;
+            }
+            if (arrivalDelay <= 0f)
+            {
+                arrivalDelay = releaseDelay + Mathf.Max(
+                    CombatPowerTravelVfxRules.MinimumDurationSeconds,
+                    fallbackTravelDuration);
+            }
+
+            float latestRelease = Mathf.Max(
+                0f,
+                arrivalDelay - CombatPowerTravelVfxRules.MinimumDurationSeconds);
+            releaseDelay = Mathf.Clamp(releaseDelay, 0f, latestRelease);
+        }
+
+        private static int CombatPowerStableSeed(
+            string powerKey,
+            int sourceX,
+            int sourceY,
+            int targetX,
+            int targetY,
+            int sequenceIndex)
+        {
+            return Mathf.Max(
+                1,
+                unchecked(
+                    CombatPowerTravelVfxRules.StableTravelHash(powerKey, sequenceIndex, 7)
+                    ^ (sourceX * 73856093)
+                    ^ (sourceY * 19349663)
+                    ^ (targetX * 83492791)
+                    ^ (targetY * 297121507)) & int.MaxValue);
         }
 
         private void ApplyCombatImpactFeedback(
@@ -18875,7 +19183,14 @@ namespace AshenHalls
             {
                 AddEpicBurstDelayed(x, y, color, burstCount, profile.BurstSpeed, impactDelay);
             }
-            if (motif != CombatPowerVisualMotif.Generic)
+            bool stagedAuthoredAftermath = StageCombatPowerAftermath(
+                exactPowerKey,
+                profile,
+                x,
+                y,
+                color,
+                visualIntensity);
+            if (!stagedAuthoredAftermath && motif != CombatPowerVisualMotif.Generic)
             {
                 AddPowerAftermathDelayed(
                     x,
@@ -18894,6 +19209,209 @@ namespace AshenHalls
             }
             StartCombatImpactShake(profile, impactDelay);
             MarkUiDirty();
+        }
+
+        private bool StageCombatPowerAftermath(
+            string exactPowerKey,
+            CombatImpactProfile impactProfile,
+            int x,
+            int y,
+            Color color,
+            int intensity,
+            int sequenceIndex = 0,
+            int stableSeed = 0,
+            float startDelay = -1f)
+        {
+            if (state == null || state.ReducedMotion || string.IsNullOrWhiteSpace(exactPowerKey)) return false;
+            CombatPowerAftermathVfxProfile profile = CombatPowerAftermathVfxRules.ProfileFor(exactPowerKey);
+            if (!profile.HasAftermath) return false;
+
+            PowerCastAura stagedCast = powerCastAuras.LastOrDefault(aura =>
+                aura != null
+                && aura.TargetX == x
+                && aura.TargetY == y
+                && (string.Equals(aura.PowerKey, profile.Key, StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(aura.Kind, exactPowerKey, StringComparison.OrdinalIgnoreCase)));
+            int resolvedStableSeed = stableSeed > 0
+                ? stableSeed
+                : stagedCast != null && stagedCast.StableSeed > 0
+                    ? stagedCast.StableSeed
+                    : CombatPowerStableSeed(profile.Key, x, y, x, y, sequenceIndex);
+            CombatPowerAnimationTimeline timeline = CombatPowerAnimationTimelineRules.For(
+                profile.Key,
+                resolvedStableSeed,
+                intensity,
+                false);
+            float resolvedStartDelay = startDelay >= 0f
+                ? startDelay
+                : timeline.Supported
+                    ? timeline.AftermathAt
+                    : CombatImpactRules.AftermathDelay(impactProfile);
+            float duration = timeline.Supported && timeline.HasAftermath
+                ? timeline.AftermathDuration
+                : profile.DurationSeconds;
+            if (duration <= 0f) return false;
+
+            float now = Time.time;
+            float absoluteStart = now + Mathf.Clamp(resolvedStartDelay, 0f, 1.25f);
+            powerAftermathVfx.Add(new PowerAftermathVfx
+            {
+                X = x,
+                Y = y,
+                Color = color.ToHex(),
+                PowerKey = profile.Key,
+                Intensity = Mathf.Clamp(intensity, 1, 3),
+                SequenceIndex = Mathf.Max(0, sequenceIndex),
+                StableSeed = resolvedStableSeed,
+                Start = absoluteStart,
+                Duration = duration
+            });
+            AddAuthoredAftermathParticles(
+                profile,
+                x,
+                y,
+                color,
+                intensity,
+                sequenceIndex,
+                resolvedStableSeed,
+                absoluteStart,
+                duration);
+            if (powerAftermathVfx.Count > 24)
+            {
+                powerAftermathVfx.RemoveRange(0, powerAftermathVfx.Count - 24);
+            }
+            MarkUiDirty();
+            return true;
+        }
+
+        private void AddAuthoredAftermathParticles(
+            CombatPowerAftermathVfxProfile profile,
+            int x,
+            int y,
+            Color color,
+            int intensity,
+            int sequenceIndex,
+            int stableSeed,
+            float absoluteStart,
+            float aftermathDuration)
+        {
+            if (state == null || state.ReducedMotion || !profile.HasAftermath) return;
+            int planSample = unchecked(stableSeed ^ (sequenceIndex * 397));
+            CombatPowerAftermathVfxPlan plan = CombatPowerAftermathVfxRules.PlanFor(
+                profile.Key,
+                intensity,
+                0f,
+                false,
+                planSample);
+            int count = Mathf.Clamp(plan.ParticleCount, 6, CombatPowerAftermathVfxRules.MaximumParticleCount);
+            for (int i = 0; i < count; i++)
+            {
+                int sample = unchecked(planSample + i * 1013);
+                float angle = Mathf.Lerp(
+                    0f,
+                    Mathf.PI * 2f,
+                    CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 0));
+                float speed = Mathf.Lerp(
+                    0.16f,
+                    0.82f + intensity * 0.12f,
+                    CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 1));
+                float vx = Mathf.Cos(angle) * speed;
+                float vy = Mathf.Sin(angle) * speed;
+                float gravity = Mathf.Lerp(
+                    0.04f,
+                    0.34f,
+                    CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 2));
+                float size = Mathf.Lerp(
+                    0.038f,
+                    0.090f,
+                    CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 3));
+                float duration = Mathf.Lerp(
+                    Mathf.Min(0.44f, aftermathDuration),
+                    aftermathDuration,
+                    CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 4));
+                float spawnOffset = Mathf.Lerp(
+                    0f,
+                    0.16f,
+                    CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 12));
+                string kind = "mote";
+                Color particleColor = color;
+
+                switch (profile.Kind)
+                {
+                    case CombatPowerAftermathKind.Fireball:
+                    case CombatPowerAftermathKind.Meteor:
+                        kind = i % 4 == 0 ? "smoke" : "ember";
+                        if (kind == "smoke")
+                        {
+                            vx *= 0.30f;
+                            vy = -Mathf.Lerp(0.18f, 0.52f, CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 5));
+                            gravity = -0.04f;
+                            size *= 2.15f;
+                            particleColor = Color.Lerp(color, retroBlack, 0.74f);
+                        }
+                        else
+                        {
+                            vy -= 0.18f;
+                            gravity += 0.34f;
+                            particleColor = Color.Lerp(color, gold, 0.48f);
+                        }
+                        break;
+                    case CombatPowerAftermathKind.Frost:
+                    case CombatPowerAftermathKind.Web:
+                        kind = "shard";
+                        particleColor = Color.Lerp(color, cursorWhite, 0.42f);
+                        break;
+                    case CombatPowerAftermathKind.Lightning:
+                    case CombatPowerAftermathKind.Mend:
+                    case CombatPowerAftermathKind.Ward:
+                    case CombatPowerAftermathKind.Sun:
+                        kind = i % 3 == 0 ? "spark" : "glint";
+                        vy -= 0.22f;
+                        gravity = Mathf.Lerp(-0.06f, 0.12f, CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 6));
+                        particleColor = Color.Lerp(color, cursorWhite, 0.56f);
+                        break;
+                    case CombatPowerAftermathKind.Nature:
+                        kind = "leaf";
+                        vx *= 0.60f;
+                        vy -= 0.12f;
+                        particleColor = Color.Lerp(color, moss, 0.46f);
+                        break;
+                    case CombatPowerAftermathKind.PoisonDream:
+                        kind = i % 3 == 0 ? "glint" : "smoke";
+                        vx *= 0.34f;
+                        vy = -Mathf.Lerp(0.08f, 0.36f, CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 7));
+                        gravity = -0.02f;
+                        size *= kind == "smoke" ? 1.72f : 0.82f;
+                        break;
+                    case CombatPowerAftermathKind.Martial:
+                        kind = i % 3 == 0 ? "spark" : "streak";
+                        gravity += 0.18f;
+                        particleColor = Color.Lerp(color, i % 2 == 0 ? gold : cursorWhite, 0.34f);
+                        break;
+                    default:
+                        kind = i % 4 == 0 ? "streak" : "mote";
+                        vy -= 0.14f;
+                        gravity = Mathf.Lerp(-0.04f, 0.14f, CombatPowerAftermathVfxRules.StableAftermathSample(profile.Key, sample, 8));
+                        particleColor = Color.Lerp(color, cursorWhite, 0.20f);
+                        break;
+                }
+
+                particles.Add(new ParticleDot
+                {
+                    X = x + 0.5f + CombatPowerAftermathVfxRules.StableAftermathSignedSample(profile.Key, sample, 9) * 0.08f,
+                    Y = y + 0.5f + CombatPowerAftermathVfxRules.StableAftermathSignedSample(profile.Key, sample, 10) * 0.08f,
+                    VX = vx,
+                    VY = vy,
+                    Color = particleColor.ToHex(),
+                    Kind = kind,
+                    Size = size,
+                    Gravity = gravity,
+                    Seed = CombatPowerAftermathVfxRules.StableAftermathHash(profile.Key, sample, 11),
+                    Start = absoluteStart + spawnOffset,
+                    Duration = Mathf.Max(0.24f, duration - spawnOffset)
+                });
+            }
+            TrimCombatParticles();
         }
 
         private int ApplyCombatImpactAudioFeedback(
@@ -18959,6 +19477,7 @@ namespace AshenHalls
             powerCastAuras.Clear();
             powerImpactEchoes.Clear();
             powerTravelVfx.Clear();
+            powerAftermathVfx.Clear();
             combatUnitPresentationBeats.Clear();
             combatShakeStarted = 0f;
             combatShakeUntil = 0f;
@@ -19054,6 +19573,7 @@ namespace AshenHalls
             powerImpactEchoes.Clear();
             powerCastAuras.Clear();
             powerTravelVfx.Clear();
+            powerAftermathVfx.Clear();
             combatUnitPresentationBeats.Clear();
             float now = Time.time;
             CombatUnit active = CurrentUnit();
@@ -19261,121 +19781,79 @@ namespace AshenHalls
             string kind = CombatPowerVisualRules.AftermathParticleKind(motif);
             float speed = CombatPowerVisualRules.AftermathParticleSpeed(motif, intensity);
             float start = CombatEffectStart(delay);
+            string stableKey = "legacy-" + motif.ToString().ToLowerInvariant();
+            int stableBase = unchecked(
+                x * 73856093
+                ^ y * 19349663
+                ^ Mathf.Clamp(intensity, 1, 3) * 83492791
+                ^ (int)motif * 297121507);
             for (int i = 0; i < count; i++)
             {
-                float angle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
-                float velocity = UnityEngine.Random.Range(speed * 0.42f, speed);
+                int sample = unchecked(stableBase + i * 1013);
+                float angle = Mathf.Lerp(0f, Mathf.PI * 2f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 0));
+                float velocity = Mathf.Lerp(speed * 0.42f, speed, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 1));
                 float vx = Mathf.Cos(angle) * velocity;
                 float vy = Mathf.Sin(angle) * velocity;
-                float gravity = UnityEngine.Random.Range(0.10f, 0.34f);
-                float size = UnityEngine.Random.Range(0.045f, 0.095f);
-                float duration = UnityEngine.Random.Range(0.56f, 0.92f);
+                float gravity = Mathf.Lerp(0.10f, 0.34f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 2));
+                float size = Mathf.Lerp(0.045f, 0.095f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 3));
+                float duration = Mathf.Lerp(0.56f, 0.92f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 4));
                 Color particleColor = color;
 
                 switch (kind)
                 {
                     case "smoke":
                         vx *= 0.34f;
-                        vy = UnityEngine.Random.Range(-0.46f, -0.16f);
-                        gravity = UnityEngine.Random.Range(-0.08f, 0.04f);
-                        size = UnityEngine.Random.Range(0.12f, 0.23f);
-                        duration = UnityEngine.Random.Range(0.74f, 1.12f);
+                        vy = Mathf.Lerp(-0.46f, -0.16f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 5));
+                        gravity = Mathf.Lerp(-0.08f, 0.04f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 6));
+                        size = Mathf.Lerp(0.12f, 0.23f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 7));
+                        duration = Mathf.Lerp(0.74f, 1.12f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 8));
                         particleColor = Color.Lerp(color, retroBlack, 0.72f);
                         break;
                     case "ember":
-                        vy -= UnityEngine.Random.Range(0.16f, 0.38f);
-                        gravity = UnityEngine.Random.Range(0.34f, 0.68f);
-                        particleColor = Color.Lerp(color, gold, UnityEngine.Random.Range(0.22f, 0.62f));
+                        vy -= Mathf.Lerp(0.16f, 0.38f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 5));
+                        gravity = Mathf.Lerp(0.34f, 0.68f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 6));
+                        particleColor = Color.Lerp(color, gold, Mathf.Lerp(0.22f, 0.62f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 7)));
                         break;
                     case "shard":
-                        gravity = UnityEngine.Random.Range(0.18f, 0.42f);
-                        size = UnityEngine.Random.Range(0.055f, 0.11f);
-                        particleColor = Color.Lerp(color, cursorWhite, UnityEngine.Random.Range(0.20f, 0.52f));
+                        gravity = Mathf.Lerp(0.18f, 0.42f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 5));
+                        size = Mathf.Lerp(0.055f, 0.11f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 6));
+                        particleColor = Color.Lerp(color, cursorWhite, Mathf.Lerp(0.20f, 0.52f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 7)));
                         break;
                     case "glint":
                         vx *= 0.62f;
-                        vy -= UnityEngine.Random.Range(0.18f, 0.42f);
-                        gravity = UnityEngine.Random.Range(-0.08f, 0.12f);
-                        size = UnityEngine.Random.Range(0.040f, 0.078f);
-                        particleColor = Color.Lerp(color, cursorWhite, UnityEngine.Random.Range(0.36f, 0.72f));
+                        vy -= Mathf.Lerp(0.18f, 0.42f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 5));
+                        gravity = Mathf.Lerp(-0.08f, 0.12f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 6));
+                        size = Mathf.Lerp(0.040f, 0.078f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 7));
+                        particleColor = Color.Lerp(color, cursorWhite, Mathf.Lerp(0.36f, 0.72f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 8)));
                         break;
                     case "leaf":
                         vx *= 0.56f;
-                        vy -= UnityEngine.Random.Range(0.08f, 0.28f);
-                        gravity = UnityEngine.Random.Range(0.08f, 0.22f);
-                        size = UnityEngine.Random.Range(0.052f, 0.096f);
-                        particleColor = Color.Lerp(color, moss, UnityEngine.Random.Range(0.18f, 0.52f));
+                        vy -= Mathf.Lerp(0.08f, 0.28f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 5));
+                        gravity = Mathf.Lerp(0.08f, 0.22f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 6));
+                        size = Mathf.Lerp(0.052f, 0.096f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 7));
+                        particleColor = Color.Lerp(color, moss, Mathf.Lerp(0.18f, 0.52f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 8)));
                         break;
                     case "streak":
-                        gravity = UnityEngine.Random.Range(0.04f, 0.20f);
-                        size = UnityEngine.Random.Range(0.042f, 0.072f);
-                        duration = UnityEngine.Random.Range(0.42f, 0.68f);
-                        particleColor = Color.Lerp(color, cursorWhite, UnityEngine.Random.Range(0.12f, 0.38f));
+                        gravity = Mathf.Lerp(0.04f, 0.20f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 5));
+                        size = Mathf.Lerp(0.042f, 0.072f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 6));
+                        duration = Mathf.Lerp(0.42f, 0.68f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 7));
+                        particleColor = Color.Lerp(color, cursorWhite, Mathf.Lerp(0.12f, 0.38f, CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 8)));
                         break;
                 }
 
                 particles.Add(new ParticleDot
                 {
-                    X = x + 0.5f + UnityEngine.Random.Range(-0.06f, 0.06f),
-                    Y = y + 0.5f + UnityEngine.Random.Range(-0.06f, 0.06f),
+                    X = x + 0.5f + CombatPowerAftermathVfxRules.StableAftermathSignedSample(stableKey, sample, 9) * 0.06f,
+                    Y = y + 0.5f + CombatPowerAftermathVfxRules.StableAftermathSignedSample(stableKey, sample, 10) * 0.06f,
                     VX = vx,
                     VY = vy,
                     Color = particleColor.ToHex(),
                     Kind = kind,
                     Size = size,
                     Gravity = gravity,
-                    Seed = UnityEngine.Random.Range(0, 1000000),
-                    Start = start + UnityEngine.Random.Range(0f, 0.08f),
+                    Seed = CombatPowerAftermathVfxRules.StableAftermathHash(stableKey, sample, 11),
+                    Start = start + CombatPowerAftermathVfxRules.StableAftermathSample(stableKey, sample, 12) * 0.08f,
                     Duration = duration
-                });
-            }
-            TrimCombatParticles();
-        }
-
-        private void AddFireballAftermathDelayed(int x, int y, Color color, float delay)
-        {
-            if (state == null || state.ReducedMotion) return;
-            float start = CombatEffectStart(delay);
-            Color smoke = Color.Lerp(color, retroBlack, 0.78f);
-            for (int i = 0; i < 7; i++)
-            {
-                int sampleIndex = i + x * 37 + y * 101;
-                particles.Add(new ParticleDot
-                {
-                    X = x + 0.5f + MageWarlockSpellVfxRules.StableVisualSignedSample("fireball", sampleIndex, 0) * 0.12f,
-                    Y = y + 0.5f + Mathf.Lerp(-0.06f, 0.10f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 1)),
-                    VX = MageWarlockSpellVfxRules.StableVisualSignedSample("fireball", sampleIndex, 2) * 0.18f,
-                    VY = Mathf.Lerp(-0.58f, -0.22f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 3)),
-                    Color = smoke.ToHex(),
-                    Kind = "smoke",
-                    Size = Mathf.Lerp(0.16f, 0.28f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 4)),
-                    Gravity = Mathf.Lerp(-0.10f, 0.02f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 5)),
-                    Seed = MageWarlockSpellVfxRules.StableVisualHash("fireball", sampleIndex, 6),
-                    Start = start + Mathf.Lerp(0.08f, 0.22f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 7)),
-                    Duration = Mathf.Lerp(0.72f, 1.08f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 8))
-                });
-            }
-            for (int i = 0; i < 8; i++)
-            {
-                int sampleIndex = 97 + i + x * 43 + y * 109;
-                float angle = Mathf.Lerp(
-                    Mathf.PI * 1.10f,
-                    Mathf.PI * 1.90f,
-                    MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 0));
-                float velocity = Mathf.Lerp(0.42f, 1.12f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 1));
-                particles.Add(new ParticleDot
-                {
-                    X = x + 0.5f,
-                    Y = y + 0.5f,
-                    VX = Mathf.Cos(angle) * velocity,
-                    VY = Mathf.Sin(angle) * velocity,
-                    Color = Color.Lerp(color, gold, 0.58f).ToHex(),
-                    Kind = "ember",
-                    Size = Mathf.Lerp(0.045f, 0.085f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 2)),
-                    Gravity = Mathf.Lerp(0.42f, 0.78f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 3)),
-                    Seed = MageWarlockSpellVfxRules.StableVisualHash("fireball", sampleIndex, 4),
-                    Start = start,
-                    Duration = Mathf.Lerp(0.62f, 0.94f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 5))
                 });
             }
             TrimCombatParticles();
@@ -19390,6 +19868,24 @@ namespace AshenHalls
         private void AddBeam(int fromX, int fromY, int toX, int toY, Color color, string kind = "shot")
         {
             AddBeamDelayed(fromX, fromY, toX, toY, color, kind, 0f);
+        }
+
+        private static bool HasAuthoredPowerTravel(string exactPowerKey)
+        {
+            return CombatPowerTravelVfxRules.ProfileFor(exactPowerKey).HasTravel;
+        }
+
+        private void AddLegacyPrimaryPowerBeam(
+            string exactPowerKey,
+            int fromX,
+            int fromY,
+            int toX,
+            int toY,
+            Color color,
+            string kind)
+        {
+            if (HasAuthoredPowerTravel(exactPowerKey)) return;
+            AddBeam(fromX, fromY, toX, toY, color, kind);
         }
 
         private void AddBeamDelayed(int fromX, int fromY, int toX, int toY, Color color, string kind, float delay)

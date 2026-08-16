@@ -3,6 +3,12 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.17.0 title menu icon contract
+
+`title-menu-icon-atlas-runtime-v2.16.0.png` is the dedicated transparent title-menu icon strip. It is an exact 1280 by 256 RGBA image arranged as five 256-pixel square cells in stable row-major order: Continue scroll and chevron, New Game road gate and spark, Settings eight-tooth cog, Exit arched door and outward arrow, and development-only Beta Lab flask and spark. The bold silhouettes, dark outlines, and clear cell gutters are designed to remain readable when the parchment menu scales down.
+
+`Tools/BuildTitleMenuIconAtlas.ps1` is the deterministic repo-native authoring source. A repeat generation produces SHA-256 `B4AA9DC263E70805C3276E36541C0E81316AF80B93C8DE594915BB04CFEFD278`; the accepted atlas is 59.31% transparent, and its five cells contain 42.44%, 46.37%, 39.86%, 33.65%, and 41.14% visible pixels. Runtime rejects any replacement that does not match the exact geometry, then falls back to the older tavern UI sheet. The approved manifest pin and `title-menu-icon-atlas-runtime-` package family select only this runtime PNG from the locally excluded ArtReferences workspace.
+
 ## Active v2.9.0 combat power contract - automated, package, and visual gates passed
 
 The v2.9 power-art set exact-pins three runtime sheets. `ability-icon-atlas-runtime-v2.9.0.png` is an RGBA 4 by 7 sheet that preserves cells 0-23, maps Sunder, Shadowstep, and Quick Shot to cells 24-26, and keeps cell 27 transparent. `signature-spell-icon-atlas-runtime-v2.9.0.png` remains an RGBA 7 by 8 sheet, preserves cells 0-50, and maps Dawn Pulse, Cinderstorm, Grave Hook, Soul Veil, and Ashen Curse to cells 51-55. `combat-spell-effects-atlas-runtime-v2.9.0.png` is an exact RGBA 1280 by 1280, 4 by 4 sheet with 320-pixel cells, at most 280 by 280 visible content per cell, and at least 20 transparent pixels on every side at alpha greater than 8.

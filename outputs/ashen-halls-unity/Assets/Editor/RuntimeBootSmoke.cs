@@ -201,6 +201,7 @@ namespace AshenHalls.Editor
                 Image authoredFocus = GameObject.Find("Focused Charter Ribbon")?.GetComponent<Image>();
                 Texture2D liveTitleMenuScrollAtlas = GetPrivateField<Texture2D>(game, "titleMenuScrollArt");
                 Texture2D liveTitleMenuFocusAtlas = GetPrivateField<Texture2D>(game, "titleMenuFocusArt");
+                Texture2D liveTitleMenuIconAtlas = GetPrivateField<Texture2D>(game, "titleMenuIconAtlas");
                 Assert(authoredCharter != null && authoredCharter.type == Image.Type.Sliced && authoredCharter.fillCenter && !authoredCharter.raycastTarget, "title menu renders its nonblocking sliced Ashen Road charter");
                 Assert(authoredCharter.sprite != null && authoredCharter.sprite.border == TitleScreenPresentationRules.MenuScrollSpriteBorder, "live title charter uses the approved nine-slice border");
                 Assert(authoredCharter.sprite.rect == new Rect(0f, 0f, 1280f, 1280f) && Mathf.Approximately(authoredCharter.sprite.pixelsPerUnit, 1500f), "live title charter keeps its exact source crop and slice scale");
@@ -209,6 +210,11 @@ namespace AshenHalls.Editor
                 Assert(authoredFocus.sprite.rect == TitleScreenPresentationRules.MenuFocusSpriteRect && Mathf.Approximately(authoredFocus.sprite.pixelsPerUnit, 1200f), "live title focus ribbon keeps its exact cropped source and slice scale");
                 Assert(ReferenceEquals(authoredCharter.sprite.texture, liveTitleMenuScrollAtlas) && ReferenceEquals(authoredFocus.sprite.texture, liveTitleMenuFocusAtlas), "live title sprites retain the externally owned approved textures");
                 Assert(GameObject.Find("Aged Parchment Sheet") == null && GameObject.Find("Top Parchment Roll") == null, "authored title art suppresses the opaque procedural scroll layers");
+                Image hearthBloom = GameObject.Find("Hearth Bloom")?.GetComponent<Image>();
+                Image hearthFirebox = GameObject.Find("Hearth Firebox Flicker")?.GetComponent<Image>();
+                Assert(hearthBloom != null && hearthFirebox != null && !hearthBloom.raycastTarget && !hearthFirebox.raycastTarget, "live title keeps noninteractive room and firebox hearth glows");
+                Assert(hearthBloom.sprite != null && ReferenceEquals(hearthBloom.sprite, hearthFirebox.sprite), "room and firebox flicker reuse the same soft radial glow");
+                Assert(hearthFirebox.rectTransform.rect.width < hearthBloom.rectTransform.rect.width && hearthFirebox.rectTransform.rect.height < hearthBloom.rectTransform.rect.height, "firebox flicker stays localized inside the broad hearth bloom");
                 TavernScreen liveTavernScreen = UnityEngine.Object.FindFirstObjectByType<TavernScreen>();
                 MethodInfo titleUpdate = typeof(TavernScreen).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic);
                 Assert(liveTavernScreen != null && titleUpdate != null, "live title screen exposes its deterministic focus presentation update");
@@ -217,19 +223,41 @@ namespace AshenHalls.Editor
                     .Where(image => image != null && image.name == "Focused Charter Ribbon")
                     .ToArray();
                 Image[] selectedFocusRibbons = liveFocusRibbons.Where(image => image.color.a >= 0.99f).ToArray();
-                Assert(liveFocusRibbons.Length >= 3 && selectedFocusRibbons.Length == 1, "exactly one live title choice presents its opaque focus ribbon");
+                Assert(liveFocusRibbons.Length == 5 && selectedFocusRibbons.Length == 1, "four core choices plus development Beta Lab render with exactly one opaque focus ribbon");
+                Image[] liveTitleIcons = UnityEngine.Object.FindObjectsByType<Image>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                    .Where(image => image != null && image.name == "Relic Icon")
+                    .ToArray();
+                Assert(liveTitleIcons.Length == 5 && liveTitleIcons.All(image => image.sprite != null && !image.raycastTarget), "every live title action keeps one nonblocking purpose-built glyph");
+                Assert(liveTitleIcons.All(image => ReferenceEquals(image.sprite.texture, liveTitleMenuIconAtlas)), "all live title glyphs come from the dedicated approved atlas");
+                Button liveContinue = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                    .SingleOrDefault(button => button != null && button.name == "Continue");
+                Button liveBetaLab = UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                    .SingleOrDefault(button => button != null && button.name == "Beta Lab");
+                bool liveSaveExists = InvokePrivate<bool>(game, "HasSavedGame");
+                Assert(liveContinue != null && liveContinue.interactable == TavernMenuRules.EnableContinue(liveSaveExists), "Continue remains visible and accurately communicates save availability");
+                Assert(liveBetaLab != null && liveBetaLab.interactable, "development title scroll exposes the direct Beta Lab action");
+                FieldInfo liveTitleBindingsField = typeof(TavernScreen).GetField("bindings", BindingFlags.Instance | BindingFlags.NonPublic);
+                TavernScreenBindings liveTitleBindings = liveTitleBindingsField?.GetValue(liveTavernScreen) as TavernScreenBindings;
+                Assert(liveTitleBindings?.BetaLab != null && liveTitleBindings.BetaLab.Method.Name == "StartBetaCombatLabFromTitle", "development Beta Lab row dispatches through the save-blocked title lab path");
                 Image selectedFocusRibbon = selectedFocusRibbons[0];
                 Text selectedCursor = selectedFocusRibbon.transform.parent.GetComponentsInChildren<Text>(true).FirstOrDefault(text => text.name == "Forge Cursor");
                 Image selectedRule = selectedFocusRibbon.transform.parent.GetComponentsInChildren<Image>(true).FirstOrDefault(image => image.name == "Focused Forge Rule");
                 Assert(selectedCursor != null && selectedCursor.color.a > 0.5f, "selected title choice keeps a visible non-color forge cursor");
                 Assert(selectedRule != null && selectedRule.color.a > 0.5f, "selected title choice keeps a visible non-color underline cue");
+                AssertTitleMenuFocusReducedMotionRuntime(game, liveTavernScreen, titleUpdate, selectedCursor);
                 AssertEventSystemCount(1);
                 AssertNoLaunchError(game);
                 AssertMode(game, GameMode.Tavern, "startup reaches Tavern");
 
+                liveBetaLab.onClick.Invoke();
+                InvokePrivate(game, "LateUpdate");
+                AssertMode(game, GameMode.Combat, "development Beta Lab title row reaches Combat");
+                Assert(GetPrivateField<bool>(game, "betaLabMode") && GetPrivateField<bool>(game, "labSaveBlocked"), "development Beta Lab title row enters the intended save-blocked lab state");
+
                 InvokePrivate(game, "StartNewGame");
                 InvokePrivate(game, "LateUpdate");
                 AssertMode(game, GameMode.Muster, "New Game reaches Muster");
+                Assert(!GetPrivateField<bool>(game, "betaLabMode") && !GetPrivateField<bool>(game, "labSaveBlocked"), "New Game resets the temporary Beta Lab state");
                 AssertActiveObject("Party Setup Canvas");
 
                 // Runtime smoke must exercise one stable campaign topology.
@@ -1398,6 +1426,7 @@ namespace AshenHalls.Editor
             Texture2D tavernUiAtlas = GetPrivateField<Texture2D>(game, "tavernUiAtlas");
             Texture2D titleMenuScrollAtlas = GetPrivateField<Texture2D>(game, "titleMenuScrollArt");
             Texture2D titleMenuFocusAtlas = GetPrivateField<Texture2D>(game, "titleMenuFocusArt");
+            Texture2D titleMenuIconAtlas = GetPrivateField<Texture2D>(game, "titleMenuIconAtlas");
             Texture2D roamingThreatAtlas = GetPrivateField<Texture2D>(game, "roamingThreatAtlas");
             Texture2D regionalLandmarkAtlas = GetPrivateField<Texture2D>(game, "worldMapRegionLandmarkAtlas");
             Texture2D areaSetpieceAtlas = GetPrivateField<Texture2D>(game, "worldAreaSetpieceAtlas");
@@ -1449,8 +1478,8 @@ namespace AshenHalls.Editor
             Assert(tavernBackdropAtlas.name.IndexOf("v2.4.0", StringComparison.OrdinalIgnoreCase) >= 0, "title screen uses the pinned Grand Hearth v2.4 painting");
             Assert(tavernBackdropAtlas.width == 1672 && tavernBackdropAtlas.height == 941, "Grand Hearth title painting keeps its authored widescreen canvas");
             Assert(splashAtlas != null && splashAtlas == tavernBackdropAtlas, "startup uses the same current tavern art in editor and packaged player");
-            Assert(tavernUiAtlas != null, "Grand Hearth menu and fireplace icon atlas is loaded");
-            Assert(tavernUiAtlas.name.IndexOf("v1.5.9", StringComparison.OrdinalIgnoreCase) >= 0, "title choices and the playable hearth reuse the pinned tavern icon contract");
+            Assert(tavernUiAtlas != null, "Grand Hearth fireplace and fallback icon atlas is loaded");
+            Assert(tavernUiAtlas.name.IndexOf("v1.5.9", StringComparison.OrdinalIgnoreCase) >= 0, "the playable hearth and title fallback retain the pinned tavern icon contract");
             Assert(tavernUiAtlas.width == 1402 && tavernUiAtlas.height == 1122, "tavern icon atlas keeps its approved dimensions");
             Assert(titleMenuScrollAtlas != null && titleMenuScrollAtlas.name == RuntimeArtManifest.TitleMenuScroll, "title menu loads the pinned Ashen Road charter");
             Assert(titleMenuScrollAtlas.width == 1280 && titleMenuScrollAtlas.height == 1280, "title charter keeps its exact square nine-slice source");
@@ -1460,6 +1489,10 @@ namespace AshenHalls.Editor
             Assert(titleMenuFocusAtlas.width == 2048 && titleMenuFocusAtlas.height == 768, "title focus ribbon keeps its exact wide authoring source");
             Assert(titleMenuFocusAtlas.mipmapCount == 1, "title focus ribbon avoids blurry UI mipmaps");
             Assert(titleMenuFocusAtlas.filterMode == FilterMode.Bilinear && titleMenuFocusAtlas.wrapMode == TextureWrapMode.Clamp, "title focus ribbon uses smooth clamped UI sampling");
+            Assert(titleMenuIconAtlas != null && titleMenuIconAtlas.name == RuntimeArtManifest.TitleMenuIconAtlas, "title menu loads the pinned purpose-built glyph strip");
+            Assert(TitleScreenPresentationRules.SupportsMenuIconArt(titleMenuIconAtlas), "title glyph strip keeps its exact 5x1 runtime geometry");
+            Assert(titleMenuIconAtlas.mipmapCount == 1, "small title glyphs avoid blurry UI mipmaps");
+            Assert(titleMenuIconAtlas.filterMode == FilterMode.Bilinear && titleMenuIconAtlas.wrapMode == TextureWrapMode.Clamp, "title glyph strip uses smooth clamped UI sampling");
             Assert(InvokePrivate<int>(game, "WorldMapTokenSpriteIndex", "shield") == 1, "shield party token uses its authored shield cell");
             Assert(InvokePrivate<int>(game, "CharacterCombatAtlasIndex", " ", null, "shield") == 0, "legacy blank class still resolves to the warrior sprite");
             Assert(state?.Map != null, "exploration self-test has a generated map");
@@ -3949,6 +3982,7 @@ namespace AshenHalls.Editor
             Texture2D supportHexSpellVfx = GetPrivateField<Texture2D>(game, "supportHexSpellVfxAtlas");
             Texture2D classSkillVfx = GetPrivateField<Texture2D>(game, "classSkillVfxAtlas");
             Texture2D combatPowerTravelVfx = GetPrivateField<Texture2D>(game, "combatPowerTravelVfxAtlas");
+            Texture2D combatPowerAftermathVfx = GetPrivateField<Texture2D>(game, "combatPowerAftermathVfxAtlas");
             Assert(combatTerrain != null && InvokePrivate<bool>(game, "IsCombatTerrainAtlas"), "combat terrain atlas passes the production guard for authored hazards");
             Assert(koboldCombatTerrain != null && InvokePrivate<bool>(game, "IsKoboldCombatTerrainAtlas"), "semantic field atlas passes the production guard for gas, wards, and rituals");
             Assert(biomeProps != null && InvokePrivate<bool>(game, "IsWorldMapBiomePropAtlas"), "transparent biome prop atlas passes the production guard for combat cover");
@@ -3993,6 +4027,12 @@ namespace AshenHalls.Editor
                 && combatPowerTravelVfx.height == 1280
                 && InvokePrivate<bool>(game, "IsCombatPowerTravelVfxAtlas"),
                 "runtime loads the pinned 1280x1280 combat-power travel VFX atlas through its production guard");
+            Assert(combatPowerAftermathVfx != null
+                && combatPowerAftermathVfx.name == RuntimeArtManifest.CombatPowerAftermathVfxAtlas
+                && combatPowerAftermathVfx.width == 1280
+                && combatPowerAftermathVfx.height == 1280
+                && InvokePrivate<bool>(game, "IsCombatPowerAftermathVfxAtlas"),
+                "runtime loads the pinned 1280x1280 combat-power aftermath VFX atlas through its production guard");
             Assert(InvokePrivate<int>(game, "CombatCoverBiomePropIndex", "tree") == 0, "combat tree cover resolves transparent authored world art");
             Assert(InvokePrivate<int>(game, "CombatCoverBiomePropIndex", "stone") == 8, "combat stone cover resolves transparent authored rock art");
             Point gasProbe = new Point(0, 0, "gas", 3);
@@ -4165,7 +4205,10 @@ namespace AshenHalls.Editor
                 && !string.IsNullOrWhiteSpace(hud.TargetCardTitleForTest)
                 && hud.MenuVisibleForTest,
                 "rendered combat rail keeps the active portrait, inspect context, and Menu entry visible");
-            Assert(hud.VisibleTurnChipCountForTest == 6, "rendered initiative rail exposes six distinct turn chips");
+            int expectedRenderedTurnChips = CombatHudScreenLayout.TurnChipCapacity(
+                CombatHudScreenLayout.SideRailWidth(Screen.width));
+            Assert(hud.VisibleTurnChipCountForTest == expectedRenderedTurnChips,
+                "rendered initiative rail exposes its adaptive readable turn-chip capacity");
             Assert(hud.CommandCapacityForTest == hudView.Commands.Count, "combat command rendering capacity follows the model count");
             Assert(hudView.Commands.All(command => hud.CommandInputSelectableForTest(command.Mode)),
                 "all combat commands remain focusable so unavailable reasons are keyboard/controller accessible");
@@ -4927,6 +4970,8 @@ namespace AshenHalls.Editor
             stagedBeams.Clear();
             List<PowerTravelVfx> stagedPowerTravel = GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx");
             stagedPowerTravel.Clear();
+            List<PowerAftermathVfx> stagedPowerAftermath = GetPrivateField<List<PowerAftermathVfx>>(game, "powerAftermathVfx");
+            stagedPowerAftermath.Clear();
             List<PowerImpactEcho> impactEchoes = GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes");
             impactEchoes.Clear();
             List<PowerCastAura> castAuras = GetPrivateField<List<PowerCastAura>>(game, "powerCastAuras");
@@ -5068,6 +5113,7 @@ namespace AshenHalls.Editor
             stagedFloats.Clear();
             stagedBeams.Clear();
             stagedPowerTravel.Clear();
+            stagedPowerAftermath.Clear();
             impactEchoes.Clear();
             castAuras.Clear();
             stagedGlyphs.Clear();
@@ -5086,16 +5132,52 @@ namespace AshenHalls.Editor
                 && stagedFireballTravel[0].SourceX == active.X
                 && stagedFireballTravel[0].SourceY == active.Y
                 && stagedFireballTravel[0].TargetX == spellTarget.X
-                && stagedFireballTravel[0].TargetY == spellTarget.Y
-                && stagedFireballTravel[0].Start <= castStarted + 0.04f,
-                "Fireball stages exactly one source-to-target authored travel effect before impact feedback");
+                && stagedFireballTravel[0].TargetY == spellTarget.Y,
+                "Fireball stages exactly one source-to-target authored travel effect");
             Assert(!stagedBeams.Any(value => value.Kind == "fireball"),
                 "Fireball no longer duplicates its authored travel with the legacy beam renderer");
             PowerTravelVfx stagedFireball = stagedFireballTravel[0];
             CombatImpactProfile stagedFireballProfile = CombatImpactRules.ForFormula(fireball);
-            Assert(Math.Abs(stagedFireball.Duration - stagedFireballProfile.ImpactDelay) < 0.0001f
-                && stagedFireball.StableSeed != 0,
-                "Fireball authored travel has a stable seed and lands on the canonical impact beat");
+            PowerCastAura stagedFireballAura = castAuras.LastOrDefault(aura =>
+                aura != null
+                && string.Equals(aura.PowerKey, "FBL", StringComparison.OrdinalIgnoreCase)
+                && aura.SourceX == active.X
+                && aura.SourceY == active.Y
+                && aura.TargetX == spellTarget.X
+                && aura.TargetY == spellTarget.Y);
+            Assert(stagedFireballAura != null, "focused Fireball stages one exact-key caster-to-target aura");
+            CombatPowerAnimationTimeline stagedFireballTravelTimeline = CombatPowerAnimationTimelineRules.ForFormula(
+                fireball,
+                stagedFireball.StableSeed,
+                stagedFireball.Intensity,
+                false);
+            Assert(stagedFireballTravelTimeline.Supported
+                && stagedFireballTravelTimeline.HasTravel
+                && stagedFireball.StableSeed != 0
+                && Math.Abs(stagedFireball.Start - (stagedFireballAura.Start + stagedFireballTravelTimeline.ReleaseAt)) < 0.0001f
+                && Math.Abs(stagedFireball.Start + stagedFireball.Duration - (stagedFireballAura.Start + stagedFireballTravelTimeline.ImpactAt)) < 0.0001f,
+                "Fireball authored travel begins on its exact release beat and lands on its exact impact beat");
+            PowerAftermathVfx[] stagedFireballAftermath = stagedPowerAftermath
+                .Where(value => string.Equals(value.PowerKey, "FBL", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            Assert(stagedFireballAftermath.Length == 1, "Fireball stages exactly one authored aftermath effect");
+            PowerAftermathVfx stagedFireballTail = stagedFireballAftermath[0];
+            CombatPowerAftermathVfxProfile stagedFireballAftermathProfile = CombatPowerAftermathVfxRules.ProfileForFormula(fireball.Code);
+            CombatPowerAnimationTimeline stagedFireballAftermathTimeline = CombatPowerAnimationTimelineRules.ForFormula(
+                fireball,
+                stagedFireballTail.StableSeed,
+                stagedFireballTail.Intensity,
+                false);
+            Assert(stagedFireballAftermathProfile.HasAftermath
+                && stagedFireballAftermathProfile.AtlasCell == (int)CombatPowerAftermathKind.Fireball
+                && string.Equals(stagedFireballTail.PowerKey, stagedFireballAftermathProfile.Key, StringComparison.OrdinalIgnoreCase)
+                && stagedFireballTail.X == spellTarget.X
+                && stagedFireballTail.Y == spellTarget.Y
+                && stagedFireballTail.Duration > 0f
+                && stagedFireballTail.StableSeed != 0
+                && stagedFireballAftermathTimeline.HasAftermath
+                && Math.Abs(stagedFireballTail.Start - (castStarted + stagedFireballAftermathTimeline.AftermathAt)) < 0.04f,
+                "Fireball stages the canonical aftermath atlas cell on its exact deterministic aftermath beat");
             float firstTargetFeedback = stagedFloats
                 .Where(value => value.X == spellTarget.X && value.Y == spellTarget.Y && value.Start >= castStarted)
                 .Min(value => value.Start);
@@ -5131,15 +5213,19 @@ namespace AshenHalls.Editor
                 && Math.Abs(fireballTargetBeat.ImpactAt - (castStarted + stagedFireballProfile.ImpactDelay)) < 0.06f,
                 "Fireball target sprite reaction lands on the canonical impact beat");
             List<ParticleDot> fireballParticles = stagedParticles;
-            int expectedFireAftermath = CombatPowerVisualRules.AftermathParticleCount(CombatPowerVisualMotif.Fire, 3);
-            const int signatureFireballAftermath = 15;
-            Assert(
-                fireballParticles.Count > expectedFireAftermath
-                    && fireballParticles.Count <= expectedFireAftermath + signatureFireballAftermath,
-                $"Fireball layers one bounded signature smoke-and-ember tail over its motif aftermath ({fireballParticles.Count}/{expectedFireAftermath + signatureFireballAftermath})");
-            Assert(fireballParticles.Count(value => value.Kind == "smoke") == 7
-                && fireballParticles.Count(value => value.Kind == "ember") >= 8,
-                "Fireball leaves seven deterministic smoke wisps and a readable ballistic ember tail");
+            CombatPowerAftermathVfxPlan stagedFireballAftermathPlan = CombatPowerAftermathVfxRules.PlanForFormula(
+                fireball.Code,
+                stagedFireballTail.Intensity,
+                0f,
+                false,
+                stagedFireballTail.StableSeed);
+            int stagedFireballSmokeCount = (stagedFireballAftermathPlan.ParticleCount + 3) / 4;
+            Assert(fireballParticles.Count == stagedFireballAftermathPlan.ParticleCount
+                && fireballParticles.Count <= CombatPowerAftermathVfxRules.MaximumParticleCount,
+                "Fireball keeps its authored aftermath particle tail inside the global spectacle bound");
+            Assert(fireballParticles.Count(value => value.Kind == "smoke") == stagedFireballSmokeCount
+                && fireballParticles.Count(value => value.Kind == "ember") == stagedFireballAftermathPlan.ParticleCount - stagedFireballSmokeCount,
+                "Fireball leaves a deterministic authored smoke-and-ember tail");
             Assert(stagedGlyphs.Count == 0 && stagedFlashes.Count == 0, "shared Fireball feedback suppresses legacy target glyph and tile-flash overlays");
             bool hasResonanceCue = false;
             for (int cueIndex = 0; cueIndex < scheduledSfxCount; cueIndex++)
@@ -5164,7 +5250,7 @@ namespace AshenHalls.Editor
             List<CellFlash> fieldFlashes = stagedFlashes;
             combatState.ReducedMotion = true;
             InvokePrivate(game, "ClearCombatMotionForReducedMotion");
-            Assert(stagedBeams.Count == 0 && stagedPowerTravel.Count == 0 && impactEchoes.Count == 0 && castAuras.Count == 0 && fieldParticles.Count == 0 && fieldGlyphs.Count == 0, "enabling Reduced Motion clears queued combat travel and animated spectacle immediately");
+            Assert(stagedBeams.Count == 0 && stagedPowerTravel.Count == 0 && stagedPowerAftermath.Count == 0 && impactEchoes.Count == 0 && castAuras.Count == 0 && fieldParticles.Count == 0 && fieldGlyphs.Count == 0, "enabling Reduced Motion clears queued combat travel, aftermath, and animated spectacle immediately");
             Assert(fieldFlashes.Count == 1, "Reduced Motion preserves one compact target-local impact confirmation");
             Assert(Math.Abs(GetPrivateField<float>(game, "combatShakeMagnitude")) < 0.0001f, "Reduced Motion clears queued combat shake");
             Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) == 0, "enabling Reduced Motion clears delayed layered combat cues immediately");
@@ -5199,6 +5285,7 @@ namespace AshenHalls.Editor
             Assert(reducedStampArt.HasPrimary, "Reduced Motion static impact resolves one authored primary atlas stamp");
             Assert(stagedBeams.Count == 0
                 && stagedPowerTravel.Count == 0
+                && stagedPowerAftermath.Count == 0
                 && castAuras.Count == 0
                 && fieldParticles.Count == 0
                 && fieldGlyphs.Count == 0
@@ -5282,7 +5369,8 @@ namespace AshenHalls.Editor
             active.Mana = active.MaxMana;
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "RIG", spellTarget, spellTarget.X, spellTarget.Y), "Arc Spark resolves through the production formula path");
             Assert(spellTarget.Hp < spellTarget.MaxHp, "Arc Spark deals direct shock damage");
-            Assert(stagedBeams.Any(value => value.Kind == "lightning"), "Arc Spark draws its dedicated lightning delivery");
+            Assert(stagedPowerTravel.Any(value => value.PowerKey == "RIG")
+                && !stagedBeams.Any(value => value.Kind == "lightning"), "Arc Spark uses its authored lightning travel without a duplicate legacy beam");
 
             stagedFloats.Clear();
             stagedBeams.Clear();
@@ -5329,7 +5417,8 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "CLT", spellTarget, spellTarget.X, spellTarget.Y), "Chain Lightning resolves through its custom production effect");
             Assert(new[] { spellTarget, chainSecond, chainThird, chainFourth }.All(enemy => enemy.Hp < enemy.MaxHp)
                 && chainOutside.Hp == chainOutside.MaxHp, "Chain Lightning damages exactly four deterministic linked targets");
-            Assert(stagedBeams.Count(value => value.Kind == "lightning") >= 4, "Chain Lightning stages one visible bolt per linked target");
+            Assert(stagedPowerTravel.Any(value => value.PowerKey == "CLT")
+                && stagedBeams.Count(value => value.Kind == "lightning") >= 3, "Chain Lightning uses authored primary travel and retains every visible jump between linked targets");
             Assert(stagedFloats.Any(value => value.Text == "ARC")
                 && stagedFloats.Any(value => value.Text == "JUMP 4"), "Chain Lightning labels its primary and final jump");
 
@@ -5349,8 +5438,9 @@ namespace AshenHalls.Editor
             Assert(active.X == 5 && active.Y == 3, "Thunder Step moves the caster to the chosen open tile");
             Assert(combatState.Combat.MovePoints == 0 && combatState.Combat.Moved, "Thunder Step consumes ordinary movement after its relocation");
             Assert(spellTarget.Hp < thunderStepTargetHp, "Thunder Step shocks enemies beside its destination");
-            Assert(stagedBeams.Any(value => value.Kind == "arc")
-                && stagedBeams.Any(value => value.Kind == "lightning"), "Thunder Step draws both its travel arc and arrival lightning");
+            Assert(stagedPowerTravel.Any(value => value.PowerKey == "VST")
+                && !stagedBeams.Any(value => value.Kind == "arc")
+                && stagedBeams.Any(value => value.Kind == "lightning"), "Thunder Step uses authored travel and retains its post-arrival lightning accents");
             Assert(stagedFloats.Any(value => value.Text == "THUNDER STEP"), "Thunder Step stages its named landing result");
             Assert(castAuras.Any(aura => aura.SourceX == 1 && aura.SourceY == 1 && aura.TargetX == 5 && aura.TargetY == 3), "Thunder Step stages a destination-aware cast aura");
 
@@ -5379,7 +5469,8 @@ namespace AshenHalls.Editor
                 && tempestNearTwo.Hp < tempestNearTwo.MaxHp
                 && tempestOutside.Hp == tempestOutside.MaxHp, "Arcane Tempest damages its center and radius-two enemies but not a radius-three outsider");
             Assert(stagedFloats.Any(value => value.Text == "TEMPEST"), "Arcane Tempest stages its signature battlefield result");
-            Assert(stagedBeams.Count(value => value.Kind == "lightning") >= 3, "Arcane Tempest forks visible lightning across its footprint");
+            Assert(stagedPowerTravel.Any(value => value.PowerKey == "AST")
+                && stagedBeams.Count(value => value.Kind == "lightning") >= 2, "Arcane Tempest uses authored center travel and retains visible satellite lightning across its footprint");
             Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Y == spellTarget.Y && echo.Intensity == 3), "Arcane Tempest owns an epic impact echo");
             combatState.Combat.Units.RemoveAll(unit => unit == tempestNearOne || unit == tempestNearTwo || unit == tempestOutside);
             spellTarget.X = 4;
@@ -5409,14 +5500,17 @@ namespace AshenHalls.Editor
             stagedBeams.Clear();
             int riftBoltHp = spellTarget.Hp;
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "RBT", spellTarget, spellTarget.X, spellTarget.Y), "Rift Bolt resolves through the production pact formula path");
-            Assert(spellTarget.Hp < riftBoltHp && stagedBeams.Any(value => value.Kind == "death"), "Rift Bolt deals direct death damage with a visible rift delivery");
+            Assert(spellTarget.Hp < riftBoltHp
+                && stagedPowerTravel.Any(value => value.PowerKey == "RBT")
+                && !stagedBeams.Any(value => value.Kind == "death"), "Rift Bolt deals direct death damage through one authored rift delivery");
 
             active.Mana = active.MaxMana;
             stagedBeams.Clear();
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "VRS", null, 2, 3), "Rift Step resolves through the production pact formula path");
             Assert(active.X == 2 && active.Y == 3, "Rift Step moves the warlock to the chosen open tile");
             Assert(combatState.Combat.MovePoints == 0 && combatState.Combat.Moved, "Rift Step consumes ordinary movement after its relocation");
-            Assert(stagedBeams.Any(value => value.Kind == "arc"), "Rift Step stages a visible rift-travel arc");
+            Assert(stagedPowerTravel.Any(value => value.PowerKey == "VRS")
+                && !stagedBeams.Any(value => value.Kind == "arc"), "Rift Step stages one authored rift travel without a duplicate legacy arc");
 
             combatState.Combat.ActionAvailable = true;
             combatState.Combat.Moved = false;
@@ -5531,7 +5625,7 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "riftpounce", spellTarget, spellTarget.X, spellTarget.Y), "Rift Pounce resolves through the shared targeted ability path");
             Assert(spellTarget.Hp < pounceTargetHp
                 && Math.Abs(active.X - spellTarget.X) + Math.Abs(active.Y - spellTarget.Y) == 1
-                && stagedBeams.Any(value => value.Kind == "arc"),
+                && !stagedBeams.Any(value => value.Kind == "arc"),
                 "Rift Pounce crosses blocked intervening tiles, lands beside its target, and deals death damage");
             Assert(stagedPowerTravel.Count == 1
                 && stagedPowerTravel[0].PowerKey == "riftpounce"
@@ -5539,7 +5633,7 @@ namespace AshenHalls.Editor
                 && stagedPowerTravel[0].SourceY == pounceSourceY
                 && stagedPowerTravel[0].TargetX == pounceTargetX
                 && stagedPowerTravel[0].TargetY == pounceTargetY,
-                "Rift Pounce stages one exact source-to-target authored travel identity before relocating its actor");
+                "Rift Pounce stages one exact source-to-target authored travel identity without a duplicate legacy movement arc");
 
             combatState.Combat.Obstacles.Clear();
             active.X = 5;
@@ -5865,9 +5959,11 @@ namespace AshenHalls.Editor
             SetPrivateField(game, "rng", new System.Random(1));
             int quickShotHp = spellTarget.Hp;
             int quickShotBeams = stagedBeams.Count(beam => beam.Kind == "shot");
+            int quickShotTravel = stagedPowerTravel.Count(travel => travel.PowerKey == "quickshot");
             Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "quickshot", spellTarget, spellTarget.X, spellTarget.Y), "Quick Shot resolves through the centralized martial path");
             Assert(spellTarget.Hp < quickShotHp
-                && stagedBeams.Count(beam => beam.Kind == "shot") >= quickShotBeams + 2, "Quick Shot rolls and delivers two independently armored arrows");
+                && stagedPowerTravel.Count(travel => travel.PowerKey == "quickshot") == quickShotTravel + 1
+                && stagedBeams.Count(beam => beam.Kind == "shot") >= quickShotBeams + 1, "Quick Shot uses authored primary travel and retains its independently timed second arrow");
 
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
             stagedFloats.Clear();
@@ -6094,14 +6190,32 @@ namespace AshenHalls.Editor
                     && castAuras[0].Kind == "FBL"
                     && stagedPowerTravel.Count == 1
                     && stagedPowerTravel[0].PowerKey == "FBL"
+                    && stagedPowerAftermath.Count == 1
+                    && string.Equals(stagedPowerAftermath[0].PowerKey, "FBL", StringComparison.OrdinalIgnoreCase)
                     && impactEchoes.Count == 1
                     && impactEchoes[0].Kind == "FBL"
                     && !impactEchoes[0].StaticStamp,
-                    "Beta VFX Showcase replays canonical Fireball through authored cast, travel, and impact presentation");
+                    "Beta VFX Showcase replays canonical Fireball through authored cast, travel, impact, and aftermath presentation");
                 int firstImpactX = impactEchoes[0].X;
                 int firstImpactY = impactEchoes[0].Y;
+                PowerCastAura firstShowcaseAura = castAuras[0];
                 PowerTravelVfx firstShowcaseTravel = stagedPowerTravel[0];
+                PowerAftermathVfx firstShowcaseAftermath = stagedPowerAftermath[0];
+                CombatPowerAftermathVfxProfile firstShowcaseAftermathProfile = CombatPowerAftermathVfxRules.ProfileFor(firstShowcaseAftermath.PowerKey);
+                CombatPowerAnimationTimeline firstShowcaseTimeline = CombatPowerAnimationTimelineRules.For(
+                    firstShowcaseAftermath.PowerKey,
+                    firstShowcaseAftermath.StableSeed,
+                    firstShowcaseAftermath.Intensity,
+                    false);
+                float firstShowcaseAftermathOffset = firstShowcaseAftermath.Start - firstShowcaseAura.Start;
+                Assert(firstShowcaseAftermathProfile.HasAftermath
+                    && firstShowcaseAftermathProfile.AtlasCell == (int)CombatPowerAftermathKind.Fireball
+                    && firstShowcaseAftermath.StableSeed != 0
+                    && Math.Abs(firstShowcaseAftermathOffset - firstShowcaseTimeline.AftermathAt) < 0.0001f,
+                    "Beta VFX Showcase Fireball uses the exact deterministic aftermath profile and timeline");
                 InvokePrivate(game, "ReplayBetaVfxShowcase");
+                PowerAftermathVfx repeatedShowcaseAftermath = stagedPowerAftermath.Single();
+                CombatPowerAftermathVfxProfile repeatedShowcaseAftermathProfile = CombatPowerAftermathVfxRules.ProfileFor(repeatedShowcaseAftermath.PowerKey);
                 Assert(castAuras.Count == 1
                     && stagedPowerTravel.Count == 1
                     && stagedPowerTravel[0].PowerKey == firstShowcaseTravel.PowerKey
@@ -6112,10 +6226,18 @@ namespace AshenHalls.Editor
                     && stagedPowerTravel[0].SequenceIndex == firstShowcaseTravel.SequenceIndex
                     && stagedPowerTravel[0].StableSeed == firstShowcaseTravel.StableSeed
                     && Math.Abs(stagedPowerTravel[0].Duration - firstShowcaseTravel.Duration) < 0.0001f
+                    && stagedPowerAftermath.Count == 1
+                    && repeatedShowcaseAftermath.StableSeed == firstShowcaseAftermath.StableSeed
+                    && repeatedShowcaseAftermath.Intensity == firstShowcaseAftermath.Intensity
+                    && repeatedShowcaseAftermath.SequenceIndex == firstShowcaseAftermath.SequenceIndex
+                    && repeatedShowcaseAftermathProfile.AtlasCell == firstShowcaseAftermathProfile.AtlasCell
+                    && string.Equals(repeatedShowcaseAftermathProfile.Key, firstShowcaseAftermathProfile.Key, StringComparison.OrdinalIgnoreCase)
+                    && Math.Abs(repeatedShowcaseAftermath.Duration - firstShowcaseAftermath.Duration) < 0.0001f
+                    && Math.Abs((repeatedShowcaseAftermath.Start - castAuras[0].Start) - firstShowcaseAftermathOffset) < 0.0001f
                     && impactEchoes.Count == 1
                     && impactEchoes[0].X == firstImpactX
                     && impactEchoes[0].Y == firstImpactY,
-                    "Beta VFX Showcase replay deterministically replaces stale travel and impact presentation");
+                    "Beta VFX Showcase replay deterministically replaces stale travel, impact, and aftermath presentation");
 
                 SetPrivateField(game, "betaVfxShowcaseIndex", CombatVfxShowcaseRules.NextIndex(0));
                 InvokePrivate(game, "ReplayBetaVfxShowcase");
@@ -6143,6 +6265,7 @@ namespace AshenHalls.Editor
                 InvokePrivate(game, "ReplayBetaVfxShowcase");
                 Assert(castAuras.Count == 0
                     && stagedPowerTravel.Count == 0
+                    && stagedPowerAftermath.Count == 0
                     && impactEchoes.Count == 1
                     && impactEchoes[0].Kind == "FBL"
                     && impactEchoes[0].StaticStamp,
@@ -6155,6 +6278,137 @@ namespace AshenHalls.Editor
                 SetPrivateField(game, "betaVfxShowcaseOpen", false);
                 InvokePrivate(game, "ClearBetaVfxShowcasePresentation");
             }
+            AssertCombatTransientPresentationBoundariesRuntime(game);
+        }
+
+        private static void AssertTitleMenuFocusReducedMotionRuntime(
+            AshenHallsGame game,
+            TavernScreen tavernScreen,
+            MethodInfo titleUpdate,
+            Text selectedCursor)
+        {
+            GameState titleState = GetPrivateField<GameState>(game, "state");
+            bool originalReducedMotion = titleState.ReducedMotion;
+            try
+            {
+                titleState.ReducedMotion = true;
+                titleUpdate.Invoke(tavernScreen, null);
+                TitleMenuFocusFrame expected = TitleScreenPresentationRules.EvaluateMenuFocus(Time.unscaledTime, true);
+                Vector3 scale = selectedCursor.rectTransform.localScale;
+                Assert(Math.Abs(selectedCursor.color.a - expected.CursorAlpha) < 0.0001f
+                    && Math.Abs(scale.x - expected.CursorScale) < 0.0001f
+                    && Math.Abs(scale.y - expected.CursorScale) < 0.0001f,
+                    "live Reduced Motion title focus uses one static alpha and scale frame");
+            }
+            finally
+            {
+                titleState.ReducedMotion = originalReducedMotion;
+                titleUpdate.Invoke(tavernScreen, null);
+            }
+        }
+
+        private static void AssertCombatTransientPresentationBoundariesRuntime(AshenHallsGame game)
+        {
+            StageStaleCombatPresentationBoundarySentinels(game);
+            InvokePrivate(game, "StartCombat", "patrol");
+            AssertNoStaleCombatPresentationBoundarySentinels(game, "new encounter");
+
+            GameState adoptedSource = GetPrivateField<GameState>(game, "state");
+            string adoptedJson = JsonUtility.ToJson(adoptedSource);
+            GameState successfullyLoaded = JsonUtility.FromJson<GameState>(adoptedJson);
+            GameState invalidLoaded = JsonUtility.FromJson<GameState>(adoptedJson);
+            invalidLoaded.Party = null;
+            string repairedContentSet = GetPrivateField<string>(game, "activeContentSet");
+
+            StageStaleCombatPresentationBoundarySentinels(game);
+            bool invalidLoadRejected = false;
+            try
+            {
+                InvokePrivate(game, "AdoptLoadedGameState", invalidLoaded, invalidLoaded.SaveVersion, repairedContentSet);
+            }
+            catch (InvalidOperationException)
+            {
+                invalidLoadRejected = true;
+            }
+            Assert(invalidLoadRejected, "invalid load adoption is rejected before transient presentation is reset");
+            AssertStaleCombatPresentationBoundarySentinelsPresent(game, "rejected load");
+
+            InvokePrivate(game, "AdoptLoadedGameState", successfullyLoaded, successfullyLoaded.SaveVersion, repairedContentSet);
+            Assert(ReferenceEquals(GetPrivateField<GameState>(game, "state"), successfullyLoaded),
+                "successful load adoption installs the validated state before clearing presentation");
+            AssertNoStaleCombatPresentationBoundarySentinels(game, "successful load adoption");
+        }
+
+        private static void StageStaleCombatPresentationBoundarySentinels(AshenHallsGame game)
+        {
+            const string sentinel = "stale-boundary";
+            float now = Time.time;
+            GetPrivateField<List<Tween>>(game, "tweens").Add(new Tween(sentinel, Vector2.zero, Vector2.one, now, 30f, TweenKind.Move));
+            GetPrivateField<List<FloatText>>(game, "floatTexts").Add(new FloatText { Text = sentinel, Start = now, Duration = 30f });
+            GetPrivateField<List<ParticleDot>>(game, "particles").Add(new ParticleDot { Kind = sentinel, Start = now, Duration = 30f });
+            GetPrivateField<List<BeamEffect>>(game, "beams").Add(new BeamEffect { Kind = sentinel, Start = now, Duration = 30f });
+            GetPrivateField<List<CellFlash>>(game, "flashes").Add(new CellFlash { Color = "010203", Start = now, Duration = 30f });
+            GetPrivateField<List<CastGlyph>>(game, "castGlyphs").Add(new CastGlyph { Kind = sentinel, Start = now, Duration = 30f });
+            GetPrivateField<List<PowerCastAura>>(game, "powerCastAuras").Add(new PowerCastAura { PowerKey = sentinel, Start = now, Duration = 30f });
+            GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx").Add(new PowerTravelVfx { PowerKey = sentinel, Start = now, Duration = 30f });
+            GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes").Add(new PowerImpactEcho { Kind = sentinel, Start = now, ImpactAt = now + 1f, Duration = 30f });
+            GetPrivateField<List<PowerAftermathVfx>>(game, "powerAftermathVfx").Add(new PowerAftermathVfx { PowerKey = sentinel, Start = now + 1f, Duration = 30f });
+            GetPrivateField<List<CombatUnitPresentationBeat>>(game, "combatUnitPresentationBeats").Add(
+                new CombatUnitPresentationBeat(sentinel, CombatUnitPresentationBeatKind.Hit, now + 1f, now + 30f, 1f));
+            SetPrivateField(game, "combatPowerCue", new CombatPowerIdentity("Stale boundary cue", "!", sentinel, "ff5500", 3, 30f));
+            SetPrivateField(game, "combatPowerCueStarted", now);
+            SetPrivateField(game, "combatPowerCueUntil", now + 30f);
+            SetPrivateField(game, "combatPowerOutcomeText", "Stale boundary outcome");
+            SetPrivateField(game, "combatPowerPulseUntil", now + 30f);
+            SetPrivateField(game, "combatShakeMagnitude", 8f);
+            SetPrivateField(game, "combatImpactFrameColor", "ff5500");
+            InvokePrivate(
+                game,
+                "QueueSfx",
+                "hit",
+                0.60f,
+                0.50f,
+                0f,
+                1f,
+                CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            object scheduledSfx = GetPrivateField<object>(game, "scheduledSfx");
+            Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) > 0,
+                "combat boundary regression stages a delayed stale audio cue");
+        }
+
+        private static void AssertStaleCombatPresentationBoundarySentinelsPresent(AshenHallsGame game, string boundary)
+        {
+            const string sentinel = "stale-boundary";
+            Assert(GetPrivateField<List<PowerCastAura>>(game, "powerCastAuras").Any(value => value.PowerKey == sentinel)
+                && GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx").Any(value => value.PowerKey == sentinel)
+                && GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes").Any(value => value.Kind == sentinel)
+                && GetPrivateField<List<PowerAftermathVfx>>(game, "powerAftermathVfx").Any(value => value.PowerKey == sentinel)
+                && GetPrivateField<CombatPowerIdentity>(game, "combatPowerCue").Title == "Stale boundary cue",
+                boundary + " preserves the current encounter presentation when adoption fails");
+        }
+
+        private static void AssertNoStaleCombatPresentationBoundarySentinels(AshenHallsGame game, string boundary)
+        {
+            const string sentinel = "stale-boundary";
+            object scheduledSfx = GetPrivateField<object>(game, "scheduledSfx");
+            Assert(!GetPrivateField<List<Tween>>(game, "tweens").Any(value => value.Id == sentinel)
+                && !GetPrivateField<List<FloatText>>(game, "floatTexts").Any(value => value.Text == sentinel)
+                && !GetPrivateField<List<ParticleDot>>(game, "particles").Any(value => value.Kind == sentinel)
+                && !GetPrivateField<List<BeamEffect>>(game, "beams").Any(value => value.Kind == sentinel)
+                && !GetPrivateField<List<CellFlash>>(game, "flashes").Any(value => value.Duration >= 30f)
+                && !GetPrivateField<List<CastGlyph>>(game, "castGlyphs").Any(value => value.Kind == sentinel)
+                && !GetPrivateField<List<PowerCastAura>>(game, "powerCastAuras").Any(value => value.PowerKey == sentinel)
+                && !GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx").Any(value => value.PowerKey == sentinel)
+                && !GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes").Any(value => value.Kind == sentinel)
+                && !GetPrivateField<List<PowerAftermathVfx>>(game, "powerAftermathVfx").Any(value => value.PowerKey == sentinel)
+                && !GetPrivateField<List<CombatUnitPresentationBeat>>(game, "combatUnitPresentationBeats").Any(value => value.UnitId == sentinel),
+                boundary + " removes every stale legacy and authored combat visual layer");
+            Assert(string.IsNullOrEmpty(GetPrivateField<CombatPowerIdentity>(game, "combatPowerCue").Title)
+                && string.IsNullOrEmpty(GetPrivateField<string>(game, "combatPowerOutcomeText"))
+                && Math.Abs(GetPrivateField<float>(game, "combatPowerPulseUntil")) < 0.0001f
+                && Math.Abs(GetPrivateField<float>(game, "combatShakeMagnitude")) < 0.0001f
+                && (int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) == 0,
+                boundary + " removes stale cue, outcome, shake, pulse, and delayed audio state");
         }
 
         private static void AssertRoundTransitionAndStartTurnDefeatRuntime(AshenHallsGame game)

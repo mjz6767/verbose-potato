@@ -220,7 +220,7 @@ namespace AshenHalls
         {
             if (active == null) return "WAITING FOR INITIATIVE";
             string owner = playerTurn ? "YOUR TURN" : "ENEMY TURN";
-            return $"{owner}  \u00b7  {active.Name}  \u00b7  {CombatPhaseLabel()}";
+            return $"{owner}  \u00b7  {CombatPhaseLabel()}";
         }
 
         private string CombatHudTacticalLine()
@@ -324,10 +324,9 @@ namespace AshenHalls
             if (!playerTurn) return EnemyIntentLine(active);
             if (combatBoardCursorActive && combatBoardCursorCell.HasValue)
             {
-                Vector2Int cursor = combatBoardCursorCell.Value;
-                return $"CURSOR {cursor.x + 1},{cursor.y + 1}  |  Arrows / left stick move  ·  Tab / bumpers cycle  ·  Submit confirms";
+                return "CURSOR  ·  Move arrows / stick  ·  Cycle Tab / bumpers  ·  Submit confirms";
             }
-            return $"{CombatFocusStateLine(active, true)}  |  {ActiveCommandPrompt(active)}";
+            return ActiveCommandPrompt(active);
         }
 
         private string EnemyIntentLine(CombatUnit enemy)
@@ -570,7 +569,23 @@ namespace AshenHalls
             string conditions = string.Equals(status, "steady", StringComparison.OrdinalIgnoreCase)
                 ? "No conditions"
                 : status;
-            if (activeCard) return conditions;
+            if (activeCard)
+            {
+                if (unit?.Side != UnitSide.Party)
+                {
+                    return string.Equals(conditions, "No conditions", StringComparison.OrdinalIgnoreCase)
+                        ? ""
+                        : conditions;
+                }
+                const string neutralPrefix = "No conditions / ";
+                if (conditions.StartsWith(neutralPrefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    return conditions.Substring(neutralPrefix.Length);
+                }
+                return string.Equals(conditions, "No conditions", StringComparison.OrdinalIgnoreCase)
+                    ? ActiveThreatSummary(unit)
+                    : conditions;
+            }
 
             List<string> intel = new List<string>();
             if (!string.IsNullOrWhiteSpace(unit?.Weakness)) intel.Add("WEAK " + unit.Weakness.Trim());

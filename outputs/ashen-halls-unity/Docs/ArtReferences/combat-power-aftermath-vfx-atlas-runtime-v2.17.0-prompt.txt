@@ -1,0 +1,30 @@
+Generator: OpenAI built-in ImageGen
+Use case: stylized-concept
+Post-processing: locally normalized from the 1254x1254 generated RGBA sheet into an exact 1280x1280, 4x4 atlas with 320px cells, 24px transparent gutters, nearest-neighbor resizing, per-cell centering, and minor boundary-component cleanup. No generative edits were made after ImageGen.
+
+Final prompt:
+
+Use case: stylized-concept
+Asset type: strict transparent runtime sprite atlas for a Unity tactical RPG
+Primary request: Create one strict 4 columns by 4 rows sprite atlas containing exactly sixteen isolated animated-aftermath accent sprites for spells and combat skills. These are lingering impact finishes and phase-transition accents, not projectiles, UI icons, or full scenes.
+Style/medium: Ashen Ritual painterly pixel-fantasy; high-resolution effect painting with hard readable silhouettes, charcoal negative space inside effects, crisp luminous cores, restrained simulated bloom, textured embers/shards/runes, and strong readability when reduced to 64–128 pixels.
+Composition: one centered effect per equal cell, row-major order, generous transparent padding on every side, consistent visual scale, no overlap between cells.
+Background: genuinely transparent RGBA background.
+Cell order, left-to-right then top-to-bottom:
+0 Fireball aftermath — circular blackened scorch, fading orange edge, a few rising embers and charcoal smoke wisps; no projectile.
+1 Meteor aftermath — fractured crater with cooling lava seams, settling rock chips and smoke.
+2 Frost Bind aftermath — cyan-white binding lattice and radial ice shards clamped around a clear center.
+3 Lightning aftermath — residual gold-white corona arcs with cyan sparks around a clear center.
+4 Mending aftermath — ivory-teal upward healing wisps, luminous petals and tiny stars.
+5 Ward aftermath — faceted translucent teal-gold dome shimmer with a clear protected center and grounding ring.
+6 Nature aftermath — roots curling upward with leaves and small shale fragments, clear center.
+7 Sun Brand aftermath — white-gold solar seal burned onto the ground with restrained teal rim light.
+8 Rift aftermath — narrow black-violet tear being stitched shut by hooked magenta runes and inward motes.
+9 Soul aftermath — cyan-violet spirit wisps spiraling inward around a small dark core.
+10 Hex aftermath — asymmetric hooked violet curse brand still glowing and smoking at its edges.
+11 Poison/Dream mist aftermath — compact sickly green vapor with droplets merging into indigo crescent mist and sparse star motes, readable as lingering status magic.
+12 Web aftermath — bone-white radial web lattice cinched inward with violet knots and clear center.
+13 Summon aftermath — closing violet portal slit with claw silhouettes and two restrained ember eyes receding into darkness.
+14 Abyssal Ascendance aftermath — fading horned wing silhouette outlined in black-violet and magenta, vertical rift pulse, no full character anatomy.
+15 Martial aftermath — compact steel-and-gold impact skid with dust, boot sparks, broken stone chips, and one red-violet blade afterimage.
+Constraints: exact 4x4 organization; genuinely transparent background; each effect fully contained; no text, letters, labels, numbers, frames, borders, grid lines, watermark, scenery, characters, hands, weapons as standalone inventory icons, cropped effects, opaque black squares, muddy silhouettes, or repeated explosions.

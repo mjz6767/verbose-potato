@@ -8,7 +8,7 @@ namespace AshenHalls
         NewGame,
         Settings,
         Exit,
-        Testing
+        BetaLab
     }
 
     public readonly struct TitleMenuScrollStyle
@@ -66,6 +66,30 @@ namespace AshenHalls
         }
     }
 
+    public readonly struct TitleHearthFlickerFrame
+    {
+        public readonly float RoomGlow;
+        public readonly float FireboxGlow;
+
+        public TitleHearthFlickerFrame(float roomGlow, float fireboxGlow)
+        {
+            RoomGlow = Mathf.Clamp01(roomGlow);
+            FireboxGlow = Mathf.Clamp01(fireboxGlow);
+        }
+    }
+
+    public readonly struct TitleMenuFocusFrame
+    {
+        public readonly float CursorAlpha;
+        public readonly float CursorScale;
+
+        public TitleMenuFocusFrame(float cursorAlpha, float cursorScale)
+        {
+            CursorAlpha = Mathf.Clamp01(cursorAlpha);
+            CursorScale = Mathf.Max(0f, cursorScale);
+        }
+    }
+
     public readonly struct TitleBackdropProjection
     {
         public readonly Rect CoverRect;
@@ -97,6 +121,10 @@ namespace AshenHalls
         public const int MenuFocusTextureWidth = 2048;
         public const int MenuFocusTextureHeight = 768;
         public const float MenuFocusPixelsPerUnit = 1200f;
+        public const int MenuIconTextureWidth = 1280;
+        public const int MenuIconTextureHeight = 256;
+        public const int MenuIconColumns = 5;
+        public const int MenuIconRows = 1;
         public static Vector4 MenuScrollSpriteBorder => new Vector4(360f, 360f, 360f, 360f);
         public static Rect MenuFocusSpriteRect => new Rect(0f, 192f, 2048f, 384f);
         public static Vector4 MenuFocusSpriteBorder => new Vector4(360f, 96f, 360f, 96f);
@@ -137,6 +165,13 @@ namespace AshenHalls
                 && texture.height == MenuFocusTextureHeight;
         }
 
+        public static bool SupportsMenuIconArt(Texture2D texture)
+        {
+            return texture != null
+                && texture.width == MenuIconTextureWidth
+                && texture.height == MenuIconTextureHeight;
+        }
+
         public static TitleOpeningFrame Evaluate(float elapsedSeconds, bool reducedMotion)
         {
             if (reducedMotion)
@@ -148,13 +183,37 @@ namespace AshenHalls
             float backdrop = Smooth01(elapsed / 0.92f);
             float menu = Smooth01((elapsed - MenuRevealAt) / 0.58f);
             float settled = Smooth01((elapsed - 1.10f) / 1.20f);
-            float hearth = 0.42f + Mathf.Sin(elapsed * 1.17f) * 0.08f + Mathf.Sin(elapsed * 0.43f + 0.8f) * 0.04f;
+            TitleHearthFlickerFrame hearth = EvaluateHearthFlicker(elapsed, false);
             return new TitleOpeningFrame(
                 backdrop,
                 menu,
                 Mathf.Lerp(14f, 0f, menu),
                 Mathf.Lerp(0.74f, 0.58f, settled),
-                hearth);
+                hearth.RoomGlow);
+        }
+
+        public static TitleHearthFlickerFrame EvaluateHearthFlicker(float elapsedSeconds, bool reducedMotion)
+        {
+            if (reducedMotion)
+            {
+                return new TitleHearthFlickerFrame(0.46f, 0.58f);
+            }
+
+            float elapsed = Mathf.Max(0f, elapsedSeconds);
+            float irregular = Mathf.Sin(elapsed * 6.7f + 0.6f) * 0.45f
+                + Mathf.Sin(elapsed * 11.3f) * 0.35f
+                + Mathf.Sin(elapsed * 17.9f + 1.4f) * 0.20f;
+            return new TitleHearthFlickerFrame(
+                0.46f + irregular * 0.035f,
+                0.59f + irregular * 0.14f);
+        }
+
+        public static TitleMenuFocusFrame EvaluateMenuFocus(float elapsedSeconds, bool reducedMotion)
+        {
+            float pulse = reducedMotion
+                ? 0.78f
+                : 0.78f + Mathf.Sin(Mathf.Max(0f, elapsedSeconds) * 4.1f) * 0.18f;
+            return new TitleMenuFocusFrame(pulse, 0.94f + pulse * 0.08f);
         }
 
         public static bool MenuInteractive(TitleOpeningFrame frame)
@@ -179,11 +238,24 @@ namespace AshenHalls
         {
             switch (kind)
             {
+                case TitleMenuChoiceKind.Continue: return 0;
+                case TitleMenuChoiceKind.NewGame: return 1;
+                case TitleMenuChoiceKind.Settings: return 2;
+                case TitleMenuChoiceKind.Exit: return 3;
+                case TitleMenuChoiceKind.BetaLab: return 4;
+                default: return -1;
+            }
+        }
+
+        public static int LegacyMenuIconIndex(TitleMenuChoiceKind kind)
+        {
+            switch (kind)
+            {
                 case TitleMenuChoiceKind.Continue: return 7;
                 case TitleMenuChoiceKind.NewGame: return 2;
                 case TitleMenuChoiceKind.Settings: return 4;
                 case TitleMenuChoiceKind.Exit: return 5;
-                case TitleMenuChoiceKind.Testing: return 8;
+                case TitleMenuChoiceKind.BetaLab: return 8;
                 default: return -1;
             }
         }

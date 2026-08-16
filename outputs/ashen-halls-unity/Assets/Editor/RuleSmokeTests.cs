@@ -178,6 +178,7 @@ namespace AshenHalls.Editor
             SupportHexSpellVfxProfilesStayDistinctAndMotionSafe();
             ClassSkillVfxProfilesStayDistinctAndMotionSafe();
             CombatPowerTravelVfxProfilesStayDistinctAndMotionSafe();
+            CombatPowerAftermathAndTimelineStayDeterministic();
             CombatVfxShowcaseCatalogIsStableAndReplayable();
             CombatPowerSfxProfilesStayDistinctAndMixSafe();
             CombatUnitPresentationBeatsStaySynchronizedAndBounded();
@@ -965,16 +966,20 @@ namespace AshenHalls.Editor
 
         private static void TavernMenuRulesKeepNormalOpeningPlayerFacing()
         {
-            AssertEqual(3, TavernMenuRules.NormalChoiceCount(false), "tavern choices without save");
-            AssertEqual("New Game,Settings,Exit Game", string.Join(",", TavernMenuRules.NormalChoiceLabels(false)), "tavern labels without save");
-            AssertEqual(false, TavernMenuRules.ShowContinue(false), "continue hidden without save");
+            AssertEqual(4, TavernMenuRules.NormalChoiceCount(false), "tavern choices without save keep a stable scroll");
+            AssertEqual("Continue,New Game,Settings,Exit Game", string.Join(",", TavernMenuRules.NormalChoiceLabels(false)), "tavern labels without save");
+            AssertEqual(true, TavernMenuRules.ShowContinue(false), "continue remains visible without save");
+            AssertEqual(false, TavernMenuRules.EnableContinue(false), "continue is visibly unavailable without save");
 
             AssertEqual(4, TavernMenuRules.NormalChoiceCount(true), "tavern choices with save");
             AssertEqual("Continue,New Game,Settings,Exit Game", string.Join(",", TavernMenuRules.NormalChoiceLabels(true)), "tavern labels with save");
             AssertEqual(true, TavernMenuRules.ShowContinue(true), "continue visible with save");
+            AssertEqual(true, TavernMenuRules.EnableContinue(true), "continue becomes actionable with save");
 
             AssertEqual(false, TavernMenuRules.ShowDeveloperTesting(false), "release build hides beta testing");
             AssertEqual(true, TavernMenuRules.ShowDeveloperTesting(true), "development build can show beta testing");
+            AssertEqual(false, TavernMenuRules.CanDispatchDeveloperTestingShortcut(false), "retail title shortcut cannot dispatch a hidden Beta Lab route");
+            AssertEqual(true, TavernMenuRules.CanDispatchDeveloperTestingShortcut(true), "development title shortcut can open its testing tools");
 
             foreach (bool saveExists in new[] { false, true })
             {
@@ -1095,7 +1100,7 @@ namespace AshenHalls.Editor
                         AssertEqual(true, scroll.TopRoll.yMax > scroll.Sheet.yMin && scroll.BottomRoll.yMin < scroll.Sheet.yMax, $"title scroll sheet tucks continuously beneath both rolls at {size.x}x{size.y}");
                         AssertEqual(true, scroll.Content.xMin - scroll.Bounds.xMin >= TitleScreenPresentationRules.MenuScrollSideInset && scroll.Bounds.xMax - scroll.Content.xMax >= TitleScreenPresentationRules.MenuScrollSideInset, $"title scroll content clears its authored side rails at {size.x}x{size.y}");
                         AssertEqual(true, scroll.Content.width >= 96f, $"title scroll retains a readable center between its authored rails at {size.x}x{size.y}");
-                        AssertEqual(true, !TavernScreenLayout.IsCompactMenu(geometry.Menu.width) || scroll.Content.width - 24f >= 94f, $"compact title choices retain a single-line label well at {size.x}x{size.y}");
+                        AssertEqual(true, !TavernScreenLayout.IsCompactMenu(geometry.Menu.width) || scroll.Content.width - 49f >= 68f, $"compact title choices retain icon and single-line label wells at {size.x}x{size.y}");
                         AssertEqual(true, scroll.Header.yMin >= TitleScreenPresentationRules.MenuScrollTopInset, $"title scroll heading clears its authored upper roller at {size.x}x{size.y}");
                         AssertEqual(true, buttons.Count > 0 && buttons[0].yMin >= scroll.TopRoll.yMax + 44f, $"title scroll keeps heading space above its first action at {size.x}x{size.y}");
                         Rect testingButton = TavernScreenLayout.TestingButtonRect(
@@ -1109,6 +1114,7 @@ namespace AshenHalls.Editor
                         if (developerTestingVisible)
                         {
                             AssertEqual(true, testingButton.xMin >= 0f && testingButton.yMin >= 0f && testingButton.xMax <= geometry.Menu.width && testingButton.yMax <= geometry.Menu.height, $"tavern beta testing button fits menu {size.x}x{size.y} save={saveExists}");
+                            AssertEqual(true, testingButton.height >= 44f, $"development Beta Lab row keeps the same readable hit target at {size.x}x{size.y}");
                         }
                         for (int i = 0; i < buttons.Count; i++)
                         {
@@ -1228,6 +1234,19 @@ namespace AshenHalls.Editor
             AssertEqual(true, TitleScreenPresentationRules.CrossedCue(0.1f, 0.3f, TitleScreenPresentationRules.RevealStrikeAt, false, false), "Grand Hearth forge strike crosses once");
             AssertEqual(false, TitleScreenPresentationRules.CrossedCue(0.1f, 0.3f, TitleScreenPresentationRules.RevealStrikeAt, true, false), "reduced motion suppresses the title strike cue");
             AssertEqual(false, TitleScreenPresentationRules.CrossedCue(0.1f, 0.3f, TitleScreenPresentationRules.RevealStrikeAt, false, true), "played title strike cues do not repeat");
+            TitleHearthFlickerFrame firstFlicker = TitleScreenPresentationRules.EvaluateHearthFlicker(0.5f, false);
+            TitleHearthFlickerFrame repeatedFlicker = TitleScreenPresentationRules.EvaluateHearthFlicker(0.5f, false);
+            TitleHearthFlickerFrame laterFlicker = TitleScreenPresentationRules.EvaluateHearthFlicker(0.75f, false);
+            TitleHearthFlickerFrame reducedFlicker = TitleScreenPresentationRules.EvaluateHearthFlicker(0f, true);
+            TitleHearthFlickerFrame reducedLater = TitleScreenPresentationRules.EvaluateHearthFlicker(30f, true);
+            AssertEqual(firstFlicker.RoomGlow, repeatedFlicker.RoomGlow, "title hearth flicker is deterministic at the same instant");
+            AssertEqual(firstFlicker.FireboxGlow, repeatedFlicker.FireboxGlow, "title firebox flicker is deterministic at the same instant");
+            AssertEqual(true, Mathf.Abs(firstFlicker.FireboxGlow - laterFlicker.FireboxGlow) >= 0.08f, "title firebox visibly flickers between nearby frames");
+            AssertEqual(true, firstFlicker.RoomGlow >= 0.42f && firstFlicker.RoomGlow <= 0.50f, "title hearth room bloom stays restrained");
+            AssertEqual(true, firstFlicker.FireboxGlow >= 0.44f && firstFlicker.FireboxGlow <= 0.74f, "title firebox flicker stays warmly bounded");
+            AssertEqual(reducedFlicker.RoomGlow, reducedLater.RoomGlow, "reduced motion freezes the room bloom");
+            AssertEqual(reducedFlicker.FireboxGlow, reducedLater.FireboxGlow, "reduced motion freezes the firebox flicker");
+            TitleMenuFocusHonorsReducedMotion();
             TitleMenuScrollStyle scrollStyle = TitleScreenPresentationRules.MenuScrollStyle;
             AssertEqual(true, scrollStyle.Paper.a >= 0.90f && scrollStyle.Roll.a >= 0.90f, "title scroll parchment and rolls remain opaque");
             AssertEqual(true, scrollStyle.Paper.r > scrollStyle.Paper.b, "title scroll parchment remains visibly warm");
@@ -1247,19 +1266,21 @@ namespace AshenHalls.Editor
             AssertEqual(true, scrollSideCap * 2f + 96f <= narrowMenu.Menu.width, "authored charter keeps a stretchable center at the narrowest supported menu");
             AssertEqual(true, focusSideCaps + 48f <= narrowScroll.Content.width, "authored focus ribbon keeps readable center space at the narrowest supported menu");
             TitleMenuArtMatchesRuntimeContract();
-            int[] menuIcons = { 7, 2, 4, 5, 8 };
+            int[] menuIcons = { 0, 1, 2, 3, 4 };
+            int[] legacyMenuIcons = { 7, 2, 4, 5, 8 };
             TitleMenuChoiceKind[] menuKinds =
             {
                 TitleMenuChoiceKind.Continue,
                 TitleMenuChoiceKind.NewGame,
                 TitleMenuChoiceKind.Settings,
                 TitleMenuChoiceKind.Exit,
-                TitleMenuChoiceKind.Testing
+                TitleMenuChoiceKind.BetaLab
             };
             for (int i = 0; i < menuKinds.Length; i++)
             {
                 AssertEqual(menuIcons[i], TitleScreenPresentationRules.MenuIconIndex(menuKinds[i]), $"Grand Hearth {menuKinds[i]} relic icon is pinned");
-                AssertEqual(true, menuIcons[i] >= 0 && menuIcons[i] < 20, $"Grand Hearth {menuKinds[i]} relic icon fits the 5x4 atlas");
+                AssertEqual(true, menuIcons[i] >= 0 && menuIcons[i] < TitleScreenPresentationRules.MenuIconColumns, $"Grand Hearth {menuKinds[i]} glyph fits the dedicated 5x1 atlas");
+                AssertEqual(legacyMenuIcons[i], TitleScreenPresentationRules.LegacyMenuIconIndex(menuKinds[i]), $"Grand Hearth {menuKinds[i]} keeps its legacy fallback crop");
                 for (int other = i + 1; other < menuIcons.Length; other++)
                 {
                     AssertEqual(false, menuIcons[i] == menuIcons[other], $"Grand Hearth {menuKinds[i]} and {menuKinds[other]} keep distinct relic icons");
@@ -1275,16 +1296,34 @@ namespace AshenHalls.Editor
             }
         }
 
+        private static void TitleMenuFocusHonorsReducedMotion()
+        {
+            TitleMenuFocusFrame opening = TitleScreenPresentationRules.EvaluateMenuFocus(0f, false);
+            TitleMenuFocusFrame later = TitleScreenPresentationRules.EvaluateMenuFocus(0.5f, false);
+            TitleMenuFocusFrame reduced = TitleScreenPresentationRules.EvaluateMenuFocus(0f, true);
+            TitleMenuFocusFrame reducedLater = TitleScreenPresentationRules.EvaluateMenuFocus(30f, true);
+
+            AssertEqual(true, Mathf.Abs(opening.CursorAlpha - later.CursorAlpha) > 0.05f, "normal title focus keeps its visible alpha pulse");
+            AssertEqual(true, Mathf.Abs(opening.CursorScale - later.CursorScale) > 0.004f, "normal title focus keeps its subtle scale pulse");
+            AssertEqual(reduced.CursorAlpha, reducedLater.CursorAlpha, "Reduced Motion freezes title focus alpha");
+            AssertEqual(reduced.CursorScale, reducedLater.CursorScale, "Reduced Motion freezes title focus scale");
+            AssertEqual(true, reduced.CursorAlpha >= 0.72f && reduced.CursorAlpha <= 0.90f, "static Reduced Motion focus remains clearly visible");
+            AssertEqual(true, reduced.CursorScale >= 0.98f && reduced.CursorScale <= 1.02f, "static Reduced Motion focus retains its settled scale");
+        }
+
         private static void TitleMenuArtMatchesRuntimeContract()
         {
             Texture2D scroll = null;
             Texture2D focus = null;
+            Texture2D icons = null;
             try
             {
                 scroll = LoadApprovedRuntimeAtlas(RuntimeArtManifest.TitleMenuScroll);
                 focus = LoadApprovedRuntimeAtlas(RuntimeArtManifest.TitleMenuFocus);
+                icons = LoadApprovedRuntimeAtlas(RuntimeArtManifest.TitleMenuIconAtlas);
                 AssertEqual(true, TitleScreenPresentationRules.SupportsMenuScrollArt(scroll), "authored title charter uses its exact 1280-square source contract");
                 AssertEqual(true, TitleScreenPresentationRules.SupportsMenuFocusArt(focus), "authored title focus ribbon uses its exact 2048x768 source contract");
+                AssertEqual(true, TitleScreenPresentationRules.SupportsMenuIconArt(icons), "title choices use the exact dedicated 1280x256 glyph strip");
                 AssertEqual(new Vector4(360f, 360f, 360f, 360f), TitleScreenPresentationRules.MenuScrollSpriteBorder, "authored title charter keeps its quiet-center nine-slice");
                 AssertEqual(new Rect(0f, 192f, 2048f, 384f), TitleScreenPresentationRules.MenuFocusSpriteRect, "authored title focus ribbon crops away transparent vertical authoring space");
                 AssertEqual(new Vector4(360f, 96f, 360f, 96f), TitleScreenPresentationRules.MenuFocusSpriteBorder, "authored title focus ribbon keeps ornamental ends outside its stretchable center");
@@ -1333,11 +1372,52 @@ namespace AshenHalls.Editor
                 int focusTransparent = focusPixels.Count(pixel => pixel.a < 32);
                 int focusVisible = focusPixels.Count(pixel => pixel.a >= 32);
                 AssertEqual(true, focusTransparent >= focusPixels.Length * 0.45f && focusVisible >= focusPixels.Length * 0.20f, "authored focus ribbon keeps clean alpha around a substantial plaque silhouette");
+
+                Color32[] iconPixels = icons.GetPixels32();
+                int cellWidth = icons.width / TitleScreenPresentationRules.MenuIconColumns;
+                HashSet<ulong> iconFingerprints = new HashSet<ulong>();
+                for (int cell = 0; cell < TitleScreenPresentationRules.MenuIconColumns; cell++)
+                {
+                    int visible = 0;
+                    int iconGutterSamples = 0;
+                    int transparentIconGutter = 0;
+                    ulong fingerprint = 1469598103934665603UL;
+                    for (int y = 0; y < icons.height; y++)
+                    {
+                        for (int localX = 0; localX < cellWidth; localX++)
+                        {
+                            Color32 pixel = iconPixels[y * icons.width + cell * cellWidth + localX];
+                            if (pixel.a >= 32) visible++;
+                            if (localX < 16 || localX >= cellWidth - 16 || y < 16 || y >= icons.height - 16)
+                            {
+                                iconGutterSamples++;
+                                if (pixel.a < 8) transparentIconGutter++;
+                            }
+                            unchecked
+                            {
+                                fingerprint ^= pixel.r;
+                                fingerprint *= 1099511628211UL;
+                                fingerprint ^= pixel.g;
+                                fingerprint *= 1099511628211UL;
+                                fingerprint ^= pixel.b;
+                                fingerprint *= 1099511628211UL;
+                                fingerprint ^= pixel.a;
+                                fingerprint *= 1099511628211UL;
+                            }
+                        }
+                    }
+
+                    int cellPixels = cellWidth * icons.height;
+                    AssertEqual(true, visible >= cellPixels * 0.30f && visible <= cellPixels * 0.50f, $"title glyph {cell} keeps a bold but uncrowded silhouette");
+                    AssertEqual(true, transparentIconGutter >= iconGutterSamples * 0.995f, $"title glyph {cell} keeps a clean transparent scaling gutter");
+                    AssertEqual(true, iconFingerprints.Add(fingerprint), $"title glyph {cell} is visually distinct from the other scroll actions");
+                }
             }
             finally
             {
                 if (scroll != null) UnityEngine.Object.DestroyImmediate(scroll);
                 if (focus != null) UnityEngine.Object.DestroyImmediate(focus);
+                if (icons != null) UnityEngine.Object.DestroyImmediate(icons);
             }
         }
 
@@ -3048,7 +3128,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.16.0", VersionInfo.PackageVersion, "package version matches the integrated v2.16 candidate");
+            AssertEqual("v2.17.0", VersionInfo.PackageVersion, "package version matches the integrated v2.17 candidate");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -3062,10 +3142,12 @@ namespace AshenHalls.Editor
             AssertEqual("support-hex-spell-vfx-atlas-runtime-v2.14.0.png", RuntimeArtManifest.SupportHexSpellVfxAtlas, "approved v2.14 support and hex spell VFX pin");
             AssertEqual("class-skill-vfx-atlas-runtime-v2.14.0.png", RuntimeArtManifest.ClassSkillVfxAtlas, "approved v2.14 class skill VFX pin");
             AssertEqual("combat-power-travel-vfx-atlas-runtime-v2.15.0.png", RuntimeArtManifest.CombatPowerTravelVfxAtlas, "approved v2.15 combat power travel VFX pin");
+            AssertEqual("combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png", RuntimeArtManifest.CombatPowerAftermathVfxAtlas, "approved v2.17 combat power aftermath VFX pin");
             AssertEqual("title-backdrop-runtime-v2.4.0.png", RuntimeArtManifest.TavernBackdrop, "approved v2.4 Grand Hearth title backdrop pin");
             AssertEqual("tavern-ui-atlas-runtime-v1.5.9.png", RuntimeArtManifest.TavernUiAtlas, "approved v1.5.9 Grand Hearth relic atlas pin");
             AssertEqual("title-menu-scroll-runtime-v2.12.1.png", RuntimeArtManifest.TitleMenuScroll, "approved v2.12.1 Ashen Road charter pin");
             AssertEqual("title-menu-focus-runtime-v2.12.1.png", RuntimeArtManifest.TitleMenuFocus, "approved v2.12.1 title focus-ribbon pin");
+            AssertEqual("title-menu-icon-atlas-runtime-v2.16.0.png", RuntimeArtManifest.TitleMenuIconAtlas, "approved v2.16 title menu glyph pin");
             AssertEqual("midgaard-gate-atlas-runtime-v1.93.0.png", RuntimeArtManifest.MidgaardGateAtlas, "approved v1.93 gate atlas pin");
             AssertEqual("midgaard-wall-atlas-runtime-v1.91.0.png", RuntimeArtManifest.MidgaardWallAtlas, "approved v1.91 wall atlas pin");
             AssertEqual("world-map-exploration-tile-atlas-runtime-v1.68.0.png", RuntimeArtManifest.WorldMapExplorationTileAtlas, "approved v1.68 exploration terrain pin");
@@ -3105,10 +3187,10 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|title-menu-icon-atlas-runtime-v2.16.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(54, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(56, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -4385,25 +4467,30 @@ namespace AshenHalls.Editor
         {
             Vector2Int[] sizes =
             {
+                new Vector2Int(960, 600),
                 new Vector2Int(1280, 720),
                 new Vector2Int(1600, 900),
                 new Vector2Int(1920, 1080),
                 new Vector2Int(2048, 1152)
             };
-            float[] minimumTileSizes = { 70f, 96f, 118f, 128f };
+            float[] minimumTileSizes = { 49f, 70f, 96f, 118f, 128f };
 
             for (int sizeIndex = 0; sizeIndex < sizes.Length; sizeIndex++)
             {
                 Vector2Int size = sizes[sizeIndex];
                 CombatHudGeometry geometry = CombatHudScreenLayout.Calculate(size.x, size.y);
+                bool compactViewport = size.x <= 1024;
                 AssertEqual(true, geometry.Fits(size.x, size.y), $"combat HUD layout fits {size.x}x{size.y}");
                 AssertEqual(true, geometry.Top.height >= 50f && geometry.Top.height <= 56f, $"combat top ribbon stays compact and readable at {size.x}x{size.y}");
-                AssertEqual(true, geometry.Command.width >= 96f && geometry.Command.width <= 112f, $"combat commands use the compact vertical palette at {size.x}x{size.y}");
-                AssertEqual(true, geometry.Side.width <= size.x * 0.22f, $"combat dossier leaves the battlefield as the visual hero at {size.x}x{size.y}");
+                AssertEqual(true, compactViewport ? Mathf.Approximately(geometry.Command.width, 84f) : geometry.Command.width >= 96f && geometry.Command.width <= 112f, $"combat commands use the adaptive vertical palette at {size.x}x{size.y}");
+                AssertEqual(true, !compactViewport || Mathf.Approximately(geometry.Side.width, 240f), $"compact combat dossier returns width to the battlefield at {size.x}x{size.y}");
+                float maximumDossierShare = compactViewport ? 0.25f : 0.22f;
+                AssertEqual(true, geometry.Side.width <= size.x * maximumDossierShare, $"combat dossier leaves the battlefield as the visual hero at {size.x}x{size.y}");
                 Rect grid = CombatHudScreenLayout.BoardInner(geometry.Board, 12, 8);
                 float tileSize = Mathf.Min(grid.width / 12f, grid.height / 8f);
                 AssertEqual(true, tileSize >= minimumTileSizes[sizeIndex], $"combat battlefield preserves large tiles at {size.x}x{size.y} ({tileSize:0.0}px)");
-                AssertEqual(true, grid.width * grid.height >= size.x * size.y * 0.50f, $"combat battlefield owns at least half the frame at {size.x}x{size.y}");
+                float minimumBattlefieldShare = compactViewport ? 0.40f : 0.50f;
+                AssertEqual(true, grid.width * grid.height >= size.x * size.y * minimumBattlefieldShare, $"combat battlefield owns its intended frame share at {size.x}x{size.y}");
                 foreach (bool promoteEndTurn in new[] { false, true })
                 {
                     Rect[] buttons = CombatHudScreenLayout.CommandButtons(geometry.Command.width, geometry.Command.height, promoteEndTurn);
@@ -4411,10 +4498,15 @@ namespace AshenHalls.Editor
                     foreach (Rect button in buttons)
                     {
                         AssertEqual(true, button.xMin >= 0f && button.yMin >= 0f && button.xMax <= geometry.Command.width && button.yMax <= geometry.Command.height, $"combat command button fits {size.x}x{size.y} promoted={promoteEndTurn}");
-                        AssertEqual(true, button.width >= 56f && button.height >= 80f, $"combat command keeps a generous pointer and controller target at {size.x}x{size.y}");
+                        AssertEqual(true, button.width >= 72f && button.height >= 80f, $"combat command keeps a generous pointer and controller target at {size.x}x{size.y}");
                         float iconSize = CombatHudScreenLayout.CommandIconSize(button);
                         AssertEqual(true, iconSize >= 52f, $"combat command art remains readable at {size.x}x{size.y}");
-                        AssertEqual(true, 6f + iconSize + 27f <= button.height, $"combat command art clears its compact label stack at {size.x}x{size.y}");
+                        float iconTop = CombatHudScreenLayout.UsesCompactCommandLayout(button) ? 4f : 6f;
+                        float labelHeight = CombatHudScreenLayout.UsesCompactCommandLayout(button) ? 15f : 17f;
+                        AssertEqual(true, iconTop + iconSize + 1f + labelHeight <= button.height, $"combat command art clears its visible label at {size.x}x{size.y}");
+                        Rect stateTag = CombatHudScreenLayout.CommandStateTagRect(button);
+                        Rect hotkey = CombatHudScreenLayout.CommandHotkeyRect(button);
+                        AssertEqual(true, stateTag.xMax <= hotkey.xMin, $"combat command state and hotkey badges never overlap at {size.x}x{size.y}");
                     }
                     AssertEqual(true, buttons[3].yMin - buttons[2].yMax > buttons[2].yMin - buttons[1].yMax, $"targeted and instant command groups stay visually separated at {size.x}x{size.y}");
                     AssertEqual(promoteEndTurn, buttons[5].height > buttons[4].height, $"end turn height promotion is intentional at {size.x}x{size.y}");
@@ -4458,6 +4550,10 @@ namespace AshenHalls.Editor
 
                 CombatHudScreenLayout.SidePanels(geometry.Side, false, out Rect active, out Rect target, out Rect timeline);
                 AssertEqual(true, active.yMin >= 0f && target.yMin >= active.yMax && timeline.yMin >= target.yMax && timeline.yMax <= geometry.Side.height, $"combat side collapsed fits {size.x}x{size.y}");
+                AssertEqual(compactViewport ? 4 : 6, CombatHudScreenLayout.TurnChipCapacity(geometry.Side.width), $"combat turn order uses the readable capacity at {size.x}x{size.y}");
+                AssertEqual(compactViewport ? 2 : 3, CombatHudScreenLayout.TurnChipColumns(geometry.Side.width), $"combat turn order uses readable columns at {size.x}x{size.y}");
+                AssertEqual(true, CombatHudScreenLayout.TurnChipNameWidth(geometry.Side.width) >= (compactViewport ? 60f : 34f), $"combat turn names retain a readable well at {size.x}x{size.y}");
+                AssertEqual(true, CombatHudScreenLayout.TurnChipNameWidth(geometry.Side.width, true) >= (compactViewport ? 47f : 24f), $"next-round markers reserve a non-overlapping turn-name well at {size.x}x{size.y}");
                 float collapsedTimelineHeight = timeline.height;
                 AssertEqual(true, geometry.Side.height - timeline.yMax >= 100f, $"collapsed combat dossier leaves deliberate breathing room at {size.x}x{size.y}");
                 AssertEqual(true, collapsedTimelineHeight >= 126f && collapsedTimelineHeight <= 154f, $"collapsed combat timeline shows initiative without reserving event-log space at {size.x}x{size.y}");
@@ -4475,7 +4571,8 @@ namespace AshenHalls.Editor
                 }
                 CombatHudScreenLayout.SidePanels(geometry.Side, true, out active, out target, out timeline);
                 AssertEqual(true, active.yMin >= 0f && target.yMin >= active.yMax && timeline.yMin >= target.yMax && timeline.yMax <= geometry.Side.height, $"combat side expanded fits {size.x}x{size.y}");
-                AssertEqual(true, timeline.height >= 284f && timeline.height >= collapsedTimelineHeight + 120f, $"expanded combat timeline becomes the intentional information drawer at {size.x}x{size.y}");
+                float minimumExpandedTimelineHeight = compactViewport ? 244f : 284f;
+                AssertEqual(true, timeline.height >= minimumExpandedTimelineHeight && timeline.height >= collapsedTimelineHeight + 120f, $"expanded combat timeline becomes the intentional information drawer at {size.x}x{size.y}");
                 foreach (bool showMana in new[] { false, true })
                 {
                     AssertEqual(true, CombatHudScreenLayout.UnitCard(active.width, active.height, showMana).Fits(active.width, active.height), $"expanded active card rows do not overlap at {size.x}x{size.y} mana={showMana}");
@@ -4932,12 +5029,26 @@ namespace AshenHalls.Editor
                 Enabled = true,
                 Promoted = true
             };
+            CombatHudCommandView available = new CombatHudCommandView { Enabled = true, Mode = ActionMode.Move };
+            CombatHudCommandView guard = new CombatHudCommandView { Enabled = true, Mode = ActionMode.Guard, SubLabel = "Guard +4" };
+            CombatHudCommandView elixir = new CombatHudCommandView { Enabled = true, Mode = ActionMode.Elixir, SubLabel = "2 left" };
             AssertEqual(CombatHudCommandVisualState.Blocked, CombatHudCommandStyleRules.Resolve(blocked), "disabled combat commands resolve to blocked styling");
             AssertEqual("", CombatHudCommandStyleRules.StateTag(CombatHudCommandStyleRules.Resolve(blocked)), "blocked commands avoid repeating their state in a badge");
             AssertEqual("Out of range", CombatHudCommandStyleRules.SecondaryLine(blocked), "blocked commands explain the reason without a redundant prefix");
+            AssertEqual("Out of range.", CombatHudCommandStyleRules.PromptDetail(blocked), "blocked command focus repeats the actionable reason in the canonical prompt");
             AssertEqual(CombatHudCommandVisualState.Armed, CombatHudCommandStyleRules.Resolve(armed), "armed targeting owns the strongest command state");
             AssertEqual("ARMED", CombatHudCommandStyleRules.StateTag(CombatHudCommandStyleRules.Resolve(armed)), "armed command receives a targeting tag");
+            AssertEqual("Choose a target", CombatHudCommandStyleRules.SecondaryLine(armed), "armed commands do not repeat their state tag in secondary copy");
+            AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(armed, false), "armed targeting keeps its useful target detail in the full command deck");
+            AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(blocked, false), "blocked commands keep their actionable reason in the full command deck");
+            AssertEqual(false, CombatHudCommandStyleRules.ShowsPersistentSecondary(available, false), "ordinary commands defer explanatory copy to the contextual prompt");
+            AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(guard, false), "Guard keeps its decision-changing bonus in the full command deck");
+            AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(elixir, false), "Elixir keeps its shared stock count in the full command deck");
+            AssertEqual(true, CombatHudCommandStyleRules.PromptDetail(elixir).Contains("2 left") && CombatHudCommandStyleRules.PromptDetail(elixir).Contains("Recover"), "Elixir focus keeps stock and purpose available when compact copy is hidden");
+            AssertEqual(false, CombatHudCommandStyleRules.ShowsPersistentSecondary(armed, true), "compact commands defer secondary copy to the contextual prompt");
+            AssertEqual(false, CombatHudCommandStyleRules.ShowsPersistentSecondary(elixir, true), "compact Elixir exposes stock through focus instead of crowding its button");
             AssertEqual("NEXT", CombatHudCommandStyleRules.StateTag(CombatHudCommandStyleRules.Resolve(promoted)), "promoted end-turn command advertises the next combatant");
+            AssertEqual("Finish turn", CombatHudCommandStyleRules.SecondaryLine(promoted), "promoted end-turn copy avoids a second readiness label");
 
             AssertEqual(
                 MusicDirectorRules.CombatDrow,
@@ -6236,6 +6347,154 @@ namespace AshenHalls.Editor
             AssertEqual(true, actual.SpinDegrees >= -180f && actual.SpinDegrees <= 180f, label + " spin stays bounded");
         }
 
+        private static void CombatPowerAftermathAndTimelineStayDeterministic()
+        {
+            AssertEqual(4, CombatPowerAftermathVfxRules.AtlasColumns, "combat power aftermath VFX atlas columns");
+            AssertEqual(4, CombatPowerAftermathVfxRules.AtlasRows, "combat power aftermath VFX atlas rows");
+            AssertEqual(16, CombatPowerAftermathVfxRules.AtlasCellCount, "combat power aftermath VFX atlas cell count");
+            string[] familyKeys =
+            {
+                "FBL", "MTR", "RCL", "RIG",
+                "OIC", "TBQ", "GBH", "SBN",
+                "RBT", "INH", "PBR", "DSM",
+                "RKW", "IBG", "DFA", "whirlwind"
+            };
+            CombatPowerAftermathVfxProfile[] familyProfiles = familyKeys
+                .Select(CombatPowerAftermathVfxRules.ProfileFor)
+                .ToArray();
+            AssertEqual(
+                string.Join(",", Enumerable.Range(0, CombatPowerAftermathVfxRules.AtlasCellCount)),
+                string.Join(",", familyProfiles.Select(profile => profile.AtlasCell)),
+                "combat power aftermath families preserve the strict row-major 4x4 contract");
+            AssertEqual(true, familyProfiles.All(profile => profile.HasAftermath), "every canonical aftermath family has visible art");
+
+            Texture2D aftermathAtlas = null;
+            try
+            {
+                aftermathAtlas = LoadApprovedRuntimeAtlas(RuntimeArtManifest.CombatPowerAftermathVfxAtlas);
+                AssertEqual(new Vector2Int(1280, 1280), new Vector2Int(aftermathAtlas.width, aftermathAtlas.height), "approved combat power aftermath VFX atlas dimensions");
+                AssertAtlasCellCoverage(
+                    aftermathAtlas,
+                    CombatPowerAftermathVfxRules.AtlasColumns,
+                    CombatPowerAftermathVfxRules.AtlasRows,
+                    Enumerable.Range(0, CombatPowerAftermathVfxRules.AtlasCellCount),
+                    0.08f,
+                    0.72f,
+                    "approved combat power aftermath VFX");
+                AssertAtlasCellSafeGutter(
+                    aftermathAtlas,
+                    CombatPowerAftermathVfxRules.AtlasColumns,
+                    CombatPowerAftermathVfxRules.AtlasRows,
+                    Enumerable.Range(0, CombatPowerAftermathVfxRules.AtlasCellCount),
+                    24,
+                    12,
+                    0,
+                    "approved combat power aftermath VFX");
+                AssertAtlasHasNoBrightMagentaKeyField(aftermathAtlas, 12, 32, "approved combat power aftermath VFX");
+            }
+            finally
+            {
+                if (aftermathAtlas != null) UnityEngine.Object.DestroyImmediate(aftermathAtlas);
+            }
+
+            AssertEqual(FormulaCatalog.All.Length, FormulaCatalog.All.Count(formula => CombatPowerAftermathVfxRules.ProfileForFormula(formula.Code).HasAftermath), "all formulas have deterministic aftermath profiles");
+            string[] abilityIds = new[] { "warrior", "rogue", "ranger", "demon" }
+                .SelectMany(AbilityCatalog.IdsForClass)
+                .ToArray();
+            AssertEqual(25, abilityIds.Length, "aftermath ability probe covers the complete active skill catalog");
+            AssertEqual(abilityIds.Length, abilityIds.Count(id => CombatPowerAftermathVfxRules.ProfileForAbility(id).HasAftermath), "all active skills have deterministic aftermath profiles");
+
+            CombatPowerAftermathVfxPlan fireballPlan = CombatPowerAftermathVfxRules.PlanForFormula("FBL", 3, 0.42f, false, 9182);
+            CombatPowerAftermathVfxPlan repeatedFireballPlan = CombatPowerAftermathVfxRules.PlanForFormula("fireball", 3, 0.42f, false, 9182);
+            AssertEqual(fireballPlan.AtlasCell, repeatedFireballPlan.AtlasCell, "Fireball aftermath aliases preserve art identity");
+            AssertEqual(fireballPlan.StableSeed, repeatedFireballPlan.StableSeed, "Fireball aftermath aliases preserve deterministic seeds");
+            AssertEqual(fireballPlan.Scale, repeatedFireballPlan.Scale, "Fireball aftermath replay scale repeats exactly");
+            AssertEqual(fireballPlan.Drift, repeatedFireballPlan.Drift, "Fireball aftermath replay drift repeats exactly");
+            AssertEqual(true, fireballPlan.Scale >= CombatPowerAftermathVfxRules.MinimumScale && fireballPlan.Scale <= CombatPowerAftermathVfxRules.MaximumPlanScale, "Fireball aftermath scale stays bounded");
+            AssertEqual(true, fireballPlan.Opacity > 0f && fireballPlan.Opacity <= CombatPowerAftermathVfxRules.MaximumOpacity, "Fireball aftermath opacity stays bounded");
+            AssertEqual(true, fireballPlan.LayerCount >= 1 && fireballPlan.LayerCount <= CombatPowerAftermathVfxRules.MaximumLayerCount, "Fireball aftermath layers stay bounded");
+            AssertEqual(true, fireballPlan.ParticleCount <= CombatPowerAftermathVfxRules.MaximumParticleCount, "Fireball aftermath particle recipe stays bounded");
+            CombatPowerAftermathVfxPlan reducedAftermath = CombatPowerAftermathVfxRules.PlanForFormula("FBL", 3, 0f, true, 9182);
+            AssertEqual(false, reducedAftermath.HasAftermath, "Reduced Motion suppresses lingering aftermath art");
+            AssertEqual(0f, reducedAftermath.DurationSeconds, "Reduced Motion aftermath has no delayed duration");
+
+            const int stableSeed = 77193;
+            CombatPowerAnimationTimeline fireball = CombatPowerAnimationTimelineRules.ForFormula("FBL", stableSeed, 3, false);
+            CombatPowerAnimationTimeline repeatedFireball = CombatPowerAnimationTimelineRules.ForFormula("fireball", stableSeed, 3, false);
+            AssertEqual(true, fireball.Supported && fireball.HasTravel && fireball.HasAftermath, "Fireball owns the full cast, travel, impact, and aftermath timeline");
+            AssertEqual(fireball.ReleaseAt, repeatedFireball.ReleaseAt, "Fireball replay release beat repeats exactly");
+            AssertEqual(fireball.ImpactAt, repeatedFireball.ImpactAt, "Fireball replay impact beat repeats exactly");
+            AssertEqual(fireball.AftermathAt, repeatedFireball.AftermathAt, "Fireball replay aftermath beat repeats exactly");
+            AssertEqual(fireball.CompleteAt, repeatedFireball.CompleteAt, "Fireball replay completion beat repeats exactly");
+            AssertEqual(true, fireball.CastAt <= fireball.ReleaseAt && fireball.ReleaseAt < fireball.ImpactAt && fireball.ImpactAt <= fireball.AftermathAt && fireball.AftermathAt < fireball.CompleteAt, "Fireball phases stay strictly ordered around travel and aftermath");
+            AssertEqual(CombatPowerAnimationPhase.Cast, fireball.FrameAt(Mathf.Max(0f, fireball.ReleaseAt - 0.001f)).Phase, "Fireball remains in cast anticipation before release");
+            AssertEqual(CombatPowerAnimationPhase.ReleaseTravel, fireball.FrameAt(fireball.ReleaseAt).Phase, "Fireball release boundary owns projectile travel");
+            AssertEqual(CombatPowerAnimationPhase.Impact, fireball.FrameAt(fireball.ImpactAt).Phase, "Fireball impact boundary owns contact");
+            AssertEqual(CombatPowerAnimationPhase.Aftermath, fireball.FrameAt(fireball.AftermathAt).Phase, "Fireball aftermath boundary owns its scorch finish");
+            AssertEqual(CombatPowerAnimationPhase.Complete, fireball.FrameAt(fireball.CompleteAt).Phase, "Fireball completion boundary retires the animation");
+
+            CombatPowerAnimationTimeline summon = CombatPowerAnimationTimelineRules.ForFormula("IBG", stableSeed, 3, false);
+            AssertEqual(false, summon.HasTravel, "Greater Demon summon skips projectile travel");
+            AssertEqual(CombatPowerAnimationPhase.Cast, summon.FrameAt(Mathf.Max(0f, summon.ImpactAt - 0.001f)).Phase, "no-travel summons stay in ritual anticipation until contact");
+            AssertEqual(CombatPowerAnimationPhase.Impact, summon.FrameAt(summon.ImpactAt).Phase, "no-travel summons enter impact without a zero-duration travel phase");
+
+            foreach (FormulaDef formula in FormulaCatalog.All)
+            {
+                CombatPowerAnimationTimeline timeline = CombatPowerAnimationTimelineRules.ForFormula(formula, stableSeed, 2, false);
+                AssertEqual(true, timeline.Supported, formula.Code + " animation timeline is supported");
+                AssertEqual(true, timeline.CastAt <= timeline.ReleaseAt && timeline.ReleaseAt <= timeline.ImpactAt && timeline.ImpactAt <= timeline.AftermathAt && timeline.AftermathAt <= timeline.CompleteAt, formula.Code + " animation phases are finite and monotonic");
+                AssertEqual(CombatPowerAnimationPhase.Complete, timeline.FrameAt(timeline.CompleteAt + 1f).Phase, formula.Code + " animation reaches Complete");
+            }
+            foreach (string abilityId in abilityIds)
+            {
+                CombatPowerAnimationTimeline timeline = CombatPowerAnimationTimelineRules.ForAbility(abilityId, stableSeed, 2, false);
+                AssertEqual(true, timeline.Supported, abilityId + " animation timeline is supported");
+                AssertEqual(true, timeline.CastAt <= timeline.ReleaseAt && timeline.ReleaseAt <= timeline.ImpactAt && timeline.ImpactAt <= timeline.AftermathAt && timeline.AftermathAt <= timeline.CompleteAt, abilityId + " animation phases are finite and monotonic");
+            }
+
+            CombatPowerAnimationTimeline reduced = CombatPowerAnimationTimelineRules.ForFormula("FBL", stableSeed, 3, true);
+            AssertEqual(false, reduced.HasTravel || reduced.HasAftermath, "Reduced Motion removes travel and lingering aftermath phases");
+            AssertEqual(CombatPowerAnimationPhase.Impact, reduced.FrameAt(0f).Phase, "Reduced Motion starts on a compact static impact");
+            AssertEqual(true, reduced.FrameAt(0f).StaticImpact, "Reduced Motion impact frame is explicitly static");
+            AssertEqual(CombatPowerAnimationPhase.Complete, reduced.FrameAt(CombatPowerAnimationTimelineRules.ReducedMotionImpactHoldSeconds).Phase, "Reduced Motion completes after its finite static hold");
+            CombatPowerAnimationTimeline unknown = CombatPowerAnimationTimelineRules.For("unknown power", stableSeed, 3, false);
+            AssertEqual(false, unknown.Supported, "unknown animation powers remain unsupported");
+            AssertEqual(CombatPowerAnimationPhase.Complete, unknown.FrameAt(0f).Phase, "unknown animation powers resolve directly to Complete");
+            CombatTransientPresentationBoundariesAreExplicit();
+        }
+
+        private static void CombatTransientPresentationBoundariesAreExplicit()
+        {
+            string combatSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Combat.cs"));
+            string coreSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Core.cs"));
+            int resetAt = combatSource.IndexOf("private void ClearTransientCombatPresentation()", StringComparison.Ordinal);
+            int resetEndAt = combatSource.IndexOf("private void RefillBetaLab()", resetAt, StringComparison.Ordinal);
+            int startCombatAt = combatSource.IndexOf("private void StartCombat(EncounterDefinition encounter)", StringComparison.Ordinal);
+            int startCombatEndAt = combatSource.IndexOf("private void ApplyEncounterPlacements", startCombatAt, StringComparison.Ordinal);
+            int startCombatResetAt = combatSource.IndexOf("ClearTransientCombatPresentation();", startCombatAt, StringComparison.Ordinal);
+            int adoptAt = coreSource.IndexOf("private void AdoptLoadedGameState", StringComparison.Ordinal);
+            int adoptEndAt = coreSource.IndexOf("private bool BlockPersistenceDuringCombatResolution", adoptAt, StringComparison.Ordinal);
+            int successfulAdoptionAt = coreSource.IndexOf("labSaveBlocked = false;", adoptAt, StringComparison.Ordinal);
+            int adoptedResetAt = coreSource.IndexOf("ClearTransientCombatPresentation();", adoptAt, StringComparison.Ordinal);
+            string resetBody = resetAt >= 0 && resetEndAt > resetAt
+                ? combatSource.Substring(resetAt, resetEndAt - resetAt)
+                : "";
+
+            AssertEqual(true, resetAt >= 0 && resetEndAt > resetAt, "combat owns one explicit transient-presentation reset");
+            AssertEqual(true,
+                new[]
+                {
+                    "tweens.Clear();", "floatTexts.Clear();", "particles.Clear();", "beams.Clear();", "flashes.Clear();", "castGlyphs.Clear();",
+                    "powerCastAuras.Clear();", "powerImpactEchoes.Clear();", "powerTravelVfx.Clear();", "powerAftermathVfx.Clear();",
+                    "combatPowerCue = default;", "combatPowerOutcomeText = \"\";", "ClearCombatAudioForReducedMotion();"
+                }.All(token => resetBody.IndexOf(token, StringComparison.Ordinal) >= 0),
+                "combat transient reset covers legacy motion, authored timeline, cue, outcome, and scheduled audio layers");
+            AssertEqual(true, startCombatResetAt > startCombatAt && startCombatResetAt < startCombatEndAt,
+                "every new encounter clears prior transient combat presentation before staging the encounter");
+            AssertEqual(true, adoptAt >= 0 && successfulAdoptionAt > adoptAt && adoptedResetAt > successfulAdoptionAt && adoptedResetAt < adoptEndAt,
+                "load adoption clears prior transient combat presentation only after validation and state adoption succeed");
+        }
+
         private static void CombatVfxShowcaseCatalogIsStableAndReplayable()
         {
             IReadOnlyList<CombatVfxShowcaseEntry> entries = CombatVfxShowcaseRules.Supported;
@@ -7377,6 +7636,7 @@ namespace AshenHalls.Editor
         private static void HelpOverlayContentIsModeSpecific()
         {
             HelpOverlayView tavern = HelpOverlayContent.Build(GameMode.Tavern, true, 6, "Midgaard");
+            HelpOverlayView retailTavern = HelpOverlayContent.Build(GameMode.Tavern, false, 6, "Midgaard");
             HelpOverlayView explore = HelpOverlayContent.Build(GameMode.Explore, false, 6, "Midgaard");
             HelpOverlayView combat = HelpOverlayContent.Build(GameMode.Combat, false, 6, "Midgaard");
             HelpOverlayView muster = HelpOverlayContent.Build(GameMode.Muster, false, 6, "Midgaard");
@@ -7384,7 +7644,9 @@ namespace AshenHalls.Editor
             HelpOverlayView defeat = HelpOverlayContent.Build(GameMode.Defeat, false, 6, "Midgaard");
 
             AssertEqual(true, tavern.Title.Contains("Tavern"), "tavern help title");
-            AssertEqual(true, tavern.Lines.Any(line => line.Contains("Beta Testing")), "developer tavern help mentions beta testing");
+            AssertEqual(true, tavern.Lines.Any(line => line.Contains("Beta Lab")), "developer tavern help names the direct Beta Lab row");
+            AssertEqual(true, tavern.Lines.Any(line => line.Contains("broader combat, martial, and route testing panel")), "developer tavern help retains the broader testing-panel route");
+            AssertEqual(false, retailTavern.Lines.Any(line => line.Contains("Beta Lab") || line.Contains("testing panel")), "retail tavern help does not advertise hidden developer routes");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Space / E")), "exploration help mentions contextual use");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Growth tab")), "exploration help points earned progression to I > Growth");
             AssertEqual(true, explore.Lines.Any(line => line.IndexOf("east and west gates", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help mentions pass-through gates");

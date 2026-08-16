@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.17.0 - Flame and Focus
+
+- Reworked the title menu around five purpose-built glyphs for Continue, New Game, Settings, Exit Game, and the Development-only Beta Lab. The fireplace, storm, reveal, and focus presentation now obey Reduced Motion; compact layouts keep every core action on one line; and retail builds keep the lab unavailable.
+- Synchronized formula and skill presentation through one deterministic cast, release, authored-travel, impact, and aftermath timeline. Exact impact SFX land on the same beat, while duplicate legacy primary deliveries are suppressed without removing Chain Lightning jumps, Meteor and Arcane Tempest satellites, Volley and Quick Shot follow-ups, Thunder Step arrival arcs, or Soul Rend's return siphon.
+- Added the exact-pinned 4 by 4 combat-power aftermath atlas for scorch, crater, frost, lightning, healing, ward, nature, sun, rift, soul, hex, poison, dream, web, summon, ascendance, and martial residue. Reduced Motion clears authored travel and aftermath, leaving one stable result instead of lingering motion.
+- Decluttered the combat HUD by removing repeated phase, actor, cursor-source, initiative, and command-state copy. The supported 960x600 layout gives the battlefield more room while retaining explicit selected, armed, blocked, focused, target, forecast, and turn-order information.
+- Preserved the v2.16 browsable Region Map, combat cursor/pointer arbitration, distinct route scores, 54 original music masters, and 161 authored SFX. Two newly accepted runtime pins bring the exact manifest to 56 and the packaged art inventory to 91 PNGs; save schema remains v25 because all new animation state is transient.
+- Final combined RuleSmoke and full RuntimeBoot pass on the integrated title, HUD, spell, SFX, travel, and aftermath snapshot. Runtime/editor compilation, exact art/audio checks, and built-player title review at 1024x768 and 1280x720 also pass. The clean-source canonical package, clean-extracted boot, final combat-aftermath player review, and immutable release hashes remain the publication gates.
+
 ## v2.16.0 - Compass and Command
 
 - Made the wide Region Map fully browsable without moving the party. Keyboard, arrows, and the configured left stick pan a persistent focus; Home or the controller's left face button recenters; pointer click, grab-drag, and wheel input browse the chart. A focus reticle, coordinates, chart/fog context, and edge cues keep the selected cell and available pan directions visible.

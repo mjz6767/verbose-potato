@@ -161,8 +161,8 @@ namespace AshenHalls
         {
             string[] normal =
             {
-                "Continue appears when a campaign save exists.",
-                "Begin the Old Road opens the four-person muster before Town Hall's Grand Hearth.",
+                "Continue stays visible and becomes available when a campaign save exists.",
+                "New Game opens the four-person muster before Town Hall's Grand Hearth.",
                 "Quick Start accepts the default company; Begin uses the current muster choices.",
                 "Settings controls audio volume and reduced motion.",
                 "F5 saves and F9 loads during gameplay. Esc opens the gameplay menu."
@@ -172,8 +172,8 @@ namespace AshenHalls
 
             return normal.Concat(new[]
             {
-                "Development builds also show Beta Testing for combat, martial, and route labs.",
-                "T toggles the testing panel from the tavern."
+                "Development builds add a direct Beta Lab row for spell and combat testing.",
+                "T opens the broader combat, martial, and route testing panel from the tavern."
             }).ToArray();
         }
     }

@@ -8,12 +8,11 @@ namespace AshenHalls
 {
     public static class TavernMenuRules
     {
-        private static readonly string[] choicesWithoutSave = { "New Game", "Settings", "Exit Game" };
-        private static readonly string[] choicesWithSave = { "Continue", "New Game", "Settings", "Exit Game" };
+        private static readonly string[] normalChoices = { "Continue", "New Game", "Settings", "Exit Game" };
 
         public static IReadOnlyList<string> NormalChoiceLabels(bool saveExists)
         {
-            return saveExists ? choicesWithSave : choicesWithoutSave;
+            return normalChoices;
         }
 
         public static int NormalChoiceCount(bool saveExists)
@@ -23,12 +22,22 @@ namespace AshenHalls
 
         public static bool ShowContinue(bool saveExists)
         {
+            return true;
+        }
+
+        public static bool EnableContinue(bool saveExists)
+        {
             return saveExists;
         }
 
         public static bool ShowDeveloperTesting(bool developmentBuild)
         {
             return developmentBuild;
+        }
+
+        public static bool CanDispatchDeveloperTestingShortcut(bool developmentBuild)
+        {
+            return ShowDeveloperTesting(developmentBuild);
         }
     }
 

@@ -157,13 +157,8 @@ namespace AshenHalls
 
         private void OpenDeveloperTestingShortcut()
         {
-            if (TavernMenuRules.ShowDeveloperTesting(DeveloperTestingBuildEnabled()))
-            {
-                ToggleTavernTesting();
-                return;
-            }
-
-            StartBetaCombatLab();
+            if (!TavernMenuRules.CanDispatchDeveloperTestingShortcut(DeveloperTestingBuildEnabled())) return;
+            ToggleTavernTesting();
         }
 
         private void StartBetaCombatLab()
@@ -202,6 +197,12 @@ namespace AshenHalls
             PushLog("Spell Lab craft is enabled here: use Mage for ember/fire/cold/shock testing, Craft for all casters, and Vesh for priest wards and mending.", Tone.Good);
             ShowBanner(BuildStage);
             TestSfx();
+        }
+
+        private void StartBetaCombatLabFromTitle()
+        {
+            PlayTitleMenuCue(TitleMenuAudioAction.Confirm);
+            StartBetaCombatLab();
         }
 
         private void StartMartialCombatLab()
@@ -312,7 +313,7 @@ namespace AshenHalls
                 VersionLine = () => PackageVersion,
                 BackdropArt = tavernBackdropArt,
                 TitleArt = titleCardArt,
-                MenuIconAtlas = tavernUiAtlas,
+                MenuIconAtlas = titleMenuIconAtlas ?? tavernUiAtlas,
                 MenuScrollArt = titleMenuScrollArt,
                 MenuFocusArt = titleMenuFocusArt,
                 HasSavedGame = HasSavedGame,
@@ -327,7 +328,6 @@ namespace AshenHalls
                 Continue = ContinueSavedGame,
                 NewGame = StartNewGame,
                 ToggleSettings = ToggleTavernSettings,
-                ToggleTesting = ToggleTavernTesting,
                 Quit = RequestQuitFromTavern,
                 CloseSettings = CloseTavernSettings,
                 ToggleAudio = ToggleSfxMute,
@@ -337,7 +337,7 @@ namespace AshenHalls
                 MusicVolumeDown = () => AdjustMusicVolume(-25),
                 MusicVolumeUp = () => AdjustMusicVolume(25),
                 ToggleReducedMotion = ToggleReducedMotionSetting,
-                BetaLab = StartBetaCombatLab,
+                BetaLab = StartBetaCombatLabFromTitle,
                 MartialLab = StartMartialCombatLab,
                 KoboldLab = StartKoboldRouteLab,
                 PlayTitleCue = PlayTitlePresentationCue

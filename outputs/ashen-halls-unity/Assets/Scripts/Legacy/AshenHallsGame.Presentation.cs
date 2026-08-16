@@ -778,6 +778,24 @@ namespace AshenHalls
             return DrawTextureRegionTint(combatPowerTravelVfxAtlas, rect, CombatPowerTravelVfxAtlasCell(index), tint);
         }
 
+        private bool IsCombatPowerAftermathVfxAtlas()
+        {
+            return combatPowerAftermathVfxAtlas != null
+                && combatPowerAftermathVfxAtlas.width == 1280
+                && combatPowerAftermathVfxAtlas.height == 1280;
+        }
+
+        private Rect CombatPowerAftermathVfxAtlasCell(int index)
+        {
+            return AtlasCell(combatPowerAftermathVfxAtlas, index, 4, 4);
+        }
+
+        private bool TryDrawCombatPowerAftermathVfxAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsCombatPowerAftermathVfxAtlas() || index < 0 || index >= 16) return false;
+            return DrawTextureRegionTint(combatPowerAftermathVfxAtlas, rect, CombatPowerAftermathVfxAtlasCell(index), tint);
+        }
+
         private bool IsSpellAnimationAtlas()
         {
             return spellAnimationAtlas != null && Mathf.Abs(spellAnimationAtlas.width - spellAnimationAtlas.height) < 8 && spellAnimationAtlas.width >= 768;

@@ -2538,6 +2538,7 @@ namespace AshenHalls
             powerImpactEchoes.RemoveAll(e => now > e.ImpactAt + e.Duration);
             powerCastAuras.RemoveAll(a => now > a.Start + a.Duration);
             powerTravelVfx.RemoveAll(travel => now > travel.Start + travel.Duration);
+            powerAftermathVfx.RemoveAll(aftermath => now > aftermath.Start + aftermath.Duration);
 
             UpdateTavernMusic();
             UpdateTavernAmbience();
@@ -3048,48 +3049,7 @@ namespace AshenHalls
                 if (!IsSupportedSaveVersion(loaded.SaveVersion)) throw new InvalidDataException($"This beta scaffold needs a supported v17-v{SaveVersion} save.");
                 int sourceSaveVersion = loaded.SaveVersion;
                 string repairedContentSet = ContentSetCatalog.RepairLoadedContentSetId(loaded, out bool contentSetRepaired, out string contentSetRepairNote);
-                GameState previous = state;
-                string previousContentSet = activeContentSet;
-                bool previousLabSaveBlocked = labSaveBlocked;
-                bool previousBetaLabMode = betaLabMode;
-                try
-                {
-                    activeContentSet = repairedContentSet;
-                    loaded.ContentSetId = repairedContentSet;
-                    CloseTransientOverlays();
-                    state = loaded;
-                    InvalidateControllerCaches();
-                    NormalizeGameSettings();
-                    EnsurePartyCustomization();
-                    EnsureWorldState(sourceSaveVersion);
-                    if (state.Party == null || state.Party.Count == 0) throw new InvalidDataException("Saved party is empty.");
-                    if (state.Mode == GameMode.Explore && state.Map == null) throw new InvalidDataException("Saved exploration map is missing.");
-                    EnsureCombatTurnState();
-                    if (state.Mode == GameMode.Explore && state.Map != null)
-                    {
-                        EnsureWorldLandmarks();
-                        EnsureExploreSurfaceData(state.Map, sourceSaveVersion);
-                        if (!ExplorationSurfaceRules.HasValidGrid(state.Map)) throw new InvalidDataException("Saved exploration surface data could not be repaired.");
-                        RepairPlayerExplorationPosition();
-                        RevealKnownMidgaardChart();
-                        RevealKnownRouteLandmarkChart();
-                        RevealExplorationChartAroundPlayer();
-                        lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
-                    }
-                    rng = new System.Random(state.Seed + state.Depth * 101);
-                    state.SaveVersion = SaveVersion;
-                    betaLabMode = false;
-                    labSaveBlocked = false;
-                }
-                catch
-                {
-                    state = previous;
-                    InvalidateControllerCaches();
-                    activeContentSet = previousContentSet;
-                    labSaveBlocked = previousLabSaveBlocked;
-                    betaLabMode = previousBetaLabMode;
-                    throw;
-                }
+                AdoptLoadedGameState(loaded, sourceSaveVersion, repairedContentSet);
                 if (contentSetRepaired && !string.IsNullOrWhiteSpace(contentSetRepairNote)) PushLog(contentSetRepairNote, Tone.Warn);
                 PushLog("The saved oath is restored.", Tone.Good);
                 InvalidateSavedGameCache();
@@ -3101,6 +3061,53 @@ namespace AshenHalls
                 PushLog("Load failed: " + ex.Message, Tone.Warn);
                 ShowBanner("Load failed");
                 PlaySfx("hit", 0.45f);
+            }
+        }
+
+        private void AdoptLoadedGameState(GameState loaded, int sourceSaveVersion, string repairedContentSet)
+        {
+            GameState previous = state;
+            string previousContentSet = activeContentSet;
+            bool previousLabSaveBlocked = labSaveBlocked;
+            bool previousBetaLabMode = betaLabMode;
+            try
+            {
+                activeContentSet = repairedContentSet;
+                loaded.ContentSetId = repairedContentSet;
+                CloseTransientOverlays();
+                state = loaded;
+                InvalidateControllerCaches();
+                NormalizeGameSettings();
+                EnsurePartyCustomization();
+                EnsureWorldState(sourceSaveVersion);
+                if (state.Party == null || state.Party.Count == 0) throw new InvalidDataException("Saved party is empty.");
+                if (state.Mode == GameMode.Explore && state.Map == null) throw new InvalidDataException("Saved exploration map is missing.");
+                EnsureCombatTurnState();
+                if (state.Mode == GameMode.Explore && state.Map != null)
+                {
+                    EnsureWorldLandmarks();
+                    EnsureExploreSurfaceData(state.Map, sourceSaveVersion);
+                    if (!ExplorationSurfaceRules.HasValidGrid(state.Map)) throw new InvalidDataException("Saved exploration surface data could not be repaired.");
+                    RepairPlayerExplorationPosition();
+                    RevealKnownMidgaardChart();
+                    RevealKnownRouteLandmarkChart();
+                    RevealExplorationChartAroundPlayer();
+                    lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
+                }
+                rng = new System.Random(state.Seed + state.Depth * 101);
+                state.SaveVersion = SaveVersion;
+                betaLabMode = false;
+                labSaveBlocked = false;
+                ClearTransientCombatPresentation();
+            }
+            catch
+            {
+                state = previous;
+                InvalidateControllerCaches();
+                activeContentSet = previousContentSet;
+                labSaveBlocked = previousLabSaveBlocked;
+                betaLabMode = previousBetaLabMode;
+                throw;
             }
         }
 

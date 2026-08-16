@@ -27,7 +27,6 @@ namespace AshenHalls
         public Action Continue;
         public Action NewGame;
         public Action ToggleSettings;
-        public Action ToggleTesting;
         public Action Quit;
         public Action CloseSettings;
         public Action ToggleAudio;
@@ -200,12 +199,8 @@ namespace AshenHalls
             float gap = compact ? 6f : 8f;
             float heroHeight = compact ? 48f : 54f;
             float regularHeight = compact ? 44f : 48f;
-            if (saveExists)
-            {
-                rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, heroHeight));
-                y += heroHeight + gap;
-            }
-
+            rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, heroHeight));
+            y += heroHeight + gap;
             rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, heroHeight));
             y += heroHeight + gap;
             rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, regularHeight));
@@ -227,7 +222,7 @@ namespace AshenHalls
                 lastButton.x,
                 lastButton.yMax + (compact ? 10f : 12f),
                 lastButton.width,
-                compact ? 28f : 30f);
+                compact ? 44f : 48f);
         }
 
         public static TavernMenuScrollGeometry ScrollGeometry(float menuWidth, float menuHeight)
@@ -261,7 +256,7 @@ namespace AshenHalls
             float lastVisibleY = buttons[buttons.Count - 1].yMax;
             if (developerTestingVisible)
             {
-                lastVisibleY += (compact ? 10f : 12f) + (compact ? 28f : 30f);
+                lastVisibleY += (compact ? 10f : 12f) + (compact ? 44f : 48f);
             }
             return Mathf.Ceil(
                 lastVisibleY
@@ -281,11 +276,8 @@ namespace AshenHalls
             float gap = compact ? 6f : 8f;
             float heroHeight = compact ? 48f : 54f;
             float regularHeight = compact ? 44f : 48f;
-            if (saveExists)
-            {
-                rects.Add(new Rect(contentX, y, contentWidth, heroHeight));
-                y += heroHeight + gap;
-            }
+            rects.Add(new Rect(contentX, y, contentWidth, heroHeight));
+            y += heroHeight + gap;
             rects.Add(new Rect(contentX, y, contentWidth, heroHeight));
             y += heroHeight + gap;
             rects.Add(new Rect(contentX, y, contentWidth, regularHeight));
@@ -475,6 +467,7 @@ namespace AshenHalls
         private Image openingVeil;
         private Image colorGrade;
         private Image hearthGlow;
+        private Image hearthFireboxFlicker;
         private Image gateGlow;
         private Image titleArtImage;
         private readonly List<RectTransform> stormWindows = new List<RectTransform>();
@@ -597,9 +590,10 @@ namespace AshenHalls
                 ApplyLayout(saveExists, devVisible);
             }
 
-            continueButton.gameObject.SetActive(saveExists);
+            continueButton.gameObject.SetActive(TavernMenuRules.ShowContinue(saveExists));
+            continueButton.interactable = TavernMenuRules.EnableContinue(saveExists);
             testingButton.gameObject.SetActive(devVisible);
-            testingButtonText.text = testingVisible ? "Hide Beta Testing" : "Beta Testing";
+            testingButtonText.text = "Beta Lab";
             continueButtonText.text = "Continue";
             newGameButtonText.text = "New Game";
             menuPanel.gameObject.SetActive(!settingsVisible);
@@ -661,6 +655,10 @@ namespace AshenHalls
             hearthGlow.raycastTarget = false;
             hearthGlow.sprite = softGlowSprite;
             hearthGlow.preserveAspect = true;
+            hearthFireboxFlicker = AddImage("Hearth Firebox Flicker", atmosphereLayer, Hex("ff9a45", 0.08f));
+            hearthFireboxFlicker.raycastTarget = false;
+            hearthFireboxFlicker.sprite = softGlowSprite;
+            hearthFireboxFlicker.preserveAspect = true;
             gateGlow = AddImage("Storm Gate Bloom", atmosphereLayer, Hex("6ba9d3", 0.045f));
             gateGlow.raycastTarget = false;
             gateGlow.sprite = softGlowSprite;
@@ -902,9 +900,13 @@ namespace AshenHalls
                 TitleMenuChoiceKind.Exit,
                 bindings?.Quit,
                 false);
-            testingButton = AddButton("Beta Testing", menuPanel, "Beta Testing", bindings?.ToggleTesting, false);
-            testingButtonText = testingButton.GetComponentInChildren<Text>();
-            StyleScrollUtilityButton(testingButton, testingButtonText);
+            testingButton = AddTitleChoiceButton(
+                "Beta Lab",
+                "Beta Lab",
+                TitleMenuChoiceKind.BetaLab,
+                bindings?.BetaLab,
+                false);
+            testingButtonText = titleChoices[titleChoices.Count - 1].Label;
 
             settingsPanel = AddPanel("Settings", canvas.transform, Hex("080b0d", 0.96f), Hex("58b7a5", 0.86f));
             settingsTitleText = AddText("Settings Title", settingsPanel, "Settings", 20, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
@@ -971,6 +973,9 @@ namespace AshenHalls
             SetLocalRect(
                 hearthGlow.rectTransform,
                 backdropProjection.ProjectNormalized(new Rect(-0.055f, 0.26f, 0.46f, 0.76f)));
+            SetLocalRect(
+                hearthFireboxFlicker.rectTransform,
+                backdropProjection.ProjectNormalized(new Rect(0.005f, 0.46f, 0.23f, 0.36f)));
             SetLocalRect(
                 gateGlow.rectTransform,
                 backdropProjection.ProjectNormalized(new Rect(0.49f, 0.08f, 0.37f, 0.82f)));
@@ -1055,11 +1060,10 @@ namespace AshenHalls
             SetLocalRect(menuRuleCore, scroll.Rule);
 
             IReadOnlyList<Rect> buttons = TavernScreenLayout.ButtonRects(saveExists, geometry.Menu.width);
-            int buttonIndex = 0;
-            if (saveExists) SetLocalRect(continueButton.GetComponent<RectTransform>(), buttons[buttonIndex++]);
-            SetLocalRect(newGameButton.GetComponent<RectTransform>(), buttons[buttonIndex++]);
-            SetLocalRect(settingsButton.GetComponent<RectTransform>(), buttons[buttonIndex++]);
-            SetLocalRect(quitButton.GetComponent<RectTransform>(), buttons[buttonIndex]);
+            SetLocalRect(continueButton.GetComponent<RectTransform>(), buttons[0]);
+            SetLocalRect(newGameButton.GetComponent<RectTransform>(), buttons[1]);
+            SetLocalRect(settingsButton.GetComponent<RectTransform>(), buttons[2]);
+            SetLocalRect(quitButton.GetComponent<RectTransform>(), buttons[3]);
             SetLocalRect(
                 testingButton.GetComponent<RectTransform>(),
                 TavernScreenLayout.TestingButtonRect(
@@ -1073,17 +1077,24 @@ namespace AshenHalls
             menuTitleText.resizeTextMaxSize = compactMenu ? 18 : 22;
             foreach (TitleChoiceVisual choice in titleChoices)
             {
-                choice.IconFrame.gameObject.SetActive(!compactMenu);
-                choice.Icon.gameObject.SetActive(!compactMenu);
-                choice.Label.rectTransform.offsetMin = new Vector2(compactMenu ? 18f : 72f, 4f);
-                choice.Label.rectTransform.offsetMax = new Vector2(compactMenu ? -6f : -14f, -4f);
+                bool hasIcon = choice.Icon.sprite != null;
+                choice.IconFrame.gameObject.SetActive(hasIcon);
+                choice.Icon.gameObject.SetActive(hasIcon);
+                SetLocalRect(
+                    choice.IconFrame.rectTransform,
+                    compactMenu ? new Rect(17f, 7f, 30f, 30f) : new Rect(23f, 5f, 42f, 42f));
+                SetLocalRect(
+                    choice.Icon.rectTransform,
+                    compactMenu ? new Rect(19f, 9f, 26f, 26f) : new Rect(26f, 8f, 36f, 36f));
+                choice.Label.rectTransform.offsetMin = new Vector2(compactMenu ? 47f : 72f, 4f);
+                choice.Label.rectTransform.offsetMax = new Vector2(compactMenu ? -2f : -14f, -4f);
                 SetLocalRect(
                     choice.Cursor.rectTransform,
-                    compactMenu ? new Rect(2f, 7f, 13f, 38f) : new Rect(5f, 7f, 16f, 38f));
-                choice.Label.fontSize = compactMenu ? 16 : choice.Hero ? 18 : 17;
-                choice.Label.resizeTextForBestFit = compactMenu;
-                choice.Label.resizeTextMinSize = 14;
-                choice.Label.resizeTextMaxSize = 16;
+                    compactMenu ? new Rect(2f, 6f, 13f, 32f) : new Rect(5f, 7f, 16f, 38f));
+                choice.Label.fontSize = compactMenu ? 14 : choice.Hero ? 18 : 17;
+                choice.Label.resizeTextForBestFit = false;
+                choice.Label.horizontalOverflow = HorizontalWrapMode.Overflow;
+                choice.Label.verticalOverflow = VerticalWrapMode.Truncate;
             }
 
             SetLocalRect(settingsTitleText.rectTransform, new Rect(18f, 14f, geometry.Settings.width - 36f, 26f));
@@ -1324,6 +1335,7 @@ namespace AshenHalls
                 ? TavernTitleAnimationRules.RevealDuration
                 : Mathf.Max(0f, Time.unscaledTime - titleAnimationStartedAt);
             TitleOpeningFrame frame = TitleScreenPresentationRules.Evaluate(elapsed, reduced);
+            TitleHearthFlickerFrame hearth = TitleScreenPresentationRules.EvaluateHearthFlicker(elapsed, reduced);
 
             if (openingVeil != null)
             {
@@ -1343,7 +1355,11 @@ namespace AshenHalls
             }
             if (hearthGlow != null)
             {
-                hearthGlow.color = Hex("f07a2f", 0.038f + frame.HearthPulse * 0.075f);
+                hearthGlow.color = Hex("f07a2f", 0.030f + frame.HearthPulse * 0.060f);
+            }
+            if (hearthFireboxFlicker != null)
+            {
+                hearthFireboxFlicker.color = Hex("ff9a45", 0.020f + hearth.FireboxGlow * 0.125f);
             }
             if (gateGlow != null)
             {
@@ -1386,26 +1402,34 @@ namespace AshenHalls
         {
             if (titleChoices.Count == 0 || canvas == null || !canvas.gameObject.activeInHierarchy) return;
             TitleMenuScrollStyle scrollStyle = TitleScreenPresentationRules.MenuScrollStyle;
-            float pulse = 0.78f + Mathf.Sin(Time.unscaledTime * 4.1f) * 0.18f;
+            bool reduced = bindings?.ReducedMotion != null && bindings.ReducedMotion();
+            TitleMenuFocusFrame focus = TitleScreenPresentationRules.EvaluateMenuFocus(Time.unscaledTime, reduced);
             for (int i = 0; i < titleChoices.Count; i++)
             {
                 TitleChoiceVisual visual = titleChoices[i];
                 if (visual?.Button == null) continue;
                 bool selected = visual.Button.gameObject.activeInHierarchy && i == focusedMenuChoice;
+                bool enabled = visual.Button.interactable;
                 if (visual.FocusPlaque != null)
                 {
                     visual.FocusPlaque.color = selected ? Color.white : Color.clear;
                 }
                 if (visual.Cursor != null)
                 {
-                    visual.Cursor.color = Alpha(scrollStyle.SelectionInk, selected ? pulse : 0f);
-                    visual.Cursor.rectTransform.localScale = Vector3.one * (selected ? 0.94f + pulse * 0.08f : 0.9f);
+                    visual.Cursor.color = Alpha(scrollStyle.SelectionInk, selected ? focus.CursorAlpha : 0f);
+                    visual.Cursor.rectTransform.localScale = Vector3.one * (selected ? focus.CursorScale : 0.9f);
                 }
                 if (visual.Icon != null)
                 {
                     visual.Icon.color = selected
-                        ? scrollStyle.SelectionInk
-                        : Alpha(scrollStyle.Ink, 0.74f);
+                        ? new Color(1f, 0.94f, 0.80f, 1f)
+                        : new Color(1f, 1f, 1f, enabled ? 0.94f : 0.32f);
+                }
+                if (visual.IconFrame != null)
+                {
+                    visual.IconFrame.color = selected
+                        ? Alpha(scrollStyle.SelectionInk, 0.16f)
+                        : Alpha(scrollStyle.Ink, enabled ? 0.07f : 0.025f);
                 }
                 if (visual.FocusRule != null)
                 {
@@ -1419,7 +1443,9 @@ namespace AshenHalls
                 }
                 if (visual.Label != null)
                 {
-                    visual.Label.color = selected ? scrollStyle.SelectionInk : scrollStyle.Ink;
+                    visual.Label.color = selected
+                        ? scrollStyle.SelectionInk
+                        : Alpha(scrollStyle.Ink, enabled ? 1f : 0.46f);
                 }
             }
         }
@@ -1545,23 +1571,33 @@ namespace AshenHalls
             Image iconFrame = AddImage(
                 "Relic Icon Backplate",
                 go.transform,
-                useAuthoredRows ? Color.clear : Alpha(scrollStyle.Roll, 0.82f));
+                useAuthoredRows ? Alpha(scrollStyle.Ink, 0.07f) : Alpha(scrollStyle.Roll, 0.82f));
             iconFrame.raycastTarget = false;
+            if (useAuthoredRows)
+            {
+                iconFrame.sprite = softGlowSprite;
+                iconFrame.preserveAspect = true;
+            }
             SetLocalRect(iconFrame.rectTransform, new Rect(24f, 6f, 40f, 40f));
             Outline iconOutline = iconFrame.gameObject.AddComponent<Outline>();
             iconOutline.effectColor = Alpha(scrollStyle.Edge, 0.58f);
             iconOutline.effectDistance = new Vector2(1f, -1f);
             iconOutline.enabled = !useAuthoredRows;
 
-            Image icon = AddImage("Relic Icon", go.transform, Alpha(scrollStyle.Ink, 0.74f));
+            Image icon = AddImage("Relic Icon", go.transform, Color.white);
             icon.raycastTarget = false;
-            int iconIndex = TitleScreenPresentationRules.MenuIconIndex(kind);
+            bool dedicatedIcons = TitleScreenPresentationRules.SupportsMenuIconArt(bindings?.MenuIconAtlas);
+            int iconIndex = dedicatedIcons
+                ? TitleScreenPresentationRules.MenuIconIndex(kind)
+                : TitleScreenPresentationRules.LegacyMenuIconIndex(kind);
             if (bindings?.MenuIconAtlas != null && iconIndex >= 0)
             {
-                float cellWidth = bindings.MenuIconAtlas.width / 5f;
-                float cellHeight = bindings.MenuIconAtlas.height / 4f;
-                int column = iconIndex % 5;
-                int row = iconIndex / 5;
+                int columns = TitleScreenPresentationRules.MenuIconColumns;
+                int rows = dedicatedIcons ? TitleScreenPresentationRules.MenuIconRows : 4;
+                float cellWidth = bindings.MenuIconAtlas.width / (float)columns;
+                float cellHeight = bindings.MenuIconAtlas.height / (float)rows;
+                int column = iconIndex % columns;
+                int row = iconIndex / columns;
                 icon.sprite = UiRuntime.AtlasSprite(
                     bindings.MenuIconAtlas,
                     new Rect(column * cellWidth, row * cellHeight, cellWidth, cellHeight));
@@ -1605,29 +1641,6 @@ namespace AshenHalls
                 Label = text
             });
             return button;
-        }
-
-        private void StyleScrollUtilityButton(Button button, Text label)
-        {
-            if (button == null) return;
-            TitleMenuScrollStyle scrollStyle = TitleScreenPresentationRules.MenuScrollStyle;
-            Image background = button.GetComponent<Image>();
-            if (background != null) background.color = Color.white;
-            Outline outline = button.GetComponent<Outline>();
-            if (outline != null) outline.effectColor = Alpha(scrollStyle.Edge, 0.28f);
-            ColorBlock colors = button.colors;
-            colors.normalColor = Alpha(scrollStyle.Ink, 0.07f);
-            colors.highlightedColor = scrollStyle.Roll;
-            colors.selectedColor = colors.highlightedColor;
-            colors.pressedColor = Alpha(scrollStyle.Edge, 0.72f);
-            button.colors = colors;
-            if (label != null)
-            {
-                label.color = scrollStyle.Ink;
-                label.font = UiRuntime.DialogueEmphasisFont ?? font;
-                label.fontStyle = FontStyle.Normal;
-                DisableTextShadow(label);
-            }
         }
 
         private void SetProceduralMenuGraphicsActive(bool active)

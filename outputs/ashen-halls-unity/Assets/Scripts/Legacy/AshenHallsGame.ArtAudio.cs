@@ -55,6 +55,8 @@ namespace AshenHalls
 
         private Texture2D combatPowerTravelVfxAtlas;
 
+        private Texture2D combatPowerAftermathVfxAtlas;
+
         private Texture2D spellAnimationAtlas;
 
         private Texture2D combatSpellbookUiAtlas;
@@ -119,6 +121,8 @@ namespace AshenHalls
         private Texture2D titleMenuScrollArt;
 
         private Texture2D titleMenuFocusArt;
+
+        private Texture2D titleMenuIconAtlas;
 
         private Texture2D inventoryConsumableAtlas;
 
@@ -3342,6 +3346,11 @@ namespace AshenHalls
                 0.20f,
                 "combat power travel VFX",
                 0.10f);
+            combatPowerAftermathVfxAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.CombatPowerAftermathVfxAtlas,
+                0.20f,
+                "combat power aftermath VFX",
+                0.10f);
             spellAnimationAtlas = LoadExternalPng(RuntimeArtManifest.SpellAnimationAtlas)
                 ?? LoadLatestExternalPng("spell-animation-atlas-runtime-", "");
             combatSpellbookUiAtlas = LoadLatestExternalPng("combat-spellbook-ui-atlas-runtime-", "combat-spellbook-ui-atlas-runtime-v0.47.png");
@@ -3425,6 +3434,24 @@ namespace AshenHalls
             {
                 titleMenuFocusArt.filterMode = FilterMode.Bilinear;
                 titleMenuFocusArt.wrapMode = TextureWrapMode.Clamp;
+            }
+            titleMenuIconAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.TitleMenuIconAtlas,
+                0.20f,
+                "title menu icons",
+                0.10f);
+            if (!TitleScreenPresentationRules.SupportsMenuIconArt(titleMenuIconAtlas))
+            {
+                if (titleMenuIconAtlas != null)
+                {
+                    Debug.LogWarning("Ignoring title menu icon atlas with non-approved dimensions.");
+                }
+                titleMenuIconAtlas = null;
+            }
+            else
+            {
+                titleMenuIconAtlas.filterMode = FilterMode.Bilinear;
+                titleMenuIconAtlas.wrapMode = TextureWrapMode.Clamp;
             }
             inventoryConsumableAtlas = LoadLatestExternalPng("inventory-consumable-atlas-runtime-", "inventory-consumable-atlas-runtime-v0.50.png");
             combatCommandIconAtlas = LoadApprovedExternalPngWithAlpha(
@@ -3601,6 +3628,14 @@ namespace AshenHalls
                 true,
                 Enumerable.Range(0, 16).ToArray());
             ValidateAtlasSquareCells(combatPowerTravelVfxAtlas, "combat power travel VFX", 4, 4, 1f);
+            ValidateAtlasCells(
+                combatPowerAftermathVfxAtlas,
+                "combat power aftermath VFX",
+                4,
+                4,
+                true,
+                Enumerable.Range(0, 16).ToArray());
+            ValidateAtlasSquareCells(combatPowerAftermathVfxAtlas, "combat power aftermath VFX", 4, 4, 1f);
             ValidateAtlasCells(spellAnimationAtlas, "spell animation", 4, 4, true, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
             ValidateAtlasSquareCells(spellAnimationAtlas, "spell animation", 4, 4, 1f);
             ValidateAtlasCells(midgaardGateAtlas, "Midgaard gate", 5, 4, false, 0, 1, 6, 7);

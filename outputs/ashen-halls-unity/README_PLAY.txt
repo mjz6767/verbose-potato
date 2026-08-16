@@ -1,6 +1,12 @@
-Ash & Brimstone v2.16.0 - Compass and Command
+Ash & Brimstone v2.17.0 - Flame and Focus
 
-Current release update: v2.16.0. Save schema: v25.
+Current release update: v2.17.0. Save schema: v25.
+
+The title screen now uses five purpose-built action glyphs for Continue, New Game, Settings, Exit Game, and the Development-only Beta Lab. Fireplace, storm, reveal, and menu motion honor Reduced Motion; the compact parchment keeps every core action on one line at 1024x768; and retail builds keep Beta Lab unavailable.
+
+Combat presentation now follows one deterministic cast -> release -> authored travel -> impact -> aftermath timeline. Formula and skill sound profiles land on the exact impact beat, legacy duplicate primary deliveries are suppressed without removing chain, splash, satellite, return, or multi-arrow accents, and Reduced Motion clears travel and lingering aftermath while retaining concise results.
+
+The combat HUD removes repeated phase, actor, cursor-source, initiative, and command-state copy. The board receives more room at the supported minimum, while selected, armed, blocked, focused, target, forecast, and turn-order information remains explicit for pointer, keyboard, and controller play.
 
 The Region Map can now be browsed independently of the party. Use WASD, arrows, or the configured left stick to pan; Home or the controller's left face button returns to the party; click, drag, or use the wheel to inspect other cells. A selected-cell reticle, coordinates, chart/fog context, and edge cues make the current focus clear, while browsing cannot move the party or alter campaign state.
 
@@ -12,17 +18,19 @@ The v2.15 presentation foundation remasters the title overture and responsive me
 
 The exploration HUD now has one persistent command deck for context, map view, Journal, Party, and Menu. Combat keeps the objective, acting or idle state, target context, blocked reasons, and Menu access visible. Loot review distinguishes gear from resource-only spoils, adds an Upgrades filter, and supports explicit equipment swaps that keep both adventurers fully equipped.
 
-Mage/warlock, support/hex, class-skill, and travel art now stage authored anticipation, travel, impact, and aftermath more consistently. Fireball uses one canonical comet; multi-strike powers retain deterministic timing; all 56 formulas and all 25 skills have authored SFX profiles; and Reduced Motion suppresses the travel layer. The complete resource bank contains 54 original music masters and 161 authored SFX.
+Mage/warlock, support/hex, class-skill, travel, and aftermath art now stage authored anticipation, travel, impact, and residue consistently. Fireball uses one canonical comet; multi-strike powers retain deterministic timing; all 56 formulas and all 25 skills have authored SFX profiles; and Reduced Motion suppresses both travel and aftermath. The complete resource bank contains 54 original music masters and 161 authored SFX.
 
-Six accepted runtime-art pins from the v2.12.1, v2.13, v2.14, and v2.15 presentation slices bring the exact manifest to 54 pins and the packaged art inventory to 89 PNGs. Their historical provenance labels remain unchanged.
+The dedicated title glyph strip and v2.17 aftermath sheet bring the exact runtime manifest to 56 pins and the packaged art inventory to 91 PNGs. Earlier v2.12.1, v2.13, v2.14, v2.15, and title-atlas filenames retain their historical provenance labels.
 
-The Red Gate v2.12.0 campaign remains the production story baseline inside v2.16. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
+The Red Gate v2.12.0 campaign remains the production story baseline inside v2.17. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
 
 Chapter V crosses three authored sites in order. Break the Red Gate Vanguard at the inner seal, carry its tally north to Gloam Deep Crypt for the Ossuary Road Seal, then take that seal south to Salt Cistern Gate and defeat the named Crownroad Marshal. Three matching patrol bands occupy the road. The later encounters remain locked until their required tally or seal has been recovered.
 
 Marshal victory grants exactly one +6 crownward emberglass warblade and two supplies. Inspect Salt Cistern Gate again to chart the sealed Meteor Crown threshold and complete the chapter. Recall, retry, save/load repair, and depth-five re-entry preserve progress without duplicating rewards or arrival progression. Production exposes no generic depth-six stair or final-boss trigger.
 
-v2.16 validation status: the 54-music/106-original-SFX rebuild, deterministic audio check, six focused audio contracts, Unity RuleSmoke, full RuntimeBoot, clean Windows build/package, clean-extracted packaged boot, and four-capture final-player Region Map/combat-cursor packet pass from source commit `387e84713cb10f0c86f3ce2787514cb70ddf4196`. `AshAndBrimstone-Windows-v2.16.0.zip` is 226,917,110 bytes with SHA-256 `b447870c32fe9d21d12e0c195b15fa52a497d30048309ced7dd05d14eaf71a65`; the capture set SHA-256 is `4e126d54fc881547514331a2e332a93460f53642ff09bcd8f9fcddbe38694a9d`. Physical-controller feel, subjective speaker/headphone listening at several volumes, drag/wheel feel, the minimum-size Help overlay, and a complete human Chapter I-V playthrough remain manual checks.
+v2.17 candidate validation status: the final combined Unity RuleSmoke and full RuntimeBoot suites pass, runtime/editor source compilation passes, exact art/audio contracts pass, and built-player title review passes at 1024x768 and 1280x720. The canonical clean-source v2.17 package, clean-extracted boot, final combat-aftermath player capture, and release-integrity hashes remain required before publication. Physical-controller feel, subjective speaker/headphone listening at several volumes, drag/wheel feel, the minimum-size Help overlay, and a complete human Chapter I-V playthrough remain manual checks.
+
+v2.16 release history: deterministic audio checks, Unity RuleSmoke, full RuntimeBoot, clean Windows build/package, clean-extracted packaged boot, and the four-capture Region Map/combat-cursor packet pass from source commit `387e84713cb10f0c86f3ce2787514cb70ddf4196`. The verified ZIP and hashes remain preserved as rollback evidence.
 
 v2.15 release history: RuleSmoke, full RuntimeBoot, focused sprite-art and combat-UI checks, deterministic audio-bank validation, the clean Windows build/package, clean-extracted packaged boot, and four-capture final-player visual review pass from source commit `43b9c9c985d59a273f39bdf14ea39f9d3f57e376`. The verified ZIP and hashes remain preserved as rollback evidence.
 

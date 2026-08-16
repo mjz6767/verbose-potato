@@ -411,9 +411,10 @@ namespace AshenHalls
             int intensity = 1,
             float progress = 0.35f,
             bool reducedMotion = false,
-            int sampleIndex = 0)
+            int sampleIndex = 0,
+            int stableSeed = 0)
         {
-            return BuildPlan(ProfileFor(powerKeyOrName), intensity, progress, reducedMotion, sampleIndex);
+            return BuildPlan(ProfileFor(powerKeyOrName), intensity, progress, reducedMotion, sampleIndex, stableSeed);
         }
 
         public static CombatPowerTravelVfxPlan PlanForFormula(
@@ -421,9 +422,10 @@ namespace AshenHalls
             int intensity = 1,
             float progress = 0.35f,
             bool reducedMotion = false,
-            int sampleIndex = 0)
+            int sampleIndex = 0,
+            int stableSeed = 0)
         {
-            return BuildPlan(ProfileForFormula(formulaCodeOrName), intensity, progress, reducedMotion, sampleIndex);
+            return BuildPlan(ProfileForFormula(formulaCodeOrName), intensity, progress, reducedMotion, sampleIndex, stableSeed);
         }
 
         public static CombatPowerTravelVfxPlan PlanForAbility(
@@ -431,9 +433,10 @@ namespace AshenHalls
             int intensity = 1,
             float progress = 0.35f,
             bool reducedMotion = false,
-            int sampleIndex = 0)
+            int sampleIndex = 0,
+            int stableSeed = 0)
         {
-            return BuildPlan(ProfileForAbility(abilityIdOrName), intensity, progress, reducedMotion, sampleIndex);
+            return BuildPlan(ProfileForAbility(abilityIdOrName), intensity, progress, reducedMotion, sampleIndex, stableSeed);
         }
 
         public static float TravelProgress(float elapsedSeconds, float durationSeconds)
@@ -491,22 +494,26 @@ namespace AshenHalls
             int intensity,
             float progress,
             bool reducedMotion,
-            int sampleIndex)
+            int sampleIndex,
+            int stableSeed)
         {
             // Reduced Motion deliberately suppresses travel rather than replacing it with a moving token.
             if (reducedMotion || !profile.HasTravel) return EmptyPlan(profile.Key);
 
             int tier = Math.Max(1, Math.Min(3, intensity));
             float t = Clamp01(progress);
+            int visualSampleIndex = stableSeed == 0
+                ? sampleIndex
+                : MixStableSeed(sampleIndex, stableSeed);
             float pulse = 0.90f + (float)Math.Sin(t * Math.PI) * 0.10f;
-            float scaleNoise = 0.97f + StableTravelSample(profile.Key, sampleIndex, 0) * 0.06f;
-            float opacityNoise = 0.96f + StableTravelSample(profile.Key, sampleIndex, 1) * 0.04f;
+            float scaleNoise = 0.97f + StableTravelSample(profile.Key, visualSampleIndex, 0) * 0.06f;
+            float opacityNoise = 0.96f + StableTravelSample(profile.Key, visualSampleIndex, 1) * 0.04f;
             float scale = Clamp(profile.BaseScale * (1f + (tier - 1) * 0.10f) * pulse * scaleNoise, MinimumScale, MaximumPlanScale);
             float opacity = Clamp(profile.BaseOpacity * opacityNoise + (tier - 1) * 0.018f, MinimumOpacity, MaximumOpacity);
             int trailSamples = Math.Max(MinimumTrailSamples, Math.Min(MaximumPlanTrailSamples, profile.TrailSampleCount + (tier - 1) * 2));
-            int seed = StableTravelHash(profile.Key, sampleIndex, 2);
-            float lateralJitter = StableTravelSignedSample(profile.Key, sampleIndex, 3);
-            float spinDegrees = StableTravelSignedSample(profile.Key, sampleIndex, 4) * SpinRange(profile.Path);
+            int seed = StableTravelHash(profile.Key, visualSampleIndex, 2);
+            float lateralJitter = StableTravelSignedSample(profile.Key, visualSampleIndex, 3);
+            float spinDegrees = StableTravelSignedSample(profile.Key, visualSampleIndex, 4) * SpinRange(profile.Path);
             return new CombatPowerTravelVfxPlan(
                 profile.Key,
                 profile.AtlasCell,
@@ -519,6 +526,18 @@ namespace AshenHalls
                 seed,
                 lateralJitter,
                 spinDegrees);
+        }
+
+        private static int MixStableSeed(int sampleIndex, int stableSeed)
+        {
+            unchecked
+            {
+                int mixed = sampleIndex * 397 ^ stableSeed;
+                mixed ^= mixed >> 16;
+                mixed *= 0x45d9f3b;
+                mixed ^= mixed >> 16;
+                return mixed;
+            }
         }
 
         private static float SpinRange(CombatPowerTravelPath path)
