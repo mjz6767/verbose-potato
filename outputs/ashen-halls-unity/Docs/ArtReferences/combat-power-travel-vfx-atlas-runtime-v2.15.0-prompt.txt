@@ -1,0 +1,27 @@
+Built-in ImageGen generation brief
+Generated: 2026-08-15
+Use case: stylized-concept
+Runtime asset: combat-power-travel-vfx-atlas-runtime-v2.15.0.png
+Source asset: source-combat-power-travel-vfx-atlas-v2.15.0-generated.png
+Post-process: project normalize_mixed_atlas.py; strict 4x4 grid, 320px cells, centered anchors, 24px minimum alpha gutter, threshold 12.
+Native ImageGen output: 1254x1254 RGBA. Normalized runtime output: exact 1280x1280 RGBA.
+
+Create a strict 4 columns by 4 rows transparent sprite atlas containing exactly sixteen isolated directional battlefield travel effects. These are projectile heads and motion trails, not icons and not impact explosions. Use Ashen Ritual pixel-fantasy: painterly high-resolution pixel effects with hard readable silhouettes, charcoal negative space, crisp luminous cores, restrained simulated bloom, and readability at 64-128 pixels. Most effects point left-to-right; Meteor points top-to-bottom. One centered effect per cell with generous padding. No text, labels, numbers, frames, grid lines, watermark, characters, hands, cast shadows, cropped effects, muddy black blobs, scenery, or ground plane.
+
+Cell order, left-to-right then top-to-bottom:
+0 Fireball comet - white-hot core, orange shell, tapered ember trail.
+1 Meteor - descending incandescent tip and charcoal smoke tail.
+2 Frost Lance - cyan-white crystalline spear and icicle trail.
+3 Lightning leader - forked gold-white bolt with cyan corona.
+4 Mending Wisp - ivory-teal light with a smooth ribbon tail.
+5 Sun Lance - narrow white-gold spear with teal edge light.
+6 Rift Bolt - compact black-violet orb pulling magenta motes inward.
+7 Soul Drain - cyan-violet tether head with converging spirit ribbons.
+8 Web Bola - taut snapping net with bone-white strands and violet knots.
+9 Poison vial - amber-green bottle breaking into a compact vapor trail.
+10 Sleep crescent - indigo crescent in dream mist with star motes.
+11 Grave Hook - bone-white hook and short chain emerging from a violet tear.
+12 Charge - gold-and-steel dash wedge with boot sparks and speed trail.
+13 Thrown Knife - spinning silver blade, teal glint, tight motion arcs.
+14 Shadowstep - black-violet afterimage linking two torn crescent slits.
+15 Ranger volley - twin cyan-gold broadheads leading a compact arrow-rain fan.

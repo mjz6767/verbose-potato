@@ -12,6 +12,11 @@ namespace AshenHalls
         private void NewMuster()
         {
             CancelCombatResolutionBeat(false);
+            bool reducedMotion = state != null && state.ReducedMotion;
+            bool sfxMuted = state != null && state.SfxMuted;
+            bool musicMuted = state != null && state.MusicMuted;
+            int sfxVolumePercent = state == null || state.SfxVolumePercent <= 0 ? 100 : state.SfxVolumePercent;
+            int musicVolumePercent = state == null || state.MusicVolumePercent <= 0 ? 65 : state.MusicVolumePercent;
             int seed = Environment.TickCount;
             rng = new System.Random(seed);
             activeContentSet = ContentSetCatalog.SewerSlice;
@@ -28,11 +33,11 @@ namespace AshenHalls
                 StoryChapter = 1,
                 ActiveStory = StoryObjectiveForDepth(1),
                 DiscoveredZones = new List<string>(),
-                ReducedMotion = false,
-                SfxMuted = false,
-                MusicMuted = false,
-                SfxVolumePercent = 100,
-                MusicVolumePercent = 65,
+                ReducedMotion = reducedMotion,
+                SfxMuted = sfxMuted,
+                MusicMuted = musicMuted,
+                SfxVolumePercent = sfxVolumePercent,
+                MusicVolumePercent = musicVolumePercent,
                 Party = MakeDefaultParty(),
                 Inventory = new List<InventoryItem>(),
                 StoryFlags = new List<string>(),
@@ -85,7 +90,7 @@ namespace AshenHalls
             PushLog("First step: leave Town Hall. Cross the company runner and open the storm doors with Space or E to begin the journey.", Tone.Good);
             ShowBanner(MidgaardInteriorRules.GrandHearthDisplayName);
             PlaySfx("uiconfirm", 0.55f);
-            PlaySfx("fire", 0.24f);
+            PlaySfx(TitleAudioRules.HearthAmbienceKey, 0.18f);
             AutosaveCheckpoint("new party gathers in Town Hall");
         }
 
@@ -97,11 +102,11 @@ namespace AshenHalls
 
         private void StartNewGame()
         {
+            PlayTitleMenuCue(TitleMenuAudioAction.Confirm);
             NewMuster();
             state.Mode = GameMode.Muster;
             showTavernSettings = false;
             showTavernTesting = false;
-            PlaySfx("ui", 0.55f);
         }
 
         private void ContinueSavedGame()
@@ -110,7 +115,7 @@ namespace AshenHalls
             {
                 PushLog("No saved oath is present.", Tone.Warn);
                 ShowBanner("No save found");
-                PlaySfx("ui", 0.45f);
+                PlayTitleMenuCue(TitleMenuAudioAction.Blocked);
                 return;
             }
 
@@ -304,11 +309,12 @@ namespace AshenHalls
             created.Bind(new TavernScreenBindings
             {
                 Title = GameTitle,
-                Subtitle = "A warm door before the Old Road",
-                VersionLine = () => $"{PackageVersion} / An Old Road Chronicle",
+                VersionLine = () => PackageVersion,
                 BackdropArt = tavernBackdropArt,
                 TitleArt = titleCardArt,
                 MenuIconAtlas = tavernUiAtlas,
+                MenuScrollArt = titleMenuScrollArt,
+                MenuFocusArt = titleMenuFocusArt,
                 HasSavedGame = HasSavedGame,
                 SettingsVisible = () => showTavernSettings,
                 TestingVisible = () => showTavernTesting,
@@ -334,7 +340,7 @@ namespace AshenHalls
                 BetaLab = StartBetaCombatLab,
                 MartialLab = StartMartialCombatLab,
                 KoboldLab = StartKoboldRouteLab,
-                PlayTitleCue = PlaySfx
+                PlayTitleCue = PlayTitlePresentationCue
             });
             created.SetVisible(false);
             tavernScreen = created;
@@ -367,14 +373,15 @@ namespace AshenHalls
         {
             showTavernSettings = !showTavernSettings;
             showTavernTesting = false;
-            PlaySfx("ui", 0.45f);
+            PlayTitleMenuCue(showTavernSettings ? TitleMenuAudioAction.Open : TitleMenuAudioAction.Close);
             MarkUiDirty();
         }
 
         private void CloseTavernSettings()
         {
+            if (!showTavernSettings) return;
             showTavernSettings = false;
-            PlaySfx("ui", 0.45f);
+            PlayTitleMenuCue(TitleMenuAudioAction.Close);
             MarkUiDirty();
         }
 
@@ -384,8 +391,34 @@ namespace AshenHalls
             showTavernTesting = !showTavernTesting;
             showTavernSettings = false;
             ShowBanner(showTavernTesting ? "Testing doors" : "Tavern");
-            PlaySfx("uiopen", 0.55f);
+            PlayTitleMenuCue(showTavernTesting ? TitleMenuAudioAction.Open : TitleMenuAudioAction.Close);
             MarkUiDirty();
+        }
+
+        private bool CloseTavernPanel()
+        {
+            if (showTavernSettings)
+            {
+                CloseTavernSettings();
+                return true;
+            }
+            if (!showTavernTesting) return false;
+            showTavernTesting = false;
+            PlayTitleMenuCue(TitleMenuAudioAction.Close);
+            MarkUiDirty();
+            return true;
+        }
+
+        private void PlayTitlePresentationCue(string requestedKey, float fallbackVolume)
+        {
+            TitleAudioCueProfile cue = TitleAudioRules.PresentationCue(requestedKey, fallbackVolume);
+            PlaySfx(cue.Key, cue.Volume);
+        }
+
+        private void PlayTitleMenuCue(TitleMenuAudioAction action)
+        {
+            TitleAudioCueProfile cue = TitleAudioRules.MenuCue(action);
+            PlaySfx(cue.Key, cue.Volume);
         }
 
         private void ToggleReducedMotionSetting()
@@ -399,7 +432,7 @@ namespace AshenHalls
 
         private void RequestQuitFromTavern()
         {
-            PlaySfx("ui", 0.6f);
+            PlayTitleMenuCue(TitleMenuAudioAction.Exit);
             Application.Quit();
             ShowBanner("Exit requested");
         }

@@ -73,52 +73,33 @@ namespace AshenHalls
     {
         public readonly Rect Panel;
         public readonly Rect Action;
-        public readonly Rect Camp;
-        public readonly Rect Recall;
-        public readonly Rect Descend;
-        public readonly Rect Elixir;
         public readonly Rect Map;
         public readonly Rect Journal;
         public readonly Rect Party;
         public readonly Rect Menu;
-        public readonly float ContextSeparatorX;
-        public readonly float UtilitySeparatorX;
+        public readonly float SeparatorX;
 
         public ExplorationHudFallbackCommandLayout(
             Rect panel,
             Rect action,
-            Rect camp,
-            Rect recall,
-            Rect descend,
-            Rect elixir,
             Rect map,
             Rect journal,
             Rect party,
             Rect menu,
-            float contextSeparatorX,
-            float utilitySeparatorX)
+            float separatorX)
         {
             Panel = panel;
             Action = action;
-            Camp = camp;
-            Recall = recall;
-            Descend = descend;
-            Elixir = elixir;
             Map = map;
             Journal = journal;
             Party = party;
             Menu = menu;
-            ContextSeparatorX = contextSeparatorX;
-            UtilitySeparatorX = utilitySeparatorX;
+            SeparatorX = separatorX;
         }
 
         public IReadOnlyList<Rect> Commands => new[]
         {
             Action,
-            Camp,
-            Recall,
-            Descend,
-            Elixir,
             Map,
             Journal,
             Party,
@@ -168,14 +149,18 @@ namespace AshenHalls
             float partyLabelHeight = 21f * scale;
             float partyRowHeight = 32f * scale;
             float partyRowStep = 35f * scale;
-            float actionHeight = !detailsOpen && hasAction ? 56f * scale : 0f;
+            // The persistent command deck already owns the contextual action.
+            // Keep the compact rail focused on route, objective, and party readiness.
+            float actionHeight = 0f;
 
             float nextMinimum = 54f * scale;
-            float secondaryMinimum = 50f * scale;
+            float secondaryMinimum = detailsOpen ? 50f * scale : 0f;
             float objectiveMinimum = 68f * scale;
             float growthMinimum = detailsOpen ? 44f * scale : 0f;
             float nextHeight = DesiredCardHeight(nextText, copyWidth, bodyFontSize, scale, nextMinimum, 78f * scale);
-            float secondaryHeight = DesiredCardHeight(secondaryText, copyWidth, bodyFontSize, scale, secondaryMinimum, 88f * scale);
+            float secondaryHeight = detailsOpen
+                ? DesiredCardHeight(secondaryText, copyWidth, bodyFontSize, scale, secondaryMinimum, 88f * scale)
+                : 0f;
             float objectiveHeight = DesiredCardHeight(objectiveText, copyWidth, bodyFontSize, scale, objectiveMinimum, 112f * scale);
             float growthHeight = detailsOpen
                 ? DesiredCardHeight(growthText, copyWidth, bodyFontSize, scale, growthMinimum, 58f * scale)
@@ -184,7 +169,13 @@ namespace AshenHalls
             float fixedHeight = partyLabelHeight + partyCount * partyRowStep;
             fixedHeight += detailsOpen
                 ? sectionGap * 3f + growthTailGap
-                : sectionGap * 3f + (hasAction ? actionHeight + postActionGap : 0f);
+                : sectionGap * 2f;
+            float minimumCards = nextMinimum + secondaryMinimum + objectiveMinimum + growthMinimum;
+            while (partyCount > 1 && fixedHeight + minimumCards > availableHeight)
+            {
+                partyCount--;
+                fixedHeight -= partyRowStep;
+            }
             float cardBudget = Mathf.Max(0f, availableHeight - fixedHeight);
             float overflow = nextHeight + secondaryHeight + objectiveHeight + growthHeight - cardBudget;
             if (overflow > 0f)
@@ -224,18 +215,13 @@ namespace AshenHalls
             float groupGap = 14f * scale;
             float height = 52f * scale;
             float y = panel.y + 8f * scale;
-            float actionWidth = Mathf.Clamp(panel.width * 0.245f, 292f * scale, 420f * scale);
+            float actionWidth = Mathf.Clamp(panel.width * 0.46f, 360f * scale, 620f * scale);
             float buttonWidth = Mathf.Max(
-                74f * scale,
-                (panel.width - padding * 2f - actionWidth - groupGap * 2f - itemGap * 6f) / 8f);
+                86f * scale,
+                (panel.width - padding * 2f - actionWidth - groupGap - itemGap * 3f) / 4f);
 
             Rect action = new Rect(panel.x + padding, y, actionWidth, height);
-            float travelStart = action.xMax + groupGap;
-            Rect camp = new Rect(travelStart, y, buttonWidth, height);
-            Rect recall = new Rect(camp.xMax + itemGap, y, buttonWidth, height);
-            Rect descend = new Rect(recall.xMax + itemGap, y, buttonWidth, height);
-            Rect elixir = new Rect(descend.xMax + itemGap, y, buttonWidth, height);
-            float utilityStart = elixir.xMax + groupGap;
+            float utilityStart = action.xMax + groupGap;
             Rect map = new Rect(utilityStart, y, buttonWidth, height);
             Rect journal = new Rect(map.xMax + itemGap, y, buttonWidth, height);
             Rect party = new Rect(journal.xMax + itemGap, y, buttonWidth, height);
@@ -243,16 +229,11 @@ namespace AshenHalls
             return new ExplorationHudFallbackCommandLayout(
                 panel,
                 action,
-                camp,
-                recall,
-                descend,
-                elixir,
                 map,
                 journal,
                 party,
                 menu,
-                action.xMax + groupGap * 0.5f,
-                elixir.xMax + groupGap * 0.5f);
+                action.xMax + groupGap * 0.5f);
         }
 
         public static int EstimatedWrappedLines(string text, float width, int fontSize)
@@ -370,6 +351,7 @@ namespace AshenHalls
             public bool Immediate;
             public bool InteriorExit;
             public bool RouteBlocked;
+            public HashSet<int> CellKeys;
 
             public bool HasTarget => !string.IsNullOrWhiteSpace(TargetName);
         }
@@ -416,8 +398,8 @@ namespace AshenHalls
             }
             if (explorationHudScreen == null) return;
             bool activated = explorationHudScreen.SetVisible(visible);
+            explorationHudScreen.SetSuppressedByImguiFallback(false);
             explorationHudScreen.SetUnderlay(visible && overlay != UiOverlay.None);
-            explorationHudScreen.SetSuppressedByImguiFallback(visible);
             if (visible && (activated || ShouldRefreshPresentation(ref lastExplorationHudRefreshKey, ExplorationHudRefreshKey()))) explorationHudScreen.Refresh();
         }
 
@@ -426,7 +408,8 @@ namespace AshenHalls
             return state != null
                 && state.Mode == GameMode.Explore
                 && CurrentUiOverlay() == UiOverlay.None
-                && !ShouldShowStartupSplash();
+                && !ShouldShowStartupSplash()
+                && (explorationHudScreen == null || !explorationHudScreen.HasUsableHud);
         }
 
         private void DrawEmergencyExplorationHudFallback()
@@ -551,14 +534,17 @@ namespace AshenHalls
                     teal,
                     true);
                 cursor += rail.ObjectiveHeight + rail.SectionGap;
-                DrawExploreFallbackInfoCard(
-                    new Rect(sideInnerX, cursor, sideInnerW, rail.SecondaryHeight),
-                    "NEARBY",
-                    ExplorationHudFallbackLayoutRules.BoundedCopy(view.NearbyLine, copyWidth, ExploreHudFont(12), rail.SecondaryMaxLines),
-                    moss,
-                    false);
-                cursor += rail.SecondaryHeight + rail.SectionGap;
-                if (view.HasAction)
+                if (rail.SecondaryHeight > 0f)
+                {
+                    DrawExploreFallbackInfoCard(
+                        new Rect(sideInnerX, cursor, sideInnerW, rail.SecondaryHeight),
+                        "NEARBY",
+                        ExplorationHudFallbackLayoutRules.BoundedCopy(view.NearbyLine, copyWidth, ExploreHudFont(12), rail.SecondaryMaxLines),
+                        moss,
+                        false);
+                    cursor += rail.SecondaryHeight + rail.SectionGap;
+                }
+                if (view.HasAction && rail.ActionHeight > 0f)
                 {
                     Rect ready = new Rect(sideInnerX, cursor, sideInnerW, rail.ActionHeight);
                     if (DrawExploreFallbackAction(ready, view.ActionLabel, view.ActionTarget, true)) UseNearbyExploreObject();
@@ -585,25 +571,10 @@ namespace AshenHalls
             DrawRect(new Rect(geometry.Command.x, geometry.Command.y, geometry.Command.width, 3f * scale), Hex("58462c", 0.78f));
             DrawBorder(geometry.Command, Hex("52605c", 0.78f), 1);
             ExplorationHudFallbackCommandLayout commandLayout = ExplorationHudFallbackLayoutRules.CalculateCommands(geometry.Command, scale);
-            DrawExploreFallbackGroupSeparator(geometry.Command, commandLayout.ContextSeparatorX, ember);
-            DrawExploreFallbackGroupSeparator(geometry.Command, commandLayout.UtilitySeparatorX, teal);
+            DrawExploreFallbackGroupSeparator(geometry.Command, commandLayout.SeparatorX, teal);
             bool oldEnabled = GUI.enabled;
             GUI.enabled = oldEnabled && view.HasAction;
             if (DrawExploreFallbackAction(commandLayout.Action, view.HasAction ? view.ActionLabel : "Explore", view.HasAction ? view.ActionTarget : "No nearby action", view.HasAction)) UseNearbyExploreObject();
-            GUI.enabled = oldEnabled;
-            GUI.enabled = oldEnabled && state.Supplies > 0;
-            if (DrawExploreFallbackCommand(commandLayout.Camp, "Camp", "R", "camp", false)) Camp();
-            GUI.enabled = oldEnabled;
-            if (DrawExploreFallbackCommand(commandLayout.Recall, "Recall", "Y", "magic", false)) RecallToTempleSquare();
-            bool canSurveyFrontier = CanSurveyGlassAndAshFrontier();
-            GUI.enabled = oldEnabled && (CanDescend() || canSurveyFrontier);
-            string descendLabel = canSurveyFrontier
-                ? "Survey"
-                : commandLayout.Descend.width < 112f * scale ? "Down" : "Descend";
-            if (DrawExploreFallbackCommand(commandLayout.Descend, descendLabel, "T", "arrow", false)) Descend();
-            GUI.enabled = oldEnabled;
-            GUI.enabled = oldEnabled && state.Elixirs > 0;
-            if (DrawExploreFallbackCommand(commandLayout.Elixir, "Elixir", "H", "hp", false)) UseElixir();
             GUI.enabled = oldEnabled;
             if (DrawExploreFallbackCommand(commandLayout.Map, exploreWideView ? "Local" : "Region", "Tab", "scroll", true)) ToggleExploreView();
             if (DrawExploreFallbackCommand(commandLayout.Journal, "Journal", "J", "timeline", true)) ToggleArmory(ArmoryTab.Journal);
@@ -854,6 +825,7 @@ namespace AshenHalls
             hash = unchecked(hash * 31 + (exploreHoverLookLine ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (state.ActiveStory ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (state.ActiveRouteWaypointKey ?? "").GetHashCode());
+            hash = unchecked(hash * 31 + CurrentExplorationChartedCellCount());
             if (state.Log != null && state.Log.Count > 0) hash = unchecked(hash * 31 + (state.Log[0].Text ?? "").GetHashCode());
             if (state.Party != null)
             {
@@ -874,7 +846,7 @@ namespace AshenHalls
             {
                 return new ExplorationHudView
                 {
-                    Title = GameTitle,
+                    Title = "World Map",
                     RouteLine = GameSubtitle,
                     FocusHint = "Preparing the road...",
                     ZoneName = HomeTownName,
@@ -923,9 +895,9 @@ namespace AshenHalls
 
             return new ExplorationHudView
             {
-                Title = GameTitle,
+                Title = ExploreViewLabel(),
                 RouteLine = $"{StoryChapterTitle()} / D{state.Depth}",
-                FocusHint = $"{ExploreViewLabel()} / {ExploreHudHint()}",
+                FocusHint = ExploreChartProgressLabel(),
                 Gold = state.Gold.ToString(),
                 Supplies = state.Supplies.ToString(),
                 Elixirs = state.Elixirs.ToString(),
@@ -934,6 +906,7 @@ namespace AshenHalls
                 ZoneName = hasRegionalSite ? regionalSite.Name : zone?.Name ?? HomeTownName,
                 ZoneDetail = ExploreLocationDetail(zone, hasRegionalSite),
                 DangerLabel = zone == null ? "" : TravelDangerLabel(zone),
+                DangerColorHex = zone == null ? "66c9b6" : ColorHtml(ZoneDangerColor(zone)),
                 LookLine = lookLine,
                 ObjectiveLine = string.IsNullOrEmpty(state.ActiveStory) ? "Follow the road and mark what the party learns." : state.ActiveStory,
                 ObjectiveSummary = ExploreObjectiveSummaryLine(),
@@ -1010,10 +983,21 @@ namespace AshenHalls
                 if (target == ObjectType.Armorer) return "Bring three sewer proof bundles to Borin for starter armor.";
                 if (target == ObjectType.OldRoadScout)
                 {
+                    if (ContentSetCatalog.RedGateComplete(state.StoryFlags)
+                        && !HasStoryFlag(StoryFlags.RedGateDebriefed))
+                    {
+                        return "Bring the Crownroad Marshal's seal to Yara and close the Red Gate assault.";
+                    }
                     if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
                         && !HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
                     {
                         return "Bring the Emberglass key to Yara and close the Glass Road expedition.";
+                    }
+                    if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                        && HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
+                        && !HasStoryFlag(StoryFlags.RedGateAssaultAccepted))
+                    {
+                        return "Ask Yara to plan the ordered assault through the inner Red Gate.";
                     }
                     return HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
                         && !HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)
@@ -1022,7 +1006,9 @@ namespace AshenHalls
                 }
                 if (target == ObjectType.Stairs)
                 {
-                    return HasGlassAndAshStoryProgress()
+                    return HasRedGateStoryProgress()
+                        ? "Follow the Old Road east and regain the far seal for the Red Gate assault."
+                        : HasGlassAndAshStoryProgress()
                         ? "Follow the Old Road east and regain the Red Gate passage for Yara's expedition."
                         : "Follow the Old Road east through Lanternless Cross toward Dusk Market.";
                 }
@@ -1126,12 +1112,13 @@ namespace AshenHalls
         {
             if (state?.Map?.Objects == null) return new ExploreGuidancePlan();
 
-            if (TryActiveRouteWaypoint(out WorldMapJunction activeWaypoint))
+            if (TryActiveRouteTarget(out RouteChartTarget activeWaypoint))
             {
                 IReadOnlyList<Point> waypointPath = ActiveRouteWaypointPath();
                 return new ExploreGuidancePlan
                 {
                     TargetName = activeWaypoint.Name,
+                    TargetObject = ActiveRouteTargetObject(activeWaypoint),
                     TargetX = activeWaypoint.X,
                     TargetY = activeWaypoint.Y,
                     Path = waypointPath == null ? Array.Empty<Point>() : waypointPath.ToArray(),
@@ -1267,9 +1254,26 @@ namespace AshenHalls
             }
 
             string targetId = "";
+            bool redGateActive = HasRedGateStoryProgress()
+                && !ContentSetCatalog.RedGateComplete(state.StoryFlags);
             bool glassRoadActive = HasGlassAndAshStoryProgress()
                 && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags);
-            if (glassRoadActive)
+            if (redGateActive)
+            {
+                if (state.Depth == 1) targetId = OldRoadDescentId;
+                else if (state.Depth == 2) targetId = BoneRoadPassageId;
+                else if (state.Depth == 3) targetId = GlassAndAshPassageId;
+                else if (state.Depth == 4) targetId = "regional-site:" + RedGateSealSiteId;
+                else if (state.Depth == 5)
+                {
+                    targetId = !HasStoryFlag(StoryFlags.RedGateVanguardDefeated)
+                        ? "regional-site:" + RedGateSealSiteId
+                        : !HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered)
+                            ? "regional-site:" + GloamDeepCryptSiteId
+                            : "regional-site:" + SaltCisternGateSiteId;
+                }
+            }
+            else if (glassRoadActive)
             {
                 if (state.Depth == 1) targetId = OldRoadDescentId;
                 else if (state.Depth == 2) targetId = BoneRoadPassageId;
@@ -1346,10 +1350,31 @@ namespace AshenHalls
                 return true;
             }
 
+            if (ContentSetCatalog.RedGateComplete(state.StoryFlags))
+            {
+                objective = HasStoryFlag(StoryFlags.RedGateDebriefed)
+                    ? "Chapter V is complete. Yara charted the crownward threshold; the final descent remains sealed."
+                    : "Chapter V is complete. Recall to Midgaard and bring Yara the marshal's road seal.";
+                return true;
+            }
+
+            if (HasRedGateStoryProgress())
+            {
+                if (state.Depth <= 1) objective = "Take the Old Road east and regain the far Red Gate Seal.";
+                else if (state.Depth == 2) objective = "Pass beneath Varkh's hall and regain the Bone Road.";
+                else if (state.Depth == 3) objective = "Cross the surveyed Glass Road toward the far seal.";
+                else if (state.Depth == 4) objective = "Use the copied Emberglass key at the Red Gate Seal.";
+                else if (HasStoryFlag(StoryFlags.CrownroadMarshalDefeated)) objective = "Inspect Salt Cistern Gate and chart the sealed Meteor Crown threshold.";
+                else if (HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered)) objective = "Carry the ossuary road seal south and defeat the Crownroad Marshal at Salt Cistern Gate.";
+                else if (HasStoryFlag(StoryFlags.RedGateVanguardDefeated)) objective = "Follow the crownward tally north and recover the road seal from Gloam Deep Crypt.";
+                else objective = "Reach the inner Red Gate Seal and break its cinder vanguard.";
+                return true;
+            }
+
             if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
             {
                 objective = HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
-                    ? "Chapter IV is complete. Yara copied the Emberglass key; no safe road beyond the far seal is charted yet."
+                    ? "Chapter IV is complete. Yara copied the Emberglass key and can review the bounded Red Gate assault."
                     : "Chapter IV is complete. Recall to Midgaard and bring Yara the Emberglass key.";
                 return true;
             }
@@ -1422,6 +1447,11 @@ namespace AshenHalls
             if (string.Equals(target.Id, BoneRoadPassageId, StringComparison.Ordinal)) return "Bone Road Passage";
             if (string.Equals(target.Id, GlassAndAshPassageId, StringComparison.Ordinal))
             {
+                if (HasRedGateStoryProgress()
+                    && !ContentSetCatalog.RedGateComplete(state?.StoryFlags))
+                {
+                    return "Glass Road Crossing";
+                }
                 return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)
                     ? "Glass Road Crossing"
                     : "Glass-and-Ash Frontier";
@@ -1436,6 +1466,8 @@ namespace AshenHalls
             if (string.Equals(target.Id, BoneRoadPassageId, StringComparison.Ordinal)) return "Enter Bone Road";
             if (string.Equals(target.Id, GlassAndAshPassageId, StringComparison.Ordinal))
             {
+                if (HasRedGateStoryProgress()
+                    && !ContentSetCatalog.RedGateComplete(state?.StoryFlags)) return "Cross Glass Road";
                 if (ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags)) return "Revisit frontier";
                 return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted) ? "Cross frontier" : "Survey frontier";
             }
@@ -1500,13 +1532,6 @@ namespace AshenHalls
                     hash = unchecked(hash * 31 + (flag ?? "").GetHashCode());
                 }
             }
-            if (state.DiscoveredZones != null)
-            {
-                foreach (string zone in state.DiscoveredZones)
-                {
-                    hash = unchecked(hash * 31 + (zone ?? "").GetHashCode());
-                }
-            }
             return "guidance=" + hash;
         }
 
@@ -1517,14 +1542,8 @@ namespace AshenHalls
             int hash = 17;
             hash = unchecked(hash * 31 + map.Width);
             hash = unchecked(hash * 31 + map.Height);
-            if (map.Tiles != null)
-            {
-                hash = unchecked(hash * 31 + map.Tiles.Count);
-                for (int i = 0; i < map.Tiles.Count; i++)
-                {
-                    hash = unchecked(hash * 31 + map.Tiles[i]);
-                }
-            }
+            hash = unchecked(hash * 31 + (map.Tiles?.Count ?? 0));
+            hash = unchecked(hash * 31 + map.TerrainPresentationRevision);
             if (map.Objects != null)
             {
                 hash = unchecked(hash * 31 + map.Objects.Count);
@@ -1621,29 +1640,54 @@ namespace AshenHalls
                 out path);
         }
 
-        private bool TryActiveRouteWaypoint(out WorldMapJunction waypoint)
+        private bool TryActiveRouteTarget(out RouteChartTarget target)
         {
             if (state?.Map == null)
             {
-                waypoint = default;
+                target = default;
                 return false;
             }
 
-            return RouteChartRules.TryResolveWaypoint(
+            return RouteChartRules.TryResolveTarget(
                 WorldMapGenerationRules.RegionalJunctions(
                     state.Map.Width,
                     state.Map.Height,
                     state.Map.StartX,
                     state.Map.StartY),
+                WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY),
                 state.DiscoveredZones,
+                state.StoryFlags,
                 state.Depth,
                 state.ActiveRouteWaypointKey,
-                out waypoint);
+                out target);
+        }
+
+        private bool TryActiveRouteWaypoint(out WorldMapJunction waypoint)
+        {
+            if (TryActiveRouteTarget(out RouteChartTarget target)
+                && target.Kind == RouteChartTargetKind.Junction)
+            {
+                waypoint = target.Junction;
+                return true;
+            }
+
+            waypoint = default;
+            return false;
+        }
+
+        private MapObject ActiveRouteTargetObject(RouteChartTarget target)
+        {
+            if (state?.Map == null || target.Kind != RouteChartTargetKind.Site) return null;
+            return state.Map.FindObjectById(RegionalSiteObjectId(target.Site));
         }
 
         private IReadOnlyList<Point> ActiveRouteWaypointPath()
         {
-            if (!TryActiveRouteWaypoint(out WorldMapJunction waypoint))
+            if (!TryActiveRouteTarget(out RouteChartTarget waypoint))
             {
                 InvalidateActiveRouteWaypointPath();
                 return activeRouteWaypointPathCache;
@@ -1658,7 +1702,10 @@ namespace AshenHalls
 
             activeRouteWaypointPathCacheKey = cacheKey;
             activeRouteWaypointPathCache.Clear();
-            List<Point> path = FindLiveExplorePath(waypoint.X, waypoint.Y);
+            MapObject waypointObject = ActiveRouteTargetObject(waypoint);
+            List<Point> path = waypointObject == null
+                ? FindLiveExplorePath(waypoint.X, waypoint.Y)
+                : FindLiveExplorePathToObject(waypointObject);
             if (path != null && path.Count > 0) activeRouteWaypointPathCache.AddRange(path);
             return activeRouteWaypointPathCache;
         }
@@ -1688,10 +1735,13 @@ namespace AshenHalls
         private bool IsEligibleExploreWaypoint(MapObject obj)
         {
             if (obj == null) return false;
+            bool redGateActive = HasRedGateStoryProgress()
+                && !ContentSetCatalog.RedGateComplete(state?.StoryFlags);
             if (ContentSetCatalog.IsSewerSlice(activeContentSet)
                 && HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
                 && (!ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
                     || ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+                && !redGateActive
                 && (string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal)
                     || string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal)
                     || string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal)))
@@ -1710,8 +1760,30 @@ namespace AshenHalls
                     && HasStoryFlag(StoryFlags.RedGateWarningRecovered)
                     && (!HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
                         || ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
-                            && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+                            && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                        || redGateActive)
                     && ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags);
+            }
+            if (state.Depth == 5 && redGateActive)
+            {
+                if (string.Equals(obj.Id, "regional-site:" + RedGateSealSiteId, StringComparison.Ordinal))
+                {
+                    return !HasStoryFlag(StoryFlags.RedGateVanguardDefeated);
+                }
+                if (string.Equals(obj.Id, "regional-site:" + GloamDeepCryptSiteId, StringComparison.Ordinal))
+                {
+                    return HasStoryFlag(StoryFlags.RedGateVanguardDefeated)
+                        && !HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered);
+                }
+                if (string.Equals(obj.Id, "regional-site:" + SaltCisternGateSiteId, StringComparison.Ordinal))
+                {
+                    return HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered);
+                }
+            }
+            if (state.Depth == 4 && redGateActive
+                && string.Equals(obj.Id, "regional-site:" + RedGateSealSiteId, StringComparison.Ordinal))
+            {
+                return true;
             }
             if (state.Depth == 4
                 && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
@@ -1768,6 +1840,25 @@ namespace AshenHalls
                 || state == null
                 || !ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
             {
+                return false;
+            }
+            bool redGateActive = HasRedGateStoryProgress()
+                && !ContentSetCatalog.RedGateComplete(state.StoryFlags);
+            if (redGateActive)
+            {
+                if (state.Depth == 1) return string.Equals(obj.Id, OldRoadDescentId, StringComparison.Ordinal);
+                if (state.Depth == 2) return string.Equals(obj.Id, BoneRoadPassageId, StringComparison.Ordinal);
+                if (state.Depth == 3) return string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal);
+                if (state.Depth == 4) return string.Equals(obj.Id, "regional-site:" + RedGateSealSiteId, StringComparison.Ordinal);
+                if (state.Depth == 5)
+                {
+                    string targetId = !HasStoryFlag(StoryFlags.RedGateVanguardDefeated)
+                        ? "regional-site:" + RedGateSealSiteId
+                        : !HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered)
+                            ? "regional-site:" + GloamDeepCryptSiteId
+                            : "regional-site:" + SaltCisternGateSiteId;
+                    return string.Equals(obj.Id, targetId, StringComparison.Ordinal);
+                }
                 return false;
             }
             bool glassRoadActive = HasGlassAndAshStoryProgress()

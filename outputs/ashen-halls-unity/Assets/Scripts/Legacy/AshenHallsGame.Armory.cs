@@ -8,6 +8,7 @@ namespace AshenHalls
     public sealed partial class AshenHallsGame
     {
         private const int RouteWaypointRowKeyBase = 10000;
+        private const int RouteSiteWaypointRowKeyBase = 11000;
         private const int InventoryTargetPickerKey = -100;
         private const int InventoryFilterThreshold = 9;
         private bool armoryInventoryTargetPickerOpen;
@@ -176,7 +177,7 @@ namespace AshenHalls
                 Footer = ArmoryFooterLine(tab),
                 CompactRows = tab == (int)ArmoryTab.Pack,
                 Filters = inventoryFiltersVisible
-                    ? new[] { "All", "Weapons", "Armor" }
+                    ? new[] { "All", "Weapons", "Armor", "Upgrades" }
                     : growthFiltersVisible ? ArmoryGrowthMemberFilters() : Array.Empty<string>(),
                 Rows = BuildArmoryRows(tab),
                 Detail = BuildArmoryDetail(tab)
@@ -193,6 +194,16 @@ namespace AshenHalls
             MarkUiDirty();
             SyncArmoryOverlayScreen();
             PlaySfx("uiclose", 0.45f);
+        }
+
+        private bool CollapseArmoryInventoryTargetPicker()
+        {
+            if (!showArmory || !armoryInventoryTargetPickerOpen) return false;
+            armoryInventoryTargetPickerOpen = false;
+            MarkUiDirty();
+            SyncArmoryOverlayScreen();
+            PlaySfx("uiclose", 0.30f);
+            return true;
         }
 
         private void SelectArmoryTab(int tab)
@@ -214,7 +225,7 @@ namespace AshenHalls
                 SelectArmoryGrowthMember(filter);
                 return;
             }
-            int next = Mathf.Clamp(filter, 0, 2);
+            int next = Mathf.Clamp(filter, 0, 3);
             if (armoryPackFilter == next) return;
             armoryInventoryTargetPickerOpen = false;
             armoryPackFilter = next;
@@ -244,15 +255,19 @@ namespace AshenHalls
             }
             else if (armoryTab == (int)ArmoryTab.Journal)
             {
-                if (!TryJournalRouteWaypoint(key, out WorldMapJunction junction)) return;
-                bool clearing = RouteChartRules.IsWaypoint(state.ActiveRouteWaypointKey, state.Depth, junction.Id);
+                if (!TryJournalRouteTarget(key, out RouteChartTarget target)) return;
+                string targetKey = RouteChartRules.WaypointKey(state.Depth, target);
+                bool clearing = string.Equals(
+                    state.ActiveRouteWaypointKey,
+                    targetKey,
+                    StringComparison.OrdinalIgnoreCase);
                 state.ActiveRouteWaypointKey = clearing
                     ? ""
-                    : RouteChartRules.WaypointKey(state.Depth, junction.Id);
+                    : targetKey;
                 InvalidateActiveRouteWaypointPath();
                 if (clearing)
                 {
-                    PushLog($"Waypoint cleared: {junction.Name}.", Tone.Normal);
+                    PushLog($"Waypoint cleared: {target.Name}.", Tone.Normal);
                     ShowBanner("Waypoint Cleared");
                 }
                 else
@@ -262,9 +277,9 @@ namespace AshenHalls
                         ? ActiveRouteWaypointFirstDirection(path) + " " + RouteChartRules.DistanceLabel(path.Count - 1)
                         : path.Count == 1
                             ? "here"
-                            : RouteChartRules.DirectionLabel(state.PlayerX, state.PlayerY, junction.X, junction.Y) + " / route blocked";
-                    PushLog($"Waypoint set: {junction.Name}, {route}.", Tone.Good);
-                    ShowBanner(junction.Name);
+                            : RouteChartRules.DirectionLabel(state.PlayerX, state.PlayerY, target.X, target.Y) + " / route blocked";
+                    PushLog($"Waypoint set: {target.Name}, {route}.", Tone.Good);
+                    ShowBanner(target.Name);
                 }
                 MarkUiDirty();
                 SyncArmoryOverlayScreen();
@@ -277,10 +292,37 @@ namespace AshenHalls
             PlaySfx("uiconfirm", 0.38f);
         }
 
+        private bool TryJournalRouteTarget(int key, out RouteChartTarget target)
+        {
+            target = default;
+            if (state?.Map == null) return false;
+
+            if (key >= RouteSiteWaypointRowKeyBase)
+            {
+                WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY);
+                int siteIndex = key - RouteSiteWaypointRowKeyBase;
+                if (siteIndex < 0 || siteIndex >= sites.Length) return false;
+                WorldMapSite candidate = sites[siteIndex];
+                if (!RouteChartRules.IsSiteCharted(state.StoryFlags, state.Depth, candidate.Id)) return false;
+                target = new RouteChartTarget(candidate);
+                return true;
+            }
+
+            if (!TryJournalRouteWaypoint(key, out WorldMapJunction junction)) return false;
+            target = new RouteChartTarget(junction);
+            return true;
+        }
+
         private bool TryJournalRouteWaypoint(int key, out WorldMapJunction junction)
         {
             junction = default;
-            if (state?.Map == null || key < RouteWaypointRowKeyBase) return false;
+            if (state?.Map == null
+                || key < RouteWaypointRowKeyBase
+                || key >= RouteSiteWaypointRowKeyBase) return false;
             WorldMapJunction[] junctions = WorldMapGenerationRules.RegionalJunctions(
                 state.Map.Width,
                 state.Map.Height,
@@ -322,8 +364,13 @@ namespace AshenHalls
             if (state.Party == null || partyIndex < 0 || partyIndex >= state.Party.Count) return;
 
             PartyMember target = state.Party[partyIndex];
+            PartyMember previousOwner = EquippedMember(item);
             bool equipped = EquipInventoryItemToMember(item, target, out string result);
-            if (equipped) armoryInventoryTargetPickerOpen = false;
+            if (equipped)
+            {
+                armoryInventoryTargetPickerOpen = false;
+                AutosaveCheckpoint(previousOwner == null ? "equipment changed" : "equipment reassigned");
+            }
             PushLog(result, equipped ? Tone.Good : Tone.Warn);
             MarkUiDirty();
             SyncArmoryOverlayScreen();
@@ -429,6 +476,7 @@ namespace AshenHalls
                 Title = member.Name,
                 Subtitle = $"L{member.Level} {DisplayRace(member.Race)} {DisplayClass(member.ClassKey)}",
                 Summary = $"WEAPON  {TrimGearName(member.WeaponName)}\n{WeaponSummaryLine(member)}\n\nARMOR  {TrimGearName(member.ArmorName)}\n{ArmorSummaryLine(member)}",
+                ExtendedSummary = true,
                 AccentHex = ColorHtml(MemberColor(member)),
                 IconLabel = MemberInitials(member)
             };
@@ -449,74 +497,61 @@ namespace AshenHalls
             bool equippable = InventoryEquipmentRules.IsEquippable(item);
             PartyMember owner = equippable ? EquippedMember(item) : null;
             List<ArmoryDetailActionView> actions = new List<ArmoryDetailActionView>();
-            if (equippable && owner != null)
+            if (equippable && state.Party != null)
             {
-                int ownerIndex = state.Party == null ? -1 : state.Party.IndexOf(owner);
-                actions.Add(new ArmoryDetailActionView
+                List<int> targetIndices = Enumerable.Range(0, state.Party.Count)
+                    .Where(index => state.Party[index] != null && state.Party[index] != owner)
+                    .Where(index => owner == null
+                        || InventoryReassignmentScore(item, state.Party[index], owner) > int.MinValue / 8)
+                    .OrderByDescending(index => owner == null
+                        ? InventoryComparisonScore(item, state.Party[index])
+                        : InventoryReassignmentScore(item, state.Party[index], owner))
+                    .ThenBy(index => index)
+                    .ToList();
+
+                if (!armoryInventoryTargetPickerOpen && targetIndices.Count > 0)
                 {
-                    Key = ownerIndex,
-                    Label = owner.Name,
-                    Detail = "Currently equipped",
-                    ButtonLabel = "Equipped",
-                    AccentHex = ColorHtml(MemberColor(owner)),
-                    Enabled = false
-                });
-            }
-            else if (equippable && state.Party != null)
-            {
-                PartyMember best = BestInventoryFit(item, out int bestIndex, out _);
-                if (!armoryInventoryTargetPickerOpen && best != null)
-                {
-                    InventoryUpgradeGrade grade = InventoryGradeFor(item, best);
-                    actions.Add(new ArmoryDetailActionView
-                    {
-                        Key = bestIndex,
-                        Label = $"Best match · {best.Name}",
-                        Detail = $"{InventoryEquipmentRules.GradeLabel(grade)} · {CompactInventoryComparisonLine(item, best)}",
-                        ButtonLabel = "Equip",
-                        AccentHex = ColorHtml(MemberColor(best)),
-                        Enabled = true
-                    });
-                    if (state.Party.Count(member => member != null) > 1)
+                    actions.Add(BuildInventoryTargetAction(item, owner, targetIndices[0], true));
+                    if (targetIndices.Count > 1)
                     {
                         actions.Add(new ArmoryDetailActionView
                         {
                             Key = InventoryTargetPickerKey,
-                            Label = "Choose another adventurer",
-                            Detail = "Show the full party",
+                            Label = owner == null ? "Choose another adventurer" : "Compare other adventurers",
+                            Detail = "Show every eligible target",
                             ButtonLabel = "Choose",
                             AccentHex = ColorHtml(teal),
                             Enabled = true
                         });
                     }
                 }
-                else
+                else if (armoryInventoryTargetPickerOpen && targetIndices.Count > 0)
                 {
+                    foreach (int partyIndex in targetIndices)
+                    {
+                        actions.Add(BuildInventoryTargetAction(item, owner, partyIndex, partyIndex == targetIndices[0]));
+                    }
                     actions.Add(new ArmoryDetailActionView
                     {
                         Key = InventoryTargetPickerKey,
                         Label = "Back to best match",
-                        Detail = "Hide the full party",
+                        Detail = "Hide the target list",
                         ButtonLabel = "Back",
                         AccentHex = ColorHtml(teal),
                         Enabled = true
                     });
-                    foreach (int partyIndex in Enumerable.Range(0, state.Party.Count)
-                        .Where(index => state.Party[index] != null)
-                        .OrderByDescending(index => InventoryComparisonScore(item, state.Party[index])))
+                }
+                else if (owner != null)
+                {
+                    actions.Add(new ArmoryDetailActionView
                     {
-                        PartyMember member = state.Party[partyIndex];
-                        InventoryUpgradeGrade grade = InventoryGradeFor(item, member);
-                        actions.Add(new ArmoryDetailActionView
-                        {
-                            Key = partyIndex,
-                            Label = partyIndex == bestIndex ? $"Recommended · {member.Name}" : member.Name,
-                            Detail = $"{InventoryEquipmentRules.GradeLabel(grade)} · {CompactInventoryComparisonLine(item, member)}",
-                            ButtonLabel = "Equip",
-                            AccentHex = ColorHtml(MemberColor(member)),
-                            Enabled = true
-                        });
-                    }
+                        Key = state.Party.IndexOf(owner),
+                        Label = owner.Name,
+                        Detail = "Currently equipped",
+                        ButtonLabel = "Equipped",
+                        AccentHex = ColorHtml(MemberColor(owner)),
+                        Enabled = false
+                    });
                 }
             }
 
@@ -534,7 +569,52 @@ namespace AshenHalls
                 IconTexture = iconTexture,
                 IconUv = iconUv,
                 IconLabel = LootIconLabel(item),
+                ActionsHeading = owner == null
+                    ? "EQUIP TO"
+                    : armoryInventoryTargetPickerOpen ? "CHOOSE ADVENTURER  ·  ESC / B BACK" : "REASSIGN",
+                PrioritizeDetailActions = armoryInventoryTargetPickerOpen,
                 Actions = actions
+            };
+        }
+
+        private ArmoryDetailActionView BuildInventoryTargetAction(
+            InventoryItem item,
+            PartyMember owner,
+            int partyIndex,
+            bool recommended)
+        {
+            PartyMember member = state?.Party == null || partyIndex < 0 || partyIndex >= state.Party.Count
+                ? null
+                : state.Party[partyIndex];
+            if (member == null) return new ArmoryDetailActionView { Key = partyIndex, Enabled = false };
+
+            if (owner == null)
+            {
+                InventoryUpgradeGrade grade = InventoryGradeFor(item, member);
+                return new ArmoryDetailActionView
+                {
+                    Key = partyIndex,
+                    Label = recommended ? $"Best match · {member.Name}" : member.Name,
+                    Detail = $"{InventoryEquipmentRules.GradeLabel(grade)} · {CompactInventoryComparisonLine(item, member)}",
+                    ButtonLabel = "Equip",
+                    AccentHex = ColorHtml(MemberColor(member)),
+                    Enabled = true
+                };
+            }
+
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+            InventoryItem replacement = InventorySwapReplacement(member, weapon);
+            int score = InventoryReassignmentScore(item, member, owner);
+            InventoryUpgradeGrade reassignmentGrade = InventoryEquipmentRules.Grade(score);
+            string replacementName = replacement == null ? "their current gear" : TrimGearName(replacement.DisplayName);
+            return new ArmoryDetailActionView
+            {
+                Key = partyIndex,
+                Label = recommended ? $"Best reassignment · {member.Name}" : member.Name,
+                Detail = $"{InventoryEquipmentRules.GradeLabel(reassignmentGrade)} · {CompactInventoryComparisonLine(item, member)} · {owner.Name} gets {replacementName}",
+                ButtonLabel = "Swap",
+                AccentHex = ColorHtml(MemberColor(member)),
+                Enabled = replacement != null
             };
         }
 
@@ -616,13 +696,34 @@ namespace AshenHalls
                 int newMin = Mathf.Max(1, item.DamageMin);
                 int newMax = Mathf.Max(newMin + 1, item.DamageMax);
                 AddCompactDelta(changes, "Damage", (newMin + newMax) / 2, (oldMin + oldMax) / 2);
+                AddCompactDelta(changes, "Bonus", item.Bonus, member.WeaponBonus);
                 AddCompactDelta(changes, "Speed", Mathf.Max(1, item.AttackSpeed), Mathf.Max(1, member.WeaponAttackSpeed > 0 ? member.WeaponAttackSpeed : member.AttackSpeed));
-                AddCompactDelta(changes, "Range", WeaponRange(item, member), Mathf.Max(1, member.Range));
+                AddCompactDelta(changes, "Range", EffectiveWeaponRange(item, member), Mathf.Max(1, member.Range));
+                AddCompactDelta(
+                    changes,
+                    "Attributes",
+                    item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus,
+                    member.WeaponStrengthBonus + member.WeaponIntelligenceBonus + member.WeaponAgilityBonus + member.WeaponHealthBonus);
+                InventoryItem currentWeapon = EquippedInventoryItem(member, true) ?? SnapshotMemberEquipment(member, true);
+                if (currentWeapon != null)
+                {
+                    AddCompactDelta(changes, "Fit", WeaponRoleFit(item, member), WeaponRoleFit(currentWeapon, member));
+                }
             }
             else if (InventoryEquipmentRules.IsArmorSlot(item.Slot, item.Form))
             {
                 AddCompactDelta(changes, "Armor", ArmorDefenseBonus(item), member.ArmorBonus);
                 AddCompactDelta(changes, "Agility", ArmorAgilityModifier(item.DisplayName), ArmorAgilityModifier(member.ArmorName));
+                AddCompactDelta(
+                    changes,
+                    "Attributes",
+                    item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus,
+                    member.ArmorStrengthBonus + member.ArmorIntelligenceBonus + member.ArmorAgilityBonus + member.ArmorHealthBonus);
+                InventoryItem currentArmor = EquippedInventoryItem(member, false) ?? SnapshotMemberEquipment(member, false);
+                if (currentArmor != null)
+                {
+                    AddCompactDelta(changes, "Fit", -ArmorRolePenalty(item, member), -ArmorRolePenalty(currentArmor, member));
+                }
             }
             return changes.Count == 0 ? "Core stats unchanged" : string.Join(" · ", changes.Take(2));
         }
@@ -637,7 +738,7 @@ namespace AshenHalls
                 PartyMember context = BestInventoryFit(item, out _, out _) ?? state?.Party?.FirstOrDefault();
                 if (item.DamageMin > 0 && item.DamageMax > 0) core.Add($"{item.DamageMin}–{item.DamageMax} damage");
                 if (item.AttackSpeed > 0) core.Add($"Speed {item.AttackSpeed}");
-                int range = WeaponRange(item, context ?? new PartyMember { Role = "" });
+                int range = EffectiveWeaponRange(item, context ?? new PartyMember { Role = "" });
                 core.Add(range > 1 ? $"Range {range}" : "Melee");
                 if (!string.IsNullOrWhiteSpace(item.DamageType) && !string.Equals(item.DamageType, "physical", StringComparison.OrdinalIgnoreCase))
                 {
@@ -721,6 +822,11 @@ namespace AshenHalls
                 {
                     AddGlassAndAshJournalRows(rows);
                 }
+                if (HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
+                    || HasRedGateStoryProgress())
+                {
+                    AddRedGateJournalRows(rows);
+                }
                 AddChartedRegionalSiteJournalRows(rows);
                 return rows;
             }
@@ -784,21 +890,29 @@ namespace AshenHalls
                 state.Map.Height,
                 state.Map.StartX,
                 state.Map.StartY);
+            WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY);
             int charted = RouteChartRules.CountCharted(junctions, state.DiscoveredZones, state.Depth);
-            string nearestLine = "Walk the outer road and step onto marked clearings to chart its turns.";
-            bool hasActiveWaypoint = RouteChartRules.TryResolveWaypoint(
+            bool hasActiveWaypoint = RouteChartRules.TryResolveTarget(
                 junctions,
+                sites,
                 state.DiscoveredZones,
+                state.StoryFlags,
                 state.Depth,
                 state.ActiveRouteWaypointKey,
-                out WorldMapJunction activeWaypoint);
-            if (RouteChartRules.TryNearestCharted(junctions, state.DiscoveredZones, state.Depth, state.PlayerX, state.PlayerY, out RouteChartReading nearest))
+                out RouteChartTarget activeWaypoint);
+            string nearestLine = hasActiveWaypoint
+                ? $"Waypoint: {activeWaypoint.Name}. The map now traces a walkable route from the party."
+                : "Walk the outer road and step onto marked clearings to chart its turns.";
+            if (!hasActiveWaypoint
+                && RouteChartRules.TryNearestCharted(junctions, state.DiscoveredZones, state.Depth, state.PlayerX, state.PlayerY, out RouteChartReading nearest))
             {
-                nearestLine = hasActiveWaypoint
-                    ? $"Waypoint: {activeWaypoint.Name}. The map now traces a walkable route from the party."
-                    : nearest.Distance == 0
-                        ? $"The party stands at {nearest.Junction.Name}. Mark any charted turn below."
-                        : $"Nearest marker: {nearest.Junction.Name}, {nearest.Direction} {RouteChartRules.DistanceLabel(nearest.Distance)}. Mark a turn below.";
+                nearestLine = nearest.Distance == 0
+                    ? $"The party stands at {nearest.Junction.Name}. Mark any charted destination below."
+                    : $"Nearest marker: {nearest.Junction.Name}, {nearest.Direction} {RouteChartRules.DistanceLabel(nearest.Distance)}. Mark a destination below.";
             }
 
             rows.Add(new ArmoryRowView
@@ -959,15 +1073,63 @@ namespace AshenHalls
             }
         }
 
+        private void AddRedGateJournalRows(List<ArmoryRowView> rows)
+        {
+            if (rows == null || state == null) return;
+
+            bool[] done =
+            {
+                HasStoryFlag(StoryFlags.RedGateAssaultAccepted),
+                HasStoryFlag(StoryFlags.RedGateVanguardDefeated),
+                HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered),
+                HasStoryFlag(StoryFlags.CrownroadMarshalDefeated),
+                HasStoryFlag(StoryFlags.MeteorCrownThresholdSurveyed)
+            };
+            int activeStep = Array.FindIndex(done, complete => !complete);
+            string[] labels =
+            {
+                "Yara's Crownward Plan",
+                "Inner Gate Vanguard",
+                "Ossuary Road Seal",
+                "Crownroad Marshal",
+                "Meteor Crown Threshold"
+            };
+            string[] hints =
+            {
+                "Return the copied Emberglass key to Yara. Review the inner gate, ossuary seal, Salt Cistern threshold, and recall boundary before accepting.",
+                "Follow the known roads to the far Red Gate Seal, turn the copied key, and break the cinder vanguard holding its crownward tally.",
+                "Carry the vanguard tally north to Gloam Deep Crypt and recover the stolen ossuary road seal from its reliquary guard.",
+                "Take the ossuary seal south to Salt Cistern Gate and defeat the marshal binding drow, dead, and demon forces to the final lock.",
+                "Inspect the stable descent after the marshal falls, chart the falling-star script, and seal the threshold without entering unfinished Chapter VI."
+            };
+
+            for (int i = 0; i < labels.Length; i++)
+            {
+                bool active = i == activeStep;
+                rows.Add(new ArmoryRowView
+                {
+                    Key = -1,
+                    Title = "The Red Gate - " + labels[i],
+                    Subtitle = done[i] ? "done" : active ? "current" : "pending",
+                    Detail = hints[i],
+                    AccentHex = ColorHtml(done[i] ? teal : active ? gold : line),
+                    Badge = done[i] ? "DONE" : active ? "NEXT" : "",
+                    BadgeAccentHex = ColorHtml(done[i] ? teal : active ? gold : line)
+                });
+            }
+        }
+
         private void AddChartedRegionalSiteJournalRows(List<ArmoryRowView> rows)
         {
             if (rows == null || state?.Map == null) return;
-            foreach (WorldMapSite site in WorldMapGenerationRules.RegionalSites(
+            WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(
                 state.Map.Width,
                 state.Map.Height,
                 state.Map.StartX,
-                state.Map.StartY))
+                state.Map.StartY);
+            for (int i = 0; i < sites.Length; i++)
             {
+                WorldMapSite site = sites[i];
                 if (!HasStoryFlag(WorldSiteInteractionRules.ChartFlag(state.Depth, site.Id))
                     || !WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile profile))
                 {
@@ -986,15 +1148,22 @@ namespace AshenHalls
                     site.Id);
                 string rewardState = rewardClaimed ? "CLAIMED" : "READY";
                 string repeatCost = WorldSiteRepeatCost(profile);
+                bool active = RouteChartRules.IsSiteWaypoint(
+                    state.ActiveRouteWaypointKey,
+                    state.Depth,
+                    site.Id);
                 rows.Add(new ArmoryRowView
                 {
-                    Key = -1,
+                    Key = RouteSiteWaypointRowKeyBase + i,
                     Title = site.Name,
                     Subtitle = $"{(zone == null ? site.ZoneId : zone.Name)} / {bearing}",
                     Detail = $"{rewardState}: {profile.RewardSummary}\n{profile.ServiceName} repeat service: {profile.RepeatSummary} Cost: {repeatCost}.",
-                    AccentHex = ColorHtml(rewardClaimed ? teal : gold),
-                    Badge = rewardState,
-                    BadgeAccentHex = ColorHtml(rewardClaimed ? teal : gold)
+                    AccentHex = ColorHtml(active ? gold : rewardClaimed ? teal : gold),
+                    Badge = active ? "WAYPOINT" : rewardState,
+                    BadgeAccentHex = ColorHtml(active ? gold : rewardClaimed ? teal : gold),
+                    ActionLabel = active ? "Clear" : "Mark",
+                    ActionEnabled = true,
+                    Selected = active
                 });
             }
         }
@@ -1201,6 +1370,8 @@ namespace AshenHalls
             if (depth <= 1) return state != null && state.Depth > 1;
             if (depth == 2) return HasStoryFlag(StoryFlags.KoboldKingDefeated) || state != null && state.Depth > 2;
             if (depth == 3) return ContentSetCatalog.BoneRoadComplete(state?.StoryFlags) || state != null && state.Depth > 3;
+            if (depth == 4) return ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags) || state != null && state.Depth > 4;
+            if (depth == 5) return ContentSetCatalog.RedGateComplete(state?.StoryFlags) || state != null && state.Depth > 5;
             return state != null && state.Depth > depth;
         }
 
@@ -1209,6 +1380,8 @@ namespace AshenHalls
             if (state == null) return false;
             if (depth == 2 && !HasStoryFlag(StoryFlags.KoboldKingDefeated)) return state.Depth == 2;
             if (depth == 3 && !ContentSetCatalog.BoneRoadComplete(state.StoryFlags)) return state.Depth == 3;
+            if (depth == 4 && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)) return state.Depth == 4;
+            if (depth == 5 && !ContentSetCatalog.RedGateComplete(state.StoryFlags)) return state.Depth == 5;
             return Mathf.Clamp(state.Depth, 1, FinalBossDepth) == depth;
         }
 

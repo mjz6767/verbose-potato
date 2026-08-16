@@ -3,6 +3,50 @@ using System.Collections.Generic;
 
 namespace AshenHalls
 {
+    public enum RouteChartTargetKind
+    {
+        None,
+        Junction,
+        Site
+    }
+
+    public readonly struct RouteChartTarget
+    {
+        public readonly RouteChartTargetKind Kind;
+        public readonly WorldMapJunction Junction;
+        public readonly WorldMapSite Site;
+
+        public string Id => Kind == RouteChartTargetKind.Junction
+            ? Junction.Id ?? ""
+            : Kind == RouteChartTargetKind.Site ? Site.Id ?? "" : "";
+        public string Name => Kind == RouteChartTargetKind.Junction
+            ? Junction.Name ?? ""
+            : Kind == RouteChartTargetKind.Site ? Site.Name ?? "" : "";
+        public string Summary => Kind == RouteChartTargetKind.Junction
+            ? Junction.Summary ?? ""
+            : Kind == RouteChartTargetKind.Site ? Site.Summary ?? "" : "";
+        public int X => Kind == RouteChartTargetKind.Junction
+            ? Junction.X
+            : Kind == RouteChartTargetKind.Site ? Site.X : 0;
+        public int Y => Kind == RouteChartTargetKind.Junction
+            ? Junction.Y
+            : Kind == RouteChartTargetKind.Site ? Site.Y : 0;
+
+        public RouteChartTarget(WorldMapJunction junction)
+        {
+            Kind = RouteChartTargetKind.Junction;
+            Junction = junction;
+            Site = default;
+        }
+
+        public RouteChartTarget(WorldMapSite site)
+        {
+            Kind = RouteChartTargetKind.Site;
+            Junction = default;
+            Site = site;
+        }
+    }
+
     public readonly struct RouteChartReading
     {
         public readonly WorldMapJunction Junction;
@@ -21,12 +65,27 @@ namespace AshenHalls
     {
         public static string DiscoveryKey(int depth, string junctionId)
         {
-            return $"{Math.Max(1, depth)}:junction:{(junctionId ?? "").Trim().ToLowerInvariant()}";
+            return $"{Math.Max(1, depth)}:junction:{NormalizeId(junctionId)}";
         }
 
         public static string WaypointKey(int depth, string junctionId)
         {
             return DiscoveryKey(depth, junctionId);
+        }
+
+        public static string SiteWaypointKey(int depth, string siteId)
+        {
+            return $"{Math.Max(1, depth)}:site:{NormalizeId(siteId)}";
+        }
+
+        public static string WaypointKey(int depth, RouteChartTarget target)
+        {
+            switch (target.Kind)
+            {
+                case RouteChartTargetKind.Junction: return WaypointKey(depth, target.Id);
+                case RouteChartTargetKind.Site: return SiteWaypointKey(depth, target.Id);
+                default: return "";
+            }
         }
 
         public static bool IsWaypoint(string waypointKey, int depth, string junctionId)
@@ -38,6 +97,15 @@ namespace AshenHalls
                 StringComparison.OrdinalIgnoreCase);
         }
 
+        public static bool IsSiteWaypoint(string waypointKey, int depth, string siteId)
+        {
+            if (string.IsNullOrWhiteSpace(waypointKey) || string.IsNullOrWhiteSpace(siteId)) return false;
+            return string.Equals(
+                waypointKey.Trim(),
+                SiteWaypointKey(depth, siteId),
+                StringComparison.OrdinalIgnoreCase);
+        }
+
         public static bool IsCharted(IEnumerable<string> discoveries, int depth, string junctionId)
         {
             if (discoveries == null || string.IsNullOrWhiteSpace(junctionId)) return false;
@@ -45,6 +113,17 @@ namespace AshenHalls
             foreach (string discovery in discoveries)
             {
                 if (string.Equals(discovery, expected, StringComparison.OrdinalIgnoreCase)) return true;
+            }
+            return false;
+        }
+
+        public static bool IsSiteCharted(IEnumerable<string> storyFlags, int depth, string siteId)
+        {
+            if (storyFlags == null || string.IsNullOrWhiteSpace(siteId)) return false;
+            string expected = WorldSiteInteractionRules.ChartFlag(depth, siteId);
+            foreach (string flag in storyFlags)
+            {
+                if (string.Equals(flag, expected, StringComparison.OrdinalIgnoreCase)) return true;
             }
             return false;
         }
@@ -71,6 +150,41 @@ namespace AshenHalls
             return false;
         }
 
+        public static bool TryResolveTarget(
+            WorldMapJunction[] junctions,
+            WorldMapSite[] sites,
+            IEnumerable<string> discoveries,
+            IEnumerable<string> storyFlags,
+            int depth,
+            string waypointKey,
+            out RouteChartTarget target)
+        {
+            if (TryResolveWaypoint(
+                    junctions,
+                    discoveries,
+                    depth,
+                    waypointKey,
+                    out WorldMapJunction junction))
+            {
+                target = new RouteChartTarget(junction);
+                return true;
+            }
+
+            if (sites != null && !string.IsNullOrWhiteSpace(waypointKey))
+            {
+                foreach (WorldMapSite site in sites)
+                {
+                    if (!IsSiteWaypoint(waypointKey, depth, site.Id)) continue;
+                    if (!IsSiteCharted(storyFlags, depth, site.Id)) break;
+                    target = new RouteChartTarget(site);
+                    return true;
+                }
+            }
+
+            target = default;
+            return false;
+        }
+
         public static string RepairWaypointKey(
             WorldMapJunction[] junctions,
             IEnumerable<string> discoveries,
@@ -79,6 +193,26 @@ namespace AshenHalls
         {
             return TryResolveWaypoint(junctions, discoveries, depth, waypointKey, out WorldMapJunction waypoint)
                 ? WaypointKey(depth, waypoint.Id)
+                : "";
+        }
+
+        public static string RepairWaypointKey(
+            WorldMapJunction[] junctions,
+            WorldMapSite[] sites,
+            IEnumerable<string> discoveries,
+            IEnumerable<string> storyFlags,
+            int depth,
+            string waypointKey)
+        {
+            return TryResolveTarget(
+                    junctions,
+                    sites,
+                    discoveries,
+                    storyFlags,
+                    depth,
+                    waypointKey,
+                    out RouteChartTarget target)
+                ? WaypointKey(depth, target)
                 : "";
         }
 
@@ -141,6 +275,11 @@ namespace AshenHalls
             int safeDistance = Math.Max(0, distance);
             if (safeDistance == 0) return "here";
             return safeDistance == 1 ? "1 step" : safeDistance + " steps";
+        }
+
+        private static string NormalizeId(string id)
+        {
+            return (id ?? "").Trim().ToLowerInvariant();
         }
     }
 }

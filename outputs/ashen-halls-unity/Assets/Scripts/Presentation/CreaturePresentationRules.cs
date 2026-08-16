@@ -41,8 +41,7 @@ namespace AshenHalls
                 || text.Contains("boundimp")
                 || text.Contains(" imp")
                 || text.StartsWith("imp ", StringComparison.Ordinal)
-                || text.Contains("cinderling")
-                || text.Contains("gloamknight"))
+                || text.Contains("cinderling"))
             {
                 return "demon";
             }
@@ -52,6 +51,7 @@ namespace AshenHalls
                 || text.Contains("revenant")
                 || text.Contains("husk")
                 || text.Contains("shade")
+                || text.Contains("gloamknight")
                 || text.Contains("meteorlich")
                 || text.Contains("skeleton"))
             {
@@ -137,6 +137,7 @@ namespace AshenHalls
                 case "ratcaptain": return 15;
                 case "koboldking": return 16;
                 case "redgatedemon": return 17;
+                case "gloamknight":
                 case "revenant": return 18;
                 default: return 19;
             }

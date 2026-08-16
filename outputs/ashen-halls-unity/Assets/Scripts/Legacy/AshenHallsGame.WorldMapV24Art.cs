@@ -163,6 +163,7 @@ namespace AshenHalls
                 bool certifiedSafeRoad = ExplorationSurfaceRules.IsPath(roles)
                     && (zone == null || zone.Danger <= 0);
                 if (!WorldThreatHabitatPresentationRules.ShouldDrawAtHome(homeInBounds, certifiedSafeRoad)) continue;
+                if (exploreWideView && !IsExploreCellCharted(threat.HomeX, threat.HomeY)) continue;
                 if (!ExplorePointInViewport(threat.HomeX, threat.HomeY, origin, viewW, viewH)) continue;
 
                 Rect homeCell = new Rect(
@@ -487,14 +488,25 @@ namespace AshenHalls
 
         private HashSet<int> BuildCurrentExploreGuidanceCellSet()
         {
-            IReadOnlyList<Point> path = CurrentExploreGuidancePath();
+            return BuildCurrentExploreGuidanceCellSet(CurrentExploreGuidancePlan());
+        }
+
+        private HashSet<int> BuildCurrentExploreGuidanceCellSet(ExploreGuidancePlan plan)
+        {
+            if (plan?.CellKeys != null) return plan.CellKeys;
+            IReadOnlyList<Point> path = plan?.Path;
             HashSet<int> cells = new HashSet<int>();
-            if (path == null || state?.Map == null) return cells;
+            if (path == null || state?.Map == null)
+            {
+                if (plan != null) plan.CellKeys = cells;
+                return cells;
+            }
             for (int i = 0; i < path.Count; i++)
             {
                 Point step = path[i];
                 if (step != null) cells.Add(ExploreGuidanceCellKey(step.X, step.Y));
             }
+            plan.CellKeys = cells;
             return cells;
         }
 

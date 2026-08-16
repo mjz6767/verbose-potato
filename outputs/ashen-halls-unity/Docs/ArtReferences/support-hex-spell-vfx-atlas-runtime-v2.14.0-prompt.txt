@@ -1,0 +1,29 @@
+Built-in ImageGen generation brief
+Generated: 2026-08-15
+Use case: stylized-concept
+Runtime asset: support-hex-spell-vfx-atlas-runtime-v2.14.0.png
+Source asset: source-support-hex-spell-vfx-atlas-v2.14.0-chromakey.png
+Post-process: local remove_chroma_key.py using #00ff00, soft matte, thresholds 12/220, and despill.
+Native output: 1254x1254 RGBA, consumed as a strict row-major 4x4 UV atlas.
+
+Create a strict 4 columns by 4 rows sprite atlas containing exactly sixteen isolated support, holy, nature, poison, and hex spell visual effects. Use Ashen Ritual pixel-fantasy: painterly high-resolution pixel effects with hard readable silhouettes, charcoal negative space, crisp luminous cores, and restrained simulated bloom, legible when reduced to 64-128 pixels. One centered effect per cell, generous padding, no overlap, no text, no frames, no watermark, no cast shadows, and a perfectly flat #00ff00 removable background.
+
+Cell order, left-to-right then top-to-bottom:
+0 Holy cast rune - ivory-gold concentric sigil with teal accents.
+1 Mending wisp - white-gold healing wisp with a short teal ribbon tail.
+2 Heal/Dawn bloom - upward-opening white-gold bloom with teal motes.
+3 Ward dome - gold-and-teal hemispherical barrier with a bright rim.
+4 Sun lance - disciplined white-gold spear of light.
+5 Sun Brand/Hold - radiant solar seal with six clean rays.
+6 Cleanse/Rift Seal - broken violet curse strands inside a sealing ring.
+7 Nature/stone creation - roots and moss lifting a compact stone slab.
+8 Web snap - pale spectral web lattice tightening around a dark center.
+9 Poison cloud/burst - acid amber-green toxic bloom with a dark core.
+10 Sleep/Dream mist - indigo and cyan crescent mist with star motes.
+11 Night Veil - charcoal-violet protective veil around a teal light.
+12 Grave Hook - bone-white hooked chain emerging from a violet tear.
+13 Drain Life - cyan-violet soul streams pulled toward a dark core.
+14 Mind Break/Wither - fractured magenta psychic crystal and inward cracks.
+15 Ashen Curse - hooked black-violet brand with orange ember edges.
+
+Palette: holy ivory/gold/teal; nature moss/stone/gold; hex charcoal/indigo/violet/magenta; poison amber-green distinct from #00ff00; Ashen Curse black-violet/orange. Avoid #00ff00 inside effects, blended scenes, extra subjects, cropped effects, muddy black blobs, or elements crossing cell boundaries.

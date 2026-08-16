@@ -71,5 +71,13 @@ namespace AshenHalls
         public const string GlassIndexRecovered = "glass_index_recovered";
         public const string EmberglassGateKeyRecovered = "emberglass_gate_key_recovered";
         public const string GlassAndAshDebriefed = "glass_and_ash_debriefed";
+
+        public const string RedGateAssaultAccepted = "red_gate_assault_accepted";
+        public const string RedGateEntered = "red_gate_entered";
+        public const string RedGateVanguardDefeated = "red_gate_vanguard_defeated";
+        public const string OssuaryRoadSealRecovered = "ossuary_road_seal_recovered";
+        public const string CrownroadMarshalDefeated = "crownroad_marshal_defeated";
+        public const string MeteorCrownThresholdSurveyed = "meteor_crown_threshold_surveyed";
+        public const string RedGateDebriefed = "red_gate_debriefed";
     }
 }

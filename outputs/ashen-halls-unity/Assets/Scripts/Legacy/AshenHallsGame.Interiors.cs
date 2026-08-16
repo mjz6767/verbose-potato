@@ -406,7 +406,7 @@ namespace AshenHalls
                 PushLog("The Town Hall storm doors close behind the company. The Grand Hearth lights a broad gathering floor of road patrons, old maps, and wet cloaks.", Tone.Good);
                 ShowBanner(MidgaardInteriorRules.GrandHearthDisplayName);
                 PlaySfx("doorwood", 0.72f);
-                PlaySfx("fire", 0.26f);
+                PlaySfx(TitleAudioRules.HearthAmbienceKey, 0.20f);
             }
             else if (enteringThrone)
             {

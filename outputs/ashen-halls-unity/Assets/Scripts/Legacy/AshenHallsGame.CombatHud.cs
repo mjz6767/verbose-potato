@@ -103,8 +103,11 @@ namespace AshenHalls
             {
                 return new CombatHudView
                 {
-                    Title = GameTitle,
-                    RouteLine = GameSubtitle,
+                    Title = "Combat",
+                    RouteLine = "",
+                    ObjectiveLine = "Awaiting initiative",
+                    LivingEnemyCount = 0,
+                    LivingPartyCount = 0,
                     RoundNumber = 0,
                     MovePoints = 0,
                     MovePointsMaximum = 0,
@@ -143,10 +146,18 @@ namespace AshenHalls
             int moveMaximum = active == null ? 0 : UnitMoveAllowance(active);
             int movePoints = active == null ? 0 : Mathf.Clamp(state.Combat.MovePoints, 0, moveMaximum);
             bool actionReady = playerTurn && state.Combat.ActionAvailable;
+            int livingEnemyCount = state.Combat.Units.Count(unit => unit != null && unit.Side == UnitSide.Enemy && unit.Hp > 0);
+            int livingPartyCount = state.Combat.Units.Count(unit => unit != null && unit.Side == UnitSide.Party && unit.Hp > 0);
+            string objectiveLine = livingEnemyCount <= 0
+                ? $"Victory secured  \u00b7  {livingPartyCount} {(livingPartyCount == 1 ? "ally" : "allies")} standing"
+                : $"Defeat {livingEnemyCount} {(livingEnemyCount == 1 ? "enemy" : "enemies")}  \u00b7  {livingPartyCount} {(livingPartyCount == 1 ? "ally" : "allies")} standing";
             return new CombatHudView
             {
-                Title = GameTitle,
+                Title = CombatEncounterTitle(),
                 RouteLine = $"{GameSubtitle} / Depth {state.Depth} / Combat",
+                ObjectiveLine = objectiveLine,
+                LivingEnemyCount = livingEnemyCount,
+                LivingPartyCount = livingPartyCount,
                 RoundNumber = state.Combat.Round,
                 MovePoints = movePoints,
                 MovePointsMaximum = moveMaximum,
@@ -180,6 +191,19 @@ namespace AshenHalls
                 Turns = BuildCombatHudTurnViews(),
                 Logs = BuildCombatHudLogViews()
             };
+        }
+
+        private string CombatEncounterTitle()
+        {
+            string style = state?.Combat?.EncounterStyle ?? "";
+            EncounterDefinition encounter = EncounterCatalog.All.FirstOrDefault(candidate =>
+                string.Equals(candidate?.LegacyStyle ?? "", style, StringComparison.OrdinalIgnoreCase));
+            if (encounter == null)
+            {
+                encounter = ContentSetCatalog.SewerSliceEncounters.FirstOrDefault(candidate =>
+                    string.Equals(candidate?.LegacyStyle ?? "", style, StringComparison.OrdinalIgnoreCase));
+            }
+            return string.IsNullOrWhiteSpace(encounter?.Banner) ? "Combat" : encounter.Banner;
         }
 
         private string CombatHudPhaseLine(CombatUnit active, bool playerTurn)
@@ -514,7 +538,7 @@ namespace AshenHalls
                 Header = activeCard ? CombatHudActiveHeader(unit) : CombatHudTargetHeader(unit),
                 StateLine = stateLine,
                 StateTone = stateTone,
-                StatusLine = CombatHudStatusLine(unit),
+                StatusLine = CombatHudStatusLine(unit, activeCard),
                 AccentHex = unit.Side == UnitSide.Party ? "58b7a5" : "b94b56",
                 PortraitTexture = portraitTexture,
                 PortraitSource = portraitSource,
@@ -525,12 +549,21 @@ namespace AshenHalls
             };
         }
 
-        private string CombatHudStatusLine(CombatUnit unit)
+        private string CombatHudStatusLine(CombatUnit unit, bool activeCard)
         {
             string status = StatusLine(unit);
-            return string.Equals(status, "steady", StringComparison.OrdinalIgnoreCase)
+            string conditions = string.Equals(status, "steady", StringComparison.OrdinalIgnoreCase)
                 ? "No conditions"
                 : status;
+            if (activeCard) return conditions;
+
+            List<string> intel = new List<string>();
+            if (!string.IsNullOrWhiteSpace(unit?.Weakness)) intel.Add("WEAK " + unit.Weakness.Trim());
+            if (!string.IsNullOrWhiteSpace(unit?.Resist)) intel.Add("RESIST " + unit.Resist.Trim());
+            if (intel.Count == 0) return conditions;
+            return string.Equals(conditions, "No conditions", StringComparison.Ordinal)
+                ? string.Join(" / ", intel)
+                : conditions + " / " + string.Join(" / ", intel);
         }
 
         private string CombatHudActiveHeader(CombatUnit unit)
@@ -626,16 +659,10 @@ namespace AshenHalls
             string focus = focused ? " / FOCUS -1 MP +1R" : "";
             if (activeCard && state?.Combat != null)
             {
-                if (unit.Side == UnitSide.Enemy)
-                {
-                    tone = CombatHudStateTone.Neutral;
-                    return $"MOVE {state.Combat.MovePoints} / ACTION ENEMY / {range}{guard}{focus}";
-                }
-                tone = state.Combat.ActionAvailable
+                tone = unit.Side == UnitSide.Party && state.Combat.ActionAvailable
                     ? CombatHudStateTone.Ready
                     : CombatHudStateTone.Neutral;
-                string action = state.Combat.ActionAvailable ? "ACTION READY" : "ACTION USED";
-                return $"MOVE {state.Combat.MovePoints} / {action} / {range}{guard}{focus}";
+                return $"DMG {unit.DamageMin}-{unit.DamageMax} / DEF {unit.Defense} / SPD {unit.AttackSpeed} / {range}{guard}{focus}";
             }
             return $"{side} / {range}{guard}{focus}";
         }
@@ -711,11 +738,19 @@ namespace AshenHalls
             if (active != null && active.Side == UnitSide.Enemy) return EnemyIntentFocus(active);
 
             if (powerArmed) return SuggestedArmedPowerTarget(active);
-
-            UnitSide wanted = active == null || active.Side == UnitSide.Party ? UnitSide.Enemy : UnitSide.Party;
+            if (active == null
+                || active.Side != UnitSide.Party
+                || selectedAction != ActionMode.Attack
+                || !state.Combat.ActionAvailable)
+            {
+                return null;
+            }
             return state.Combat.Units
-                .Where(u => u.Side == wanted && u.Hp > 0)
-                .OrderBy(u => active == null ? 0 : Distance(active.X, active.Y, u.X, u.Y))
+                .Where(unit => unit != null
+                    && unit.Side == UnitSide.Enemy
+                    && unit.Hp > 0
+                    && AttackForecast(active, unit).Legal)
+                .OrderBy(unit => Distance(active.X, active.Y, unit.X, unit.Y))
                 .FirstOrDefault();
         }
 
@@ -889,12 +924,12 @@ namespace AshenHalls
                 DrawRect(
                     button,
                     visualState == CombatHudCommandVisualState.Blocked
-                        ? Hex("201316", 0.94f)
+                        ? Hex("0c1012", 0.76f)
                         : promoted || armed ? Hex("352316", 0.94f) : selected && visuallyAvailable ? Hex("243033", 0.90f) : Hex("151b20", 0.84f));
                 DrawBorder(
                     button,
                     visualState == CombatHudCommandVisualState.Blocked
-                        ? Hex("b94b56", 0.58f)
+                        ? Hex("3c4544", 0.20f)
                         : promoted || armed ? gold : selected && visuallyAvailable ? teal : line.WithAlpha(0.40f),
                     emphasized ? 2 : 1);
                 bool compact = CombatHudScreenLayout.UsesCompactCommandLayout(button);
@@ -908,10 +943,10 @@ namespace AshenHalls
                 string label = command?.Label ?? ActionName(mode, active);
                 if (promoted) label = label.ToUpperInvariant();
                 string subLabel = command == null
-                    ? promoted ? "READY \u00b7 Next combatant" : enabled ? ActionButtonSubLabel(mode, active) : "BLOCKED \u00b7 " + DisabledActionReason(mode, active, playerTurn)
+                    ? promoted ? "READY \u00b7 Next combatant" : enabled ? ActionButtonSubLabel(mode, active) : (DisabledActionReason(mode, active, playerTurn) ?? "Unavailable").Trim().TrimEnd('.')
                     : CombatHudCommandStyleRules.SecondaryLine(command);
-                Color labelColor = visualState == CombatHudCommandVisualState.Blocked ? Hex("e0afa1", 0.96f) : visuallyAvailable ? ink : Hex("9aa0a1", 0.88f);
-                Color subColor = visualState == CombatHudCommandVisualState.Blocked ? Hex("f0a08b") : visuallyAvailable ? promoted ? gold : Hex("c7baa2") : muted;
+                Color labelColor = visualState == CombatHudCommandVisualState.Blocked ? Hex("b8aea5", 0.76f) : visuallyAvailable ? ink : Hex("9aa0a1", 0.88f);
+                Color subColor = visualState == CombatHudCommandVisualState.Blocked ? Hex("8d9495", 0.82f) : visuallyAvailable ? promoted ? gold : Hex("c7baa2") : muted;
                 float labelY = icon.yMax + 1f;
                 float labelHeight = compact ? 15f : 17f;
                 GUI.Label(new Rect(button.x + 4f, labelY, button.width - 8f, labelHeight), FitText(label, button.width - 8f, CenterStyle(compact ? 11 : 12, labelColor)), CenterStyle(compact ? 11 : 12, labelColor));
@@ -1094,7 +1129,12 @@ namespace AshenHalls
             bool playerTurn = active != null && active.Side == UnitSide.Party;
             Rect baseRect = CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Board;
             if (baseRect.width < 480f) return;
-            DrawBetaLabToolbar(new Rect(baseRect.x + 8f, baseRect.y + 8f, Mathf.Min(900f, baseRect.width - 16f), 30f), active, playerTurn);
+            Rect toolbar = new Rect(baseRect.x + 8f, baseRect.y + 8f, Mathf.Min(900f, baseRect.width - 16f), 30f);
+            DrawBetaLabToolbar(toolbar, active, playerTurn);
+            if (betaVfxShowcaseOpen)
+            {
+                DrawBetaVfxShowcaseToolbar(new Rect(toolbar.x, toolbar.y + 34f, toolbar.width, 30f));
+            }
         }
     }
 }

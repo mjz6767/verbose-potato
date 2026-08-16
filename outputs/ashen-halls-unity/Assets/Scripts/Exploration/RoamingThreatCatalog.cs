@@ -104,11 +104,16 @@ namespace AshenHalls
             Threat(2, "red-gate-grave-watch", "Red Gate Grave Watch", "revenant", 3, 3, "red-gate", 22, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "reaver", "bonepriest", "shade", "husk"),
 
             // Chapter IV keeps normal play bounded to three authored faction
-            // bands. No production definition extends into the unfinished fifth
-            // depth, and every roster uses an explicitly active campaign enemy.
+            // bands, and every roster uses an explicitly active campaign enemy.
             Threat(0, "glassward-drow-levy", "Glassward Drow Levy", "drowmage", 4, 4, "glass-warrens", 12, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Drow, "drowscout", "drowcrossbow", "drowmage", "glassmage"),
             Threat(1, "ash-fen-bone-procession", "Ash Fen Bone Procession", "bonepriest", 4, 4, "ash-fen", 17, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "bonepriest", "shade", "husk", "reaver"),
             Threat(2, "red-gate-cinder-pact", "Red Gate Cinder Pact", "lesserdemon", 4, 4, "red-gate", 22, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Demons, "lesserdemon", "cinderling", "cinderling"),
+
+            // Chapter V moves the production campaign inside the Red Gate with
+            // one readable band from each faction holding the crownward road.
+            Threat(0, "inner-gate-cinder-vanguard", "Inner Gate Cinder Vanguard", "lesserdemon", 5, 5, "red-gate", 12, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Demons, "lesserdemon", "cinderling", "cinderling", "cinderling"),
+            Threat(1, "crownroad-ossuary-column", "Crownroad Ossuary Column", "gloamknight", 5, 5, "gloam-courts", 17, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Undead, "gloamknight", "bonepriest", "shade", "reaver"),
+            Threat(2, "emberglass-drow-conclave", "Emberglass Drow Conclave", "drowmage", 5, 5, "glass-warrens", 22, RoamingThreatContentProfile.SewerSlice, RoamingThreatFaction.Drow, "drowpriest", "drowmage", "glassmage", "drowcrossbow"),
 
             // Chapter III: organized drow and death-cult patrols replace the
             // tentative scouts while kobolds remain on their established roads.
@@ -190,6 +195,7 @@ namespace AshenHalls
                 case "reaver":
                 case "undead":
                 case "bonepriest":
+                case "gloamknight":
                 case "revenant": return RoamingThreatFaction.Undead;
                 case "imp":
                 case "boundimp":

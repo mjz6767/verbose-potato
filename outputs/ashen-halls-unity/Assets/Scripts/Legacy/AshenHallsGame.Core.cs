@@ -242,6 +242,11 @@ namespace AshenHalls
 
         private bool exploreWideView;
 
+        private readonly ExplorationMiniMapTerrainCache explorationMiniMapTerrainCache =
+            new ExplorationMiniMapTerrainCache();
+
+        private Color32[] explorationMiniMapTerrainPixels;
+
         private bool exploreHudCollapsed = true;
 
         private bool showExploreArtDebug;
@@ -466,6 +471,12 @@ namespace AshenHalls
             }
         }
 
+        private void OnDestroy()
+        {
+            explorationMiniMapTerrainCache.Dispose();
+            explorationMiniMapTerrainPixels = null;
+        }
+
         private void RequestBatchmodeQuitAfterBootIfNeeded()
         {
             if (!ShouldAutoQuitAfterBoot(Environment.GetCommandLineArgs(), Application.isBatchMode, Application.isEditor))
@@ -612,6 +623,11 @@ namespace AshenHalls
                 else
                 {
                     PromoteMageTester(tester);
+                }
+                tester = CurrentUnit();
+                if (tester == null)
+                {
+                    throw new InvalidOperationException("Spell-book visual smoke could not activate a Beta Lab caster.");
                 }
                 tester.Spell = requestedSchool;
                 if (tester.Skills == null) tester.Skills = new SkillSet();
@@ -1871,8 +1887,7 @@ namespace AshenHalls
 
         private bool IsLootPopupOpen()
         {
-            return lootPanelItem != null
-                && !string.IsNullOrEmpty(lootPanelBody)
+            return !string.IsNullOrEmpty(lootPanelBody)
                 && (lootPanelRequiresDismissal || Time.time <= lootPanelUntil);
         }
 
@@ -1921,6 +1936,23 @@ namespace AshenHalls
                 default:
                     return false;
             }
+        }
+
+        private bool HandleCancelCommand()
+        {
+            if (state != null && state.Mode == GameMode.Tavern && CloseTavernPanel()) return true;
+            if (CurrentUiOverlay() == UiOverlay.Dialogue)
+            {
+                if (ReturnDialogueToTopics()) return true;
+                CloseDialogue();
+                return true;
+            }
+            if (CurrentUiOverlay() == UiOverlay.Armory && CollapseArmoryInventoryTargetPicker()) return true;
+            if (CloseTopOverlay()) return true;
+            if (state != null && state.Mode == GameMode.Combat && CancelCombatTargeting()) return true;
+            if (!CanOpenPauseMenu()) return false;
+            OpenPauseMenu();
+            return true;
         }
 
         private void RecoverUnavailableOverlay(UiOverlay overlay, string label)
@@ -2436,10 +2468,12 @@ namespace AshenHalls
             castGlyphs.RemoveAll(g => now > g.Start + g.Duration);
             powerImpactEchoes.RemoveAll(e => now > e.ImpactAt + e.Duration);
             powerCastAuras.RemoveAll(a => now > a.Start + a.Duration);
+            powerTravelVfx.RemoveAll(travel => now > travel.Start + travel.Duration);
 
             UpdateTavernMusic();
             UpdateTavernAmbience();
             UpdateExplorationAmbience();
+            UpdateCombatAmbience();
             UpdateScheduledSfx();
             if (IsStartupSplashVisible()) return;
 
@@ -2454,21 +2488,9 @@ namespace AshenHalls
             if (Input.GetKeyDown(KeyCode.Equals) || Input.GetKeyDown(KeyCode.KeypadPlus)) AdjustSfxVolume(25);
             if (Input.GetKeyDown(KeyCode.Minus) || Input.GetKeyDown(KeyCode.KeypadMinus)) AdjustSfxVolume(-25);
             if (state != null && state.Mode == GameMode.Explore && Input.GetKeyDown(KeyCode.F8)) ToggleExploreArtDebug();
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (Input.GetKeyDown(KeyCode.Escape) || Input.GetButtonDown("Cancel"))
             {
-                if (CurrentUiOverlay() == UiOverlay.Dialogue)
-                {
-                    if (ReturnDialogueToTopics()) return;
-                    CloseDialogue();
-                    return;
-                }
-                if (CloseTopOverlay()) return;
-                if (state != null && state.Mode == GameMode.Combat && CancelCombatTargeting()) return;
-                if (CanOpenPauseMenu())
-                {
-                    OpenPauseMenu();
-                    return;
-                }
+                if (HandleCancelCommand()) return;
             }
             if (CurrentUiOverlay() == UiOverlay.Dialogue)
             {
@@ -2506,11 +2528,6 @@ namespace AshenHalls
                 {
                     OpenDeveloperTestingShortcut();
                     return;
-                }
-                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
-                {
-                    if (HasSavedGame()) ContinueSavedGame();
-                    else QuickStart();
                 }
                 if (Input.GetKeyDown(KeyCode.B)) QuickStart();
                 if (Input.GetKeyDown(KeyCode.N) || Input.GetKeyDown(KeyCode.C)) StartNewGame();
@@ -2976,6 +2993,9 @@ namespace AshenHalls
                         EnsureExploreSurfaceData(state.Map, sourceSaveVersion);
                         if (!ExplorationSurfaceRules.HasValidGrid(state.Map)) throw new InvalidDataException("Saved exploration surface data could not be repaired.");
                         RepairPlayerExplorationPosition();
+                        RevealKnownMidgaardChart();
+                        RevealKnownRouteLandmarkChart();
+                        RevealExplorationChartAroundPlayer();
                         lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
                     }
                     rng = new System.Random(state.Seed + state.Depth * 101);
@@ -3092,7 +3112,13 @@ namespace AshenHalls
                         state.Map.Height,
                         state.Map.StartX,
                         state.Map.StartY),
+                    WorldMapGenerationRules.RegionalSites(
+                        state.Map.Width,
+                        state.Map.Height,
+                        state.Map.StartX,
+                        state.Map.StartY),
                     state.DiscoveredZones,
+                    state.StoryFlags,
                     state.Depth,
                     state.ActiveRouteWaypointKey);
             }
@@ -3108,9 +3134,14 @@ namespace AshenHalls
             {
                 SetStoryFlag(StoryFlags.GlassAndAshEntered);
             }
+            if (state.Depth >= 5 && ContentSetCatalog.AllowRedGateChapter(activeContentSet, state.StoryFlags))
+            {
+                SetStoryFlag(StoryFlags.RedGateEntered);
+            }
             RepairKoboldStoryObjective();
             RepairBoneRoadStoryObjective();
             RepairGlassAndAshStoryObjective();
+            RepairRedGateStoryObjective();
             if (state.Depth == 2 && state.Map != null) EnsureKoboldKingCaveMarker();
             if (state.Depth == 3 && state.Map != null) EnsureGlassAndAshPassageMarker();
         }

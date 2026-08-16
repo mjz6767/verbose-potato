@@ -1,0 +1,567 @@
+{
+  "input": "source-combat-power-travel-vfx-atlas-v2.15.0-generated.png",
+  "output": "combat-power-travel-vfx-atlas-runtime-v2.15.0.png",
+  "source_size": [
+    1254,
+    1254
+  ],
+  "runtime_size": [
+    1280,
+    1280
+  ],
+  "grid": [
+    4,
+    4
+  ],
+  "cell_size": 320,
+  "required_gutter": 24,
+  "baseline": 238,
+  "baseline_indices": [],
+  "cells": [
+    {
+      "index": 0,
+      "source_box": [
+        0,
+        0,
+        314,
+        314
+      ],
+      "source_bbox": [
+        5,
+        105,
+        312,
+        269
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        147
+      ],
+      "runtime_bbox": [
+        26,
+        88,
+        294,
+        230
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 88,
+        "right": 26,
+        "bottom": 90
+      },
+      "anchor": "center",
+      "scale": 0.874598
+    },
+    {
+      "index": 1,
+      "source_box": [
+        314,
+        0,
+        627,
+        314
+      ],
+      "source_bbox": [
+        83,
+        0,
+        231,
+        314
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        132,
+        272
+      ],
+      "runtime_bbox": [
+        96,
+        24,
+        224,
+        296
+      ],
+      "gutters": {
+        "left": 96,
+        "top": 24,
+        "right": 96,
+        "bottom": 24
+      },
+      "anchor": "center",
+      "scale": 0.866242
+    },
+    {
+      "index": 2,
+      "source_box": [
+        627,
+        0,
+        940,
+        314
+      ],
+      "source_bbox": [
+        2,
+        75,
+        302,
+        262
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        171
+      ],
+      "runtime_bbox": [
+        26,
+        76,
+        294,
+        243
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 76,
+        "right": 26,
+        "bottom": 77
+      },
+      "anchor": "center",
+      "scale": 0.894737
+    },
+    {
+      "index": 3,
+      "source_box": [
+        940,
+        0,
+        1254,
+        314
+      ],
+      "source_bbox": [
+        3,
+        70,
+        310,
+        291
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        197
+      ],
+      "runtime_bbox": [
+        26,
+        64,
+        294,
+        257
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 64,
+        "right": 26,
+        "bottom": 63
+      },
+      "anchor": "center",
+      "scale": 0.874598
+    },
+    {
+      "index": 4,
+      "source_box": [
+        0,
+        314,
+        314,
+        627
+      ],
+      "source_bbox": [
+        6,
+        73,
+        305,
+        240
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        154
+      ],
+      "runtime_bbox": [
+        26,
+        85,
+        294,
+        235
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 85,
+        "right": 26,
+        "bottom": 85
+      },
+      "anchor": "center",
+      "scale": 0.89769
+    },
+    {
+      "index": 5,
+      "source_box": [
+        314,
+        314,
+        627,
+        627
+      ],
+      "source_bbox": [
+        5,
+        91,
+        312,
+        232
+      ],
+      "removed_minor_boundary_components": 1,
+      "runtime_size": [
+        272,
+        127
+      ],
+      "runtime_bbox": [
+        26,
+        98,
+        295,
+        221
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 98,
+        "right": 25,
+        "bottom": 99
+      },
+      "anchor": "center",
+      "scale": 0.877419
+    },
+    {
+      "index": 6,
+      "source_box": [
+        627,
+        314,
+        940,
+        627
+      ],
+      "source_bbox": [
+        0,
+        68,
+        300,
+        236
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        155
+      ],
+      "runtime_bbox": [
+        24,
+        84,
+        294,
+        235
+      ],
+      "gutters": {
+        "left": 24,
+        "top": 84,
+        "right": 26,
+        "bottom": 85
+      },
+      "anchor": "center",
+      "scale": 0.900662
+    },
+    {
+      "index": 7,
+      "source_box": [
+        940,
+        314,
+        1254,
+        627
+      ],
+      "source_bbox": [
+        2,
+        58,
+        305,
+        266
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        188
+      ],
+      "runtime_bbox": [
+        26,
+        68,
+        294,
+        252
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 68,
+        "right": 26,
+        "bottom": 68
+      },
+      "anchor": "center",
+      "scale": 0.885993
+    },
+    {
+      "index": 8,
+      "source_box": [
+        0,
+        627,
+        314,
+        940
+      ],
+      "source_bbox": [
+        18,
+        41,
+        298,
+        204
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        160
+      ],
+      "runtime_bbox": [
+        26,
+        82,
+        294,
+        238
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 82,
+        "right": 26,
+        "bottom": 82
+      },
+      "anchor": "center",
+      "scale": 0.957746
+    },
+    {
+      "index": 9,
+      "source_box": [
+        314,
+        627,
+        627,
+        940
+      ],
+      "source_bbox": [
+        18,
+        61,
+        309,
+        229
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        159
+      ],
+      "runtime_bbox": [
+        26,
+        82,
+        294,
+        237
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 82,
+        "right": 26,
+        "bottom": 83
+      },
+      "anchor": "center",
+      "scale": 0.922034
+    },
+    {
+      "index": 10,
+      "source_box": [
+        627,
+        627,
+        940,
+        940
+      ],
+      "source_bbox": [
+        7,
+        47,
+        294,
+        241
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        185
+      ],
+      "runtime_bbox": [
+        26,
+        70,
+        294,
+        251
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 70,
+        "right": 26,
+        "bottom": 69
+      },
+      "anchor": "center",
+      "scale": 0.934708
+    },
+    {
+      "index": 11,
+      "source_box": [
+        940,
+        627,
+        1254,
+        940
+      ],
+      "source_bbox": [
+        3,
+        17,
+        297,
+        240
+      ],
+      "removed_minor_boundary_components": 3,
+      "runtime_size": [
+        272,
+        207
+      ],
+      "runtime_bbox": [
+        26,
+        58,
+        294,
+        261
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 58,
+        "right": 26,
+        "bottom": 59
+      },
+      "anchor": "center",
+      "scale": 0.912752
+    },
+    {
+      "index": 12,
+      "source_box": [
+        0,
+        940,
+        314,
+        1254
+      ],
+      "source_bbox": [
+        0,
+        3,
+        313,
+        204
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        178
+      ],
+      "runtime_bbox": [
+        24,
+        73,
+        295,
+        247
+      ],
+      "gutters": {
+        "left": 24,
+        "top": 73,
+        "right": 25,
+        "bottom": 73
+      },
+      "anchor": "center",
+      "scale": 0.866242
+    },
+    {
+      "index": 13,
+      "source_box": [
+        314,
+        940,
+        627,
+        1254
+      ],
+      "source_bbox": [
+        28,
+        38,
+        294,
+        199
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        166
+      ],
+      "runtime_bbox": [
+        26,
+        79,
+        294,
+        241
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 79,
+        "right": 26,
+        "bottom": 79
+      },
+      "anchor": "center",
+      "scale": 1.007407
+    },
+    {
+      "index": 14,
+      "source_box": [
+        627,
+        940,
+        940,
+        1254
+      ],
+      "source_bbox": [
+        2,
+        7,
+        288,
+        228
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        211
+      ],
+      "runtime_bbox": [
+        26,
+        56,
+        294,
+        263
+      ],
+      "gutters": {
+        "left": 26,
+        "top": 56,
+        "right": 26,
+        "bottom": 57
+      },
+      "anchor": "center",
+      "scale": 0.937931
+    },
+    {
+      "index": 15,
+      "source_box": [
+        940,
+        940,
+        1254,
+        1254
+      ],
+      "source_bbox": [
+        1,
+        0,
+        308,
+        242
+      ],
+      "removed_minor_boundary_components": 0,
+      "runtime_size": [
+        272,
+        214
+      ],
+      "runtime_bbox": [
+        25,
+        53,
+        294,
+        265
+      ],
+      "gutters": {
+        "left": 25,
+        "top": 53,
+        "right": 26,
+        "bottom": 55
+      },
+      "anchor": "center",
+      "scale": 0.877419
+    }
+  ],
+  "sha256": "4123FD9C3245367646FF5365E2A60DBBF0E29CEE22C9048CC2401F82BCCDA8E8"
+}

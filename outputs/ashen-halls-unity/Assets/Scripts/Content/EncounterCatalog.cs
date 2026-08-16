@@ -331,6 +331,84 @@ namespace AshenHalls
                     new Point(7, 3, "ice", 7),
                     new Point(7, 4, "gas", 7)
                 }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.RedGateVanguard,
+                LegacyStyle = "red-gate-vanguard",
+                Banner = "Red Gate Vanguard",
+                Intro = "The Emberglass key turns once. Drow priests and a cinder brute answer from the inner gatehouse before the road can open.",
+                EnemyIds = new[] { "drowpriest", "drowmage", "glassmage", "drowcrossbow", "lesserdemon" },
+                FixedEnemyCount = 5,
+                EnemyPlacements = new[]
+                {
+                    new Point(10, 3),
+                    new Point(9, 1),
+                    new Point(9, 6),
+                    new Point(8, 2),
+                    new Point(8, 5)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 1, "stone"),
+                    new Point(5, 6, "stone"),
+                    new Point(6, 2, "fire", 7),
+                    new Point(6, 5, "ice", 7),
+                    new Point(7, 3, "gas", 6)
+                }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.OssuaryRoadSeal,
+                LegacyStyle = "ossuary-road-seal",
+                Banner = "Ossuary Road Seal",
+                Intro = "The crownward map ends in a reliquary court. Bone priests raise the stolen road seal behind a Gloam Knight's shield.",
+                EnemyIds = new[] { "bonepriest", "bonepriest", "gloamknight", "shade", "reaver", "cinderling" },
+                FixedEnemyCount = 6,
+                EnemyPlacements = new[]
+                {
+                    new Point(10, 2),
+                    new Point(10, 5),
+                    new Point(9, 3),
+                    new Point(8, 1),
+                    new Point(8, 6),
+                    new Point(9, 5)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 2, "stone"),
+                    new Point(5, 5, "stone"),
+                    new Point(6, 3, "web", 8),
+                    new Point(7, 2, "gas", 7),
+                    new Point(7, 5, "ice", 7)
+                }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.CrownroadMarshal,
+                LegacyStyle = "crownroad-marshal-boss",
+                Banner = "Marshal of the Crownroad",
+                Intro = "At the sealed descent, the Crownroad Marshal binds drow glass, ossuary oath, and cinder flame into one last defense.",
+                EnemyIds = new[] { "lesserdemon", "gloamknight", "drowpriest", "bonepriest", "cinderling", "glassmage" },
+                FixedEnemyCount = 6,
+                EnemyPlacements = new[]
+                {
+                    new Point(10, 3),
+                    new Point(9, 1),
+                    new Point(9, 6),
+                    new Point(8, 2),
+                    new Point(8, 5),
+                    new Point(10, 5)
+                },
+                Obstacles = new[]
+                {
+                    new Point(5, 1, "stone"),
+                    new Point(5, 6, "stone"),
+                    new Point(6, 2, "fire", 8),
+                    new Point(6, 5, "gas", 8),
+                    new Point(7, 3, "ice", 8),
+                    new Point(7, 4, "fire", 8)
+                }
             }
         };
 

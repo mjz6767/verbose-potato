@@ -25,8 +25,8 @@ import numpy as np
 MUSIC_SAMPLE_RATE = 32_000
 SFX_SAMPLE_RATE = 48_000
 MUSIC_BEATS = 32
-AUDIO_RELEASE = "v2.9.0"
-AUDIO_RELEASE_SLUG = "v2.9"
+AUDIO_RELEASE = "v2.15.0"
+AUDIO_RELEASE_SLUG = "v2.15.0"
 STAGE_ROOT = Path(__file__).resolve().parents[2]
 MUSIC_DIR = STAGE_ROOT / "Assets" / "Resources" / "Audio" / "Music"
 SFX_DIR = STAGE_ROOT / "Assets" / "Resources" / "Audio" / "Sfx"
@@ -90,7 +90,7 @@ TRACKS: tuple[TrackSpec, ...] = (
         (0, 0, 5, 3, 0, 6, 4, 5, 0, 3, 5, 4, 6, 5, 3, 0, 0, 5, 3, 4, 6, 5, 3, 0),
         "title",
         0.92,
-        "The sixty-second main-title overture: the forged-road motif answers the title reveal, rising from hearth and rain into bronze horns, four company voices, driving strings, and war drums.",
+        "The sixty-second main-title overture: a brighter forged-road motif clears the title reveal, then rises from hearth and rain into wider bronze horns, four company voices, driving strings, and war drums.",
     ),
     TrackSpec(
         "four_names_by_the_fire_loop",
@@ -102,6 +102,17 @@ TRACKS: tuple[TrackSpec, ...] = (
         "tavern",
         0.30,
         "An intimate Grand Hearth reprise of the title motif for low strings, weathered lute, ember bells, rain, and quiet room tone.",
+    ),
+    TrackSpec(
+        "ashen_atlas_overview_loop",
+        "Ashen Atlas",
+        76,
+        50,
+        DORIAN,
+        (0, 5, 3, 4, 0, 6, 4, 3),
+        "road",
+        0.34,
+        "A spacious cartographer's reprise of the forged-road motif, with patient strings, compass-bell points, and a restrained travel pulse for the World Map.",
     ),
     TrackSpec(
         "sparks_on_the_oathring_loop",
@@ -730,6 +741,23 @@ SFX: tuple[SfxSpec, ...] = (
     SfxSpec("uiclose", "world", 0.20, "A soft downward fold that closes an overlay cleanly."),
     SfxSpec("uiconfirm", "world", 0.30, "A grounded two-note confirmation without menu-game brightness."),
     SfxSpec("uitab", "world", 0.16, "A dry page-edge tick for changing tabs or map layers."),
+    SfxSpec("titleforge", "title", 0.52, "A forged-metal title strike with laptop-readable anvil body, bronze ring, and restrained low weight."),
+    SfxSpec("titlereveal", "title", 0.44, "A locked D-Dorian bronze reveal answering the forged title strike without doubling the score motif."),
+    SfxSpec("titlefocus", "title", 0.12, "A dry wood-and-bronze focus tick tuned to the title score."),
+    SfxSpec("titleconfirm", "title", 0.34, "A grounded D-A-D menu confirmation with a compact oak latch."),
+    SfxSpec("titleopen", "title", 0.28, "A short parchment, timber, and rising bronze gesture for opening a title panel."),
+    SfxSpec("titleclose", "title", 0.24, "A short descending bronze fold and wooden latch for closing a title panel."),
+    SfxSpec("combatstep", "combat", 0.24, "A close boot plant with leather, grit, and readable midrange body."),
+    SfxSpec("combatguard", "combat", 0.38, "A shield brace with wood, leather, and restrained iron resonance."),
+    SfxSpec("combatturn", "combat", 0.30, "A compact hide-drum and bronze handoff that marks the acting turn without fanfare."),
+    SfxSpec("combatcrit", "combat", 0.46, "A decisive layered critical accent with forged midrange bite and controlled low weight."),
+    SfxSpec("arrowrelease", "combat", 0.24, "A taut string snap and short air cut for bows, crossbows, and slings."),
+    SfxSpec("thrust", "combat", 0.22, "A narrow blade-and-air thrust release distinct from broad swings."),
+    SfxSpec("spell", "combat", 0.48, "A neutral arcane release with a focused pulse and restrained harmonic tail."),
+    SfxSpec("fire", "combat", 0.48, "A dry ignition impact with flame texture and laptop-readable body."),
+    SfxSpec("combatambsteel", "combatambient", 1.64, "Sparse distant steel, shield movement, and footwork behind foreground combat."),
+    SfxSpec("combatambsewer", "combatambient", 1.72, "A tense sewer pocket of water, chain, and low enclosed air."),
+    SfxSpec("combatambarcane", "combatambient", 1.68, "A quiet unstable magical field with distant runic sparks and no melodic lead."),
     SfxSpec("itemequip", "world", 0.42, "Leather settle, buckle pull, and one controlled metal lock."),
     SfxSpec("itemtake", "world", 0.38, "Cloth, wood, and a small inventory clasp as loot enters the pack."),
     SfxSpec("elixir", "world", 0.62, "Cork, glass, liquid, and a restrained restorative shimmer."),
@@ -1182,10 +1210,10 @@ def compose_main_title_track(spec: TrackSpec) -> np.ndarray:
                 rng,
             )
 
-    # The title's immediately legible signature begins just after the existing
-    # 0.72 s reveal chime and returns in increasingly complete statements.
-    title_theme_beat = 0.72 / beat_seconds
-    add_motif(title_theme_beat, "brass", 0.094, 1)
+    # The title's immediately legible signature waits for the dedicated 0.72 s
+    # reveal chime to clear, then returns in increasingly complete statements.
+    title_theme_beat = 1.20 / beat_seconds
+    add_motif(title_theme_beat, "brass", 0.104, 1)
     add_motif(9.25, "pluck", 0.082, 0, -0.08)
     add_motif(17.25, "reed", 0.070, 1, 0.20)
     add_motif(25.25, "bowed", 0.064, 1, -0.16)
@@ -1195,6 +1223,18 @@ def compose_main_title_track(spec: TrackSpec) -> np.ndarray:
     add_motif(72.25, "brass", 0.118, 1, 0.00)
     add_motif(72.25, "reed", 0.050, 2, 0.22)
     add_motif(84.25, "pluck", 0.078, 0, -0.10)
+
+    # Sparse high bronze reflections keep the logo theme readable on laptop
+    # speakers without turning the room into a bright fantasy-menu fanfare.
+    for event_beat, degree, pan in (
+        (2.35, 4, 0.44),
+        (6.40, 0, -0.36),
+        (41.80, 4, 0.38),
+        (57.80, 0, -0.34),
+        (73.80, 4, 0.42),
+    ):
+        note = scale_note(spec.root_midi, spec.mode, degree, 2)
+        add_music_note(mix, "bell", note, event_beat, 0.86, beat_seconds, 0.024, pan, rng)
 
     # Four staggered fragments stand for the four silhouettes at the threshold;
     # they converge before the full company statement at beat 40.
@@ -1238,15 +1278,17 @@ def compose_main_title_track(spec: TrackSpec) -> np.ndarray:
     dynamics = np.interp(
         beat_positions,
         (0.0, 8.0, 24.0, 40.0, 56.0, 72.0, 84.0, 96.0),
-        (0.70, 0.88, 0.96, 1.04, 1.14, 1.18, 0.96, 0.72),
+        (0.84, 1.00, 1.02, 1.07, 1.14, 1.18, 1.00, 0.84),
     )
     mix *= dynamics[np.newaxis, :]
     mix = circular_reverb(mix, MUSIC_SAMPLE_RATE, 0.19, 1.0)
+    presence = mix - np.vstack((lowpass(mix[0], 17), lowpass(mix[1], 17)))
+    mix += presence * 0.18
     mid = (mix[0] + mix[1]) * 0.5
     side = (mix[0] - mix[1]) * 0.5
-    mix = np.vstack((mid + side * 1.26, mid - side * 1.26))
+    mix = np.vstack((mid + side * 1.38, mid - side * 1.38))
     mix = bridge_loop_seam(mix, MUSIC_SAMPLE_RATE)
-    return master_audio(mix, -18.7, -3.0)
+    return master_audio(mix, -18.2, -3.0)
 
 
 def compose_track(spec: TrackSpec) -> np.ndarray:
@@ -1866,6 +1908,158 @@ def ambient_sfx(spec: SfxSpec, rng: np.random.Generator) -> np.ndarray:
     return one_shot_reverb(signal, SFX_SAMPLE_RATE, 0.13)
 
 
+def combat_sfx(spec: SfxSpec, rng: np.random.Generator) -> np.ndarray:
+    """Compose combat feedback with clear midrange identity and sparse environmental depth."""
+    frames = int(spec.duration * SFX_SAMPLE_RATE)
+    t = np.arange(frames, dtype=np.float64) / SFX_SAMPLE_RATE
+    signal = np.zeros(frames, dtype=np.float64)
+
+    if spec.cue == "combatstep":
+        noise = colored_noise(frames, rng, 0.18)
+        leather = lowpass(noise, 11) * np.exp(-t * 24.0)
+        grit = (noise - lowpass(noise, 7)) * np.exp(-t * 42.0)
+        signal = drum(112.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.46) * 0.56
+        signal += leather * 0.20 + grit * 0.12
+        mix_linear(signal, click(0.09, SFX_SAMPLE_RATE, rng, bright=False), int(0.012 * SFX_SAMPLE_RATE), 0.16)
+    elif spec.cue == "combatguard":
+        noise = colored_noise(frames, rng, 0.16)
+        brace = lowpass(noise, 9) * np.exp(-t * 18.0)
+        signal = drum(104.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.58) * 0.42 + brace * 0.16
+        signal += bell(520.0, spec.duration, SFX_SAMPLE_RATE, rng) * 0.18
+        mix_linear(signal, click(0.12, SFX_SAMPLE_RATE, rng, bright=False), int(0.020 * SFX_SAMPLE_RATE), 0.34)
+    elif spec.cue == "combatturn":
+        signal = drum(118.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.52) * 0.52
+        signal += bell(293.66, spec.duration, SFX_SAMPLE_RATE, rng) * 0.14
+        mix_linear(signal, click(0.10, SFX_SAMPLE_RATE, rng, bright=False), int(0.032 * SFX_SAMPLE_RATE), 0.20)
+    elif spec.cue == "combatcrit":
+        noise = colored_noise(frames, rng, 0.06)
+        forged = noise - lowpass(noise, 13)
+        signal = drum(86.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.74) * 0.44
+        signal += bell(740.0, spec.duration, SFX_SAMPLE_RATE, rng) * 0.24
+        signal += forged * np.exp(-t * 17.0) * 0.17
+        mix_linear(signal, click(0.12, SFX_SAMPLE_RATE, rng, bright=True), int(0.009 * SFX_SAMPLE_RATE), 0.38)
+    elif spec.cue == "arrowrelease":
+        string = pluck(196.0, spec.duration, SFX_SAMPLE_RATE, rng)
+        air = chirp(1320.0, 410.0, spec.duration, SFX_SAMPLE_RATE, 0.58, rng.uniform(0.0, 2.0 * math.pi))
+        noise = colored_noise(frames, rng, 0.03)
+        hiss = noise - lowpass(noise, 9)
+        signal = string * 0.44
+        signal += air * np.exp(-t * 22.0) * 0.22 + hiss * np.exp(-t * 31.0) * 0.14
+        mix_linear(signal, click(0.07, SFX_SAMPLE_RATE, rng, bright=False), 0, 0.26)
+    elif spec.cue == "thrust":
+        air = chirp(330.0, 1380.0, spec.duration, SFX_SAMPLE_RATE, 0.62, rng.uniform(0.0, 2.0 * math.pi))
+        noise = colored_noise(frames, rng, 0.08)
+        edge = noise - lowpass(noise, 11)
+        signal = air * envelope(frames, SFX_SAMPLE_RATE, 0.004, 0.075) * 0.26
+        signal += edge * np.exp(-t * 28.0) * 0.18
+        mix_linear(signal, bell(610.0, 0.16, SFX_SAMPLE_RATE, rng), int(0.012 * SFX_SAMPLE_RATE), 0.12)
+    elif spec.cue == "spell":
+        rise = chirp(240.0, 680.0, spec.duration, SFX_SAMPLE_RATE, 0.86, rng.uniform(0.0, 2.0 * math.pi))
+        breath = lowpass(colored_noise(frames, rng, 0.32), 7)
+        signal = rise * envelope(frames, SFX_SAMPLE_RATE, 0.012, 0.16) * 0.24
+        signal += bell(392.0, spec.duration, SFX_SAMPLE_RATE, rng) * 0.16
+        signal += breath * envelope(frames, SFX_SAMPLE_RATE, 0.025, 0.14) * 0.075
+        mix_linear(signal, bell(587.33, 0.30, SFX_SAMPLE_RATE, rng), int(0.105 * SFX_SAMPLE_RATE), 0.12)
+    elif spec.cue == "fire":
+        noise = colored_noise(frames, rng, 0.08)
+        flame = noise - lowpass(noise, 19)
+        flicker = 0.68 + 0.22 * np.sin(2.0 * math.pi * 31.0 * t) + 0.10 * np.sin(2.0 * math.pi * 47.0 * t)
+        signal = flame * flicker * np.exp(-t * 5.8) * 0.26
+        signal += drum(102.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.56) * 0.30
+        signal += chirp(720.0, 180.0, spec.duration, SFX_SAMPLE_RATE, 1.15) * np.exp(-t * 8.0) * 0.12
+    elif spec.cue == "combatambsteel":
+        room = lowpass(colored_noise(frames, rng, 0.82), 23)
+        signal = room * 0.035
+        for offset, frequency, gain in ((0.23, 520.0, 0.11), (1.07, 690.0, 0.075)):
+            hit = bell(frequency, min(0.42, spec.duration - offset), SFX_SAMPLE_RATE, rng)
+            mix_linear(signal, hit, int(offset * SFX_SAMPLE_RATE), gain)
+        mix_linear(signal, drum(92.0, 0.26, SFX_SAMPLE_RATE, rng, 0.30), int(0.67 * SFX_SAMPLE_RATE), 0.055)
+    elif spec.cue == "combatambsewer":
+        air = lowpass(colored_noise(frames, rng, 1.18), 33)
+        signal = air * 0.052 + np.sin(2.0 * math.pi * 51.0 * t) * 0.012
+        for offset, frequency, gain in ((0.18, 880.0, 0.10), (0.79, 610.0, 0.07), (1.34, 1030.0, 0.08)):
+            drop = bell(frequency, min(0.34, spec.duration - offset), SFX_SAMPLE_RATE, rng)
+            mix_linear(signal, drop, int(offset * SFX_SAMPLE_RATE), gain)
+        mix_linear(signal, click(0.15, SFX_SAMPLE_RATE, rng, bright=False), int(1.05 * SFX_SAMPLE_RATE), 0.06)
+    elif spec.cue == "combatambarcane":
+        breath = lowpass(colored_noise(frames, rng, 0.62), 13)
+        signal = breath * 0.040
+        signal += np.sin(2.0 * math.pi * 82.41 * t + 0.14 * np.sin(2.0 * math.pi * 2.3 * t)) * 0.025
+        for offset, frequency, gain in ((0.31, 493.88, 0.075), (1.16, 739.99, 0.060)):
+            spark = bell(frequency, min(0.42, spec.duration - offset), SFX_SAMPLE_RATE, rng)
+            mix_linear(signal, spark, int(offset * SFX_SAMPLE_RATE), gain)
+    else:
+        raise ValueError(f"Unhandled combat cue: {spec.cue}")
+
+    ambient = spec.family == "combatambient"
+    shaped = signal * envelope(
+        frames,
+        SFX_SAMPLE_RATE,
+        0.07 if ambient else 0.002,
+        0.22 if ambient else min(0.14, spec.duration * 0.32),
+    )
+    return one_shot_reverb(shaped, SFX_SAMPLE_RATE, 0.23 if ambient else 0.12)
+
+
+def title_sfx(spec: SfxSpec, rng: np.random.Generator) -> np.ndarray:
+    """Compose pitch-locked title feedback around the score's D-Dorian center."""
+    frames = int(spec.duration * SFX_SAMPLE_RATE)
+    t = np.arange(frames, dtype=np.float64) / SFX_SAMPLE_RATE
+    signal = np.zeros(frames, dtype=np.float64)
+
+    if spec.cue == "titleforge":
+        body = drum(72.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.76)
+        iron = bell(659.25, spec.duration, SFX_SAMPLE_RATE, rng)
+        bronze = bell(1318.51, spec.duration * 0.82, SFX_SAMPLE_RATE, rng)
+        iron_noise = colored_noise(frames, rng, 0.08)
+        grit = iron_noise - lowpass(iron_noise, 19)
+        signal += body * 0.48 + iron * 0.34 + grit * np.exp(-t * 19.0) * 0.18
+        mix_linear(signal, bronze, int(0.018 * SFX_SAMPLE_RATE), 0.18)
+        mix_linear(signal, click(0.13, SFX_SAMPLE_RATE, rng, bright=True), 0, 0.46)
+    elif spec.cue == "titlereveal":
+        for offset, frequency, gain in (
+            (0.00, 293.66, 0.30),
+            (0.10, 440.00, 0.26),
+            (0.20, 587.33, 0.23),
+        ):
+            tone = bell(frequency, spec.duration - offset, SFX_SAMPLE_RATE, rng)
+            mix_linear(signal, tone, int(offset * SFX_SAMPLE_RATE), gain)
+        breath = lowpass(colored_noise(frames, rng, 0.62), 9)
+        signal += breath * envelope(frames, SFX_SAMPLE_RATE, 0.02, 0.16) * 0.055
+    elif spec.cue == "titlefocus":
+        mix_linear(signal, click(0.10, SFX_SAMPLE_RATE, rng, bright=False), 0, 0.48)
+        signal += bell(1174.66, spec.duration, SFX_SAMPLE_RATE, rng) * 0.16
+        wood = drum(176.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.24)
+        signal += wood * 0.18
+    elif spec.cue == "titleconfirm":
+        for offset, frequency, gain in (
+            (0.00, 293.66, 0.28),
+            (0.07, 440.00, 0.24),
+            (0.15, 587.33, 0.22),
+        ):
+            tone = bell(frequency, spec.duration - offset, SFX_SAMPLE_RATE, rng)
+            mix_linear(signal, tone, int(offset * SFX_SAMPLE_RATE), gain)
+        mix_linear(signal, drum(92.0, 0.24, SFX_SAMPLE_RATE, rng, 0.42), 0, 0.30)
+        mix_linear(signal, click(0.11, SFX_SAMPLE_RATE, rng, bright=False), int(0.025 * SFX_SAMPLE_RATE), 0.30)
+    elif spec.cue == "titleopen":
+        paper = colored_noise(frames, rng, 0.38)
+        paper *= np.sin(np.linspace(0.0, math.pi, frames)) ** 2
+        rise = chirp(293.66, 587.33, spec.duration, SFX_SAMPLE_RATE, 0.90)
+        timber = drum(148.0, spec.duration, SFX_SAMPLE_RATE, rng, 0.30)
+        signal = paper * 0.25 + rise * envelope(frames, SFX_SAMPLE_RATE, 0.012, 0.10) * 0.20 + timber * 0.18
+    elif spec.cue == "titleclose":
+        fold = chirp(587.33, 220.00, spec.duration, SFX_SAMPLE_RATE, 1.12)
+        paper = colored_noise(frames, rng, 0.42)
+        paper *= np.sin(np.linspace(0.0, math.pi, frames)) ** 2
+        signal = fold * envelope(frames, SFX_SAMPLE_RATE, 0.008, 0.08) * 0.20 + paper * 0.22
+        mix_linear(signal, click(0.12, SFX_SAMPLE_RATE, rng, bright=False), int(0.105 * SFX_SAMPLE_RATE), 0.42)
+        mix_linear(signal, drum(132.0, 0.12, SFX_SAMPLE_RATE, rng, 0.26), int(0.09 * SFX_SAMPLE_RATE), 0.18)
+    else:
+        raise ValueError(f"Unhandled title cue: {spec.cue}")
+
+    return one_shot_reverb(signal * envelope(frames, SFX_SAMPLE_RATE, 0.002, min(0.16, spec.duration * 0.34)), SFX_SAMPLE_RATE, 0.14)
+
+
 def compose_sfx(spec: SfxSpec) -> np.ndarray:
     rng = np.random.default_rng(stable_seed(spec.cue))
     if spec.family == "magic":
@@ -1874,9 +2068,13 @@ def compose_sfx(spec: SfxSpec) -> np.ndarray:
         signal = world_sfx(spec, rng)
     elif spec.family == "ambient":
         signal = ambient_sfx(spec, rng)
+    elif spec.family == "title":
+        signal = title_sfx(spec, rng)
+    elif spec.family in {"combat", "combatambient"}:
+        signal = combat_sfx(spec, rng)
     else:
         raise ValueError(f"Unknown SFX family: {spec.family}")
-    target = -19.5 if spec.family == "ambient" else -15.5
+    target = -20.5 if spec.family == "combatambient" else -19.5 if spec.family == "ambient" else -15.5
     mastered = master_audio(signal[np.newaxis, :], target, -3.0)[0]
     fade_frames = min(mastered.size // 4, max(24, int(0.004 * SFX_SAMPLE_RATE)))
     mastered[:fade_frames] *= np.sin(np.linspace(0.0, math.pi / 2.0, fade_frames)) ** 2
@@ -1981,10 +2179,174 @@ def build_title_preview() -> Path:
     return path
 
 
+def loop_to_frames(audio: np.ndarray, frame_count: int) -> np.ndarray:
+    """Repeat a loop without changing its samples, then trim to an exact preview length."""
+    if audio.ndim != 2 or audio.shape[1] <= 0:
+        raise ValueError("runtime preview loop must be non-empty stereo audio")
+    safe_frames = max(0, int(frame_count))
+    repeats = max(1, math.ceil(safe_frames / audio.shape[1]))
+    return np.tile(audio, (1, repeats))[:, :safe_frames].copy()
+
+
+def build_title_runtime_preview() -> Path:
+    """Render the opening twenty seconds at the default in-game bus gains."""
+    preview_seconds = 20.0
+    preview_frames = int(preview_seconds * MUSIC_SAMPLE_RATE)
+    music, sample_rate = read_pcm16(MUSIC_DIR / "tavern_storm_hearth_ensemble_loop.wav")
+    if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
+        raise ValueError("title runtime preview requires the 32 kHz stereo title master")
+    mix = loop_to_frames(music, preview_frames) * (0.29 * 0.65)
+
+    def add_runtime_cue(cue: str, at_seconds: float, cue_gain: float, pan: float = 0.0) -> None:
+        mono, cue_rate = read_pcm16(SFX_DIR / f"{cue}.wav")
+        if mono.ndim != 1:
+            raise ValueError(f"{cue}: title runtime preview expects mono SFX")
+        if cue_rate != MUSIC_SAMPLE_RATE:
+            source_positions = np.arange(mono.size, dtype=np.float64) / cue_rate
+            target_frames = int(round(mono.size * MUSIC_SAMPLE_RATE / cue_rate))
+            target_positions = np.arange(target_frames, dtype=np.float64) / MUSIC_SAMPLE_RATE
+            mono = np.interp(target_positions, source_positions, mono)
+        start = int(round(at_seconds * MUSIC_SAMPLE_RATE))
+        count = min(mono.size, preview_frames - start)
+        if count <= 0:
+            return
+        runtime_gain = 0.78 * cue_gain
+        left_gain = runtime_gain * (1.0 - max(0.0, pan))
+        right_gain = runtime_gain * (1.0 + min(0.0, pan))
+        mix[0, start : start + count] += mono[:count] * left_gain
+        mix[1, start : start + count] += mono[:count] * right_gain
+
+    add_runtime_cue("titleforge", 0.28, 0.28)
+    add_runtime_cue("titlereveal", 0.72, 0.22)
+    add_runtime_cue("titlefocus", 3.40, 0.20)
+    add_runtime_cue("titlefocus", 4.05, 0.20)
+    add_runtime_cue("titleopen", 5.10, 0.26)
+    add_runtime_cue("titleclose", 6.35, 0.25)
+    add_runtime_cue("titleconfirm", 7.25, 0.30)
+    add_runtime_cue("ambtavern", 9.20, 0.075, -0.10)
+    peak = float(np.max(np.abs(mix)))
+    if peak > 0.80:
+        raise ValueError(f"title runtime preview peak {db(peak):.2f} dBFS exceeds the representative mix budget")
+    path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-title-runtime-preview.wav"
+    write_pcm16(path, mix, MUSIC_SAMPLE_RATE)
+    return path
+
+
+def build_world_map_runtime_preview() -> Path:
+    """Render twenty seconds of the dedicated World Map score with restrained UI and ambience."""
+    preview_seconds = 20.0
+    preview_frames = int(preview_seconds * MUSIC_SAMPLE_RATE)
+    music, sample_rate = read_pcm16(MUSIC_DIR / "ashen_atlas_overview_loop.wav")
+    if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
+        raise ValueError("world-map runtime preview requires the 32 kHz stereo overview master")
+    mix = loop_to_frames(music, preview_frames) * (0.18 * 0.65)
+
+    def add_runtime_cue(cue: str, at_seconds: float, cue_gain: float, pan: float = 0.0) -> None:
+        mono, cue_rate = read_pcm16(SFX_DIR / f"{cue}.wav")
+        if mono.ndim != 1:
+            raise ValueError(f"{cue}: world-map runtime preview expects mono SFX")
+        if cue_rate != MUSIC_SAMPLE_RATE:
+            source_positions = np.arange(mono.size, dtype=np.float64) / cue_rate
+            target_frames = int(round(mono.size * MUSIC_SAMPLE_RATE / cue_rate))
+            target_positions = np.arange(target_frames, dtype=np.float64) / MUSIC_SAMPLE_RATE
+            mono = np.interp(target_positions, source_positions, mono)
+        start = int(round(at_seconds * MUSIC_SAMPLE_RATE))
+        count = min(mono.size, preview_frames - start)
+        if count <= 0:
+            return
+        runtime_gain = 0.78 * cue_gain
+        left_gain = runtime_gain * (1.0 - max(0.0, pan))
+        right_gain = runtime_gain * (1.0 + min(0.0, pan))
+        mix[0, start : start + count] += mono[:count] * left_gain
+        mix[1, start : start + count] += mono[:count] * right_gain
+
+    add_runtime_cue("uitab", 0.70, 0.42)
+    add_runtime_cue("wayfind", 5.20, 0.48, 0.18)
+    add_runtime_cue("ambwind", 10.80, 0.085, -0.36)
+    add_runtime_cue("uitab", 18.20, 0.36)
+    peak = float(np.max(np.abs(mix)))
+    if peak > 0.80:
+        raise ValueError(f"world-map runtime preview peak {db(peak):.2f} dBFS exceeds the representative mix budget")
+    path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-world-map-runtime-preview.wav"
+    write_pcm16(path, mix, MUSIC_SAMPLE_RATE)
+    return path
+
+
+def build_combat_runtime_preview() -> Path:
+    """Render representative physical, magical, critical, and ambience layers at default gains."""
+    preview_seconds = 20.0
+    preview_frames = int(preview_seconds * MUSIC_SAMPLE_RATE)
+    music, sample_rate = read_pcm16(MUSIC_DIR / "combat_battle_pulse_loop.wav")
+    if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
+        raise ValueError("combat runtime preview requires the 32 kHz stereo generic combat master")
+    mix = loop_to_frames(music, preview_frames) * (0.22 * 0.65)
+
+    def duck_music(at_seconds: float, depth: float, duration: float) -> None:
+        start = max(0, int(round((at_seconds - 0.05) * MUSIC_SAMPLE_RATE)))
+        end = min(preview_frames, int(round((at_seconds + duration) * MUSIC_SAMPLE_RATE)))
+        if end <= start:
+            return
+        local = np.arange(end - start, dtype=np.float64) / MUSIC_SAMPLE_RATE
+        attack = np.clip(local / 0.05, 0.0, 1.0)
+        release_start = max(0.08, duration * 0.36)
+        release = np.clip((local - release_start) / max(0.08, duration - release_start), 0.0, 1.0)
+        envelope_gain = 1.0 - depth * attack * (1.0 - release)
+        mix[:, start:end] *= envelope_gain[np.newaxis, :]
+
+    def add_runtime_cue(cue: str, at_seconds: float, cue_gain: float, pan: float = 0.0) -> None:
+        mono, cue_rate = read_pcm16(SFX_DIR / f"{cue}.wav")
+        if mono.ndim != 1:
+            raise ValueError(f"{cue}: combat runtime preview expects mono SFX")
+        if cue_rate != MUSIC_SAMPLE_RATE:
+            source_positions = np.arange(mono.size, dtype=np.float64) / cue_rate
+            target_frames = int(round(mono.size * MUSIC_SAMPLE_RATE / cue_rate))
+            target_positions = np.arange(target_frames, dtype=np.float64) / MUSIC_SAMPLE_RATE
+            mono = np.interp(target_positions, source_positions, mono)
+        start = int(round(at_seconds * MUSIC_SAMPLE_RATE))
+        count = min(mono.size, preview_frames - start)
+        if count <= 0:
+            return
+        runtime_gain = 0.78 * cue_gain
+        left_gain = runtime_gain * (1.0 - max(0.0, pan))
+        right_gain = runtime_gain * (1.0 + min(0.0, pan))
+        mix[0, start : start + count] += mono[:count] * left_gain
+        mix[1, start : start + count] += mono[:count] * right_gain
+
+    add_runtime_cue("combatturn", 0.85, 0.44)
+    add_runtime_cue("combatstep", 2.00, 0.52, -0.48)
+    add_runtime_cue("arrowrelease", 3.10, 0.58, -0.48)
+    add_runtime_cue("arrowcontact", 3.25, 0.66, 0.46)
+    add_runtime_cue("impactleather", 3.27, 0.62, 0.52)
+    add_runtime_cue("thrust", 5.20, 0.58, -0.32)
+    add_runtime_cue("thrustcontact", 5.31, 0.68, 0.24)
+    add_runtime_cue("impactmail", 5.33, 0.62, 0.28)
+    add_runtime_cue("spell", 7.35, 0.54, -0.42)
+    add_runtime_cue("fire", 7.58, 0.76, 0.38)
+    duck_music(7.58, 0.28, 0.48)
+    add_runtime_cue("combatguard", 9.65, 0.66, 0.30)
+    add_runtime_cue("swingheavy", 11.55, 0.58, -0.55)
+    add_runtime_cue("bladecontact", 11.72, 0.72, 0.54)
+    add_runtime_cue("impactplate", 11.73, 0.74, 0.58)
+    add_runtime_cue("combatcrit", 11.75, 0.78, 0.58)
+    add_runtime_cue("impactlow", 11.76, 0.26, 0.24)
+    duck_music(11.72, 0.48, 0.70)
+    add_runtime_cue("combatambsteel", 15.20, 0.085, -0.36)
+
+    peak = float(np.max(np.abs(mix)))
+    if peak > 0.80:
+        raise ValueError(f"combat runtime preview peak {db(peak):.2f} dBFS exceeds the representative mix budget")
+    path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-combat-runtime-preview.wav"
+    write_pcm16(path, mix, MUSIC_SAMPLE_RATE)
+    return path
+
+
 def write_manifests(
     metrics: Sequence[AssetMetrics],
     preview_path: Path,
     title_preview_path: Path,
+    title_runtime_preview_path: Path,
+    world_map_runtime_preview_path: Path,
+    combat_runtime_preview_path: Path,
 ) -> None:
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     tsv_path = DOCS_DIR / "ORIGINAL_AUDIO_ASSET_MANIFEST.tsv"
@@ -2006,6 +2368,16 @@ def write_manifests(
         "sfx_sample_rate": SFX_SAMPLE_RATE,
         "preview": str(preview_path.relative_to(STAGE_ROOT)).replace("\\", "/"),
         "title_preview": str(title_preview_path.relative_to(STAGE_ROOT)).replace("\\", "/"),
+        "title_runtime_preview": str(title_runtime_preview_path.relative_to(STAGE_ROOT)).replace("\\", "/"),
+        "world_map_runtime_preview": str(world_map_runtime_preview_path.relative_to(STAGE_ROOT)).replace("\\", "/"),
+        "combat_runtime_preview": str(combat_runtime_preview_path.relative_to(STAGE_ROOT)).replace("\\", "/"),
+        "preview_sha256": {
+            "preview": sha256(preview_path),
+            "title_preview": sha256(title_preview_path),
+            "title_runtime_preview": sha256(title_runtime_preview_path),
+            "world_map_runtime_preview": sha256(world_map_runtime_preview_path),
+            "combat_runtime_preview": sha256(combat_runtime_preview_path),
+        },
         "assets": [asdict(item) for item in metrics],
     }
     (DOCS_DIR / "ORIGINAL_AUDIO_VALIDATION.json").write_text(
@@ -2107,6 +2479,43 @@ def validate_outputs() -> list[str]:
             errors.append(f"{report_path}: stale SFX count")
         if report_cues != expected_report_cues:
             errors.append(f"{report_path}: asset cue inventory is stale")
+        preview_hashes = report.get("preview_sha256", {})
+        preview_contracts = {
+            "preview": (len(TRACKS) * 5.5 + max(0, len(TRACKS) - 1) * 0.24, 0.98),
+            "title_preview": (60.0, 0.98),
+            "title_runtime_preview": (20.0, 0.80),
+            "world_map_runtime_preview": (20.0, 0.80),
+            "combat_runtime_preview": (20.0, 0.80),
+        }
+        for preview_key, (expected_duration, maximum_peak) in preview_contracts.items():
+            relative = report.get(preview_key, "")
+            if not relative:
+                errors.append(f"{report_path}: missing {preview_key} path")
+                continue
+            preview_file = STAGE_ROOT / relative
+            if not preview_file.is_file():
+                errors.append(f"{report_path}: missing preview file {relative}")
+                continue
+            expected_digest = preview_hashes.get(preview_key, "")
+            if not expected_digest or expected_digest != sha256(preview_file):
+                errors.append(f"{report_path}: stale digest for {relative}")
+            try:
+                preview_audio, preview_rate = read_pcm16(preview_file)
+                preview_channels = 1 if preview_audio.ndim == 1 else preview_audio.shape[0]
+                preview_duration = preview_audio.shape[-1] / preview_rate
+                preview_peak = float(np.max(np.abs(preview_audio)))
+                if preview_rate != MUSIC_SAMPLE_RATE or preview_channels != 2:
+                    errors.append(f"{preview_file}: preview must be 32 kHz stereo")
+                if expected_duration is not None and abs(preview_duration - expected_duration) > 0.01:
+                    errors.append(
+                        f"{preview_file}: duration {preview_duration:.3f}s, expected {expected_duration:.3f}s"
+                    )
+                if not np.all(np.isfinite(preview_audio)) or preview_peak > maximum_peak:
+                    errors.append(
+                        f"{preview_file}: preview is non-finite or exceeds peak budget {maximum_peak:.2f}"
+                    )
+            except Exception as exc:
+                errors.append(f"{preview_file}: unreadable preview ({exc})")
         for item in report_assets:
             output = item.get("output", "")
             if not output:
@@ -2141,14 +2550,27 @@ def build() -> None:
 
     preview_path = build_preview(TRACKS)
     title_preview_path = build_title_preview()
-    write_manifests(metrics, preview_path, title_preview_path)
+    title_runtime_preview_path = build_title_runtime_preview()
+    world_map_runtime_preview_path = build_world_map_runtime_preview()
+    combat_runtime_preview_path = build_combat_runtime_preview()
+    write_manifests(
+        metrics,
+        preview_path,
+        title_preview_path,
+        title_runtime_preview_path,
+        world_map_runtime_preview_path,
+        combat_runtime_preview_path,
+    )
     errors = validate_outputs()
     if errors:
         raise SystemExit("Audio validation failed:\n- " + "\n- ".join(errors))
     print(
         f"Built {len(TRACKS)} music loops and {len(SFX)} SFX; "
         f"previews: {preview_path.relative_to(STAGE_ROOT)}, "
-        f"{title_preview_path.relative_to(STAGE_ROOT)}"
+        f"{title_preview_path.relative_to(STAGE_ROOT)}, "
+        f"{title_runtime_preview_path.relative_to(STAGE_ROOT)}, "
+        f"{world_map_runtime_preview_path.relative_to(STAGE_ROOT)}, "
+        f"{combat_runtime_preview_path.relative_to(STAGE_ROOT)}"
     )
 
 

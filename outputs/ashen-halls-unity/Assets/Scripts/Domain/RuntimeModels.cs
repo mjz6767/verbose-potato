@@ -248,6 +248,18 @@ namespace AshenHalls
         [NonSerialized] private Dictionary<string, MapObject> objectsById;
         [NonSerialized] private List<MapObject> objectLookupSource;
         [NonSerialized] private int objectLookupSourceCount = -1;
+        [NonSerialized] private int terrainPresentationRevision;
+
+        public int TerrainPresentationRevision => terrainPresentationRevision;
+
+        public void InvalidateTerrainPresentation()
+        {
+            unchecked
+            {
+                terrainPresentationRevision++;
+                if (terrainPresentationRevision == 0) terrainPresentationRevision = 1;
+            }
+        }
 
         public MapObject FindObjectAt(int x, int y)
         {
@@ -631,6 +643,21 @@ namespace AshenHalls
         public bool Focused;
         public float Start;
         public float ImpactAt;
+        public float Duration;
+    }
+
+    public sealed class PowerTravelVfx
+    {
+        public int SourceX;
+        public int SourceY;
+        public int TargetX;
+        public int TargetY;
+        public string Color;
+        public string PowerKey;
+        public int Intensity;
+        public int SequenceIndex;
+        public int StableSeed;
+        public float Start;
         public float Duration;
     }
 }

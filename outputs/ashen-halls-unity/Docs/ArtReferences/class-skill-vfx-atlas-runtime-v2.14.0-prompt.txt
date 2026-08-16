@@ -1,0 +1,29 @@
+Built-in ImageGen generation brief
+Generated: 2026-08-15
+Use case: stylized-concept
+Runtime asset: class-skill-vfx-atlas-runtime-v2.14.0.png
+Source asset: source-class-skill-vfx-atlas-v2.14.0-chromakey.png
+Post-process: local remove_chroma_key.py using #00ff00, soft matte, thresholds 12/220, and despill.
+Native output: 1254x1254 RGBA, consumed as a strict row-major 4x4 UV atlas.
+
+Create a strict 4 columns by 4 rows sprite atlas containing exactly sixteen isolated, epic class-skill visual effects. Use Ashen Ritual pixel-fantasy: painterly high-resolution pixel effects with hard readable silhouettes, charcoal negative space, crisp luminous cores, and restrained simulated bloom, legible when reduced to 64-128 pixels. One centered effect per cell, generous padding, no overlap, no text, no frames, no watermark, no cast shadows, and a perfectly flat #00ff00 removable background.
+
+Cell order, left-to-right then top-to-bottom:
+0 Charge - diagonal gold-and-steel rushing trail with boot sparks.
+1 Shield Bash - round shield collision, white-gold core, teal shock rim.
+2 Rally - spectral banner/ward inside a gold-and-teal protective ring.
+3 Whirlwind - circular steel blade cyclone with orange speed arcs.
+4 Execute - descending crimson-and-white finishing slash.
+5 Sunder - shattered shield/rune plate bursting in gold and steel.
+6 Stealth - dissolving charcoal hood-shaped negative space with teal wisps.
+7 Ambush - crossed violet and scarlet cuts emerging from shadow.
+8 Smoke Bomb - compact silver-charcoal smoke blossom with teal rim.
+9 Throw Knife - spinning silver dagger with narrow teal trail.
+10 Eviscerate/Hamstring - three controlled blood-red and silver rake slashes.
+11 Shadowstep - two linked black-violet tears with a curved trail.
+12 Rift Pounce - violet claw silhouette tearing through a compact black rift.
+13 Abyssal Whirl - circular violet-black demonic claw cyclone.
+14 Soul Rend - inward cyan-violet soul tethers converging on a dark core.
+15 Dread Roar - horned black negative space with expanding violet crescents.
+
+Palette: Warrior gold/steel/orange/teal; Rogue charcoal/teal/violet/scarlet; Demon black-violet/magenta/cyan. Avoid #00ff00 inside effects, blended scenes, extra subjects, cropped effects, muddy black blobs, or elements crossing cell boundaries.

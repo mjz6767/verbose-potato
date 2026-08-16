@@ -1,0 +1,13 @@
+Use case: stylized-concept
+Asset type: production game UI backplate for a dark Norse fantasy title-screen menu
+Primary request: create one premium vertical parchment scroll frame suitable for a responsive 9-sliced game UI menu.
+Scene/backdrop: perfectly flat solid #00ff00 chroma-key background for local background removal.
+Subject: a single front-facing unfurled parchment scroll, centered, symmetrical, with a strong handcrafted silhouette. The parchment has gently irregular cut and curled side edges, pronounced rolled top and bottom hems, compact carved dark-oak dowel tips, restrained aged-brass collars, tiny iron corner bindings, and subtle Nordic knotwork geometry confined to the outer frame. The interior writing area is broad, calm, mostly uniform warm vellum with only very subtle fiber and age variation.
+Style/medium: highly polished hand-painted fantasy RPG interface art, grounded material realism, matching a dark timber-and-iron medieval tavern; premium production asset rather than concept art.
+Composition/framing: square canvas; scroll fills about 78% of the width and 90% of the height; generous uniform green padding around every outer curl and hardware tip. Strictly front-on orthographic view. Keep all important decoration inside the outer 16% of the scroll so the center and mid-edge bands can stretch cleanly in a 9-slice.
+Lighting/mood: warm hearth-lit highlights from the left, very subtle cool storm reflection from the right, controlled depth, no cast shadow.
+Color palette: deep honey and tobacco parchment, burnt umber edges, near-black aged iron, dark walnut, restrained antique brass; avoid pale yellow or bright cream.
+Materials/textures: convincing vellum fibers, slight edge scorching, embossed leather/metal details, shallow relief, crisp clean silhouette.
+Constraints: no text, no letters, no numbers, no words, no runes, no glyphs, no icons, no buttons, no characters, no logo, no watermark. The central 68% must remain quiet and readable. Background must be exactly one uniform #00ff00 with no gradient, texture, shadow, reflection, floor, or lighting variation. Do not use #00ff00 anywhere in the scroll. Crisp separated edges for chroma removal. No cast shadow or contact shadow.
+
+Generated with the built-in image generation tool. The returned source already contained a clean alpha channel, so no chroma-key removal was necessary. The runtime derivative removes one detached edge speck and adds a transparent sampling gutter.

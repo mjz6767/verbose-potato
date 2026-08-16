@@ -706,6 +706,78 @@ namespace AshenHalls
             return DrawTextureRegionTint(epicSpellEffectsAtlas, rect, EpicSpellEffectsAtlasCell(index), tint);
         }
 
+        private bool IsMageWarlockSpellVfxAtlas()
+        {
+            return mageWarlockSpellVfxAtlas != null
+                && Mathf.Abs(mageWarlockSpellVfxAtlas.width - mageWarlockSpellVfxAtlas.height) < 8
+                && mageWarlockSpellVfxAtlas.width >= 1200;
+        }
+
+        private Rect MageWarlockSpellVfxAtlasCell(int index)
+        {
+            return AtlasCell(mageWarlockSpellVfxAtlas, index, 4, 4);
+        }
+
+        private bool TryDrawMageWarlockSpellVfxAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsMageWarlockSpellVfxAtlas() || index < 0 || index >= 16) return false;
+            return DrawTextureRegionTint(mageWarlockSpellVfxAtlas, rect, MageWarlockSpellVfxAtlasCell(index), tint);
+        }
+
+        private bool IsSupportHexSpellVfxAtlas()
+        {
+            return supportHexSpellVfxAtlas != null
+                && Mathf.Abs(supportHexSpellVfxAtlas.width - supportHexSpellVfxAtlas.height) < 8
+                && supportHexSpellVfxAtlas.width >= 1200;
+        }
+
+        private Rect SupportHexSpellVfxAtlasCell(int index)
+        {
+            return AtlasCell(supportHexSpellVfxAtlas, index, 4, 4);
+        }
+
+        private bool TryDrawSupportHexSpellVfxAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsSupportHexSpellVfxAtlas() || index < 0 || index >= 16) return false;
+            return DrawTextureRegionTint(supportHexSpellVfxAtlas, rect, SupportHexSpellVfxAtlasCell(index), tint);
+        }
+
+        private bool IsClassSkillVfxAtlas()
+        {
+            return classSkillVfxAtlas != null
+                && Mathf.Abs(classSkillVfxAtlas.width - classSkillVfxAtlas.height) < 8
+                && classSkillVfxAtlas.width >= 1200;
+        }
+
+        private Rect ClassSkillVfxAtlasCell(int index)
+        {
+            return AtlasCell(classSkillVfxAtlas, index, 4, 4);
+        }
+
+        private bool TryDrawClassSkillVfxAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsClassSkillVfxAtlas() || index < 0 || index >= 16) return false;
+            return DrawTextureRegionTint(classSkillVfxAtlas, rect, ClassSkillVfxAtlasCell(index), tint);
+        }
+
+        private bool IsCombatPowerTravelVfxAtlas()
+        {
+            return combatPowerTravelVfxAtlas != null
+                && combatPowerTravelVfxAtlas.width == 1280
+                && combatPowerTravelVfxAtlas.height == 1280;
+        }
+
+        private Rect CombatPowerTravelVfxAtlasCell(int index)
+        {
+            return AtlasCell(combatPowerTravelVfxAtlas, index, 4, 4);
+        }
+
+        private bool TryDrawCombatPowerTravelVfxAtlasIcon(Rect rect, int index, Color tint)
+        {
+            if (!IsCombatPowerTravelVfxAtlas() || index < 0 || index >= 16) return false;
+            return DrawTextureRegionTint(combatPowerTravelVfxAtlas, rect, CombatPowerTravelVfxAtlasCell(index), tint);
+        }
+
         private bool IsSpellAnimationAtlas()
         {
             return spellAnimationAtlas != null && Mathf.Abs(spellAnimationAtlas.width - spellAnimationAtlas.height) < 8 && spellAnimationAtlas.width >= 768;
@@ -1996,15 +2068,28 @@ namespace AshenHalls
 
         private void ShowLootPanel(InventoryItem item, int goldFound, int suppliesFound, int elixirsFound, string equipNote, string title = "Cache opened")
         {
-            if (item == null) return;
+            goldFound = Mathf.Max(0, goldFound);
+            suppliesFound = Mathf.Max(0, suppliesFound);
+            elixirsFound = Mathf.Max(0, elixirsFound);
+            if (item == null && goldFound == 0 && suppliesFound == 0 && elixirsFound == 0) return;
+            if (item != null && IsLootPopupOpen() && lootPanelItem == null)
+            {
+                goldFound += lootPanelGold;
+                suppliesFound += lootPanelSupplies;
+                elixirsFound += lootPanelElixirs;
+            }
             showArmory = false;
             showDialogue = false;
             showSpellbook = false;
             showAbilityPanel = false;
             lootPanelTitle = string.IsNullOrEmpty(title) ? "Loot recovered" : title;
-            lootPanelTraitLine = ItemTraitLine(item);
-            lootPanelEquipNote = string.IsNullOrWhiteSpace(equipNote) ? "" : equipNote;
-            lootPanelBody = $"{item.DisplayName}\n{lootPanelTraitLine}\n{lootPanelEquipNote}";
+            lootPanelTraitLine = item == null ? "No gear dropped this time." : ItemTraitLine(item);
+            lootPanelEquipNote = string.IsNullOrWhiteSpace(equipNote)
+                ? item == null ? "These rewards have already been added to the company stores." : ""
+                : equipNote;
+            lootPanelBody = item == null
+                ? $"Victory spoils\n{lootPanelTraitLine}\n{lootPanelEquipNote}"
+                : $"{item.DisplayName}\n{lootPanelTraitLine}\n{lootPanelEquipNote}";
             lootPanelItem = item;
             lootPanelGold = goldFound;
             lootPanelSupplies = suppliesFound;
@@ -2017,6 +2102,54 @@ namespace AshenHalls
             MarkUiDirty();
             SyncLootPopupScreen();
             QueueSfx("itemtake", 0.06f, 0.38f);
+        }
+
+        private void AddLootPanelResources(int goldFound, int suppliesFound, int elixirsFound)
+        {
+            goldFound = Mathf.Max(0, goldFound);
+            suppliesFound = Mathf.Max(0, suppliesFound);
+            elixirsFound = Mathf.Max(0, elixirsFound);
+            if (goldFound == 0 && suppliesFound == 0 && elixirsFound == 0) return;
+            if (!IsLootPopupOpen())
+            {
+                ShowLootPanel(
+                    null,
+                    goldFound,
+                    suppliesFound,
+                    elixirsFound,
+                    "These rewards have already been added to the company stores.",
+                    "Victory spoils");
+                return;
+            }
+
+            lootPanelGold += goldFound;
+            lootPanelSupplies += suppliesFound;
+            lootPanelElixirs += elixirsFound;
+            MarkUiDirty();
+            SyncLootPopupScreen();
+        }
+
+        private void QueueLootPanelResources(int goldFound, int suppliesFound, int elixirsFound)
+        {
+            goldFound = Mathf.Max(0, goldFound);
+            suppliesFound = Mathf.Max(0, suppliesFound);
+            elixirsFound = Mathf.Max(0, elixirsFound);
+            if (goldFound == 0 && suppliesFound == 0 && elixirsFound == 0) return;
+            if (!showDialogue)
+            {
+                AddLootPanelResources(goldFound, suppliesFound, elixirsFound);
+                return;
+            }
+
+            queuedDialogueLootGold += goldFound;
+            queuedDialogueLootSupplies += suppliesFound;
+            queuedDialogueLootElixirs += elixirsFound;
+            if (string.IsNullOrWhiteSpace(queuedDialogueLootTitle)) queuedDialogueLootTitle = "Victory spoils";
+            if (string.IsNullOrWhiteSpace(queuedDialogueLootEquipNote))
+            {
+                queuedDialogueLootEquipNote = "These rewards have already been added to the company stores.";
+            }
+            MarkUiDirty();
         }
 
         private void ShowDialogue(string title, string speaker, string body, ObjectType focus, Color accent)
@@ -2248,7 +2381,13 @@ namespace AshenHalls
 
         private void OpenQueuedDialogueLoot()
         {
-            if (queuedDialogueLootItem == null) return;
+            if (queuedDialogueLootItem == null
+                && queuedDialogueLootGold <= 0
+                && queuedDialogueLootSupplies <= 0
+                && queuedDialogueLootElixirs <= 0)
+            {
+                return;
+            }
             InventoryItem item = queuedDialogueLootItem;
             string title = queuedDialogueLootTitle;
             string equipNote = queuedDialogueLootEquipNote;
@@ -2283,7 +2422,11 @@ namespace AshenHalls
             List<string> parts = new List<string>();
             if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
             {
-                int range = WeaponRange(item, state?.Party?.FirstOrDefault() ?? new PartyMember { Role = "" });
+                PartyMember rangeMember = EquippedMember(item)
+                    ?? BestInventoryFit(item, out _, out _)
+                    ?? state?.Party?.FirstOrDefault()
+                    ?? new PartyMember { Role = "" };
+                int range = EffectiveWeaponRange(item, rangeMember);
                 parts.Add(range > 1 ? $"range {range}" : "melee");
                 if (item.DamageMin > 0 && item.DamageMax > 0) parts.Add($"{item.DamageMin}-{item.DamageMax} dmg");
                 if (item.AttackSpeed > 0) parts.Add($"spd {item.AttackSpeed}");
@@ -2295,17 +2438,25 @@ namespace AshenHalls
                 if (GearLifeDrainAmount(item.DisplayName, Mathf.Max(1, item.DamageMax)) > 0) parts.Add("life drain");
                 if ((item.DisplayName ?? "").ToLowerInvariant().Contains("unfathomable darkness")) parts.Add("mild vorpal");
             }
-            else
+            else if (InventoryEquipmentRules.IsArmorSlot(item.Slot, item.Form))
             {
                 parts.Add($"armor {ArmorDefenseBonus(item)}");
                 if (ArmorAgilityModifier(item.DisplayName) > 0) parts.Add("light");
                 if (ArmorAgilityModifier(item.DisplayName) < 0) parts.Add("heavy");
                 if ((item.DisplayName ?? "").ToLowerInvariant().Contains("ward")) parts.Add("warding");
             }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(item.Material)) parts.Add(item.Material.Trim());
+                if (!string.IsNullOrWhiteSpace(item.Form)) parts.Add(item.Form.Trim());
+                if (!string.IsNullOrWhiteSpace(item.Trait)) parts.Add(item.Trait.Trim());
+            }
             string stats = ItemStatBonusLine(item);
             if (!string.IsNullOrEmpty(stats)) parts.Add(stats);
             if (!string.IsNullOrEmpty(item.Rarity) && item.Rarity != "starter") parts.Add(item.Rarity);
-            return parts.Count == 0 ? "Plain but serviceable." : "Traits: " + string.Join(" / ", parts);
+            return parts.Count == 0
+                ? InventoryEquipmentRules.IsEquippable(item) ? "Plain but serviceable." : "Quest item secured."
+                : (InventoryEquipmentRules.IsEquippable(item) ? "Traits: " : "Details: ") + string.Join(" / ", parts);
         }
 
         private string WeaponSummaryLine(PartyMember member)
@@ -2361,9 +2512,9 @@ namespace AshenHalls
                 PartyMember target = state.Party.OrderByDescending(p => WeaponRoleFit(item, p)).ThenBy(p => p.WeaponBonus).FirstOrDefault();
                 if (target == null) return "";
                 string type = string.IsNullOrEmpty(item.DamageType) ? "physical" : item.DamageType;
-                return $"Best fit: {target.Name}\nrange {WeaponRange(item, target)} / {type} / bonus {Signed(item.Bonus)}";
+                return $"Best fit: {target.Name}\nrange {EffectiveWeaponRange(item, target)} / {type} / bonus {Signed(item.Bonus)}";
             }
-            else
+            else if (InventoryEquipmentRules.IsArmorSlot(item.Slot, item.Form))
             {
                 PartyMember target = state.Party.OrderBy(p => ArmorRolePenalty(item, p)).ThenBy(p => p.ArmorBonus).FirstOrDefault();
                 if (target == null) return "";
@@ -2371,6 +2522,7 @@ namespace AshenHalls
                 string weight = agility > 0 ? "light" : agility < 0 ? "heavy" : "steady";
                 return $"Best fit: {target.Name}\narmor {ArmorDefenseBonus(item)} / {weight} / bonus {Signed(item.Bonus)}";
             }
+            return "Stored quest item · not equipment";
         }
 
         private string FormulaCasterSummary()

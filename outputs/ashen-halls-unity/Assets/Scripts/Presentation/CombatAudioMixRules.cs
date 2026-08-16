@@ -2,8 +2,46 @@ using System;
 
 namespace AshenHalls
 {
+    public readonly struct CombatAudioCueProfile
+    {
+        public readonly string Key;
+        public readonly float Volume;
+
+        public CombatAudioCueProfile(string key, float volume)
+        {
+            Key = key ?? "";
+            Volume = Math.Max(0f, Math.Min(1f, volume));
+        }
+    }
+
+    public readonly struct CombatAmbienceProfile
+    {
+        public readonly string Key;
+        public readonly float Volume;
+        public readonly float Pan;
+        public readonly float Pitch;
+
+        public CombatAmbienceProfile(string key, float volume, float pan, float pitch)
+        {
+            Key = key ?? "";
+            Volume = Math.Max(0f, Math.Min(1f, volume));
+            Pan = Math.Max(-0.72f, Math.Min(0.72f, pan));
+            Pitch = Math.Max(0.94f, Math.Min(1.06f, pitch));
+        }
+    }
+
     public static class CombatAudioMixRules
     {
+        public const string StepCue = "combatstep";
+        public const string GuardCue = "combatguard";
+        public const string TurnCue = "combatturn";
+        public const string CriticalCue = "combatcrit";
+        public const string SteelAmbienceCue = "combatambsteel";
+        public const string SewerAmbienceCue = "combatambsewer";
+        public const string ArcaneAmbienceCue = "combatambarcane";
+
+        public const float CombatAmbienceForegroundQuietWindow = 1.50f;
+
         public const int SfxVoiceCount = 8;
         public const int ScheduledSfxCapacity = 16;
         public const int ScheduledSfxPriorityAuxiliary = 0;
@@ -13,6 +51,64 @@ namespace AshenHalls
 
         public const float ScheduledSfxCoalesceWindow = 0.032f;
         public const float ScheduledSfxCoalescePanDistance = 0.20f;
+
+        // Exact-name semantic cues keep authored masters and procedural fallbacks interchangeable.
+        public static CombatAudioCueProfile DirectCue(string requestedKey, float fallbackVolume)
+        {
+            switch ((requestedKey ?? "").Trim().ToLowerInvariant())
+            {
+                case "move": return new CombatAudioCueProfile(StepCue, 0.52f);
+                case "guard": return new CombatAudioCueProfile(GuardCue, 0.66f);
+                case "turn": return new CombatAudioCueProfile(TurnCue, 0.44f);
+                case "crit": return new CombatAudioCueProfile(CriticalCue, 0.78f);
+                default: return new CombatAudioCueProfile(requestedKey, fallbackVolume);
+            }
+        }
+
+        public static float InitialAmbienceDelay(bool musicAudible)
+        {
+            return musicAudible ? 5.0f : 2.5f;
+        }
+
+        public static float AmbienceInterval(bool musicAudible, int sequence)
+        {
+            int step = Math.Max(0, sequence);
+            return musicAudible
+                ? 13.0f + (step % 4) * 1.65f
+                : 8.0f + (step % 4) * 1.10f;
+        }
+
+        public static CombatAmbienceProfile Ambience(string combatMusicKey, bool musicAudible, int sequence)
+        {
+            int step = Math.Max(0, sequence);
+            string route = (combatMusicKey ?? "").Trim().ToLowerInvariant();
+            string key;
+            if (IsSewerAmbienceRoute(route))
+            {
+                key = step % 3 == 1 ? SteelAmbienceCue : SewerAmbienceCue;
+            }
+            else if (IsArcaneAmbienceRoute(route))
+            {
+                key = step % 3 == 1 ? SteelAmbienceCue : ArcaneAmbienceCue;
+            }
+            else
+            {
+                key = step % 4 == 3 ? ArcaneAmbienceCue : SteelAmbienceCue;
+            }
+
+            float baseVolume = musicAudible ? 0.085f : 0.18f;
+            if (key == SteelAmbienceCue) baseVolume -= musicAudible ? 0.015f : 0.025f;
+            if (key == ArcaneAmbienceCue) baseVolume -= 0.01f;
+            float pan = step % 4 == 0 ? -0.46f : step % 4 == 1 ? 0.34f : step % 4 == 2 ? -0.12f : 0.52f;
+            float pitch = step % 4 == 0 ? 0.98f : step % 4 == 1 ? 1.02f : step % 4 == 2 ? 1f : 0.97f;
+            return new CombatAmbienceProfile(key, baseVolume, pan, pitch);
+        }
+
+        public static bool IsCombatAmbienceCue(string cueKey)
+        {
+            string key = (cueKey ?? "").Trim().ToLowerInvariant();
+            return key == SteelAmbienceCue || key == SewerAmbienceCue || key == ArcaneAmbienceCue;
+        }
 
         public static float StereoPanForColumn(int column, int boardWidth)
         {
@@ -115,6 +211,18 @@ namespace AshenHalls
             return floor + safeDepth * Smooth01((now - holdUntil) / releaseDuration);
         }
 
+        public static bool ShouldReplaceActiveMusicDuck(
+            float now,
+            float activeReleaseUntil,
+            float activeDepth,
+            float incomingDepth)
+        {
+            float safeIncomingDepth = Clamp(incomingDepth, 0f, 0.90f);
+            if (safeIncomingDepth <= 0f) return false;
+            if (activeDepth <= 0f || now >= activeReleaseUntil) return true;
+            return safeIncomingDepth > activeDepth + 0.01f;
+        }
+
         public static bool ShouldLayerEpicImpact(CombatImpactProfile profile)
         {
             return CombatImpactRules.VisualIntensity(profile) >= 3;
@@ -191,7 +299,7 @@ namespace AshenHalls
         public static float SecondaryImpactVolume(CombatImpactProfile profile, int index)
         {
             int safeIndex = Math.Max(0, Math.Min(2, index));
-            return Clamp(profile.ImpactVolume * (0.42f - safeIndex * 0.055f), 0.22f, 0.52f);
+            return Clamp(profile.ImpactVolume * (0.32f - safeIndex * 0.045f), 0.18f, 0.40f);
         }
 
         public static float SecondaryImpactPitch(float primaryPitch, int index)
@@ -204,8 +312,12 @@ namespace AshenHalls
         public static string SecondaryImpactCue(CombatImpactProfile profile, int index)
         {
             string impact = (profile.ImpactSfx ?? "").Trim().ToLowerInvariant();
-            if (impact == "meteor" && index > 0) return "impactlow";
-            return string.IsNullOrEmpty(profile.ImpactSfx) ? profile.AftershockSfx : profile.ImpactSfx;
+            string aftershock = (profile.AftershockSfx ?? "").Trim().ToLowerInvariant();
+            if (impact == "tempest") return index % 2 == 0 ? "resonance" : "impactlow";
+            if (impact == "meteor") return "impactlow";
+            if (impact == "shock") return "resonance";
+            if (!string.IsNullOrEmpty(aftershock) && aftershock != impact) return aftershock;
+            return string.IsNullOrEmpty(impact) ? "impactlow" : impact;
         }
 
         private static float Clamp(float value, float min, float max)
@@ -217,6 +329,21 @@ namespace AshenHalls
         {
             float clamped = Clamp(value, 0f, 1f);
             return clamped * clamped * (3f - 2f * clamped);
+        }
+
+        private static bool IsSewerAmbienceRoute(string route)
+        {
+            return route == MusicDirectorRules.CombatSewer
+                || route == MusicDirectorRules.CombatRatfolk;
+        }
+
+        private static bool IsArcaneAmbienceRoute(string route)
+        {
+            return route == MusicDirectorRules.CombatArcaneDuel
+                || route == MusicDirectorRules.CombatDrow
+                || route == MusicDirectorRules.CombatDemon
+                || route == MusicDirectorRules.CombatDemonLord
+                || route == MusicDirectorRules.CombatUndead;
         }
     }
 }

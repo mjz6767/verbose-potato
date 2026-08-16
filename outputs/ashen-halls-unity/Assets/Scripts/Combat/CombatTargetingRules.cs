@@ -13,6 +13,33 @@ namespace AshenHalls
 
     public static class CombatTargetingRules
     {
+        public static bool ShouldDrawPassiveTargetState(CombatTargetHighlightState state)
+        {
+            return state == CombatTargetHighlightState.Legal;
+        }
+
+        public static string BlockedBadge(AttackForecastBlockReason reason)
+        {
+            switch (reason)
+            {
+                case AttackForecastBlockReason.OutOfRange: return "RANGE";
+                case AttackForecastBlockReason.LineOfSight: return "LOS";
+                case AttackForecastBlockReason.FriendlyTarget: return "ALLY";
+                case AttackForecastBlockReason.DefeatedTarget: return "DOWN";
+                default: return "REQ";
+            }
+        }
+
+        public static string BlockedBadge(string reason)
+        {
+            string value = (reason ?? "").Trim().ToLowerInvariant();
+            if (value.Contains("line of sight") || value.Contains("covered") || value.Contains("blocked")) return "LOS";
+            if (value.Contains("range") || value.Contains("reach") || value.Contains("far")) return "RANGE";
+            if (value.Contains("mana") || value.Contains("mp")) return "MANA";
+            if (value.Contains("target")) return "TARGET";
+            return "REQ";
+        }
+
         public static bool ShouldDrawTargetHighlights(
             ActionMode selectedAction,
             bool hasResolvedFormula,
@@ -99,6 +126,47 @@ namespace AshenHalls
             if (selectedAction == ActionMode.Cast) return "Cancel Spell";
             if (selectedAction == ActionMode.Ability) return "Cancel Skill";
             return "Cancel Target";
+        }
+    }
+
+    public static class CombatTurnFlowRules
+    {
+        public static ActionMode DefaultAction(
+            bool incapacitated,
+            bool actionAvailable,
+            bool hasLegalAttack,
+            bool hasReachableMove,
+            bool hasActionablePower,
+            ActionMode powerMode,
+            bool canGuard)
+        {
+            if (incapacitated) return ActionMode.Wait;
+            if (actionAvailable && hasLegalAttack) return ActionMode.Attack;
+            if (hasReachableMove) return ActionMode.Move;
+            if (actionAvailable
+                && hasActionablePower
+                && (powerMode == ActionMode.Cast || powerMode == ActionMode.Ability))
+            {
+                return powerMode;
+            }
+            if (actionAvailable && canGuard) return ActionMode.Guard;
+            return ActionMode.Wait;
+        }
+
+        public static bool ShouldResumePostActionMovement(
+            bool partyControlled,
+            bool alive,
+            bool actionAvailable,
+            int movePoints,
+            bool combatOngoing,
+            bool hasReachableMove = true)
+        {
+            return partyControlled
+                && alive
+                && !actionAvailable
+                && movePoints > 0
+                && combatOngoing
+                && hasReachableMove;
         }
     }
 }

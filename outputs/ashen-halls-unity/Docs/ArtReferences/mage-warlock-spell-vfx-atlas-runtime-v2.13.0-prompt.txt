@@ -1,0 +1,18 @@
+Mode: built-in ImageGen, production runtime VFX atlas
+
+Create a square four-column by four-row dark-fantasy spell-effects atlas on a
+perfectly uniform #00FF00 chroma-key background. Keep one centered, isolated
+effect per cell with generous gutters, crisp silhouettes, luminous cores,
+controlled bloom, no text, frames, characters, scenery, logos, or watermark.
+
+Rows, left to right:
+1. Fire casting sigil; canonical fireball; fire impact; meteor storm.
+2. Ice shard; ice eruption; arcane frost sigil; lightning strike.
+3. Void sigil; spectral skull bolt; void portal; shadow impact.
+4. Eldritch grasp; infernal summoning circle; demonic wings; pact ritual.
+
+Generated with the built-in ImageGen tool. Local post-processing removed the
+uniform chroma-key background, despilled green edge color, preserved soft spell
+glow alpha, and preserved the generated 1254x1254 square as a transparent 4x4
+UV atlas.
+Generated source: source-mage-warlock-spell-vfx-atlas-v2.13.0-chromakey.png

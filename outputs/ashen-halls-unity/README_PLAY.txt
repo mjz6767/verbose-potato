@@ -1,6 +1,24 @@
-Ash & Brimstone v2.11.0 - Glass and Ash
+Ash & Brimstone v2.15.0 - Maps, Magic, and Music
 
-Current candidate/package version: v2.11.0. Save schema: v25.
+Current source candidate: v2.15.0. Save schema: v25.
+
+The integrated presentation update remasters the title overture and responsive menu, gives the wide World Map its own `Ashen Atlas` score, and makes music transitions fuller and steadier. Crossfades use equal-power gains, muted music keeps its place, and calm exploration routes wait for a stable change instead of rapidly restarting or switching themes.
+
+The exploration HUD now has one persistent command deck for context, map view, Journal, Party, and Menu. Combat keeps the objective, acting or idle state, target context, blocked reasons, and Menu access visible. Loot review distinguishes gear from resource-only spoils, adds an Upgrades filter, and supports explicit equipment swaps that keep both adventurers fully equipped.
+
+Mage/warlock, support/hex, class-skill, and travel art now stage authored anticipation, travel, impact, and aftermath more consistently. Fireball uses one canonical comet; multi-strike powers retain deterministic timing; all 56 formulas and all 25 skills have authored SFX profiles; and Reduced Motion suppresses the travel layer. The complete resource bank contains 54 original music masters and 161 authored SFX.
+
+Six accepted runtime-art pins from the v2.12.1, v2.13, v2.14, and v2.15 presentation slices bring the exact manifest to 54 pins and the expected packaged art inventory to 89 PNGs. Their historical provenance labels remain unchanged.
+
+The Red Gate v2.12.0 campaign remains the production story baseline inside v2.15. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
+
+Chapter V crosses three authored sites in order. Break the Red Gate Vanguard at the inner seal, carry its tally north to Gloam Deep Crypt for the Ossuary Road Seal, then take that seal south to Salt Cistern Gate and defeat the named Crownroad Marshal. Three matching patrol bands occupy the road. The later encounters remain locked until their required tally or seal has been recovered.
+
+Marshal victory grants exactly one +6 crownward emberglass warblade and two supplies. Inspect Salt Cistern Gate again to chart the sealed Meteor Crown threshold and complete the chapter. Recall, retry, save/load repair, and depth-five re-entry preserve progress without duplicating rewards or arrival progression. Production exposes no generic depth-six stair or final-boss trigger.
+
+v2.15 candidate validation status: RuleSmoke, full RuntimeBoot, focused title/music/combat/world-map/loot/art checks, the clean Windows build/package, clean-extracted packaged boot, final-binary visual and audio review, physical-controller review, and a complete human Chapter I-V playthrough remain required. This document records no completed v2.15 gate or package evidence.
+
+Glass and Ash v2.11.0 release history:
 
 Glass and Ash v2.11.0 continues normal production play beyond the frontier surveyed at the end of Names Under Stone. Return to Scout Yara in Midgaard, review and explicitly accept her expedition briefing, then follow the Old Road, Bone Road, and exact Red Gate passage into depth four. The road is defended by the Glassward Drow Levy, Ash Fen Bone Procession, and Red Gate Cinder Pact patrol bands, while the authored story advances through the Glassward Ambush, Glass Index Keepers, and named Ashen Pact Warden.
 

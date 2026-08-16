@@ -39,7 +39,7 @@ namespace AshenHalls
             return gameState != null
                 && !labSaveBlocked
                 && !batchMode
-                && gameState.Mode == GameMode.Explore
+                && (gameState.Mode == GameMode.Explore || gameState.Mode == GameMode.Victory)
                 && gameState.Combat == null;
         }
     }

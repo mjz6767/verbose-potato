@@ -52,11 +52,78 @@ namespace AshenHalls
 
     public static class CombatPowerVisualRules
     {
-        public const float FireballTravelDuration = 0.34f;
+        public const float FireballTravelDuration = 0.40f;
 
         public static CombatPowerVisualMotif MotifFor(string kind)
         {
             string key = Normalize(kind);
+            string supportSpellKey = SupportHexSpellVfxRules.NormalizeKey(kind);
+            switch (supportSpellKey)
+            {
+                case "heal":
+                case "ward":
+                case "sun":
+                case "cleanse":
+                    return CombatPowerVisualMotif.Holy;
+                case "nature":
+                case "web":
+                    return CombatPowerVisualMotif.Nature;
+                case "poison":
+                case "sleep":
+                    return CombatPowerVisualMotif.Smoke;
+                case "nightveil":
+                    return CombatPowerVisualMotif.Shadow;
+                case "gravehook":
+                case "drainlife":
+                case "mindbreak":
+                    return CombatPowerVisualMotif.Void;
+                case "ashencurse":
+                    return CombatPowerVisualMotif.Fire;
+            }
+
+            string mageWarlockSpellKey = MageWarlockSpellVfxRules.NormalizeKey(kind);
+            switch (mageWarlockSpellKey)
+            {
+                case "fireball":
+                case "meteor":
+                    return CombatPowerVisualMotif.Fire;
+                case "frost":
+                    return CombatPowerVisualMotif.Frost;
+                case "tempest":
+                    return CombatPowerVisualMotif.Shock;
+                case "riftbolt":
+                case "lessersummon":
+                case "greatersummon":
+                case "pactbrand":
+                    return CombatPowerVisualMotif.Rift;
+                case "ascendance":
+                    return CombatPowerVisualMotif.Ascendance;
+                case "doomcircle":
+                case "soulveil":
+                case "hex":
+                    return CombatPowerVisualMotif.Void;
+            }
+
+            string classSkillKey = ClassSkillVfxRules.NormalizeKey(kind);
+            switch (classSkillKey)
+            {
+                case "charge": return CombatPowerVisualMotif.Charge;
+                case "shieldbash":
+                case "rally":
+                case "sunder": return CombatPowerVisualMotif.Guard;
+                case "whirlwind":
+                case "execute":
+                case "throwknife": return CombatPowerVisualMotif.Slash;
+                case "stealth":
+                case "ambush":
+                case "eviscerate":
+                case "shadowstep": return CombatPowerVisualMotif.Shadow;
+                case "smokebomb": return CombatPowerVisualMotif.Smoke;
+                case "riftpounce": return CombatPowerVisualMotif.Rift;
+                case "abyssalwhirl": return CombatPowerVisualMotif.Slash;
+                case "soulrend": return CombatPowerVisualMotif.Void;
+                case "dreadroar": return CombatPowerVisualMotif.Ascendance;
+            }
             if (IsAbilityVisualKey(key, "riftpounce")) return CombatPowerVisualMotif.Rift;
             if (IsAbilityVisualKey(key, "abyssalwhirl")) return CombatPowerVisualMotif.Slash;
             if (IsAbilityVisualKey(key, "soulrend")) return CombatPowerVisualMotif.Void;
@@ -67,6 +134,8 @@ namespace AshenHalls
             if (key == "dawnpulse") return CombatPowerVisualMotif.Holy;
             if (key == "cinderstorm" || key == "ashencurse") return CombatPowerVisualMotif.Fire;
             if (key == "gravehook" || key == "soulveil") return CombatPowerVisualMotif.Void;
+            if (ContainsAny(key, "doomcircle", "deathburst", "lifedrain")) return CombatPowerVisualMotif.Void;
+            if (ContainsAny(key, "impsummon", "lessersummon", "pactbrand", "pactgate")) return CombatPowerVisualMotif.Rift;
             if (ContainsAny(key, "seal")) return CombatPowerVisualMotif.Holy;
             if (ContainsAny(key, "ascendance", "transform")) return CombatPowerVisualMotif.Ascendance;
             if (ContainsAny(key, "greatersummon", "castgreatersummon", "castpact", "rift", "encounter")) return CombatPowerVisualMotif.Rift;
@@ -79,7 +148,7 @@ namespace AshenHalls
             if (ContainsAny(key, "charge")) return CombatPowerVisualMotif.Charge;
             if (ContainsAny(key, "tempest", "shock", "lightning", "arc", "resonance")) return CombatPowerVisualMotif.Shock;
             if (ContainsAny(key, "fire", "ember", "meteor")) return CombatPowerVisualMotif.Fire;
-            if (ContainsAny(key, "frost", "ice")) return CombatPowerVisualMotif.Frost;
+            if (ContainsAny(key, "frost", "ice", "cold")) return CombatPowerVisualMotif.Frost;
             if (ContainsAny(key, "seal", "holy", "light", "heal", "ward", "mend")) return CombatPowerVisualMotif.Holy;
             if (ContainsAny(key, "nature", "tree", "stone", "web", "snare", "bind")) return CombatPowerVisualMotif.Nature;
             if (ContainsAny(key, "smoke", "sleep", "poison", "gas")) return CombatPowerVisualMotif.Smoke;
@@ -96,6 +165,26 @@ namespace AshenHalls
 
             switch (code)
             {
+                case "fbl": return "fireball";
+                case "mtr": return "meteor";
+                case "rcl": return "coldlance";
+                case "rbi": return "frostburst";
+                case "frb": return "frostbind";
+                case "rig": return "arcspark";
+                case "rsg": return "thunderclap";
+                case "clt": return "chainlightning";
+                case "vst": return "thunderstep";
+                case "ast": return "tempest";
+                case "rlm": return "deathburst";
+                case "inh": return "lifedrain";
+                case "dmc": return "doomcircle";
+                case "ibd": return "lessersummon";
+                case "ibf": return "lessersummon";
+                case "pbr": return "pactbrand";
+                case "ibg": return "greatersummon";
+                case "dfa": return "ascendance";
+                case "rbt": return "riftbolt";
+                case "vrs": return "riftstep";
                 case "dwp": return "dawnpulse";
                 case "cns": return "cinderstorm";
                 case "grh": return "gravehook";
@@ -107,6 +196,13 @@ namespace AshenHalls
             if (terrain == "web" || status == "web" || code == "wbk" || code == "rkw") return "websnare";
             if (damage == "mind" || status == "hex" || code == "rnh" || code == "rmb") return "voidhex";
             return fallbackKind ?? "";
+        }
+
+        public static string CastKindForFormula(FormulaDef formula, string fallbackKind)
+        {
+            // Keep the production audio profile untouched while carrying a spell-specific
+            // visual identity through the anticipation phase.
+            return ImpactKindForFormula(formula, fallbackKind);
         }
 
         public static float BeamDuration(string kind)

@@ -10,8 +10,14 @@ namespace AshenHalls
         public const string MagicUiAtlas = "magic-ui-atlas-runtime-v1.31.0.png";
         public const string SpellAnimationAtlas = "spell-animation-atlas-runtime-v1.49.0.png";
         public const string EpicSpellEffectsAtlas = "combat-spell-effects-atlas-runtime-v2.9.0.png";
+        public const string MageWarlockSpellVfxAtlas = "mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png";
+        public const string SupportHexSpellVfxAtlas = "support-hex-spell-vfx-atlas-runtime-v2.14.0.png";
+        public const string ClassSkillVfxAtlas = "class-skill-vfx-atlas-runtime-v2.14.0.png";
+        public const string CombatPowerTravelVfxAtlas = "combat-power-travel-vfx-atlas-runtime-v2.15.0.png";
         public const string TavernBackdrop = "title-backdrop-runtime-v2.4.0.png";
         public const string TavernUiAtlas = "tavern-ui-atlas-runtime-v1.5.9.png";
+        public const string TitleMenuScroll = "title-menu-scroll-runtime-v2.12.1.png";
+        public const string TitleMenuFocus = "title-menu-focus-runtime-v2.12.1.png";
         public const string MidgaardGateAtlas = "midgaard-gate-atlas-runtime-v1.93.0.png";
         public const string MidgaardWallAtlas = "midgaard-wall-atlas-runtime-v1.91.0.png";
         public const string WorldMapExplorationTileAtlas = "world-map-exploration-tile-atlas-runtime-v1.68.0.png";
@@ -61,8 +67,14 @@ namespace AshenHalls
             MagicUiAtlas,
             SpellAnimationAtlas,
             EpicSpellEffectsAtlas,
+            MageWarlockSpellVfxAtlas,
+            SupportHexSpellVfxAtlas,
+            ClassSkillVfxAtlas,
+            CombatPowerTravelVfxAtlas,
             TavernBackdrop,
             TavernUiAtlas,
+            TitleMenuScroll,
+            TitleMenuFocus,
             MidgaardGateAtlas,
             MidgaardWallAtlas,
             WorldMapExplorationTileAtlas,

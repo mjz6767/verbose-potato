@@ -58,6 +58,7 @@ namespace AshenHalls
                 case "scoutmark": return 3;
                 case "broadheadshot": return 4;
                 case "disruptingshot": return 7;
+                case "quickshot": return 0;
                 default: return -1;
             }
         }
@@ -93,7 +94,16 @@ namespace AshenHalls
                 ? formula != null && formula.Splash ? "area" : "impact"
                 : requestedKind;
             if (formula == null) return kind;
-            if (kind == "fireball" || kind == "meteor" || kind.StartsWith("ranger:", StringComparison.OrdinalIgnoreCase)) return kind;
+            if (kind.StartsWith("ranger:", StringComparison.OrdinalIgnoreCase)) return kind;
+
+            MageWarlockSpellVfxProfile spellVfxProfile = MageWarlockSpellVfxRules.ProfileFor(formula.Code);
+            if (!string.Equals(spellVfxProfile.Key, "spell", StringComparison.Ordinal))
+            {
+                int atlasCell = kind == "caster" ? spellVfxProfile.CastCell : spellVfxProfile.ImpactCell;
+                if (MageWarlockSpellVfxRules.IsAtlasCell(atlasCell)) return "spellvfx:" + atlasCell;
+            }
+
+            if (kind == "fireball" || kind == "meteor") return kind;
 
             string effect = Normalize(formula.Effect);
             string type = Normalize(formula.DamageType);

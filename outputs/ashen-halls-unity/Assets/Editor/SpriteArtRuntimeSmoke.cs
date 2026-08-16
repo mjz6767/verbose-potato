@@ -34,7 +34,7 @@ namespace AshenHalls.Editor
                 Scene scene = EditorSceneManager.OpenScene(MainScenePath, OpenSceneMode.Single);
                 Assert(scene.IsValid() && scene.isLoaded, "Main scene loads");
 
-                AshenHallsGame game = UnityEngine.Object.FindFirstObjectByType<AshenHallsGame>();
+                AshenHallsGame game = FindSceneGame(scene);
                 Assert(game != null, "AshenHallsGame exists in Main scene");
                 InvokePrivate(game, "Awake");
                 AssertV27GrandHearthAtlasesAndMappings(game);
@@ -332,6 +332,16 @@ namespace AshenHalls.Editor
                 throw new MissingFieldException(target.GetType().FullName, fieldName);
             }
             return (T)field.GetValue(target);
+        }
+
+        private static AshenHallsGame FindSceneGame(Scene scene)
+        {
+            foreach (GameObject root in scene.GetRootGameObjects())
+            {
+                AshenHallsGame game = root.GetComponentInChildren<AshenHallsGame>(true);
+                if (game != null) return game;
+            }
+            return null;
         }
 
         private static void InvokePrivate(object target, string methodName, params object[] args)

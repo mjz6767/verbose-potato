@@ -197,6 +197,32 @@ namespace AshenHalls.Editor
                 InvokePrivate(game, "LateUpdate");
 
                 AssertActiveObject("Tavern Canvas");
+                Image authoredCharter = GameObject.Find("Authored Ashen Road Charter")?.GetComponent<Image>();
+                Image authoredFocus = GameObject.Find("Focused Charter Ribbon")?.GetComponent<Image>();
+                Texture2D liveTitleMenuScrollAtlas = GetPrivateField<Texture2D>(game, "titleMenuScrollArt");
+                Texture2D liveTitleMenuFocusAtlas = GetPrivateField<Texture2D>(game, "titleMenuFocusArt");
+                Assert(authoredCharter != null && authoredCharter.type == Image.Type.Sliced && authoredCharter.fillCenter && !authoredCharter.raycastTarget, "title menu renders its nonblocking sliced Ashen Road charter");
+                Assert(authoredCharter.sprite != null && authoredCharter.sprite.border == TitleScreenPresentationRules.MenuScrollSpriteBorder, "live title charter uses the approved nine-slice border");
+                Assert(authoredCharter.sprite.rect == new Rect(0f, 0f, 1280f, 1280f) && Mathf.Approximately(authoredCharter.sprite.pixelsPerUnit, 1500f), "live title charter keeps its exact source crop and slice scale");
+                Assert(authoredFocus != null && authoredFocus.type == Image.Type.Sliced && authoredFocus.fillCenter && !authoredFocus.raycastTarget, "title focus uses its nonblocking sliced leather ribbon");
+                Assert(authoredFocus.sprite != null && authoredFocus.sprite.border == TitleScreenPresentationRules.MenuFocusSpriteBorder, "live title focus ribbon keeps its ornamental ends outside the stretchable center");
+                Assert(authoredFocus.sprite.rect == TitleScreenPresentationRules.MenuFocusSpriteRect && Mathf.Approximately(authoredFocus.sprite.pixelsPerUnit, 1200f), "live title focus ribbon keeps its exact cropped source and slice scale");
+                Assert(ReferenceEquals(authoredCharter.sprite.texture, liveTitleMenuScrollAtlas) && ReferenceEquals(authoredFocus.sprite.texture, liveTitleMenuFocusAtlas), "live title sprites retain the externally owned approved textures");
+                Assert(GameObject.Find("Aged Parchment Sheet") == null && GameObject.Find("Top Parchment Roll") == null, "authored title art suppresses the opaque procedural scroll layers");
+                TavernScreen liveTavernScreen = UnityEngine.Object.FindFirstObjectByType<TavernScreen>();
+                MethodInfo titleUpdate = typeof(TavernScreen).GetMethod("Update", BindingFlags.Instance | BindingFlags.NonPublic);
+                Assert(liveTavernScreen != null && titleUpdate != null, "live title screen exposes its deterministic focus presentation update");
+                titleUpdate.Invoke(liveTavernScreen, null);
+                Image[] liveFocusRibbons = UnityEngine.Object.FindObjectsByType<Image>(FindObjectsInactive.Exclude, FindObjectsSortMode.None)
+                    .Where(image => image != null && image.name == "Focused Charter Ribbon")
+                    .ToArray();
+                Image[] selectedFocusRibbons = liveFocusRibbons.Where(image => image.color.a >= 0.99f).ToArray();
+                Assert(liveFocusRibbons.Length >= 3 && selectedFocusRibbons.Length == 1, "exactly one live title choice presents its opaque focus ribbon");
+                Image selectedFocusRibbon = selectedFocusRibbons[0];
+                Text selectedCursor = selectedFocusRibbon.transform.parent.GetComponentsInChildren<Text>(true).FirstOrDefault(text => text.name == "Forge Cursor");
+                Image selectedRule = selectedFocusRibbon.transform.parent.GetComponentsInChildren<Image>(true).FirstOrDefault(image => image.name == "Focused Forge Rule");
+                Assert(selectedCursor != null && selectedCursor.color.a > 0.5f, "selected title choice keeps a visible non-color forge cursor");
+                Assert(selectedRule != null && selectedRule.color.a > 0.5f, "selected title choice keeps a visible non-color underline cue");
                 AssertEventSystemCount(1);
                 AssertNoLaunchError(game);
                 AssertMode(game, GameMode.Tavern, "startup reaches Tavern");
@@ -219,11 +245,22 @@ namespace AshenHalls.Editor
                 AssertActiveObject("Exploration HUD Canvas");
                 AssertNoLaunchError(game);
                 ExplorationHudScreen explorationHud = GetPrivateField<ExplorationHudScreen>(game, "explorationHudScreen");
-                Assert(explorationHud != null && explorationHud.IsVisible, "migrated exploration HUD is active");
+                Canvas.ForceUpdateCanvases();
+                Assert(explorationHud != null, "migrated exploration HUD screen exists");
+                Assert(explorationHud.IsVisible, "migrated exploration HUD canvas is visible");
+                Assert(!explorationHud.IsSuppressedByImguiFallback, "migrated exploration HUD is not suppressed by the emergency fallback");
+                Assert(UiRuntime.HasUsableEventSystem(), "migrated exploration HUD has a usable pointer event system");
+                Assert(explorationHud.IsInteractionOwner, "migrated exploration HUD is the visible, interactive owner");
+                if (Screen.width >= 960 && Screen.height >= 600)
+                {
+                    Assert(explorationHud.HasLaidOutHud, $"migrated exploration HUD has renderable command geometry at {Screen.width}x{Screen.height}");
+                    Assert(explorationHud.HasUsableHud, "migrated exploration HUD owns the supported viewport without emergency fallback");
+                }
                 Assert(explorationHud.HasVisibleCompactGuidance, "default exploration rail keeps objective and waypoint visible");
                 Assert(explorationHud.VisiblePartyRows == 4, "default exploration rail keeps all four party rows visible");
                 Assert(explorationHud.HasExpandedResourceLabelsForTest, "exploration chrome keeps full Gold, Supplies, and Elixirs labels");
-                Assert(explorationHud.NumericPartyVitalRowsForTest == 4, "all four exploration party rows publish numeric HP and MP");
+                Assert(explorationHud.VisiblePersistentCommandCountForTest == 5, "exploration footer exposes only the five persistent navigation commands");
+                Assert(explorationHud.VisibleCompactManaRowsForTest == 0, "compact exploration rows defer secondary mana detail until Details is open");
                 ExplorationHudView firstPlayView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
                 Assert(firstPlayView.ObjectiveSummary.IndexOf("Leave Town Hall", StringComparison.OrdinalIgnoreCase) >= 0
                     && firstPlayView.ObjectiveSummary.IndexOf("begin the journey", StringComparison.OrdinalIgnoreCase) >= 0,
@@ -247,6 +284,7 @@ namespace AshenHalls.Editor
                 Assert(InvokePrivate<bool>(game, "CurrentExploreGuidanceIsInteriorExit"),
                     "fresh-game Golden Thread identifies the Grand Hearth storm doors as an interior exit");
                 GameState firstPlayState = GetPrivateField<GameState>(game, "state");
+                AssertDurableExplorationChartRuntime(game, firstPlayState);
                 Assert(firstPlayGuidancePath[0].X == firstPlayState.PlayerX
                     && firstPlayGuidancePath[0].Y == firstPlayState.PlayerY
                     && Math.Abs(firstPlayGuidancePath[1].X - firstPlayState.PlayerX)
@@ -301,6 +339,73 @@ namespace AshenHalls.Editor
             {
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             }
+        }
+
+        private static void AssertDurableExplorationChartRuntime(AshenHallsGame game, GameState state)
+        {
+            Assert(state?.Map != null && state.DiscoveredZones != null,
+                "fresh exploration has a live map and durable discovery ledger");
+
+            string playerCellKey = ExplorationChartRules.CellKey(state.Depth, state.PlayerX, state.PlayerY);
+            Assert(InvokePrivate<bool>(game, "IsExploreCellCharted", state.PlayerX, state.PlayerY),
+                "live exploration reveal keeps the party cell visible");
+            Assert(state.DiscoveredZones.Any(key => string.Equals(key, playerCellKey, StringComparison.OrdinalIgnoreCase)),
+                "live exploration reveal records the party cell in the durable discovery ledger");
+
+            Point farUncharted = null;
+            int farthestDistance = -1;
+            for (int y = 0; y < state.Map.Height; y++)
+            for (int x = 0; x < state.Map.Width; x++)
+            {
+                if (ExplorationChartRules.IsCharted(state.DiscoveredZones, state.Depth, x, y)) continue;
+                int distance = Math.Abs(x - state.PlayerX) + Math.Abs(y - state.PlayerY);
+                if (distance <= farthestDistance) continue;
+                farthestDistance = distance;
+                farUncharted = new Point(x, y);
+            }
+
+            Assert(farUncharted != null, "fresh exploration retains terrain beyond the revealed chart");
+            Assert(!InvokePrivate<bool>(game, "IsExploreCellCharted", farUncharted.X, farUncharted.Y),
+                "a far uncharted cell remains hidden from the live exploration view");
+            IReadOnlyList<Point> chartBoundaryProbe = new[]
+            {
+                new Point(state.PlayerX, state.PlayerY),
+                farUncharted
+            };
+            Assert(InvokePrivate<int>(game, "ExploreGuidanceChartedPrefixCount", chartBoundaryProbe) == 1,
+                "Golden Thread presentation stops before the first uncharted route cell");
+            bool originalWideView = GetPrivateField<bool>(game, "exploreWideView");
+            try
+            {
+                SetPrivateField(game, "exploreWideView", true);
+                string farLookLine = InvokePrivate<string>(game, "ExploreLookLine", farUncharted.X, farUncharted.Y);
+                Assert(farLookLine.IndexOf("Uncharted", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "looking at hidden terrain on the Region Map reports it as Uncharted");
+                SetPrivateField(game, "exploreWideView", false);
+                string localLookLine = InvokePrivate<string>(game, "ExploreLookLine", farUncharted.X, farUncharted.Y);
+                Assert(localLookLine.IndexOf("Uncharted", StringComparison.OrdinalIgnoreCase) < 0,
+                    "Local Map look text remains fully detailed instead of inheriting Region Map fog");
+            }
+            finally
+            {
+                SetPrivateField(game, "exploreWideView", originalWideView);
+            }
+
+            ExplorationHudView chartView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            Assert(chartView.FocusHint.IndexOf("Chart", StringComparison.OrdinalIgnoreCase) >= 0,
+                "exploration HUD focus guidance publishes chart progress");
+
+            GameState roundTripSource = new GameState
+            {
+                SaveVersion = state.SaveVersion,
+                Depth = state.Depth,
+                DiscoveredZones = new List<string> { playerCellKey }
+            };
+            GameState roundTrip = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(roundTripSource));
+            Assert(roundTrip?.DiscoveredZones != null
+                && roundTrip.DiscoveredZones.Any(key => string.Equals(key, playerCellKey, StringComparison.OrdinalIgnoreCase))
+                && ExplorationChartRules.IsCharted(roundTrip.DiscoveredZones, state.Depth, state.PlayerX, state.PlayerY),
+                "durable exploration chart keys survive JSON save/load");
         }
 
         private static void AssertPartyGrowthRuntime(AshenHallsGame game, GameState state)
@@ -534,7 +639,7 @@ namespace AshenHalls.Editor
                         .ToList();
                     int expectedCount = fullPrototype
                         ? (depth <= 3 ? 4 : 5)
-                        : depth <= 4 ? 3 : 0;
+                        : depth <= 5 ? 3 : 0;
                     string label = contentSet + " depth " + depth;
                     Assert(definitions.Count == expectedCount, label + " catalog has the expected patrol count");
                     Assert(patrols.Count == expectedCount, label + " generated map instantiates every catalog patrol");
@@ -789,6 +894,10 @@ namespace AshenHalls.Editor
                 "servicecoin", "servicearmor", "serviceweapon", "serviceenchant",
                 "doorwood", "doorroyal", "thronechime", "shopbell",
                 "uiopen", "uiclose", "uiconfirm", "uitab", "itemequip", "itemtake", "elixir", "rest", "levelup",
+                "titleforge", "titlereveal", "titlefocus", "titleconfirm", "titleopen", "titleclose",
+                "combatstep", "combatguard", "combatturn", "combatcrit",
+                "arrowrelease", "thrust", "spell", "fire",
+                "combatambsteel", "combatambsewer", "combatambarcane",
                 "ambrain", "ambtavern", "ambhearth",
                 "ambcity", "ambbell", "ambmarket", "ambforge", "ambgate", "ambdrip", "ambwind", "ambdrum", "ambstone",
                 "ambgrove", "ambfen", "ambglass", "ambruin", "ambcave", "ambcamp"
@@ -796,14 +905,14 @@ namespace AshenHalls.Editor
             {
                 Assert(soundClips.ContainsKey(key) && soundClips[key] != null, "resolved audio bank contains " + key);
             }
-            foreach (string key in new[] { "ui", "uiopen", "itemequip", "elixir", "levelup", "footglass", "footmud", "heavycontact", "castember", "castfrost", "charge", "whirlwind", "aimedshot", "arrowrain", "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" })
+            foreach (string key in new[] { "ui", "uiopen", "titleforge", "titlereveal", "titlefocus", "titleconfirm", "titleopen", "titleclose", "combatstep", "combatguard", "combatturn", "combatcrit", "arrowrelease", "thrust", "spell", "fire", "combatambsteel", "combatambsewer", "combatambarcane", "itemequip", "elixir", "levelup", "footglass", "footmud", "heavycontact", "castember", "castfrost", "charge", "whirlwind", "aimedshot", "arrowrain", "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" })
             {
                 Assert(soundClips[key].frequency >= 32000, key + " uses the v1.70 high-resolution audio path");
                 Assert(AudioClipHasHealthyHeadroom(soundClips[key]), key + " has audible body, finite samples, and clean output headroom");
             }
             HashSet<string> importedSfxKeys = GetPrivateField<HashSet<string>>(game, "importedSfxKeys");
             AudioClip[] importedSfx = Resources.LoadAll<AudioClip>("Audio/Sfx");
-            Assert(importedSfx.Length == 144, "authored SFX resource bank contains 55 curated and 89 original cues");
+            Assert(importedSfx.Length == 161, "authored SFX resource bank contains 55 curated and 106 original cues");
             Assert(importedSfxKeys.Count == importedSfx.Length, "every authored SFX resource replaces a known runtime cue");
             foreach (AudioClip clip in importedSfx)
             {
@@ -821,12 +930,29 @@ namespace AshenHalls.Editor
                 && importedSfxKeys.Contains("riftpounce")
                 && importedSfxKeys.Contains("abyssalwhirl")
                 && importedSfxKeys.Contains("soulrend")
-                && importedSfxKeys.Contains("dreadroar"),
-                "core cast schools, signature magic, and Demon Arts use original masters");
+                && importedSfxKeys.Contains("dreadroar")
+                && importedSfxKeys.Contains(TitleAudioRules.RevealStrikeKey)
+                && importedSfxKeys.Contains(TitleAudioRules.RevealChimeKey)
+                && importedSfxKeys.Contains(TitleAudioRules.FocusKey)
+                && importedSfxKeys.Contains(TitleAudioRules.ConfirmKey)
+                && importedSfxKeys.Contains(TitleAudioRules.OpenKey)
+                && importedSfxKeys.Contains(TitleAudioRules.CloseKey)
+                && importedSfxKeys.Contains(CombatAudioMixRules.StepCue)
+                && importedSfxKeys.Contains(CombatAudioMixRules.GuardCue)
+                && importedSfxKeys.Contains(CombatAudioMixRules.TurnCue)
+                && importedSfxKeys.Contains(CombatAudioMixRules.CriticalCue)
+                && importedSfxKeys.Contains(CombatAudioMixRules.SteelAmbienceCue)
+                && importedSfxKeys.Contains(CombatAudioMixRules.SewerAmbienceCue)
+                && importedSfxKeys.Contains(CombatAudioMixRules.ArcaneAmbienceCue)
+                && importedSfxKeys.Contains("arrowrelease")
+                && importedSfxKeys.Contains("thrust")
+                && importedSfxKeys.Contains("spell")
+                && importedSfxKeys.Contains("fire"),
+                "core cast schools, signature magic, Demon Arts, title feedback, and combat feedback use original masters");
             HashSet<string> importedMusicKeys = GetPrivateField<HashSet<string>>(game, "importedMusicKeys");
             Dictionary<string, AudioClip> importedMusicClips = GetPrivateField<Dictionary<string, AudioClip>>(game, "importedMusicClips");
             AudioClip[] importedMusic = Resources.LoadAll<AudioClip>("Audio/Music");
-            Assert(importedMusic.Length == 53, "original music resource bank contains all 53 routed score contexts");
+            Assert(importedMusic.Length == 54, "original music resource bank contains all 54 routed score contexts");
             Assert(importedMusicKeys.Count == importedMusic.Length, "every original music master passes the runtime metadata contract");
             Assert(importedMusicClips.Count == importedMusic.Length, "every original music master is indexed by exact clip name");
             foreach (AudioClip clip in importedMusic)
@@ -862,6 +988,7 @@ namespace AshenHalls.Editor
             string[] expandedMusicKeys =
             {
                 MusicDirectorRules.Muster, MusicDirectorRules.Victory, MusicDirectorRules.Defeat, MusicDirectorRules.GrandHearth,
+                MusicDirectorRules.WorldMapOverview,
                 MusicDirectorRules.GreenShrineTrainingRing, MusicDirectorRules.OldQuarryForge,
                 MusicDirectorRules.GloamDeepCrypt, MusicDirectorRules.GlassLoreLibrary,
                 MusicDirectorRules.DuskMarketHideout, MusicDirectorRules.RedGateSeal,
@@ -874,7 +1001,7 @@ namespace AshenHalls.Editor
                 MusicDirectorRules.CombatRatfolk, MusicDirectorRules.CombatArcaneDuel, MusicDirectorRules.CombatElite,
                 MusicDirectorRules.CombatLastStand, MusicDirectorRules.CombatKoboldKing, MusicDirectorRules.CombatDemonLord
             };
-            Assert(adaptiveMusicFactories.Count == expandedMusicKeys.Length, "adaptive score registers exactly 33 additional themes");
+            Assert(adaptiveMusicFactories.Count == expandedMusicKeys.Length, "adaptive score registers exactly 34 additional themes");
             Assert(expandedMusicKeys.All(adaptiveMusicFactories.ContainsKey), "every expanded score key has a lazy composition factory");
             Assert(adaptiveMusicClips.Count < adaptiveMusicFactories.Count, "procedural fallback score remains lazy when original masters are present");
             foreach (string musicKey in expandedMusicKeys)
@@ -885,6 +1012,7 @@ namespace AshenHalls.Editor
 
             AudioClip musterMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.Muster);
             AudioClip grandHearthMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.GrandHearth);
+            AudioClip worldMapMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.WorldMapOverview);
             AudioClip greenShrineMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.GreenShrineTrainingRing);
             AudioClip quarryForgeMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.OldQuarryForge);
             AudioClip deepCryptMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.GloamDeepCrypt);
@@ -901,6 +1029,7 @@ namespace AshenHalls.Editor
             AudioClip defeatMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.Defeat);
             Assert(musterMusic != null && musterMusic.name == "muster_by_firelight_loop", "Party Setup owns its quieter firelight theme");
             Assert(grandHearthMusic != null && grandHearthMusic.name == "four_names_by_the_fire_loop", "Grand Hearth owns the quieter main-theme reprise");
+            Assert(worldMapMusic != null && worldMapMusic.name == "ashen_atlas_overview_loop", "Region Map owns the original Ashen Atlas overview score");
             Assert(greenShrineMusic != null && greenShrineMusic.name == "sparks_on_the_oathring_loop", "Green Shrine training ring owns its oath-ring score");
             Assert(quarryForgeMusic != null && quarryForgeMusic.name == "anvil_echoes_in_old_stone_loop", "Old Quarry forge owns its anvil score");
             Assert(deepCryptMusic != null && deepCryptMusic.name == "the_crypt_keeps_its_names_loop", "Gloam Deep crypt owns its memorial score");
@@ -916,6 +1045,7 @@ namespace AshenHalls.Editor
             Assert(victoryMusic != null && defeatMusic != null, "Victory and Defeat no longer fall silent");
             Assert(importedMusic.Contains(musterMusic)
                 && importedMusic.Contains(grandHearthMusic)
+                && importedMusic.Contains(worldMapMusic)
                 && importedMusic.Contains(greenShrineMusic)
                 && importedMusic.Contains(quarryForgeMusic)
                 && importedMusic.Contains(deepCryptMusic)
@@ -932,6 +1062,9 @@ namespace AshenHalls.Editor
                 && importedMusic.Contains(defeatMusic),
                 "player-state, exploration, pursuit, and combat contexts choose original music masters");
             Assert(AudioClipsDiffer(musterMusic, templeMusic), "muster and temple themes use distinct arrangements");
+            Assert(AudioClipsDiffer(worldMapMusic, grandHearthMusic), "World Map and Grand Hearth use distinct arrangements");
+            Assert(AudioClipsDiffer(worldMapMusic, pursuitMusic), "World Map and pursuit retain distinct travel identities");
+            Assert(AudioClipsDiffer(worldMapMusic, combatMusic), "World Map and combat retain distinct rhythmic identities");
             Assert(AudioClipsDiffer(pursuitMusic, ratfolkMusic), "pursuit and ratfolk battle themes use distinct rhythms");
             Assert(AudioClipsDiffer(kingMusic, bossCombatMusic), "Kobold King score differs from the generic boss theme");
             Assert(AudioClipsDiffer(victoryMusic, defeatMusic), "Victory and Defeat have opposite musical identities");
@@ -975,7 +1108,29 @@ namespace AshenHalls.Editor
                 "a new encounter resets combat music identity and hysteresis state");
             InvokePrivate(game, "ResetCombatMusicPresentationState");
 
+            InvokePrivate(game, "ResetExplorationMusicPresentationState");
+            Assert(
+                InvokePrivate<string>(game, "ResolveExplorationMusicPresentationKey", MusicDirectorRules.MidgaardRoad, 100f) == MusicDirectorRules.MidgaardRoad,
+                "live exploration music establishes its initial route immediately");
+            Assert(
+                InvokePrivate<string>(game, "ResolveExplorationMusicPresentationKey", MusicDirectorRules.MidgaardTemple, 101f) == MusicDirectorRules.MidgaardRoad,
+                "live exploration music ignores a brief landmark boundary crossing");
+            Assert(
+                InvokePrivate<string>(game, "ResolveExplorationMusicPresentationKey", MusicDirectorRules.MidgaardTemple, 109f) == MusicDirectorRules.MidgaardTemple,
+                "live exploration music promotes a stable calm route after hold and dwell");
+            Assert(
+                InvokePrivate<string>(game, "ResolveExplorationMusicPresentationKey", MusicDirectorRules.HuntedRoad, 109.1f) == MusicDirectorRules.HuntedRoad,
+                "live pursuit music enters immediately");
+            Assert(
+                InvokePrivate<string>(game, "ResolveExplorationMusicPresentationKey", MusicDirectorRules.WorldMapOverview, 110f) == MusicDirectorRules.HuntedRoad,
+                "live World Map route cannot preempt active pursuit");
+            Assert(
+                InvokePrivate<string>(game, "ResolveExplorationMusicPresentationKey", MusicDirectorRules.WorldMapOverview, 113.1f) == MusicDirectorRules.WorldMapOverview,
+                "live pursuit releases to the stable World Map route after its hold");
+            InvokePrivate(game, "ResetExplorationMusicPresentationState");
+
             GameMode modeBeforeMusicProbe = state.Mode;
+            bool wideViewBeforeMusicProbe = GetPrivateField<bool>(game, "exploreWideView");
             state.Mode = GameMode.Tavern;
             Assert(InvokePrivate<AudioClip>(game, "DesiredMusicClip").name == "tavern_storm_hearth_ensemble_loop", "live director routes the iconic main-title overture");
             state.Mode = GameMode.Muster;
@@ -984,7 +1139,19 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<AudioClip>(game, "DesiredMusicClip").name == "embers_carry_home_victory_loop", "live director routes Victory music");
             state.Mode = GameMode.Defeat;
             Assert(InvokePrivate<AudioClip>(game, "DesiredMusicClip").name == "ashes_on_the_road_defeat_loop", "live director routes Defeat music");
+            List<RoamingThreat> musicProbeThreats = state.RoamingThreats == null
+                ? new List<RoamingThreat>()
+                : state.RoamingThreats.Where(threat => threat != null).ToList();
+            bool[] musicProbeAlertStates = musicProbeThreats.Select(threat => threat.Alerted).ToArray();
+            foreach (RoamingThreat threat in musicProbeThreats) threat.Alerted = false;
+            state.Mode = GameMode.Explore;
+            SetPrivateField(game, "exploreWideView", true);
+            InvokePrivate(game, "ResetExplorationMusicPresentationState");
+            Assert(InvokePrivate<AudioClip>(game, "DesiredMusicClip") == worldMapMusic, "live Region Map routes the dedicated Ashen Atlas score");
+            for (int index = 0; index < musicProbeThreats.Count; index++) musicProbeThreats[index].Alerted = musicProbeAlertStates[index];
+            SetPrivateField(game, "exploreWideView", wideViewBeforeMusicProbe);
             state.Mode = modeBeforeMusicProbe;
+            InvokePrivate(game, "ResetExplorationMusicPresentationState");
             Assert(InvokePrivate<AudioClip>(game, "DesiredMusicClip") != null, "live director restores exploration music");
             InvokePrivate(game, "ToggleSfxMute");
             Assert(state.SfxMuted && !state.MusicMuted, "muting SFX leaves music enabled");
@@ -1058,6 +1225,8 @@ namespace AshenHalls.Editor
             Texture2D splashAtlas = GetPrivateField<Texture2D>(game, "splashArt");
             Texture2D tavernBackdropAtlas = GetPrivateField<Texture2D>(game, "tavernBackdropArt");
             Texture2D tavernUiAtlas = GetPrivateField<Texture2D>(game, "tavernUiAtlas");
+            Texture2D titleMenuScrollAtlas = GetPrivateField<Texture2D>(game, "titleMenuScrollArt");
+            Texture2D titleMenuFocusAtlas = GetPrivateField<Texture2D>(game, "titleMenuFocusArt");
             Texture2D roamingThreatAtlas = GetPrivateField<Texture2D>(game, "roamingThreatAtlas");
             Texture2D regionalLandmarkAtlas = GetPrivateField<Texture2D>(game, "worldMapRegionLandmarkAtlas");
             Texture2D areaSetpieceAtlas = GetPrivateField<Texture2D>(game, "worldAreaSetpieceAtlas");
@@ -1112,6 +1281,14 @@ namespace AshenHalls.Editor
             Assert(tavernUiAtlas != null, "Grand Hearth menu and fireplace icon atlas is loaded");
             Assert(tavernUiAtlas.name.IndexOf("v1.5.9", StringComparison.OrdinalIgnoreCase) >= 0, "title choices and the playable hearth reuse the pinned tavern icon contract");
             Assert(tavernUiAtlas.width == 1402 && tavernUiAtlas.height == 1122, "tavern icon atlas keeps its approved dimensions");
+            Assert(titleMenuScrollAtlas != null && titleMenuScrollAtlas.name == RuntimeArtManifest.TitleMenuScroll, "title menu loads the pinned Ashen Road charter");
+            Assert(titleMenuScrollAtlas.width == 1280 && titleMenuScrollAtlas.height == 1280, "title charter keeps its exact square nine-slice source");
+            Assert(titleMenuScrollAtlas.mipmapCount == 1, "title charter avoids blurry UI mipmaps");
+            Assert(titleMenuScrollAtlas.filterMode == FilterMode.Bilinear && titleMenuScrollAtlas.wrapMode == TextureWrapMode.Clamp, "title charter uses smooth clamped UI sampling");
+            Assert(titleMenuFocusAtlas != null && titleMenuFocusAtlas.name == RuntimeArtManifest.TitleMenuFocus, "title menu loads the pinned focused-row ribbon");
+            Assert(titleMenuFocusAtlas.width == 2048 && titleMenuFocusAtlas.height == 768, "title focus ribbon keeps its exact wide authoring source");
+            Assert(titleMenuFocusAtlas.mipmapCount == 1, "title focus ribbon avoids blurry UI mipmaps");
+            Assert(titleMenuFocusAtlas.filterMode == FilterMode.Bilinear && titleMenuFocusAtlas.wrapMode == TextureWrapMode.Clamp, "title focus ribbon uses smooth clamped UI sampling");
             Assert(InvokePrivate<int>(game, "WorldMapTokenSpriteIndex", "shield") == 1, "shield party token uses its authored shield cell");
             Assert(InvokePrivate<int>(game, "CharacterCombatAtlasIndex", " ", null, "shield") == 0, "legacy blank class still resolves to the warrior sprite");
             Assert(state?.Map != null, "exploration self-test has a generated map");
@@ -1157,6 +1334,7 @@ namespace AshenHalls.Editor
             };
             WorldZone legacySizedZone = InvokePrivate<WorldZone>(game, "ZoneFor", 16, 15, legacySizedMap, 2);
             Assert(legacySizedZone != null && legacySizedZone.Id == "inner-ash-road", "legacy map biome boundaries use serialized dimensions instead of v1.69 fresh-map constants");
+            AssertLegacyRegionalSitePresentationGuards(game, state);
             Assert(InvokePrivate<bool>(game, "CanStepExplore", state.PlayerX, state.PlayerY), "party starts on a standable exploration tile");
             Point grandHearthSpawn = MidgaardInteriorRules.GrandHearthSpawn(state.Map);
             Assert(state.PlayerX == grandHearthSpawn.X && state.PlayerY == grandHearthSpawn.Y, "fresh party starts at the authored Grand Hearth company mark");
@@ -1444,6 +1622,7 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
 
             AssertQuestBoardDialogue(game, state);
+            AssertInventoryEquipmentSwapAndRangeSemantics(game);
 
             InvokePrivate(game, "ToggleArmory", 3);
             InvokePrivate(game, "LateUpdate");
@@ -1473,8 +1652,8 @@ namespace AshenHalls.Editor
             ArmoryOverlayScreen armory = GetPrivateField<ArmoryOverlayScreen>(game, "armoryOverlayScreen");
             Assert(armory != null && armory.IsVisible && armory.HasRenderableGeometry, "Inventory opens as a renderable equipment-management overlay");
             Assert(armory.ActiveTabLabelForTest == "Inventory", "Pack tab now uses the clear Inventory label");
-            int expectedInventoryFilters = state.Inventory.Count(item => item != null) >= 9 ? 3 : 0;
-            Assert(armory.VisibleFilterCountForTest == expectedInventoryFilters, "small inventories hide filters; larger inventories expose only all, weapon, and armor");
+            int expectedInventoryFilters = state.Inventory.Count(item => item != null) >= 9 ? 4 : 0;
+            Assert(armory.VisibleFilterCountForTest == expectedInventoryFilters, "small inventories hide filters; larger inventories expose all, weapon, armor, and upgrade views");
             Assert(armory.VisibleRowCountForTest > 0 && armory.HasVisibleDetailForTest, "Inventory opens with a selected item and comparison pane");
             Assert(armory.SelectedRowUsesDirectSelectionForTest, "the selected inventory item uses its full row as the selection target");
             Assert(armory.CommittedRowIndexForTest >= 0
@@ -1511,14 +1690,42 @@ namespace AshenHalls.Editor
                 armory.InvokeDetailActionForTest(1);
                 InvokePrivate(game, "LateUpdate");
                 Assert(armory.VisibleDetailActionCountForTest == state.Party.Count(member => member != null) + 1, "party targets appear only after Choose another");
-                armory.InvokeDetailActionForTest(0);
+                Assert(armory.FocusedDetailActionIndexForTest == 0, "opening the party picker moves controller focus to the recommended target");
+                bool supportedArmoryViewport = Screen.width >= ArmoryOverlayLayout.MinimumSupportedWidth
+                    && Screen.height >= ArmoryOverlayLayout.MinimumSupportedHeight;
+                Assert(!supportedArmoryViewport || armory.DetailActionsMeetAccessibleSizingForTest,
+                    $"the four-person party picker keeps every action visible and at least 40px tall at supported resolution ({Screen.width}x{Screen.height})");
+                Assert(InvokePrivate<bool>(game, "HandleCancelCommand"), "Cancel first collapses the open inventory target picker");
                 InvokePrivate(game, "LateUpdate");
-                Assert(armory.VisibleDetailActionCountForTest <= 2, "Back returns to the concise recommendation");
+                Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Armory
+                    && armory.VisibleDetailActionCountForTest <= 2, "collapsing the target picker keeps Inventory open on the concise recommendation");
             }
             InvokePrivate(game, "RunArmoryDetailAction", 0);
             InvokePrivate(game, "LateUpdate");
             Assert(inventoryProbe.EquippedById == state.Party[0].Id, "explicit inventory target action records the exact equipped owner");
             Assert(state.Party[0].WeaponName == inventoryProbe.DisplayName, "explicit inventory target action updates that adventurer's loadout");
+            InventoryItem identicalInventoryProbe = new InventoryItem
+            {
+                DisplayName = inventoryProbe.DisplayName,
+                Material = inventoryProbe.Material,
+                Form = inventoryProbe.Form,
+                Slot = inventoryProbe.Slot,
+                Trait = inventoryProbe.Trait,
+                Rarity = inventoryProbe.Rarity,
+                Bonus = inventoryProbe.Bonus,
+                StrengthBonus = inventoryProbe.StrengthBonus,
+                IntelligenceBonus = inventoryProbe.IntelligenceBonus,
+                AgilityBonus = inventoryProbe.AgilityBonus,
+                HealthBonus = inventoryProbe.HealthBonus,
+                DamageMin = inventoryProbe.DamageMin,
+                DamageMax = inventoryProbe.DamageMax,
+                AttackSpeed = inventoryProbe.AttackSpeed,
+                DamageType = inventoryProbe.DamageType
+            };
+            Assert(InvokePrivate<int>(game, "InventoryComparisonScore", identicalInventoryProbe, state.Party[0]) == 0, "identical equipped weapon stats remain an honest sidegrade after role-range floors");
+            ArmoryDetailView equippedInventoryDetail = InvokePrivate<ArmoryDetailView>(game, "BuildInventoryItemDetail");
+            Assert(equippedInventoryDetail != null
+                && equippedInventoryDetail.Actions.Any(action => action.Enabled && action.ButtonLabel == "Swap"), "reviewing equipped gear offers a direct same-slot reassignment instead of a dead end");
             InvokePrivate(game, "CloseArmoryOverlay");
             InvokePrivate(game, "LateUpdate");
 
@@ -1534,7 +1741,10 @@ namespace AshenHalls.Editor
                 DamageMax = 6,
                 AttackSpeed = 8
             };
+            InventoryItem popupDuplicate = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(popupProbe));
+            state.Inventory.Add(popupDuplicate);
             state.Inventory.Add(popupProbe);
+            SetPrivateField(game, "armoryPackFilter", 2);
             InvokePrivate(game, "ShowLootPanel", popupProbe, 3, 1, 0, "Tessa: \"A real reward keeps its own window.\"", "Popup Probe");
             InvokePrivate(game, "LateUpdate");
             Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Loot, "loot reward opens its own overlay");
@@ -1544,12 +1754,113 @@ namespace AshenHalls.Editor
             Assert(lootPopup != null && lootPopup.HasRealIconForTest, "loot reward uses the real inventory item atlas");
             Assert(lootPopup.HasReviewActionForTest, "acquired gear offers a direct equipment review action");
             Assert(lootPopup.PrimaryActionLabelForTest == "Continue", "loot action accurately reflects that rewards are already acquired");
+            Assert(lootPopup.ReviewActionLabelForTest == "Compare & equip", "stored gear names the decision available in Inventory");
+            Assert(lootPopup.HasDefaultFocusForTest, "loot opens with Continue owning keyboard and controller Submit");
+            LootPopupView popupView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
+            Assert(popupView.HasItem && popupView.CanReview, "gear reward view exposes the committed item and its review action");
+            Assert(popupView.Gold == 3 && popupView.Supplies == 1 && popupView.Elixirs == 0, "gear reward view reports exact resource deltas");
+            Assert(popupView.Comparison.IndexOf("Best fit:", StringComparison.Ordinal) >= 0, "stored gear surfaces its best-fit comparison before review");
             lootPopup.InvokeReviewForTest();
             InvokePrivate(game, "LateUpdate");
             Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Armory, "Review equipment opens Inventory on the exact acquired item");
             armory = GetPrivateField<ArmoryOverlayScreen>(game, "armoryOverlayScreen");
             Assert(armory != null && armory.ActiveTabLabelForTest == "Inventory" && armory.HasVisibleDetailForTest, "loot review lands on the inventory comparison pane");
+            Assert(GetPrivateField<int>(game, "armorySelectedInventoryIndex") == state.Inventory.IndexOf(popupProbe), "loot review selects the exact committed inventory item");
+            int reviewedVisibleRow = armory.VisibleRowIndexForKeyForTest(state.Inventory.IndexOf(popupProbe));
+            Assert(GetPrivateField<int>(game, "armoryPackFilter") == 0
+                && reviewedVisibleRow == armory.CommittedRowIndexForTest
+                && reviewedVisibleRow == armory.FocusedRowIndexForTest
+                && armory.IsRowFullyVisibleForTest(reviewedVisibleRow), "loot review clears stale filters and visibly focuses the exact item reference even when names are duplicated");
             InvokePrivate(game, "CloseArmoryOverlay");
+            InvokePrivate(game, "LateUpdate");
+
+            InvokePrivate(game, "ShowLootPanel", null, 7, 2, 1, "The company stores are updated.", "Victory spoils");
+            InvokePrivate(game, "LateUpdate");
+            LootPopupView resourceOnlyView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
+            lootPopup = GetPrivateField<LootPopupScreen>(game, "lootPopupScreen");
+            Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Loot, "a victory with no gear still presents its spoils");
+            Assert(resourceOnlyView.Visible && !resourceOnlyView.HasItem && !resourceOnlyView.CanReview, "resource-only spoils are visible without a false equipment action");
+            Assert(resourceOnlyView.Gold == 7 && resourceOnlyView.Supplies == 2 && resourceOnlyView.Elixirs == 1, "resource-only spoils preserve every exact delta");
+            Assert(resourceOnlyView.Outcome == "Added to company stores", "resource-only spoils state their completed outcome");
+            Assert(lootPopup != null && !lootPopup.HasReviewActionForTest && lootPopup.HasDefaultFocusForTest, "resource-only spoils keep one focused Continue action");
+            Assert(InvokePrivate<bool>(game, "HandleCancelCommand"), "the shared Escape / B command owns the visible loot modal");
+            InvokePrivate(game, "LateUpdate");
+            Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.None, "resource-only spoils dismiss cleanly through controller Cancel");
+
+            InventoryItem questProbe = new InventoryItem
+            {
+                DisplayName = "Smoke-Test Road Seal",
+                Mark = "road-marked",
+                Material = "emberglass",
+                Form = "sealed tally",
+                Slot = "quest",
+                Trait = "proof",
+                Rarity = "quest"
+            };
+            state.Inventory.Add(questProbe);
+            SetPrivateField(game, "armoryPackFilter", 1);
+            InvokePrivate(game, "ShowLootPanel", questProbe, 0, 0, 0, "Secured with the route proofs.", "Road proof");
+            InvokePrivate(game, "LateUpdate");
+            LootPopupView questView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
+            lootPopup = GetPrivateField<LootPopupScreen>(game, "lootPopupScreen");
+            Assert(questView.HasItem && questView.CanReview && questView.Outcome == "Quest item secured", "quest finds remain viewable without pretending to be equipment");
+            Assert(questView.Comparison.IndexOf("not equipment", StringComparison.OrdinalIgnoreCase) >= 0, "quest finds explain that they cannot replace a loadout");
+            Assert(questView.ReviewActionLabel == "View in inventory" && lootPopup.ReviewActionLabelForTest == "View in inventory", "quest finds use an honest inventory action label");
+            lootPopup.InvokeReviewForTest();
+            InvokePrivate(game, "LateUpdate");
+            armory = GetPrivateField<ArmoryOverlayScreen>(game, "armoryOverlayScreen");
+            int reviewedQuestRow = armory.VisibleRowIndexForKeyForTest(state.Inventory.IndexOf(questProbe));
+            Assert(GetPrivateField<int>(game, "armoryPackFilter") == 0
+                && reviewedQuestRow == armory.CommittedRowIndexForTest
+                && reviewedQuestRow == armory.FocusedRowIndexForTest, "quest-item review also clears an incompatible equipment filter and lands on the exact row");
+            InvokePrivate(game, "CloseArmoryOverlay");
+            InvokePrivate(game, "LateUpdate");
+
+            int minimumWeaponBonus = state.Party.Where(member => member != null && member.Hp > 0).Min(member => member.WeaponBonus);
+            InventoryItem weakEqualBonus = new InventoryItem
+            {
+                DisplayName = "Equal-Bonus Blunted Practice Sword",
+                Form = "sword",
+                Slot = "weapon",
+                Trait = "dull",
+                Rarity = "common",
+                Bonus = minimumWeaponBonus,
+                DamageMin = 1,
+                DamageMax = 2,
+                AttackSpeed = 1,
+                DamageType = "physical"
+            };
+            state.Inventory.Add(weakEqualBonus);
+            string[] weaponNamesBefore = state.Party.Select(member => member?.WeaponName ?? "").ToArray();
+            string weakEquipNote = InvokePrivate<string>(game, "AutoEquipItem", weakEqualBonus);
+            Assert(string.IsNullOrEmpty(weakEqualBonus.EquippedById), "equal-bonus low-performance loot stays in the pack");
+            Assert(state.Party.Select(member => member?.WeaponName ?? "").SequenceEqual(weaponNamesBefore), "rejected loot does not mutate any loadout");
+            Assert(weakEquipNote.IndexOf("Kept in the pack", StringComparison.Ordinal) >= 0, "rejected loot explains the safe outcome");
+
+            InventoryItem clearUpgrade = new InventoryItem
+            {
+                DisplayName = "+9 Smoke-Test Crownward Longbow",
+                Form = "longbow",
+                Slot = "weapon",
+                Trait = "keen",
+                Rarity = "relic",
+                Bonus = 9,
+                DamageMin = 20,
+                DamageMax = 30,
+                AttackSpeed = 16,
+                DamageType = "physical"
+            };
+            state.Inventory.Add(clearUpgrade);
+            string upgradeEquipNote = InvokePrivate<string>(game, "AutoEquipItem", clearUpgrade);
+            Assert(!string.IsNullOrEmpty(clearUpgrade.EquippedById), "a clear full-score upgrade equips one intended owner");
+            Assert(state.Party.Count(member => member != null && member.Id == clearUpgrade.EquippedById) == 1, "auto-equip records exactly one valid owner");
+            Assert(state.Party.Count(member => member != null && member.WeaponName == clearUpgrade.DisplayName) == 1, "auto-equip mutates exactly one weapon loadout");
+            Assert(upgradeEquipNote.IndexOf("Clear upgrade", StringComparison.Ordinal) >= 0, "auto-equip explains the full-score decision");
+            InvokePrivate(game, "ShowLootPanel", clearUpgrade, 0, 0, 0, upgradeEquipNote, "Clear Upgrade");
+            InvokePrivate(game, "LateUpdate");
+            LootPopupView equippedLootView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
+            Assert(equippedLootView.ReviewActionLabel == "Review or reassign", "auto-equipped loot names the reassignment decision now available in Inventory");
+            InvokePrivate(game, "DismissLootPopup");
             InvokePrivate(game, "LateUpdate");
 
             InventoryItem dialogueReward = new InventoryItem
@@ -1852,6 +2163,12 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "RecallToTempleSquare");
             Assert(state.Depth == 1 && state.Map != null && state.Map.Depth == 1,
                 "actual Recall returns Chapter II explorers to the Midgaard map");
+            Assert(ExplorationChartRules.IsCharted(
+                    state.DiscoveredZones,
+                    state.Depth,
+                    state.PlayerX,
+                    state.PlayerY),
+                "Recall records the repaired Temple Square landing in the durable terrain chart");
             Assert((state.ActiveStory ?? "").IndexOf("Chapter II", StringComparison.OrdinalIgnoreCase) >= 0
                 && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName").IndexOf("Eastbound Old Road", StringComparison.OrdinalIgnoreCase) >= 0,
                 "Recall preserves the live Chapter II objective while guidance refreshes to the eastbound Old Road");
@@ -2008,7 +2325,7 @@ namespace AshenHalls.Editor
             Assert(kingRoadJournal.Any(row => row.Title == "Kobold Smoke - Dusk Market Ambush" && row.Subtitle == "complete"), "production Journal retains completed ambush state");
             Assert(kingRoadJournal.Any(row => row.Title == "Kobold Smoke - Smoke Cave" && row.Subtitle == "complete"), "production Journal retains completed smoke-cave state");
             Assert(kingRoadJournal.Any(row => row.Title == "Kobold Smoke - Varkh's Hall" && row.Subtitle == "current"), "production Journal promotes Varkh's Hall as the next live route step");
-            InvokePrivate(game, "FinishKoboldKingVictory", 0, 0);
+            InvokePrivate(game, "FinishKoboldKingVictory", 0, 0, 0);
             Assert(state.StoryFlags.Contains(StoryFlags.KoboldKingDefeated), "invoking Varkh's victory completes the bounded kobold chapter");
             Assert(!state.Map.Objects.Any(obj => obj != null && obj.Id == "dusk-market-smoke-cave"),
                 "Varkh's defeat removes the completed Smoke Cave marker");
@@ -2281,6 +2598,35 @@ namespace AshenHalls.Editor
             ArmoryRowView claimedCryptRow = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows")
                 .Single(row => row.Title == "Gloam Deep Crypt");
             Assert(claimedCryptRow.Badge == "CLAIMED", "claiming the charted crypt service updates its Journal row from ready to claimed");
+            Assert(claimedCryptRow.ActionEnabled && claimedCryptRow.ActionLabel == "Mark",
+                "claimed regional-site Journal rows remain available as route waypoints");
+
+            int previousSiteWaypointArmoryTab = GetPrivateField<int>(game, "armoryTab");
+            SetPrivateField(game, "armoryTab", 3);
+            InvokePrivate(game, "RunArmoryRowAction", claimedCryptRow.Key);
+            Assert(RouteChartRules.IsSiteWaypoint(state.ActiveRouteWaypointKey, state.Depth, cryptSite.Id),
+                "Journal Mark action persists the charted Gloam Deep Crypt site waypoint");
+            InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+            Assert(RouteChartRules.IsSiteWaypoint(state.ActiveRouteWaypointKey, state.Depth, cryptSite.Id),
+                "world-state repair preserves a valid charted-site waypoint across load normalization");
+            ExplorationHudView markedCryptGuidance = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+            IReadOnlyList<Point> markedCryptPath = InvokePrivate<IReadOnlyList<Point>>(game, "CurrentExploreGuidancePath");
+            Assert(InvokePrivate<bool>(game, "CurrentExploreGuidanceIsMarked")
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == cryptSite.Name
+                && markedCryptGuidance.WaypointLine.IndexOf("Marked:", StringComparison.OrdinalIgnoreCase) >= 0
+                && markedCryptGuidance.WaypointLine.IndexOf(cryptSite.Name, StringComparison.OrdinalIgnoreCase) >= 0
+                && markedCryptPath.Count > 0
+                && markedCryptPath[0].X == state.PlayerX
+                && markedCryptPath[0].Y == state.PlayerY,
+                "charted-site marking drives one shared nonempty Gloam Deep Crypt HUD and map route");
+            ArmoryRowView selectedCryptRow = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows")
+                .Single(row => row.Title == cryptSite.Name);
+            Assert(selectedCryptRow.Selected && selectedCryptRow.ActionEnabled && selectedCryptRow.ActionLabel == "Clear",
+                "the marked Gloam Deep Crypt Journal row becomes a selected Clear action");
+            InvokePrivate(game, "RunArmoryRowAction", selectedCryptRow.Key);
+            Assert(string.IsNullOrEmpty(state.ActiveRouteWaypointKey),
+                "clearing the charted-site waypoint removes its transient route key");
+            SetPrivateField(game, "armoryTab", previousSiteWaypointArmoryTab);
 
             WorldMapSite redGateSite = chapterThreeSites.Single(site => site.Id == "red-gate-seal");
             MapObject redGateLandmark = state.Map.FindObjectById("regional-site:red-gate-seal");
@@ -2606,7 +2952,7 @@ namespace AshenHalls.Editor
                 "the production Journal records all four Glass and Ash beats as complete");
             Assert(!state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs)
                 && !InvokePrivate<bool>(game, "CanDescend"),
-                "the completed chapter still cannot leak into unfinished Chapter V");
+                "the completed chapter cannot bypass Yara's separate Chapter V briefing");
 
             int settledSupplies = state.Supplies;
             string settledProgression = PartyProgressionSignature(state);
@@ -2630,11 +2976,280 @@ namespace AshenHalls.Editor
             dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
             ExplorationHudView debriefedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
             Assert(state.StoryFlags.Contains(StoryFlags.GlassAndAshDebriefed)
-                && (state.ActiveStory ?? "").IndexOf("No safe company road", StringComparison.OrdinalIgnoreCase) >= 0
-                && debriefedView.ObjectiveSummary.IndexOf("Yara copied", StringComparison.OrdinalIgnoreCase) >= 0
+                && (state.ActiveStory ?? "").IndexOf("bounded assault", StringComparison.OrdinalIgnoreCase) >= 0
+                && debriefedView.ObjectiveSummary.IndexOf("Red Gate", StringComparison.OrdinalIgnoreCase) >= 0
                 && debriefedView.ObjectiveSummary.IndexOf("bring Yara", StringComparison.OrdinalIgnoreCase) < 0
                 && (GetPrivateField<string>(game, "dialogueBody") ?? "").IndexOf("brought back a road", StringComparison.OrdinalIgnoreCase) >= 0,
-                "Yara's first post-key conversation closes the debrief durably and states the honest Chapter V boundary");
+                "Yara's first post-key conversation closes the debrief durably and exposes only a reviewed Chapter V plan");
+            InvokePrivate(game, "CloseDialogue");
+            InvokePrivate(game, "LateUpdate");
+
+            oldRoad = state.Map.FindObjectById(oldRoadPassageId);
+            state.PlayerX = oldRoad.X;
+            state.PlayerY = oldRoad.Y;
+            InvokePrivate(game, "Descend");
+            boneRoad = state.Map.FindObjectById(boneRoadPassageId);
+            state.PlayerX = boneRoad.X;
+            state.PlayerY = boneRoad.Y;
+            InvokePrivate(game, "Descend");
+            glassRoad = state.Map.FindObjectById(glassRoadPassageId);
+            string completedGlassRoadHint = InvokePrivate<string>(game, "ObjectHint", glassRoad) ?? "";
+            Assert(completedGlassRoadHint.IndexOf("revisit", StringComparison.OrdinalIgnoreCase) >= 0
+                && completedGlassRoadHint.IndexOf("Red Gate", StringComparison.OrdinalIgnoreCase) >= 0,
+                "the completed Glass Road hint points to the revisitable Chapter V country instead of the retired depth-five boundary");
+            state.PlayerX = glassRoad.X;
+            state.PlayerY = glassRoad.Y;
+            Assert(InvokePrivate<bool>(game, "CanDescend"),
+                "a completed company may revisit the secured Glass-and-Ash map through the same exact passage");
+            InvokePrivate(game, "Descend");
+            Assert(state.Depth == 4
+                && state.Supplies == settledSupplies
+                && PartyProgressionSignature(state) == settledProgression
+                && !state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs),
+                "Chapter IV re-entry duplicates no progression and exposes no generic Chapter V stair");
+            MapObject lockedFarSeal = state.Map.FindObjectById(redGateObjectId);
+            int goldBeforeLockedSeal = state.Gold;
+            int inventoryBeforeLockedSeal = state.Inventory.Count;
+            string storyBeforeLockedSeal = state.ActiveStory;
+            InvokePrivate(game, "ResolveExploreObject", lockedFarSeal);
+            Assert(state.Depth == 4
+                && state.Mode == GameMode.Explore
+                && !state.StoryFlags.Contains(StoryFlags.RedGateAssaultAccepted)
+                && state.Gold == goldBeforeLockedSeal
+                && state.Supplies == settledSupplies
+                && state.Inventory.Count == inventoryBeforeLockedSeal
+                && state.ActiveStory == storyBeforeLockedSeal
+                && PartyProgressionSignature(state) == settledProgression,
+                "the far seal remains a mutation-free contract boundary until Yara's Red Gate plan is accepted");
+
+            AssertRedGateStoryFlow(game, state);
+            AssertAdvancedFullPrototypeRecallPreservesStory(game, state);
+        }
+
+        private static void AssertRedGateStoryFlow(AshenHallsGame game, GameState state)
+        {
+            const string oldRoadPassageId = "old-road-descent-sluice-steps";
+            const string boneRoadPassageId = "bone-road-passage-varkh-hall";
+            const string glassRoadPassageId = "glass-and-ash-passage-red-gate";
+            const string redGateObjectId = "regional-site:red-gate-seal";
+            const string gloamCryptObjectId = "regional-site:gloam-deep-crypt";
+            const string saltCisternObjectId = "regional-site:salt-cistern-gate";
+            const string warbladeName = "+6 crownward emberglass warblade";
+
+            InvokePrivate(game, "RecallToTempleSquare");
+            Assert(state.Depth == 1
+                && state.StoryFlags.Contains(StoryFlags.GlassAndAshDebriefed)
+                && !state.StoryFlags.Contains(StoryFlags.RedGateAssaultAccepted),
+                "a debriefed Chapter IV company returns to Midgaard before Chapter V is accepted");
+            string yaraTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") ?? "";
+            Assert(yaraTarget.IndexOf("Yara", StringComparison.OrdinalIgnoreCase) >= 0
+                || yaraTarget.IndexOf("Old Road Scout", StringComparison.OrdinalIgnoreCase) >= 0
+                || yaraTarget.IndexOf("Town Hall storm doors", StringComparison.OrdinalIgnoreCase) >= 0,
+                "the copied Emberglass key routes the party to Yara's reviewed Red Gate plan");
+
+            string progressionBeforeBriefing = PartyProgressionSignature(state);
+            InvokePrivate(game, "ShowYaraConversation");
+            InvokePrivate(game, "LateUpdate");
+            DialogueScreen dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
+            DialogueChoiceView[] choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            Assert(dialogue != null
+                && choices.Length == 3
+                && choices[0].Id == "redgateplan"
+                && choices[0].Primary,
+                "Yara presents the Red Gate plan as the clear next campaign choice");
+
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            string briefing = GetPrivateField<string>(game, "dialogueBody") ?? "";
+            Assert(dialogue.VisibleChoiceCountForTest == 2
+                && choices.Length == 2
+                && choices[0].Id == "accept_red_gate"
+                && choices[0].Primary
+                && briefing.IndexOf("Gloam Deep Crypt", StringComparison.OrdinalIgnoreCase) >= 0
+                && briefing.IndexOf("Salt Cistern Gate", StringComparison.OrdinalIgnoreCase) >= 0
+                && briefing.IndexOf("recall", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Yara's Red Gate review names the ordered sites and retreat boundary before campaign mutation");
+            Assert(!state.StoryFlags.Contains(StoryFlags.RedGateAssaultAccepted)
+                && PartyProgressionSignature(state) == progressionBeforeBriefing,
+                "opening the Red Gate review changes no story or party progression");
+
+            dialogue.InvokeChoiceForTest(1);
+            InvokePrivate(game, "LateUpdate");
+            Assert(!state.StoryFlags.Contains(StoryFlags.RedGateAssaultAccepted)
+                && GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices").Length == 3,
+                "backing out of the Red Gate review returns to Yara without accepting Chapter V");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            dialogue.InvokeChoiceForTest(0);
+            InvokePrivate(game, "LateUpdate");
+            Assert(state.StoryFlags.Contains(StoryFlags.RedGateAssaultAccepted)
+                && (state.ActiveStory ?? "").IndexOf("Chapter V", StringComparison.OrdinalIgnoreCase) >= 0
+                && PartyProgressionSignature(state) != progressionBeforeBriefing,
+                "explicit acceptance opens The Red Gate and awards its one-time briefing experience");
+            InvokePrivate(game, "CloseDialogue");
+            InvokePrivate(game, "LateUpdate");
+
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Eastbound Old Road",
+                "accepted Chapter V guidance begins on Midgaard's named eastbound Old Road");
+            MapObject oldRoad = state.Map.FindObjectById(oldRoadPassageId);
+            state.PlayerX = oldRoad.X;
+            state.PlayerY = oldRoad.Y;
+            InvokePrivate(game, "Descend");
+            MapObject boneRoad = state.Map.FindObjectById(boneRoadPassageId);
+            Assert(state.Depth == 2 && boneRoad != null,
+                "the Red Gate assault reuses the stable Chapter II road passage");
+            state.PlayerX = boneRoad.X;
+            state.PlayerY = boneRoad.Y;
+            InvokePrivate(game, "Descend");
+            MapObject glassRoad = state.Map.FindObjectById(glassRoadPassageId);
+            Assert(state.Depth == 3 && glassRoad != null,
+                "the Red Gate assault regains the surveyed Glass Road on the Bone Road");
+            state.PlayerX = glassRoad.X;
+            state.PlayerY = glassRoad.Y;
+            InvokePrivate(game, "Descend");
+            MapObject farSeal = state.Map.FindObjectById(redGateObjectId);
+            Assert(state.Depth == 4
+                && farSeal != null
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Red Gate Seal"
+                && !state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs),
+                "Chapter V returns through authored Chapter IV and targets the far seal without creating a generic stair");
+
+            int suppliesBeforeFirstEntry = state.Supplies;
+            string progressionBeforeFirstEntry = PartyProgressionSignature(state);
+            InvokePrivate(game, "ResolveExploreObject", farSeal);
+            Assert(state.Depth == 5
+                && state.Map != null
+                && state.Map.Depth == 5
+                && state.StoryFlags.Contains(StoryFlags.RedGateEntered)
+                && state.Supplies == suppliesBeforeFirstEntry + 2
+                && PartyProgressionSignature(state) != progressionBeforeFirstEntry,
+                "the exact far seal enters authored Chapter V and grants first-arrival progression once");
+            Assert(state.RoamingThreats.Count(threat => threat != null && threat.Depth == 5) == 3
+                && state.RoamingThreats.Where(threat => threat != null && threat.Depth == 5).All(threat => threat.Active),
+                "The Red Gate arrives with exactly three live production patrol bands");
+            Assert(!state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs)
+                && !InvokePrivate<bool>(game, "CanDescend"),
+                "Chapter V exposes no generic stair or accidental final-chapter route");
+
+            MapObject innerGate = state.Map.FindObjectById(redGateObjectId);
+            MapObject gloamCrypt = state.Map.FindObjectById(gloamCryptObjectId);
+            MapObject saltCistern = state.Map.FindObjectById(saltCisternObjectId);
+            Assert(innerGate != null
+                && gloamCrypt != null
+                && saltCistern != null
+                && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Red Gate Seal",
+                "first Chapter V guidance targets the inner gate while preserving both later authored sites");
+
+            InvokePrivate(game, "ResolveExploreObject", gloamCrypt);
+            Assert(state.Mode == GameMode.Explore
+                && !state.StoryFlags.Contains(StoryFlags.OssuaryRoadSealRecovered),
+                "Gloam Deep cannot skip the missing crownward tally or start its encounter early");
+
+            InvokePrivate(game, "ResolveExploreObject", innerGate);
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "red-gate-vanguard",
+                "first inner-gate interaction opens the authored cinder vanguard");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            InvokePrivate(game, "ResolveExploreObject", innerGate);
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "red-gate-vanguard",
+                "retreating from the vanguard leaves its exact encounter available for retry");
+            InvokePrivate(game, "ApplyRedGateStoryVictory", "red-gate-vanguard");
+            Assert(state.StoryFlags.Contains(StoryFlags.RedGateVanguardDefeated)
+                && !state.StoryFlags.Contains(StoryFlags.OssuaryRoadSealRecovered),
+                "vanguard victory advances only to the ossuary road-seal step");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Gloam Deep Crypt",
+                "the recovered tally advances guidance to the exact Gloam Deep Crypt");
+
+            InvokePrivate(game, "ResolveExploreObject", saltCistern);
+            Assert(state.Mode == GameMode.Explore
+                && !state.StoryFlags.Contains(StoryFlags.CrownroadMarshalDefeated),
+                "Salt Cistern Gate cannot skip the missing ossuary road seal");
+
+            int suppliesBeforeSeal = state.Supplies;
+            InvokePrivate(game, "ResolveExploreObject", gloamCrypt);
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "ossuary-road-seal",
+                "the recovered tally opens the distinct Ossuary Road Seal encounter");
+            InvokePrivate(game, "ApplyRedGateStoryVictory", "ossuary-road-seal");
+            Assert(state.StoryFlags.Contains(StoryFlags.OssuaryRoadSealRecovered)
+                && state.Supplies == suppliesBeforeSeal + 1,
+                "Ossuary victory records the true-road seal and its one-time field supply");
+            InvokePrivate(game, "ApplyRedGateStoryVictory", "ossuary-road-seal");
+            Assert(state.Supplies == suppliesBeforeSeal + 1,
+                "replaying the Ossuary callback cannot duplicate its supply reward");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Salt Cistern Gate",
+                "the recovered road seal advances guidance to the exact Salt Cistern threshold");
+
+            int warbladesBefore = state.Inventory.Count(item => item != null && item.DisplayName == warbladeName);
+            int suppliesBeforeMarshal = state.Supplies;
+            InvokePrivate(game, "ResolveExploreObject", saltCistern);
+            CombatUnit marshal = state.Combat?.Units?.FirstOrDefault(unit => unit != null
+                && unit.Side == UnitSide.Enemy
+                && unit.Role == "lesserdemon");
+            Assert(state.Mode == GameMode.Combat
+                && state.Combat?.EncounterStyle == "crownroad-marshal-boss"
+                && marshal?.Name == "Marshal of the Crownroad",
+                "the ossuary seal opens the named Crownroad Marshal instead of the prototype final boss");
+            InvokePrivate(game, "ApplyRedGateStoryVictory", "crownroad-marshal-boss");
+            Assert(state.StoryFlags.Contains(StoryFlags.CrownroadMarshalDefeated)
+                && !ContentSetCatalog.RedGateComplete(state.StoryFlags)
+                && state.Inventory.Count(item => item != null && item.DisplayName == warbladeName) == warbladesBefore + 1
+                && state.Supplies == suppliesBeforeMarshal + 2
+                && (state.ActiveStory ?? "").IndexOf("Inspect", StringComparison.OrdinalIgnoreCase) >= 0,
+                "marshal victory grants the unique warblade and leaves the threshold survey explicit");
+            InvokePrivate(game, "ApplyRedGateStoryVictory", "crownroad-marshal-boss");
+            Assert(state.Inventory.Count(item => item != null && item.DisplayName == warbladeName) == warbladesBefore + 1
+                && state.Supplies == suppliesBeforeMarshal + 2,
+                "replaying the marshal callback cannot duplicate its unique reward");
+            state.Mode = GameMode.Explore;
+            state.Combat = null;
+            InvokePrivate(game, "InvalidateCombatController");
+            InvokePrivate(game, "DismissLootPopup");
+            InvokePrivate(game, "LateUpdate");
+
+            InvokePrivate(game, "ResolveExploreObject", saltCistern);
+            Assert(ContentSetCatalog.RedGateComplete(state.StoryFlags)
+                && state.StoryFlags.Contains(StoryFlags.MeteorCrownThresholdSurveyed)
+                && state.StoryChapter == 6
+                && (state.ActiveStory ?? "").IndexOf("Chapter V complete", StringComparison.OrdinalIgnoreCase) >= 0,
+                "surveying the post-marshal threshold completes Chapter V without entering Chapter VI");
+            IReadOnlyList<ArmoryRowView> completedJournal = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryJournalRows");
+            Assert(completedJournal.Count(row => row.Title.StartsWith("The Red Gate - ", StringComparison.Ordinal)) == 5
+                && completedJournal.Where(row => row.Title.StartsWith("The Red Gate - ", StringComparison.Ordinal))
+                    .All(row => row.Subtitle == "done"),
+                "the production Journal records all five Red Gate beats as complete");
+            Assert(!state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs)
+                && !InvokePrivate<bool>(game, "CanDescend")
+                && state.Mode == GameMode.Explore,
+                "the surveyed threshold cannot leak into the unfinished final chapter");
+
+            int settledSupplies = state.Supplies;
+            string settledProgression = PartyProgressionSignature(state);
+            InvokePrivate(game, "RecallToTempleSquare");
+            string completedTarget = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") ?? "";
+            Assert(state.Depth == 1
+                && !state.StoryFlags.Contains(StoryFlags.RedGateDebriefed)
+                && (completedTarget.IndexOf("Yara", StringComparison.OrdinalIgnoreCase) >= 0
+                    || completedTarget.IndexOf("Old Road Scout", StringComparison.OrdinalIgnoreCase) >= 0
+                    || completedTarget.IndexOf("Town Hall storm doors", StringComparison.OrdinalIgnoreCase) >= 0),
+                "Chapter V recall routes the marshal's road seal to Yara");
+
+            InvokePrivate(game, "ShowYaraConversation");
+            InvokePrivate(game, "LateUpdate");
+            Assert(state.StoryFlags.Contains(StoryFlags.RedGateDebriefed)
+                && (state.ActiveStory ?? "").IndexOf("final descent remains sealed", StringComparison.OrdinalIgnoreCase) >= 0
+                && (GetPrivateField<string>(game, "dialogueBody") ?? "").IndexOf("final road", StringComparison.OrdinalIgnoreCase) >= 0,
+                "Yara's first post-threshold conversation closes Chapter V durably and states the honest final boundary");
             InvokePrivate(game, "CloseDialogue");
             InvokePrivate(game, "LateUpdate");
 
@@ -2649,16 +3264,15 @@ namespace AshenHalls.Editor
             glassRoad = state.Map.FindObjectById(glassRoadPassageId);
             state.PlayerX = glassRoad.X;
             state.PlayerY = glassRoad.Y;
-            Assert(InvokePrivate<bool>(game, "CanDescend"),
-                "a completed company may revisit the secured Glass-and-Ash map through the same exact passage");
             InvokePrivate(game, "Descend");
-            Assert(state.Depth == 4
+            farSeal = state.Map.FindObjectById(redGateObjectId);
+            InvokePrivate(game, "ResolveExploreObject", farSeal);
+            Assert(state.Depth == 5
                 && state.Supplies == settledSupplies
                 && PartyProgressionSignature(state) == settledProgression
-                && !state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs),
-                "Chapter IV re-entry duplicates no progression and still exposes no Chapter V stair");
-
-            AssertAdvancedFullPrototypeRecallPreservesStory(game, state);
+                && !state.Map.Objects.Any(obj => obj != null && obj.Type == ObjectType.Stairs)
+                && !InvokePrivate<bool>(game, "CanDescend"),
+                "Chapter V re-entry duplicates no progression and still exposes no Chapter VI route");
         }
 
         private static void AssertAdvancedFullPrototypeRecallPreservesStory(AshenHallsGame game, GameState productionState)
@@ -2726,6 +3340,81 @@ namespace AshenHalls.Editor
                 ? ""
                 : string.Join("|", state.Party.Select(member =>
                     $"{member.Id}:{member.Level}:{member.Experience}:{member.SkillPoints}:{member.StatPoints}"));
+        }
+
+        private static void AssertLegacyRegionalSitePresentationGuards(AshenHallsGame game, GameState state)
+        {
+            MapData originalMap = state.Map;
+            int originalDepth = state.Depth;
+            int originalPlayerX = state.PlayerX;
+            int originalPlayerY = state.PlayerY;
+            BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            MethodInfo siteAtMethod = typeof(AshenHallsGame).GetMethod("TryRegionalSiteAt", flags);
+            MethodInfo storySiteMethod = typeof(AshenHallsGame).GetMethod("TryStoryRegionalSite", flags);
+            Assert(siteAtMethod != null && storySiteMethod != null,
+                "legacy regional-site presentation and story probes remain available");
+
+            try
+            {
+                Vector2Int[] legacySizes =
+                {
+                    new Vector2Int(WorldMapGenerationRules.LegacyWidth, WorldMapGenerationRules.LegacyHeight),
+                    new Vector2Int(WorldMapGenerationRules.PreviousWidth, WorldMapGenerationRules.PreviousHeight)
+                };
+                foreach (Vector2Int size in legacySizes)
+                {
+                    int startX = WorldMapGenerationRules.StartX(size.x);
+                    int startY = WorldMapGenerationRules.StartY(size.y);
+                    MapData map = new MapData
+                    {
+                        Width = size.x,
+                        Height = size.y,
+                        Depth = 3,
+                        StartX = startX,
+                        StartY = startY,
+                        Objects = new List<MapObject>()
+                    };
+                    WorldMapSite projectedSite = WorldMapGenerationRules.RegionalSites(
+                            size.x,
+                            size.y,
+                            startX,
+                            startY)
+                        .Single(candidate => candidate.Id == WorldSitePresentationRules.GloamDeepCrypt);
+
+                    Assert(!InvokePrivate<bool>(game, "UsesRegionalSiteLayout", map),
+                        $"{size.x}x{size.y} saves do not advertise the v1.69 authored regional layout");
+                    object[] siteAtArgs = { map, projectedSite.X, projectedSite.Y, default(WorldMapSite) };
+                    bool presentedAsSite = (bool)siteAtMethod.Invoke(game, siteAtArgs);
+                    Assert(!presentedAsSite,
+                        $"{size.x}x{size.y} saves do not gain a phantom current-site label at projected regional coordinates");
+
+                    if (size.x != WorldMapGenerationRules.PreviousWidth
+                        || size.y != WorldMapGenerationRules.PreviousHeight)
+                    {
+                        continue;
+                    }
+
+                    state.Map = map;
+                    state.Depth = map.Depth;
+                    state.PlayerX = projectedSite.X;
+                    state.PlayerY = projectedSite.Y;
+                    object[] storySiteArgs = { projectedSite.Id, default(WorldMapSite) };
+                    bool foundStorySite = (bool)storySiteMethod.Invoke(game, storySiteArgs);
+                    WorldMapSite storySite = (WorldMapSite)storySiteArgs[1];
+                    Assert(foundStorySite
+                        && storySite.Id == projectedSite.Id
+                        && storySite.X == projectedSite.X
+                        && storySite.Y == projectedSite.Y,
+                        "previous-size 50x32 saves retain their deterministic story anchor while presentation-only site labels stay suppressed");
+                }
+            }
+            finally
+            {
+                state.Map = originalMap;
+                state.Depth = originalDepth;
+                state.PlayerX = originalPlayerX;
+                state.PlayerY = originalPlayerY;
+            }
         }
 
         private static void AssertLegacyKoboldCaveMigration(AshenHallsGame game, GameState state)
@@ -2937,6 +3626,10 @@ namespace AshenHalls.Editor
             Texture2D demonSummonIcons = GetPrivateField<Texture2D>(game, "demonSummonAtlas");
             Texture2D powerBookStateIcons = GetPrivateField<Texture2D>(game, "powerBookStateIconAtlas");
             Texture2D combatCommandIcons = GetPrivateField<Texture2D>(game, "combatCommandIconAtlas");
+            Texture2D mageWarlockSpellVfx = GetPrivateField<Texture2D>(game, "mageWarlockSpellVfxAtlas");
+            Texture2D supportHexSpellVfx = GetPrivateField<Texture2D>(game, "supportHexSpellVfxAtlas");
+            Texture2D classSkillVfx = GetPrivateField<Texture2D>(game, "classSkillVfxAtlas");
+            Texture2D combatPowerTravelVfx = GetPrivateField<Texture2D>(game, "combatPowerTravelVfxAtlas");
             Assert(combatTerrain != null && InvokePrivate<bool>(game, "IsCombatTerrainAtlas"), "combat terrain atlas passes the production guard for authored hazards");
             Assert(koboldCombatTerrain != null && InvokePrivate<bool>(game, "IsKoboldCombatTerrainAtlas"), "semantic field atlas passes the production guard for gas, wards, and rituals");
             Assert(biomeProps != null && InvokePrivate<bool>(game, "IsWorldMapBiomePropAtlas"), "transparent biome prop atlas passes the production guard for combat cover");
@@ -2957,6 +3650,30 @@ namespace AshenHalls.Editor
             Assert(combatCommandIcons != null
                 && CombatIconCatalog.IsCombatCommandAtlasDimensions(combatCommandIcons.width, combatCommandIcons.height),
                 "combat command atlas preserves the exact 5x4 integer-cell contract");
+            Assert(mageWarlockSpellVfx != null
+                && mageWarlockSpellVfx.name == RuntimeArtManifest.MageWarlockSpellVfxAtlas
+                && mageWarlockSpellVfx.width == 1254
+                && mageWarlockSpellVfx.height == 1254
+                && InvokePrivate<bool>(game, "IsMageWarlockSpellVfxAtlas"),
+                "runtime loads the pinned square 4x4 mage and warlock spell VFX atlas through its production guard");
+            Assert(supportHexSpellVfx != null
+                && supportHexSpellVfx.name == RuntimeArtManifest.SupportHexSpellVfxAtlas
+                && supportHexSpellVfx.width == 1254
+                && supportHexSpellVfx.height == 1254
+                && InvokePrivate<bool>(game, "IsSupportHexSpellVfxAtlas"),
+                "runtime loads the pinned square 4x4 support and hex spell VFX atlas through its production guard");
+            Assert(classSkillVfx != null
+                && classSkillVfx.name == RuntimeArtManifest.ClassSkillVfxAtlas
+                && classSkillVfx.width == 1254
+                && classSkillVfx.height == 1254
+                && InvokePrivate<bool>(game, "IsClassSkillVfxAtlas"),
+                "runtime loads the pinned square 4x4 class-skill VFX atlas through its production guard");
+            Assert(combatPowerTravelVfx != null
+                && combatPowerTravelVfx.name == RuntimeArtManifest.CombatPowerTravelVfxAtlas
+                && combatPowerTravelVfx.width == 1280
+                && combatPowerTravelVfx.height == 1280
+                && InvokePrivate<bool>(game, "IsCombatPowerTravelVfxAtlas"),
+                "runtime loads the pinned 1280x1280 combat-power travel VFX atlas through its production guard");
             Assert(InvokePrivate<int>(game, "CombatCoverBiomePropIndex", "tree") == 0, "combat tree cover resolves transparent authored world art");
             Assert(InvokePrivate<int>(game, "CombatCoverBiomePropIndex", "stone") == 8, "combat stone cover resolves transparent authored rock art");
             Point gasProbe = new Point(0, 0, "gas", 3);
@@ -2978,6 +3695,13 @@ namespace AshenHalls.Editor
                 && hudView.MoveLabel == $"MOVE\n{hudView.MovePoints} / {hudView.MovePointsMaximum}", "combat header exposes current and maximum movement");
             Assert(hudView.ActionReady == combatState.Combat.ActionAvailable
                 && hudView.ActionLabel == "ACTION\nREADY", "combat header exposes the live action state");
+            int livingEnemies = combatState.Combat.Units.Count(unit => unit != null && unit.Side == UnitSide.Enemy && unit.Hp > 0);
+            int livingParty = combatState.Combat.Units.Count(unit => unit != null && unit.Side == UnitSide.Party && unit.Hp > 0);
+            Assert(hudView.LivingEnemyCount == livingEnemies
+                && hudView.LivingPartyCount == livingParty
+                && hudView.ObjectiveLine.Contains($"Defeat {livingEnemies}")
+                && !string.IsNullOrWhiteSpace(hudView.Title),
+                "combat header identifies the encounter and publishes the live victory objective");
             Assert(!string.IsNullOrWhiteSpace(hudView.CommandPrompt), "production combat model exposes one canonical command prompt");
             Assert(hudView.PhaseLine.StartsWith("YOUR TURN", StringComparison.Ordinal), "player initiative is announced as the primary combat phase cue");
             Assert(hudView.ActiveUnit != null
@@ -2985,15 +3709,11 @@ namespace AshenHalls.Editor
                 && hudView.ActiveUnit.PortraitSource.width > 1f
                 && hudView.ActiveUnit.PortraitSource.height > 1f,
                 "active combatant view resolves authored portrait geometry");
-            Assert(hudView.TargetUnit != null
-                && hudView.TargetUnit.PortraitTexture != null
-                && hudView.TargetUnit.PortraitSource.width > 1f
-                && hudView.TargetUnit.PortraitSource.height > 1f,
-                "target combatant view resolves authored portrait geometry");
             Assert(hudView.ActiveUnit == null || hudView.ActiveUnit.StatusLine != "steady", "empty combat conditions use player-facing copy");
             Assert(hudView.ActiveUnit != null
-                && hudView.ActiveUnit.StateLine.Contains("MOVE")
-                && hudView.ActiveUnit.StateLine.Contains("ACTION READY"), "active combatant card exposes movement and action economy at a glance");
+                && hudView.ActiveUnit.StateLine.Contains("DMG")
+                && hudView.ActiveUnit.StateLine.Contains("DEF")
+                && hudView.ActiveUnit.StateLine.Contains("SPD"), "active combatant card uses its limited space for combat stats instead of repeating the top ribbon");
             Assert(hudView.ActiveUnit.StatusLine.Contains(InvokePrivate<string>(game, "ActiveThreatSummary", active)), "active combatant card includes the authoritative incoming-threat summary");
             int currentDirectThreats = InvokePrivate<int>(game, "DirectThreatCount", active);
             int currentPressureThreats = Math.Max(0, InvokePrivate<int>(game, "PressureThreatCount", active) - currentDirectThreats);
@@ -3022,26 +3742,29 @@ namespace AshenHalls.Editor
             Assert(!string.IsNullOrWhiteSpace(hudView.TargetTitle) && hudView.TargetTitle != "Target", "combat side card names inspection or targeting context");
             Rect targetSourceBoardRect = GetPrivateField<Rect>(game, "boardRect");
             Vector2Int? targetSourceSmokeHover = GetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell");
+            ActionMode targetSourceAction = GetPrivateField<ActionMode>(game, "selectedAction");
             SetPrivateField(game, "boardRect", Rect.zero);
             SetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell", null);
-            CombatHudView nearestTargetView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
-            CombatUnit nearestTarget = InvokePrivate<CombatUnit>(game, "CombatHudTarget", active);
-            Assert(nearestTarget != null
-                && nearestTargetView.TargetUnit != null
-                && nearestTargetView.TargetUnit.Name == nearestTarget.Name
-                && nearestTargetView.TargetSourceLabel == "NEAREST",
-                "combat target rail identifies its automatic nearest-enemy source");
+            SetPrivateField(game, "selectedAction", ActionMode.Move);
+            CombatHudView idleTargetView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            Assert(idleTargetView.TargetUnit == null && idleTargetView.TargetSourceLabel == "NONE",
+                "idle combat target rail stays neutral instead of presenting an irrelevant enemy warning");
+            CombatUnit inspectionTarget = combatState.Combat.Units.First(unit => unit != null && unit.Side == UnitSide.Enemy && unit.Hp > 0);
             SetPrivateField<Vector2Int?>(
                 game,
                 "visualSmokeCombatHoverCell",
-                new Vector2Int(nearestTarget.X, nearestTarget.Y));
+                new Vector2Int(inspectionTarget.X, inspectionTarget.Y));
             CombatHudView hoveredTargetView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
             Assert(hoveredTargetView.TargetUnit != null
-                && hoveredTargetView.TargetUnit.Name == nearestTarget.Name
+                && hoveredTargetView.TargetUnit.Name == inspectionTarget.Name
+                && hoveredTargetView.TargetUnit.PortraitTexture != null
+                && hoveredTargetView.TargetUnit.PortraitSource.width > 1f
+                && hoveredTargetView.TargetUnit.PortraitSource.height > 1f
                 && hoveredTargetView.TargetSourceLabel == "HOVER",
-                "combat target rail identifies direct board hover without changing the target model");
+                "combat target rail resolves authored detail only from direct board inspection");
             SetPrivateField(game, "boardRect", targetSourceBoardRect);
             SetPrivateField(game, "visualSmokeCombatHoverCell", targetSourceSmokeHover);
+            SetPrivateField(game, "selectedAction", targetSourceAction);
             string originalEncounterStyle = combatState.Combat.EncounterStyle;
             int originalRound = combatState.Combat.Round;
             combatState.Combat.EncounterStyle = "sewer_broken_sluice";
@@ -3119,10 +3842,10 @@ namespace AshenHalls.Editor
                 && hud.MoveLabelForTest.StartsWith("MOVE", StringComparison.Ordinal)
                 && hud.ActionLabelForTest.StartsWith("ACTION", StringComparison.Ordinal), "rendered top stats contain only combat decision labels");
             Assert(hud.ActivePortraitVisibleForTest
-                && hud.TargetPortraitVisibleForTest
                 && hud.ActiveCardTitleForTest == "ACTIVE UNIT"
-                && !string.IsNullOrWhiteSpace(hud.TargetCardTitleForTest),
-                "rendered combat rail loads active and target portraits with explicit source titles");
+                && !string.IsNullOrWhiteSpace(hud.TargetCardTitleForTest)
+                && hud.MenuVisibleForTest,
+                "rendered combat rail keeps the active portrait, inspect context, and Menu entry visible");
             Assert(hud.VisibleTurnChipCountForTest == 6, "rendered initiative rail exposes six distinct turn chips");
             Assert(hud.CommandCapacityForTest == hudView.Commands.Count, "combat command rendering capacity follows the model count");
             Assert(hudView.Commands.All(command => hud.CommandInputSelectableForTest(command.Mode)),
@@ -3421,6 +4144,41 @@ namespace AshenHalls.Editor
             Assert(!InvokePrivate<CombatHudView>(game, "BuildCombatHudView").CanUndoMove && !hud.IsUndoMoveVisible, "Undo Move hides again at the restored origin");
 
             InvokePrivate(game, "PromoteMageTester", active);
+            active = InvokePrivate<CombatUnit>(game, "CurrentUnit");
+            moveOriginX = active.X;
+            moveOriginY = active.Y;
+            moveOriginPoints = combatState.Combat.MovePoints;
+            undoCandidates = new[]
+            {
+                new Vector2Int(moveOriginX + 1, moveOriginY),
+                new Vector2Int(moveOriginX, moveOriginY + 1),
+                new Vector2Int(moveOriginX - 1, moveOriginY),
+                new Vector2Int(moveOriginX, moveOriginY - 1)
+            };
+            undoDestination = undoCandidates
+                .Where(candidate => InvokePrivate<bool>(game, "CanStandAt", candidate.x, candidate.y))
+                .Select(candidate => (Vector2Int?)candidate)
+                .FirstOrDefault();
+            Assert(undoDestination.HasValue, "Beta Lab Mage tester has an adjacent undo destination");
+            string mageTesterId = active.Id;
+            string[] mageFormulaCodes = InvokePrivate<IEnumerable<FormulaDef>>(game, "KnownFormulasFor", active)
+                .Select(formula => formula.Code)
+                .ToArray();
+            Assert(active.Side == UnitSide.Party
+                && active.ClassKey == "mage"
+                && active.Role == "ember"
+                && active.Spell == "ember"
+                && active.Level == ProgressionRules.MaximumLevel,
+                "Beta Lab Mage preset activates a dedicated maximum-level ember tester");
+            Assert(new[] { "FBL", "MTR", "VST", "AST" }.All(mageFormulaCodes.Contains),
+                "Beta Lab Mage preset exposes Fireball, Meteor Shower, Thunder Step, and Arcane Tempest");
+            Assert(combatState.Combat.ActiveId == active.Id
+                && combatState.Combat.Phase == CombatPhase.ChooseAction
+                && combatState.Combat.ActionAvailable
+                && GetPrivateField<ActionMode>(game, "selectedAction") == ActionMode.Cast
+                && !GetPrivateField<bool>(game, "combatAdvancePending")
+                && GetPrivateField<float>(game, "aiActAt") < 0f,
+                "Beta Lab Mage takeover begins a valid player casting turn with no queued enemy resolution");
             CombatHudView focusedHudView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
             Assert(focusedHudView.ActiveUnit != null && focusedHudView.ActiveUnit.StateLine.Contains("FOCUS"), "combat HUD exposes the unmoved caster focus benefit");
             Assert(focusedHudView.Commands[2].Label == "Spells" && focusedHudView.Commands[2].SubLabel == "Choose spell", "selected caster command clearly leads into spell choice");
@@ -3842,6 +4600,8 @@ namespace AshenHalls.Editor
             stagedFloats.Clear();
             List<BeamEffect> stagedBeams = GetPrivateField<List<BeamEffect>>(game, "beams");
             stagedBeams.Clear();
+            List<PowerTravelVfx> stagedPowerTravel = GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx");
+            stagedPowerTravel.Clear();
             List<PowerImpactEcho> impactEchoes = GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes");
             impactEchoes.Clear();
             List<PowerCastAura> castAuras = GetPrivateField<List<PowerCastAura>>(game, "powerCastAuras");
@@ -3870,7 +4630,8 @@ namespace AshenHalls.Editor
                 "servicecoin", "servicearmor", "serviceweapon", "serviceenchant",
                 "riftpounce", "riftpounceimpact", "abyssalwhirl", "abyssalwhirlimpact",
                 "soulrend", "soulrendimpact", "dreadroar", "dreadroarimpact",
-                "swing", "swingheavy", "thrust", "arrowrelease", "bladecontact", "thrustcontact", "heavycontact", "arrowcontact", "woodcontact", "stonecontact", "spellrelease", "wayfind"
+                "swing", "swingheavy", "thrust", "arrowrelease", "spell", "fire", "bladecontact", "thrustcontact", "heavycontact", "arrowcontact", "woodcontact", "stonecontact", "spellrelease", "wayfind",
+                "combatstep", "combatguard", "combatturn", "combatcrit", "combatambsteel", "combatambsewer", "combatambarcane"
             };
             Assert(newAudioCues.All(key => soundClips.ContainsKey(key) && soundClips[key] != null), "expanded spell, field, exploration, and dialogue audio clips build at runtime");
             Assert(GetPrivateField<AudioSource>(game, "musicFadeSource") != null, "music owns a second source for zone and combat crossfades");
@@ -3881,6 +4642,53 @@ namespace AshenHalls.Editor
             SetPrivateField(game, "combatMusicDuckDepth", 0f);
             object scheduledSfx = GetPrivateField<object>(game, "scheduledSfx");
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
+            string originalCombatMusicBaseKey = GetPrivateField<string>(game, "combatMusicBaseKey");
+            CombatState originalCombatAmbienceEncounter = GetPrivateField<CombatState>(game, "combatAmbienceEncounter");
+            int originalCombatAmbienceSequence = GetPrivateField<int>(game, "combatAmbienceSequence");
+            float originalLastCombatForegroundSfxAt = GetPrivateField<float>(game, "lastCombatForegroundSfxAt");
+            float originalNextCombatAmbienceAt = GetPrivateField<float>(game, "nextCombatAmbienceAt");
+            string originalLastSfxKey = GetPrivateField<string>(game, "lastSfxKey");
+            bool originalSfxMuted = combatState.SfxMuted;
+            bool originalMusicMuted = combatState.MusicMuted;
+            bool originalShowPauseMenu = GetPrivateField<bool>(game, "showPauseMenu");
+            string originalLaunchError = GetPrivateField<string>(game, "launchError");
+            try
+            {
+                combatState.SfxMuted = false;
+                combatState.MusicMuted = false;
+                SetPrivateField(game, "showPauseMenu", false);
+                SetPrivateField(game, "launchError", "");
+                SetPrivateField(game, "combatMusicBaseKey", MusicDirectorRules.CombatSewer);
+                SetPrivateField(game, "combatAmbienceEncounter", combatState.Combat);
+                SetPrivateField(game, "combatAmbienceSequence", 0);
+                SetPrivateField(game, "lastCombatForegroundSfxAt", Time.time - 10f);
+                // Time.time is zero in editor smoke runs; zero is due now, while any negative value is the scheduler's uninitialized sentinel.
+                SetPrivateField(game, "nextCombatAmbienceAt", Mathf.Max(0f, Time.time));
+                SetPrivateField(game, "lastSfxKey", "");
+                Assert(!InvokePrivate<bool>(game, "IsStartupSplashVisible"), "combat ambience fixture clears the startup presentation gate");
+                Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") != UiOverlay.Pause, "combat ambience fixture clears the pause gate");
+                Assert(!combatState.SfxMuted
+                    && (int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) == 0
+                    && Math.Abs(GetPrivateField<float>(game, "combatMusicDuckDepth")) < 0.0001f
+                    && Time.time - GetPrivateField<float>(game, "lastCombatForegroundSfxAt") >= CombatAudioMixRules.CombatAmbienceForegroundQuietWindow,
+                    "combat ambience fixture clears mute, queue, duck, and foreground quiet-window gates");
+                InvokePrivate(game, "UpdateCombatAmbience");
+                Assert(GetPrivateField<string>(game, "lastSfxKey") == CombatAudioMixRules.SewerAmbienceCue, "live sewer combat dispatches its sparse location-aware ambience");
+                Assert(GetPrivateField<float>(game, "nextCombatAmbienceAt") > Time.time + 10f, "live combat ambience reschedules outside foreground attack tails");
+            }
+            finally
+            {
+                SetPrivateField(game, "combatMusicBaseKey", originalCombatMusicBaseKey);
+                SetPrivateField(game, "combatAmbienceEncounter", originalCombatAmbienceEncounter);
+                SetPrivateField(game, "combatAmbienceSequence", originalCombatAmbienceSequence);
+                SetPrivateField(game, "lastCombatForegroundSfxAt", originalLastCombatForegroundSfxAt);
+                SetPrivateField(game, "nextCombatAmbienceAt", originalNextCombatAmbienceAt);
+                SetPrivateField(game, "lastSfxKey", originalLastSfxKey);
+                combatState.SfxMuted = originalSfxMuted;
+                combatState.MusicMuted = originalMusicMuted;
+                SetPrivateField(game, "showPauseMenu", originalShowPauseMenu);
+                SetPrivateField(game, "launchError", originalLaunchError);
+            }
             InvokePrivate(
                 game,
                 "QueueSfx",
@@ -3934,6 +4742,7 @@ namespace AshenHalls.Editor
 
             stagedFloats.Clear();
             stagedBeams.Clear();
+            stagedPowerTravel.Clear();
             impactEchoes.Clear();
             castAuras.Clear();
             stagedGlyphs.Clear();
@@ -3945,10 +4754,23 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "FBL", spellTarget, spellTarget.X, spellTarget.Y), "Beta Lab Fireball resolves through production casting path");
             InvokePrivate(game, "SetCombatPowerOutcome", outcomeBefore);
             Assert(stagedFloats.Any(value => value.Start > castStarted + 0.04f), "Fireball damage feedback waits for impact timing");
-            Assert(stagedBeams.Any(value => value.Kind == "fireball" && value.Start <= castStarted + 0.04f), "Fireball projectile begins before impact feedback");
-            BeamEffect stagedFireball = stagedBeams.Last(value => value.Kind == "fireball");
+            PowerTravelVfx[] stagedFireballTravel = stagedPowerTravel
+                .Where(value => value.PowerKey == "FBL")
+                .ToArray();
+            Assert(stagedFireballTravel.Length == 1
+                && stagedFireballTravel[0].SourceX == active.X
+                && stagedFireballTravel[0].SourceY == active.Y
+                && stagedFireballTravel[0].TargetX == spellTarget.X
+                && stagedFireballTravel[0].TargetY == spellTarget.Y
+                && stagedFireballTravel[0].Start <= castStarted + 0.04f,
+                "Fireball stages exactly one source-to-target authored travel effect before impact feedback");
+            Assert(!stagedBeams.Any(value => value.Kind == "fireball"),
+                "Fireball no longer duplicates its authored travel with the legacy beam renderer");
+            PowerTravelVfx stagedFireball = stagedFireballTravel[0];
             CombatImpactProfile stagedFireballProfile = CombatImpactRules.ForFormula(fireball);
-            Assert(Math.Abs(stagedFireball.Duration - stagedFireballProfile.ImpactDelay) < 0.0001f, "Fireball projectile duration lands on the canonical impact beat");
+            Assert(Math.Abs(stagedFireball.Duration - stagedFireballProfile.ImpactDelay) < 0.0001f
+                && stagedFireball.StableSeed != 0,
+                "Fireball authored travel has a stable seed and lands on the canonical impact beat");
             float firstTargetFeedback = stagedFloats
                 .Where(value => value.X == spellTarget.X && value.Y == spellTarget.Y && value.Start >= castStarted)
                 .Min(value => value.Start);
@@ -3985,10 +4807,14 @@ namespace AshenHalls.Editor
                 "Fireball target sprite reaction lands on the canonical impact beat");
             List<ParticleDot> fireballParticles = stagedParticles;
             int expectedFireAftermath = CombatPowerVisualRules.AftermathParticleCount(CombatPowerVisualMotif.Fire, 3);
+            const int signatureFireballAftermath = 15;
             Assert(
-                fireballParticles.Count > 0 && fireballParticles.Count <= expectedFireAftermath,
-                $"Fireball keeps one bounded motif-specific aftermath layer ({fireballParticles.Count}/{expectedFireAftermath})");
-            Assert(fireballParticles.All(value => value.Kind == "ember"), "Fireball legacy smoke and burst stacks yield to one authored ember aftermath");
+                fireballParticles.Count > expectedFireAftermath
+                    && fireballParticles.Count <= expectedFireAftermath + signatureFireballAftermath,
+                $"Fireball layers one bounded signature smoke-and-ember tail over its motif aftermath ({fireballParticles.Count}/{expectedFireAftermath + signatureFireballAftermath})");
+            Assert(fireballParticles.Count(value => value.Kind == "smoke") == 7
+                && fireballParticles.Count(value => value.Kind == "ember") >= 8,
+                "Fireball leaves seven deterministic smoke wisps and a readable ballistic ember tail");
             Assert(stagedGlyphs.Count == 0 && stagedFlashes.Count == 0, "shared Fireball feedback suppresses legacy target glyph and tile-flash overlays");
             bool hasResonanceCue = false;
             for (int cueIndex = 0; cueIndex < scheduledSfxCount; cueIndex++)
@@ -4013,9 +4839,11 @@ namespace AshenHalls.Editor
             List<CellFlash> fieldFlashes = stagedFlashes;
             combatState.ReducedMotion = true;
             InvokePrivate(game, "ClearCombatMotionForReducedMotion");
-            Assert(stagedBeams.Count == 0 && impactEchoes.Count == 0 && castAuras.Count == 0 && fieldParticles.Count == 0 && fieldGlyphs.Count == 0, "enabling Reduced Motion clears queued combat travel and animated spectacle immediately");
+            Assert(stagedBeams.Count == 0 && stagedPowerTravel.Count == 0 && impactEchoes.Count == 0 && castAuras.Count == 0 && fieldParticles.Count == 0 && fieldGlyphs.Count == 0, "enabling Reduced Motion clears queued combat travel and animated spectacle immediately");
             Assert(fieldFlashes.Count == 1, "Reduced Motion preserves one compact target-local impact confirmation");
             Assert(Math.Abs(GetPrivateField<float>(game, "combatShakeMagnitude")) < 0.0001f, "Reduced Motion clears queued combat shake");
+            Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) == 0, "enabling Reduced Motion clears delayed layered combat cues immediately");
+            Assert(Math.Abs(GetPrivateField<float>(game, "combatMusicDuckDepth")) < 0.0001f, "enabling Reduced Motion releases any staged impact music duck");
             int reducedFlashCount = fieldFlashes.Count;
             int expectedReducedReactionCount = GetPrivateField<List<string>>(game, "combatPowerReactions").Count;
             Color reducedStampColor = new Color(0.92f, 0.31f, 0.18f, 1f);
@@ -4045,6 +4873,7 @@ namespace AshenHalls.Editor
                 0f);
             Assert(reducedStampArt.HasPrimary, "Reduced Motion static impact resolves one authored primary atlas stamp");
             Assert(stagedBeams.Count == 0
+                && stagedPowerTravel.Count == 0
                 && castAuras.Count == 0
                 && fieldParticles.Count == 0
                 && fieldGlyphs.Count == 0
@@ -4193,6 +5022,7 @@ namespace AshenHalls.Editor
             active.Mana = active.MaxMana;
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "VST", null, 5, 3), "Thunder Step resolves through the production formula path");
             Assert(active.X == 5 && active.Y == 3, "Thunder Step moves the caster to the chosen open tile");
+            Assert(combatState.Combat.MovePoints == 0 && combatState.Combat.Moved, "Thunder Step consumes ordinary movement after its relocation");
             Assert(spellTarget.Hp < thunderStepTargetHp, "Thunder Step shocks enemies beside its destination");
             Assert(stagedBeams.Any(value => value.Kind == "arc")
                 && stagedBeams.Any(value => value.Kind == "lightning"), "Thunder Step draws both its travel arc and arrival lightning");
@@ -4243,6 +5073,7 @@ namespace AshenHalls.Editor
             combatState.Combat.InitiativeQueue.Remove(ritualSpawn.Id);
 
             InvokePrivate(game, "PromoteWarlockTester", active);
+            active = InvokePrivate<CombatUnit>(game, "CurrentUnit");
             combatState.Combat.Obstacles.Clear();
             active.X = 1;
             active.Y = 1;
@@ -4259,6 +5090,7 @@ namespace AshenHalls.Editor
             stagedBeams.Clear();
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "VRS", null, 2, 3), "Rift Step resolves through the production pact formula path");
             Assert(active.X == 2 && active.Y == 3, "Rift Step moves the warlock to the chosen open tile");
+            Assert(combatState.Combat.MovePoints == 0 && combatState.Combat.Moved, "Rift Step consumes ordinary movement after its relocation");
             Assert(stagedBeams.Any(value => value.Kind == "arc"), "Rift Step stages a visible rift-travel arc");
 
             combatState.Combat.ActionAvailable = true;
@@ -4360,17 +5192,29 @@ namespace AshenHalls.Editor
 
             stagedFloats.Clear();
             stagedBeams.Clear();
+            stagedPowerTravel.Clear();
             impactEchoes.Clear();
             castAuras.Clear();
             combatState.Combat.Obstacles.Add(new Point(2, 3, "stone"));
             combatState.Combat.Obstacles.Add(new Point(3, 3, "stone"));
             combatState.Combat.Obstacles.Add(new Point(4, 3, "stone"));
             int pounceTargetHp = spellTarget.Hp;
+            int pounceSourceX = active.X;
+            int pounceSourceY = active.Y;
+            int pounceTargetX = spellTarget.X;
+            int pounceTargetY = spellTarget.Y;
             Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "riftpounce", spellTarget, spellTarget.X, spellTarget.Y), "Rift Pounce resolves through the shared targeted ability path");
             Assert(spellTarget.Hp < pounceTargetHp
                 && Math.Abs(active.X - spellTarget.X) + Math.Abs(active.Y - spellTarget.Y) == 1
                 && stagedBeams.Any(value => value.Kind == "arc"),
                 "Rift Pounce crosses blocked intervening tiles, lands beside its target, and deals death damage");
+            Assert(stagedPowerTravel.Count == 1
+                && stagedPowerTravel[0].PowerKey == "riftpounce"
+                && stagedPowerTravel[0].SourceX == pounceSourceX
+                && stagedPowerTravel[0].SourceY == pounceSourceY
+                && stagedPowerTravel[0].TargetX == pounceTargetX
+                && stagedPowerTravel[0].TargetY == pounceTargetY,
+                "Rift Pounce stages one exact source-to-target authored travel identity before relocating its actor");
 
             combatState.Combat.Obstacles.Clear();
             active.X = 5;
@@ -4632,7 +5476,7 @@ namespace AshenHalls.Editor
             SetPrivateField(game, "rng", new System.Random(1));
             Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "aimedshot", spellTarget, spellTarget.X, spellTarget.Y), "Aimed Shot resolves through the centralized martial presentation path");
             Assert(castAuras.Any(aura => aura.SourceX == active.X && aura.TargetX == spellTarget.X && aura.Kind == "aimedshot"), "Aimed Shot stages a caster-origin skill aura");
-            Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Kind == "bow"), "Aimed Shot receives the shared impact echo");
+            Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Kind == "aimedshot"), "Aimed Shot receives its authored ranger-atlas impact echo");
             Assert(stagedGlyphs.Count == 0 && stagedFlashes.Count == 0, "shared Aimed Shot feedback suppresses the legacy ranger glyph and tile flash");
             Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) >= 1, "Aimed Shot queues staged release and impact audio");
 
@@ -4728,8 +5572,10 @@ namespace AshenHalls.Editor
             Assert(intendedTarget == active, "enemy intent uses the production target scorer");
             Assert(enemyHudView.PhaseLine.StartsWith("ENEMY TURN", StringComparison.Ordinal), "enemy initiative is announced as the primary combat phase cue");
             Assert(enemyHudView.ActionLabel == "ACTION\nENEMY"
-                && enemyHudView.ActiveUnit.StateLine.Contains("ACTION ENEMY")
-                && !enemyHudView.ActiveUnit.StateLine.Contains("ACTION READY"), "enemy initiative uses one consistent non-player action state in the header and active card");
+                && enemyHudView.ActiveUnit.StateLine.Contains("DMG ")
+                && enemyHudView.ActiveUnit.StateLine.Contains("DEF ")
+                && enemyHudView.ActiveUnit.StateLine.Contains("SPD ")
+                && !enemyHudView.ActiveUnit.StateLine.Contains("ACTION"), "enemy initiative keeps its action state in the header while the active card shows tactical stats");
             Assert(enemyHudView.TargetUnit != null && enemyHudView.TargetUnit.Name == active.Name, "enemy HUD target matches its tactical intent");
             Assert(enemyHudView.CommandPrompt.StartsWith("INTENT:", StringComparison.Ordinal) && enemyHudView.CommandPrompt.Contains(active.Name), "enemy turn publishes a concise target-aware intent line");
             Assert(enemyHudView.TargetSourceLabel == "INTENT", "enemy target rail labels the production AI intent source");
@@ -4855,6 +5701,104 @@ namespace AshenHalls.Editor
             Assert(GetPrivateField<ActionMode>(game, "selectedAction") == ActionMode.Cast
                 && GetPrivateField<string>(game, "pendingFormulaCode") == "FBL"
                 && GetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell").HasValue, "clean area-spell capture reaches armed targeting deterministically");
+
+            InvokePrivate(game, "PromoteWarlockTester", active);
+            CombatUnit warlockTester = InvokePrivate<CombatUnit>(game, "CurrentUnit");
+            string[] warlockFormulaCodes = InvokePrivate<IEnumerable<FormulaDef>>(game, "KnownFormulasFor", warlockTester)
+                .Select(formula => formula.Code)
+                .ToArray();
+            Assert(warlockTester.Id != mageTesterId
+                && warlockTester.Side == UnitSide.Party
+                && warlockTester.ClassKey == "warlock"
+                && warlockTester.Role == "hex"
+                && warlockTester.Spell == "hex|pact"
+                && warlockTester.Level == ProgressionRules.MaximumLevel,
+                "Beta Lab Warlock preset activates a dedicated maximum-level hex and pact tester");
+            Assert(new[] { "RBT", "IBD", "PBR", "IBF", "VRS", "DMC", "IBG", "RLM", "DFA" }.All(warlockFormulaCodes.Contains),
+                "Beta Lab Warlock preset exposes rift, summon, doom, death-burst, and ascendance capstones");
+            Assert(combatState.Combat.ActiveId == warlockTester.Id
+                && combatState.Combat.Phase == CombatPhase.ChooseAction
+                && combatState.Combat.ActionAvailable
+                && GetPrivateField<ActionMode>(game, "selectedAction") == ActionMode.Cast
+                && string.IsNullOrEmpty(GetPrivateField<string>(game, "pendingFormulaCode"))
+                && !GetPrivateField<bool>(game, "combatAdvancePending")
+                && GetPrivateField<float>(game, "aiActAt") < 0f,
+                "Beta Lab Warlock takeover clears stale targeting and begins a valid player casting turn");
+
+            bool showcaseOriginalReducedMotion = combatState.ReducedMotion;
+            bool showcaseOriginalSfxMuted = combatState.SfxMuted;
+            try
+            {
+                combatState.ReducedMotion = false;
+                combatState.SfxMuted = false;
+                SetPrivateField(game, "betaVfxShowcaseOpen", true);
+                SetPrivateField(game, "betaVfxShowcaseIndex", 0);
+                InvokePrivate(game, "ReplayBetaVfxShowcase");
+                Assert(castAuras.Count == 1
+                    && castAuras[0].Kind == "FBL"
+                    && stagedPowerTravel.Count == 1
+                    && stagedPowerTravel[0].PowerKey == "FBL"
+                    && impactEchoes.Count == 1
+                    && impactEchoes[0].Kind == "FBL"
+                    && !impactEchoes[0].StaticStamp,
+                    "Beta VFX Showcase replays canonical Fireball through authored cast, travel, and impact presentation");
+                int firstImpactX = impactEchoes[0].X;
+                int firstImpactY = impactEchoes[0].Y;
+                PowerTravelVfx firstShowcaseTravel = stagedPowerTravel[0];
+                InvokePrivate(game, "ReplayBetaVfxShowcase");
+                Assert(castAuras.Count == 1
+                    && stagedPowerTravel.Count == 1
+                    && stagedPowerTravel[0].PowerKey == firstShowcaseTravel.PowerKey
+                    && stagedPowerTravel[0].SourceX == firstShowcaseTravel.SourceX
+                    && stagedPowerTravel[0].SourceY == firstShowcaseTravel.SourceY
+                    && stagedPowerTravel[0].TargetX == firstShowcaseTravel.TargetX
+                    && stagedPowerTravel[0].TargetY == firstShowcaseTravel.TargetY
+                    && stagedPowerTravel[0].SequenceIndex == firstShowcaseTravel.SequenceIndex
+                    && stagedPowerTravel[0].StableSeed == firstShowcaseTravel.StableSeed
+                    && Math.Abs(stagedPowerTravel[0].Duration - firstShowcaseTravel.Duration) < 0.0001f
+                    && impactEchoes.Count == 1
+                    && impactEchoes[0].X == firstImpactX
+                    && impactEchoes[0].Y == firstImpactY,
+                    "Beta VFX Showcase replay deterministically replaces stale travel and impact presentation");
+
+                SetPrivateField(game, "betaVfxShowcaseIndex", CombatVfxShowcaseRules.NextIndex(0));
+                InvokePrivate(game, "ReplayBetaVfxShowcase");
+                Assert(castAuras.Count == 1
+                    && castAuras[0].Kind == "MTR"
+                    && stagedPowerTravel.Count == 5
+                    && stagedPowerTravel.All(value => value.PowerKey == "MTR")
+                    && stagedPowerTravel.Select(value => value.SequenceIndex).OrderBy(value => value).SequenceEqual(new[] { 0, 1, 2, 3, 4 })
+                    && impactEchoes.Count == 1
+                    && impactEchoes[0].Kind == "MTR",
+                    "Beta VFX Showcase Next advances to Meteor Shower and stages its deterministic five-strike travel sequence");
+
+                SetPrivateField(game, "betaVfxShowcaseIndex", CombatVfxShowcaseRules.IndexFor("charge"));
+                InvokePrivate(game, "ReplayBetaVfxShowcase");
+                Assert(stagedPowerTravel.Count == 1
+                    && stagedPowerTravel[0].PowerKey == "charge",
+                    "Beta VFX Showcase exercises one representative targeted class-skill travel identity");
+                int visualCountBeforeCue = castAuras.Count + stagedPowerTravel.Count + impactEchoes.Count;
+                InvokePrivate(game, "CueBetaVfxShowcaseAudio");
+                Assert(castAuras.Count + stagedPowerTravel.Count + impactEchoes.Count == visualCountBeforeCue,
+                    "Beta VFX Showcase Cue auditions sound without mutating visual or combat state");
+
+                combatState.ReducedMotion = true;
+                SetPrivateField(game, "betaVfxShowcaseIndex", 0);
+                InvokePrivate(game, "ReplayBetaVfxShowcase");
+                Assert(castAuras.Count == 0
+                    && stagedPowerTravel.Count == 0
+                    && impactEchoes.Count == 1
+                    && impactEchoes[0].Kind == "FBL"
+                    && impactEchoes[0].StaticStamp,
+                    "Beta VFX Showcase replays real spell identity through the Reduced Motion static-stamp contract");
+            }
+            finally
+            {
+                combatState.ReducedMotion = showcaseOriginalReducedMotion;
+                combatState.SfxMuted = showcaseOriginalSfxMuted;
+                SetPrivateField(game, "betaVfxShowcaseOpen", false);
+                InvokePrivate(game, "ClearBetaVfxShowcasePresentation");
+            }
         }
 
         private static void AssertRoundTransitionAndStartTurnDefeatRuntime(AshenHallsGame game)
@@ -6016,11 +6960,14 @@ namespace AshenHalls.Editor
             int originalPlayerX = state.PlayerX;
             int originalPlayerY = state.PlayerY;
             GameMode originalMode = state.Mode;
+            bool originalWideView = GetPrivateField<bool>(game, "exploreWideView");
             List<RoamingThreat> originalThreats = state.RoamingThreats;
             try
             {
                 state.Mode = GameMode.Explore;
+                SetPrivateField(game, "exploreWideView", false);
                 state.RoamingThreats = new List<RoamingThreat>();
+                InvokePrivate(game, "ResetExplorationMusicPresentationState");
                 AudioClip huntedMusic = InvokePrivate<AudioClip>(game, "MusicClipForKey", MusicDirectorRules.HuntedRoad);
                 Assert(huntedMusic != null, "regional-site pursuit coverage resolves the hunted-road score");
 
@@ -6038,6 +6985,7 @@ namespace AshenHalls.Editor
                     Assert(soundClips.ContainsKey(profile.SecondaryAmbientCue), site.Name + " secondary ambience exists in the live SFX bank");
                     Assert(soundClips.ContainsKey(profile.InspectCue), site.Name + " inspect cue exists in the live SFX bank");
 
+                    InvokePrivate(game, "ResetExplorationMusicPresentationState");
                     state.PlayerX = landmark.X;
                     state.PlayerY = landmark.Y;
                     string centerAmbience = InvokePrivate<string>(game, "CurrentExplorationAmbientCue");
@@ -6083,6 +7031,7 @@ namespace AshenHalls.Editor
                     AudioClip threatenedMusic = InvokePrivate<AudioClip>(game, "DesiredMusicClip");
                     Assert(threatenedMusic == huntedMusic, site.Name + " yields to alerted-patrol music at runtime");
                     state.RoamingThreats.Clear();
+                    InvokePrivate(game, "ResetExplorationMusicPresentationState");
                 }
             }
             finally
@@ -6090,7 +7039,9 @@ namespace AshenHalls.Editor
                 state.PlayerX = originalPlayerX;
                 state.PlayerY = originalPlayerY;
                 state.Mode = originalMode;
+                SetPrivateField(game, "exploreWideView", originalWideView);
                 state.RoamingThreats = originalThreats;
+                InvokePrivate(game, "ResetExplorationMusicPresentationState");
             }
         }
 
@@ -6217,16 +7168,19 @@ namespace AshenHalls.Editor
             string selectedWaypointLine = InvokePrivate<string>(game, "ExploreWaypointLine");
             Assert(selectedWaypointLine.StartsWith("A / Left | Marked: " + chartProbe.Name, StringComparison.Ordinal)
                 && selectedWaypointLine.Contains(" | West | 1 step"), "selected junction overrides automatic guidance with the exact westbound input");
-            int chartProbeTileIndex = chartProbe.Y * state.Map.Width + chartProbe.X;
-            int chartProbeTile = state.Map.Tiles[chartProbeTileIndex];
-            state.Map.Tiles[chartProbeTileIndex] = 0;
+            int chartProbeTile = state.Map.Tiles[chartProbe.Y * state.Map.Width + chartProbe.X];
+            int terrainRevision = state.Map.TerrainPresentationRevision;
+            InvokePrivate(game, "SetTile", state.Map, chartProbe.X, chartProbe.Y, 0);
             IReadOnlyList<Point> blockedWaypointPlan = InvokePrivate<IReadOnlyList<Point>>(game, "CurrentExploreGuidancePath");
-            Assert(blockedWaypointPlan.Count == 0
+            Assert(state.Map.TerrainPresentationRevision != terrainRevision
+                && blockedWaypointPlan.Count == 0
                 && InvokePrivate<bool>(game, "CurrentExploreGuidanceIsBlocked"),
-                "same-map topology edits invalidate both the marked path cache and shared guidance plan");
-            state.Map.Tiles[chartProbeTileIndex] = chartProbeTile;
+                "authoritative same-map topology edits invalidate terrain, the marked path cache, and shared guidance");
+            int blockedRevision = state.Map.TerrainPresentationRevision;
+            InvokePrivate(game, "SetTile", state.Map, chartProbe.X, chartProbe.Y, chartProbeTile);
             IReadOnlyList<Point> restoredWaypointPlan = InvokePrivate<IReadOnlyList<Point>>(game, "CurrentExploreGuidancePath");
-            Assert(restoredWaypointPlan.Count == 2
+            Assert(state.Map.TerrainPresentationRevision != blockedRevision
+                && restoredWaypointPlan.Count == 2
                 && !InvokePrivate<bool>(game, "CurrentExploreGuidanceIsBlocked"),
                 "restoring a route cell rebuilds the marked map thread without manual cache repair");
             string selectedChartLine = InvokePrivate<string>(game, "RegionalRouteChartCompactLine");
@@ -6861,6 +7815,234 @@ namespace AshenHalls.Editor
                 Weakness = "",
                 MagicResist = 0
             };
+        }
+
+        private static void AssertInventoryEquipmentSwapAndRangeSemantics(AshenHallsGame game)
+        {
+            GameState previousState = GetPrivateField<GameState>(game, "state");
+            try
+            {
+                PartyMember arden = new PartyMember
+                {
+                    Id = "swap-arden",
+                    Name = "Arden",
+                    Role = "bow",
+                    Race = "human",
+                    ClassKey = "ranger",
+                    Stats = new Stats(12, 10, 14, 12),
+                    Skills = new SkillSet().Normalize(),
+                    Level = 2,
+                    Hp = 30,
+                    MaxHp = 30,
+                    WeaponName = "Cinder Longbow",
+                    WeaponBonus = 4,
+                    WeaponDamageType = "fire",
+                    WeaponDamageMin = 7,
+                    WeaponDamageMax = 12,
+                    WeaponAttackSpeed = 11,
+                    WeaponStrengthBonus = 1,
+                    WeaponIntelligenceBonus = 0,
+                    WeaponAgilityBonus = 2,
+                    WeaponHealthBonus = 1,
+                    ArmorName = "Scout leathers",
+                    ArmorBonus = 1,
+                    Range = 5
+                };
+                PartyMember brann = new PartyMember
+                {
+                    Id = "swap-brann",
+                    Name = "Brann",
+                    Role = "shield",
+                    Race = "dwarf",
+                    ClassKey = "warrior",
+                    Stats = new Stats(15, 8, 9, 15),
+                    Skills = new SkillSet().Normalize(),
+                    Level = 2,
+                    Hp = 34,
+                    MaxHp = 34,
+                    WeaponName = "Iron Broadsword",
+                    WeaponBonus = 2,
+                    WeaponDamageType = "physical",
+                    WeaponDamageMin = 5,
+                    WeaponDamageMax = 9,
+                    WeaponAttackSpeed = 7,
+                    WeaponStrengthBonus = 2,
+                    WeaponIntelligenceBonus = 1,
+                    WeaponAgilityBonus = 0,
+                    WeaponHealthBonus = 2,
+                    ArmorName = "Iron mail",
+                    ArmorBonus = 2,
+                    Range = 1
+                };
+                InventoryItem cinderBow = new InventoryItem
+                {
+                    EquippedById = arden.Id,
+                    DisplayName = arden.WeaponName,
+                    Form = "longbow",
+                    Slot = "weapon",
+                    Bonus = arden.WeaponBonus,
+                    StrengthBonus = arden.WeaponStrengthBonus,
+                    IntelligenceBonus = arden.WeaponIntelligenceBonus,
+                    AgilityBonus = arden.WeaponAgilityBonus,
+                    HealthBonus = arden.WeaponHealthBonus,
+                    DamageMin = arden.WeaponDamageMin,
+                    DamageMax = arden.WeaponDamageMax,
+                    AttackSpeed = arden.WeaponAttackSpeed,
+                    DamageType = arden.WeaponDamageType,
+                    Rarity = "rare"
+                };
+                InventoryItem broadsword = new InventoryItem
+                {
+                    EquippedById = brann.Id,
+                    DisplayName = brann.WeaponName,
+                    Form = "broadsword",
+                    Slot = "weapon",
+                    Bonus = brann.WeaponBonus,
+                    StrengthBonus = brann.WeaponStrengthBonus,
+                    IntelligenceBonus = brann.WeaponIntelligenceBonus,
+                    AgilityBonus = brann.WeaponAgilityBonus,
+                    HealthBonus = brann.WeaponHealthBonus,
+                    DamageMin = brann.WeaponDamageMin,
+                    DamageMax = brann.WeaponDamageMax,
+                    AttackSpeed = brann.WeaponAttackSpeed,
+                    DamageType = brann.WeaponDamageType,
+                    Rarity = "common"
+                };
+                GameState linkedState = new GameState
+                {
+                    Mode = GameMode.Explore,
+                    Party = new List<PartyMember> { arden, brann },
+                    Inventory = new List<InventoryItem> { cinderBow, broadsword }
+                };
+                SetPrivateField(game, "state", linkedState);
+                InvokePrivate(game, "EnsureInventoryEquipmentLinks");
+                Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", cinderBow, brann, null), "equipped weapon can be reassigned through one atomic swap");
+                Assert(linkedState.Inventory.Count == 2, "linked equipment swap preserves inventory membership");
+                Assert(cinderBow.EquippedById == brann.Id && broadsword.EquippedById == arden.Id, "linked equipment swap exchanges both exact owner IDs");
+                Assert(arden.WeaponName == broadsword.DisplayName
+                    && arden.WeaponBonus == broadsword.Bonus
+                    && arden.WeaponDamageMin == broadsword.DamageMin
+                    && arden.WeaponDamageMax == broadsword.DamageMax
+                    && arden.WeaponAttackSpeed == broadsword.AttackSpeed
+                    && arden.WeaponDamageType == broadsword.DamageType
+                    && arden.WeaponStrengthBonus == broadsword.StrengthBonus
+                    && arden.WeaponIntelligenceBonus == broadsword.IntelligenceBonus
+                    && arden.WeaponAgilityBonus == broadsword.AgilityBonus
+                    && arden.WeaponHealthBonus == broadsword.HealthBonus, "swap transfers the replacement weapon's complete mechanics to the former owner");
+                Assert(brann.WeaponName == cinderBow.DisplayName
+                    && brann.WeaponBonus == cinderBow.Bonus
+                    && brann.WeaponDamageMin == cinderBow.DamageMin
+                    && brann.WeaponDamageMax == cinderBow.DamageMax
+                    && brann.WeaponAttackSpeed == cinderBow.AttackSpeed
+                    && brann.WeaponDamageType == cinderBow.DamageType
+                    && brann.WeaponStrengthBonus == cinderBow.StrengthBonus
+                    && brann.WeaponIntelligenceBonus == cinderBow.IntelligenceBonus
+                    && brann.WeaponAgilityBonus == cinderBow.AgilityBonus
+                    && brann.WeaponHealthBonus == cinderBow.HealthBonus, "swap transfers the selected weapon's complete mechanics to its new owner");
+                Assert(arden.Range == 5 && brann.Range == 4, "swapped weapons recalculate each adventurer's effective range");
+
+                GameState roundTrip = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(linkedState));
+                SetPrivateField(game, "state", roundTrip);
+                InvokePrivate(game, "EnsureInventoryEquipmentLinks");
+                InventoryItem restoredBow = roundTrip.Inventory.Single(item => item.DisplayName == cinderBow.DisplayName);
+                InventoryItem restoredSword = roundTrip.Inventory.Single(item => item.DisplayName == broadsword.DisplayName);
+                Assert(restoredBow.EquippedById == brann.Id && restoredSword.EquippedById == arden.Id, "equipment swap ownership survives save round-trip and link repair");
+
+                PartyMember syntheticOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(arden));
+                syntheticOwner.Id = "synthetic-owner";
+                syntheticOwner.Name = "Synthetic Owner";
+                syntheticOwner.WeaponName = "Cinder Longbow";
+                PartyMember legacyTarget = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(brann));
+                legacyTarget.Id = "legacy-target";
+                legacyTarget.Name = "Legacy Target";
+                legacyTarget.WeaponName = "Iron Broadsword";
+                legacyTarget.WeaponBonus = 2;
+                legacyTarget.WeaponDamageMin = 5;
+                legacyTarget.WeaponDamageMax = 9;
+                legacyTarget.WeaponAttackSpeed = 7;
+                InventoryItem syntheticBow = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(cinderBow));
+                syntheticBow.EquippedById = syntheticOwner.Id;
+                GameState syntheticState = new GameState
+                {
+                    Mode = GameMode.Explore,
+                    Party = new List<PartyMember> { syntheticOwner, legacyTarget },
+                    Inventory = new List<InventoryItem> { syntheticBow }
+                };
+                SetPrivateField(game, "state", syntheticState);
+                Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", syntheticBow, legacyTarget, null), "inventory-backed gear swaps safely with a legacy loadout");
+                Assert(syntheticState.Inventory.Count == 1 && syntheticBow.EquippedById == legacyTarget.Id, "legacy-loadout swap creates no duplicate inventory object");
+                Assert(syntheticOwner.WeaponName == "Iron Broadsword" && legacyTarget.WeaponName == syntheticBow.DisplayName, "legacy-loadout swap preserves both equipped weapons");
+
+                PartyMember failedOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(syntheticOwner));
+                failedOwner.Id = "failed-owner";
+                failedOwner.WeaponName = syntheticBow.DisplayName;
+                PartyMember failedTarget = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(legacyTarget));
+                failedTarget.Id = "failed-target";
+                failedTarget.WeaponName = "";
+                InventoryItem failedBow = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(syntheticBow));
+                failedBow.EquippedById = failedOwner.Id;
+                GameState failedState = new GameState
+                {
+                    Mode = GameMode.Explore,
+                    Party = new List<PartyMember> { failedOwner, failedTarget },
+                    Inventory = new List<InventoryItem> { failedBow }
+                };
+                SetPrivateField(game, "state", failedState);
+                string beforeFailure = JsonUtility.ToJson(failedState);
+                Assert(!InvokePrivate<bool>(game, "EquipInventoryItemToMember", failedBow, failedTarget, null), "reassignment fails when the target has no same-slot replacement");
+                Assert(JsonUtility.ToJson(failedState) == beforeFailure, "failed reassignment leaves every loadout and owner link unchanged");
+
+                PartyMember ranger = new PartyMember
+                {
+                    Id = "range-ranger",
+                    Name = "Range Ranger",
+                    Role = "bow",
+                    Race = "human",
+                    ClassKey = "ranger",
+                    Stats = new Stats(10, 10, 14, 12),
+                    Skills = new SkillSet().Normalize(),
+                    Level = 1,
+                    Hp = 28,
+                    MaxHp = 28,
+                    WeaponName = "Plain Longbow",
+                    WeaponBonus = 0,
+                    WeaponDamageType = "physical",
+                    WeaponDamageMin = 3,
+                    WeaponDamageMax = 7,
+                    WeaponAttackSpeed = 8,
+                    ArmorName = "Scout leathers",
+                    ArmorBonus = 1,
+                    Range = 5
+                };
+                InventoryItem longbow = new InventoryItem
+                {
+                    DisplayName = "Balanced Longbow",
+                    Form = "longbow",
+                    Slot = "weapon",
+                    Bonus = 0,
+                    DamageMin = 3,
+                    DamageMax = 7,
+                    AttackSpeed = 8,
+                    DamageType = "physical",
+                    Rarity = "common"
+                };
+                GameState rangeState = new GameState
+                {
+                    Mode = GameMode.Explore,
+                    Party = new List<PartyMember> { ranger },
+                    Inventory = new List<InventoryItem> { longbow }
+                };
+                SetPrivateField(game, "state", rangeState);
+                string rangeComparison = InvokePrivate<string>(game, "InventoryComparisonLine", longbow, ranger);
+                string rangeSummary = InvokePrivate<string>(game, "CompactInventoryItemSummary", longbow);
+                Assert(rangeComparison.IndexOf("RNG 5 (=)", StringComparison.Ordinal) >= 0, "full inventory comparison reports the ranger's effective range floor");
+                Assert(rangeSummary.IndexOf("Range 5", StringComparison.Ordinal) >= 0, "inventory summary reports the same effective range");
+                Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", longbow, ranger, null) && ranger.Range == 5, "equipping the longbow preserves the same effective range shown before the choice");
+            }
+            finally
+            {
+                SetPrivateField(game, "state", previousState);
+            }
         }
 
         private static void InvokePrivate(AshenHallsGame game, string methodName, params object[] args)

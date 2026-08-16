@@ -47,6 +47,14 @@ namespace AshenHalls
 
         private Texture2D epicSpellEffectsAtlas;
 
+        private Texture2D mageWarlockSpellVfxAtlas;
+
+        private Texture2D supportHexSpellVfxAtlas;
+
+        private Texture2D classSkillVfxAtlas;
+
+        private Texture2D combatPowerTravelVfxAtlas;
+
         private Texture2D spellAnimationAtlas;
 
         private Texture2D combatSpellbookUiAtlas;
@@ -107,6 +115,10 @@ namespace AshenHalls
         private Texture2D tavernBackdropArt;
 
         private Texture2D tavernUiAtlas;
+
+        private Texture2D titleMenuScrollArt;
+
+        private Texture2D titleMenuFocusArt;
 
         private Texture2D inventoryConsumableAtlas;
 
@@ -173,7 +185,23 @@ namespace AshenHalls
 
         private float musicTransitionStartedAt = -1f;
 
-        private const float MusicTransitionDuration = 0.85f;
+        private float activeMusicTransitionDuration = MusicTransitionRules.ExploreTransitionDuration;
+
+        private bool musicIntroFadeActive;
+
+        private float musicIntroFadeStartedAt = -1f;
+
+        private float activeMusicIntroFadeDuration = MusicTransitionRules.ExploreIntroFadeDuration;
+
+        private AudioClip musicIntroFadeClip;
+
+        private string explorationMusicSelectedKey = "";
+
+        private string explorationMusicCandidateKey = "";
+
+        private float explorationMusicSelectedAt = -1f;
+
+        private float explorationMusicCandidateAt = -1f;
 
         private readonly List<AudioSource> sfxVoices = new List<AudioSource>();
 
@@ -255,6 +283,14 @@ namespace AshenHalls
         private float nextTavernAmbienceAt = -1f;
 
         private int tavernAmbienceSequence;
+
+        private float nextCombatAmbienceAt = -1f;
+
+        private int combatAmbienceSequence;
+
+        private float lastCombatForegroundSfxAt = -10f;
+
+        private CombatState combatAmbienceEncounter;
 
         private readonly List<ScheduledSfxCue> scheduledSfx = new List<ScheduledSfxCue>();
 
@@ -383,6 +419,19 @@ namespace AshenHalls
             soundClips["uiclose"] = MakeSound("uiclose", 620f, 310f, 0.16f, 0.18f, "rustle");
             soundClips["uiconfirm"] = MakeSound("uiconfirm", 390f, 780f, 0.24f, 0.24f, "chime");
             soundClips["uitab"] = MakeSound("uitab", 560f, 720f, 0.10f, 0.16f, "rustle");
+            soundClips[TitleAudioRules.RevealStrikeKey] = MakeSound(TitleAudioRules.RevealStrikeKey, 820f, 92f, 0.42f, 0.34f, "boom");
+            soundClips[TitleAudioRules.RevealChimeKey] = MakeSound(TitleAudioRules.RevealChimeKey, 294f, 880f, 0.40f, 0.26f, "chime");
+            soundClips[TitleAudioRules.FocusKey] = MakeSound(TitleAudioRules.FocusKey, 680f, 860f, 0.10f, 0.18f, "chime");
+            soundClips[TitleAudioRules.ConfirmKey] = MakeSound(TitleAudioRules.ConfirmKey, 294f, 1175f, 0.34f, 0.28f, "chime");
+            soundClips[TitleAudioRules.OpenKey] = MakeSound(TitleAudioRules.OpenKey, 260f, 720f, 0.28f, 0.22f, "rustle");
+            soundClips[TitleAudioRules.CloseKey] = MakeSound(TitleAudioRules.CloseKey, 620f, 180f, 0.24f, 0.22f, "rustle");
+            soundClips[CombatAudioMixRules.StepCue] = MakeSound(CombatAudioMixRules.StepCue, 138f, 74f, 0.16f, 0.26f, "thud");
+            soundClips[CombatAudioMixRules.GuardCue] = MakeSound(CombatAudioMixRules.GuardCue, 184f, 680f, 0.28f, 0.30f, "chime");
+            soundClips[CombatAudioMixRules.TurnCue] = MakeSound(CombatAudioMixRules.TurnCue, 420f, 168f, 0.24f, 0.24f, "square");
+            soundClips[CombatAudioMixRules.CriticalCue] = MakeSound(CombatAudioMixRules.CriticalCue, 940f, 76f, 0.42f, 0.38f, "boom");
+            soundClips[CombatAudioMixRules.SteelAmbienceCue] = MakeAmbientSound(CombatAudioMixRules.SteelAmbienceCue, "forge");
+            soundClips[CombatAudioMixRules.SewerAmbienceCue] = MakeAmbientSound(CombatAudioMixRules.SewerAmbienceCue, "drip");
+            soundClips[CombatAudioMixRules.ArcaneAmbienceCue] = MakeAmbientSound(CombatAudioMixRules.ArcaneAmbienceCue, "wind");
             soundClips["itemequip"] = MakeServiceSound("itemequip", "armor");
             soundClips["itemtake"] = MakeSound("itemtake", 210f, 460f, 0.24f, 0.22f, "rustle");
             soundClips["elixir"] = MakeSpellSound("elixir", "holy", 260f, 740f, 0.42f, 0.24f);
@@ -622,6 +671,10 @@ namespace AshenHalls
                 "four_names_by_the_fire_loop", 26f, 0.72f,
                 new[] { 293.7f, 349.2f, 440f, 392f, 349.2f, 293.7f, 261.6f, 220f, 293.7f, 392f, 440f, 493.9f, 440f, 392f, 349.2f, 293.7f },
                 new[] { 73.4f, 98f, 82.4f, 110f, 73.4f, 65.4f, 82.4f, 98f }, 0.28f, "camp"));
+            RegisterAdaptiveMusic(MusicDirectorRules.WorldMapOverview, () => MakePatternMusic(
+                "ashen_atlas_overview_loop", 25.2f, 0.78f,
+                new[] { 293.7f, 440f, 349.2f, 392f, 293.7f, 493.9f, 392f, 349.2f, 293.7f, 392f, 440f, 523.3f, 440f, 392f, 349.2f, 293.7f },
+                new[] { 73.4f, 110f, 87.3f, 98f, 73.4f, 123.5f, 98f, 82.4f }, 0.30f, "road"));
             RegisterAdaptiveMusic(MusicDirectorRules.GreenShrineTrainingRing, () => MakePatternMusic(
                 "sparks_on_the_oathring_loop", 22f, 0.42f,
                 new[] { 392f, 466.2f, 523.3f, 587.3f, 523.3f, 440f, 392f, 349.2f, 392f, 493.9f, 587.3f, 659.3f, 587.3f, 523.3f, 440f, 392f },
@@ -746,6 +799,7 @@ namespace AshenHalls
             RegisterImportedMusicRoute(MusicDirectorRules.Victory, "embers_carry_home_victory_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.Defeat, "ashes_on_the_road_defeat_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.GrandHearth, "four_names_by_the_fire_loop");
+            RegisterImportedMusicRoute(MusicDirectorRules.WorldMapOverview, "ashen_atlas_overview_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.GreenShrineTrainingRing, "sparks_on_the_oathring_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.OldQuarryForge, "anvil_echoes_in_old_stone_loop");
             RegisterImportedMusicRoute(MusicDirectorRules.GloamDeepCrypt, "the_crypt_keeps_its_names_loop");
@@ -2281,6 +2335,20 @@ namespace AshenHalls
 
         private void PlaySfx(string key, float volume = 1f)
         {
+            if (state != null && state.Mode == GameMode.Combat)
+            {
+                CombatAudioCueProfile combatCue = CombatAudioMixRules.DirectCue(key, volume);
+                if (!string.Equals(combatCue.Key, key, StringComparison.OrdinalIgnoreCase)
+                    && soundClips.ContainsKey(combatCue.Key))
+                {
+                    CombatUnit active = state.Combat == null ? null : CurrentUnit();
+                    int column = active?.X ?? CombatW / 2;
+                    float pan = CombatAudioMixRules.StereoPanForColumn(column, CombatW);
+                    float pitch = CombatAudioMixRules.PitchForCue(combatCue.Key, column);
+                    PlaySfxSpatial(combatCue.Key, combatCue.Volume, pan * 0.58f, pitch);
+                    return;
+                }
+            }
             PlaySfxSpatial(key, volume, 0f, 1f);
         }
 
@@ -2311,6 +2379,12 @@ namespace AshenHalls
                 {
                     lastExplorationForegroundSfxAt = Time.unscaledTime;
                 }
+                if (state != null
+                    && state.Mode == GameMode.Combat
+                    && !CombatAudioMixRules.IsCombatAmbienceCue(key))
+                {
+                    lastCombatForegroundSfxAt = Time.time;
+                }
                 voice.PlayOneShot(soundClips[key], clamped);
             }
             catch (Exception)
@@ -2321,6 +2395,7 @@ namespace AshenHalls
 
         private float SfxPlaybackPitchVariation(string key, int serial)
         {
+            if (TitleAudioRules.LocksPitch(key)) return 1f;
             unchecked
             {
                 uint seed = StableAudioSeed((key ?? "") + "|playback");
@@ -2365,17 +2440,37 @@ namespace AshenHalls
             }
             int musicPercent = state == null ? 65 : Mathf.Clamp(state.MusicVolumePercent <= 0 ? 65 : state.MusicVolumePercent, 25, 100);
             bool musicMuted = state != null && state.MusicMuted;
-            float musicVolume = musicMuted ? 0f : 0.20f * (musicPercent / 100f) * CurrentCombatMusicDuckMultiplier();
+            GameMode musicMode = state == null ? GameMode.Tavern : state.Mode;
+            bool worldMapMix = musicMode == GameMode.Explore
+                && exploreWideView
+                && !string.Equals(
+                    explorationMusicSelectedKey,
+                    MusicDirectorRules.HuntedRoad,
+                    StringComparison.Ordinal);
+            float musicVolume = musicMuted
+                ? 0f
+                : TitleAudioRules.MusicSourceGain(musicMode, worldMapMix)
+                    * (musicPercent / 100f)
+                    * CurrentCombatMusicDuckMultiplier();
             if (musicTransitionActive && musicFadeSource != null)
             {
-                float progress = Mathf.Clamp01((Time.unscaledTime - musicTransitionStartedAt) / MusicTransitionDuration);
-                float shaped = Mathf.SmoothStep(0f, 1f, progress);
-                if (musicSource != null) musicSource.volume = musicVolume * (1f - shaped);
-                musicFadeSource.volume = musicVolume * shaped;
+                float duration = Mathf.Max(0.01f, activeMusicTransitionDuration);
+                float progress = Mathf.Clamp01((Time.unscaledTime - musicTransitionStartedAt) / duration);
+                MusicCrossfadeGains gains = MusicTransitionRules.EqualPowerCrossfade(progress);
+                if (musicSource != null) musicSource.volume = musicVolume * gains.Outgoing;
+                musicFadeSource.volume = musicVolume * gains.Incoming;
             }
             else
             {
-                if (musicSource != null) musicSource.volume = musicVolume;
+                float introGain = 1f;
+                if (musicIntroFadeActive)
+                {
+                    float duration = Mathf.Max(0.01f, activeMusicIntroFadeDuration);
+                    float progress = Mathf.Clamp01((Time.unscaledTime - musicIntroFadeStartedAt) / duration);
+                    introGain = Mathf.SmoothStep(0f, 1f, progress);
+                    if (progress >= 1f) musicIntroFadeActive = false;
+                }
+                if (musicSource != null) musicSource.volume = musicVolume * introGain;
                 if (musicFadeSource != null) musicFadeSource.volume = 0f;
             }
         }
@@ -2451,37 +2546,76 @@ namespace AshenHalls
                 return;
             }
 
-            if (nextTavernAmbienceAt < 0f) nextTavernAmbienceAt = now + 1.2f;
+            bool musicAudible = !state.MusicMuted;
+            if (nextTavernAmbienceAt < 0f)
+            {
+                nextTavernAmbienceAt = now + TitleAudioRules.InitialAmbienceDelay(state.Mode, musicAudible);
+            }
             if (now < nextTavernAmbienceAt || now - lastSfxAt < 0.75f) return;
 
-            string cue;
-            float volume;
-            float pan;
-            switch (tavernAmbienceSequence % 5)
+            TitleAmbienceProfile ambience = TitleAudioRules.Ambience(state.Mode, musicAudible, tavernAmbienceSequence);
+            PlaySfxSpatial(ambience.Key, ambience.Volume, ambience.Pan, ambience.Pitch);
+            nextTavernAmbienceAt = now + TitleAudioRules.AmbienceInterval(state.Mode, musicAudible, tavernAmbienceSequence);
+            tavernAmbienceSequence++;
+        }
+
+        private void UpdateCombatAmbience()
+        {
+            float now = Time.time;
+            if (state == null
+                || state.Mode != GameMode.Combat
+                || state.Combat == null
+                || IsStartupSplashVisible())
             {
-                case 0:
-                case 3:
-                    cue = "ambrain";
-                    volume = 0.34f;
-                    pan = 0.58f;
-                    break;
-                case 1:
-                case 4:
-                    cue = "ambtavern";
-                    volume = 0.29f;
-                    pan = -0.08f;
-                    break;
-                default:
-                    cue = "ambhearth";
-                    volume = 0.24f;
-                    pan = -0.62f;
-                    break;
+                nextCombatAmbienceAt = -1f;
+                combatAmbienceSequence = 0;
+                combatAmbienceEncounter = null;
+                return;
             }
 
-            float pitch = 0.97f + (tavernAmbienceSequence % 3) * 0.025f;
-            PlaySfxSpatial(cue, volume, pan, pitch);
-            nextTavernAmbienceAt = now + 2.9f + (tavernAmbienceSequence % 4) * 0.46f;
-            tavernAmbienceSequence++;
+            if (!ReferenceEquals(combatAmbienceEncounter, state.Combat))
+            {
+                combatAmbienceEncounter = state.Combat;
+                combatAmbienceSequence = 0;
+                nextCombatAmbienceAt = -1f;
+            }
+
+            if (state.SfxMuted || CurrentUiOverlay() == UiOverlay.Pause)
+            {
+                nextCombatAmbienceAt = Mathf.Max(nextCombatAmbienceAt, now + 1.5f);
+                return;
+            }
+
+            bool musicAudible = !state.MusicMuted;
+            if (nextCombatAmbienceAt < 0f)
+            {
+                nextCombatAmbienceAt = now + CombatAudioMixRules.InitialAmbienceDelay(musicAudible);
+            }
+            if (scheduledSfx.Count > 0
+                || combatMusicDuckDepth > 0f && now < combatMusicDuckUntil
+                || now - lastCombatForegroundSfxAt < CombatAudioMixRules.CombatAmbienceForegroundQuietWindow)
+            {
+                nextCombatAmbienceAt = Mathf.Max(
+                    nextCombatAmbienceAt,
+                    now + CombatAudioMixRules.CombatAmbienceForegroundQuietWindow);
+                return;
+            }
+            if (now < nextCombatAmbienceAt) return;
+
+            string route = !string.IsNullOrEmpty(combatMusicBaseKey)
+                ? combatMusicBaseKey
+                : !string.IsNullOrEmpty(combatMusicSelectedKey)
+                    ? combatMusicSelectedKey
+                    : MusicDirectorRules.CombatGeneric;
+            CombatAmbienceProfile ambience = CombatAudioMixRules.Ambience(route, musicAudible, combatAmbienceSequence);
+            if (!soundClips.ContainsKey(ambience.Key))
+            {
+                nextCombatAmbienceAt = now + 2f;
+                return;
+            }
+            PlaySfxSpatial(ambience.Key, ambience.Volume, ambience.Pan, ambience.Pitch);
+            nextCombatAmbienceAt = now + CombatAudioMixRules.AmbienceInterval(musicAudible, combatAmbienceSequence);
+            combatAmbienceSequence++;
         }
 
         private string CurrentExplorationAmbientCue()
@@ -2559,14 +2693,23 @@ namespace AshenHalls
         private void UpdateTavernMusic()
         {
             if (state == null || state.Mode != GameMode.Combat) ResetCombatMusicPresentationState();
+            if (state == null || state.Mode != GameMode.Explore) ResetExplorationMusicPresentationState();
             if (musicSource == null) return;
             AudioClip desired = DesiredMusicClip();
-            bool shouldPlay = desired != null && state != null && !IsStartupSplashVisible() && !state.MusicMuted;
-            if (!shouldPlay)
+            bool shouldRunTransport = MusicTransitionRules.ShouldKeepTransportAlive(
+                state != null,
+                desired != null,
+                IsStartupSplashVisible(),
+                state != null && state.MusicMuted);
+            if (!shouldRunTransport)
             {
                 musicSource.Stop();
                 if (musicFadeSource != null) musicFadeSource.Stop();
                 musicTransitionActive = false;
+                musicTransitionStartedAt = -1f;
+                musicIntroFadeActive = false;
+                musicIntroFadeStartedAt = -1f;
+                musicIntroFadeClip = null;
                 ApplyAudioSettings();
                 return;
             }
@@ -2575,9 +2718,9 @@ namespace AshenHalls
             {
                 if (musicFadeSource == null || musicFadeSource.clip != desired)
                 {
-                    CompleteMusicTransition();
+                    SettleInterruptedMusicTransition();
                 }
-                else if (Time.unscaledTime - musicTransitionStartedAt >= MusicTransitionDuration)
+                else if (Time.unscaledTime - musicTransitionStartedAt >= activeMusicTransitionDuration)
                 {
                     CompleteMusicTransition();
                 }
@@ -2593,17 +2736,72 @@ namespace AshenHalls
                     musicFadeSource.volume = 0f;
                     musicFadeSource.Play();
                     musicTransitionStartedAt = Time.unscaledTime;
+                    activeMusicTransitionDuration = MusicTransitionRules.TransitionDurationFor(CurrentMusicTransitionContext());
                     musicTransitionActive = true;
+                    musicIntroFadeActive = false;
+                    musicIntroFadeClip = desired;
                 }
                 else
                 {
                     musicSource.clip = desired;
                     musicSource.time = 0f;
+                    musicIntroFadeClip = null;
                 }
             }
 
-            if (!musicTransitionActive && !musicSource.isPlaying) musicSource.Play();
+            if (!musicTransitionActive && !musicSource.isPlaying)
+            {
+                musicSource.Play();
+                if (musicIntroFadeClip != musicSource.clip)
+                {
+                    MusicTransitionTiming timing = MusicTransitionRules.TimingFor(CurrentMusicTransitionContext());
+                    musicIntroFadeClip = musicSource.clip;
+                    musicIntroFadeStartedAt = Time.unscaledTime;
+                    activeMusicIntroFadeDuration = timing.IntroFadeDuration;
+                    musicIntroFadeActive = activeMusicIntroFadeDuration > 0f;
+                }
+            }
             ApplyAudioSettings();
+        }
+
+        private MusicTransitionContext CurrentMusicTransitionContext()
+        {
+            if (state == null || state.Mode == GameMode.Tavern || state.Mode == GameMode.Muster)
+            {
+                return MusicTransitionContext.Title;
+            }
+            if (state.Mode == GameMode.Combat) return MusicTransitionContext.Combat;
+            if (state.Mode == GameMode.Victory) return MusicTransitionContext.Victory;
+            if (state.Mode == GameMode.Defeat) return MusicTransitionContext.Defeat;
+            if (state.Mode == GameMode.Explore
+                && exploreWideView
+                && !string.Equals(
+                    explorationMusicSelectedKey,
+                    MusicDirectorRules.HuntedRoad,
+                    StringComparison.Ordinal))
+            {
+                return MusicTransitionContext.WorldMapExplore;
+            }
+            return MusicTransitionContext.Explore;
+        }
+
+        private void SettleInterruptedMusicTransition()
+        {
+            if (!musicTransitionActive || musicFadeSource == null) return;
+            float duration = Mathf.Max(0.01f, activeMusicTransitionDuration);
+            float progress = Mathf.Clamp01((Time.unscaledTime - musicTransitionStartedAt) / duration);
+            MusicCrossfadeGains gains = MusicTransitionRules.EqualPowerCrossfade(progress);
+            if (gains.Incoming >= gains.Outgoing)
+            {
+                CompleteMusicTransition();
+                return;
+            }
+
+            musicFadeSource.Stop();
+            musicFadeSource.clip = null;
+            musicFadeSource.volume = 0f;
+            musicTransitionActive = false;
+            musicTransitionStartedAt = -1f;
         }
 
         private void CompleteMusicTransition()
@@ -2618,6 +2816,7 @@ namespace AshenHalls
             musicFadeSource.volume = 0f;
             musicTransitionActive = false;
             musicTransitionStartedAt = -1f;
+            musicIntroFadeClip = musicSource.clip;
         }
 
         private AudioClip DesiredMusicClip()
@@ -2625,9 +2824,11 @@ namespace AshenHalls
             if (state == null)
             {
                 ResetCombatMusicPresentationState();
+                ResetExplorationMusicPresentationState();
                 return null;
             }
             if (state.Mode != GameMode.Combat) ResetCombatMusicPresentationState();
+            if (state.Mode != GameMode.Explore) ResetExplorationMusicPresentationState();
             if (state.Mode == GameMode.Tavern) return MusicClipForKey(MusicDirectorRules.Tavern);
             if (state.Mode == GameMode.Muster)
             {
@@ -2678,15 +2879,84 @@ namespace AshenHalls
                 {
                     hasLandmark = TryNearestMusicLandmark(out landmark, out siteId);
                 }
-                string key = string.IsNullOrEmpty(siteId)
+                string candidateKey = string.IsNullOrEmpty(siteId)
                     ? MusicDirectorRules.ExploreTrackKey(zoneId, landmark, hasLandmark, threatAlerted)
                     : WorldSitePresentationRules.ExploreMusicKey(siteId, zoneId, threatAlerted);
+                if (exploreWideView
+                    && !string.Equals(candidateKey, MusicDirectorRules.HuntedRoad, StringComparison.Ordinal))
+                {
+                    candidateKey = MusicDirectorRules.WorldMapOverview;
+                }
+                string key = ResolveExplorationMusicPresentationKey(candidateKey, Time.unscaledTime);
                 return MusicClipForKey(key)
                     ?? MusicClipForKey(zoneId)
                     ?? MusicClipForKey("road")
                     ?? MusicClipForKey(MusicDirectorRules.Tavern);
             }
             return null;
+        }
+
+        private string ResolveExplorationMusicPresentationKey(string candidateKey, float now)
+        {
+            string candidate = MusicTransitionRules.NormalizeRouteKey(candidateKey);
+            if (string.IsNullOrEmpty(candidate)) return explorationMusicSelectedKey;
+
+            if (string.Equals(candidate, explorationMusicSelectedKey, StringComparison.Ordinal))
+            {
+                explorationMusicCandidateKey = "";
+                explorationMusicCandidateAt = -1f;
+                return explorationMusicSelectedKey;
+            }
+
+            if (!string.Equals(candidate, explorationMusicCandidateKey, StringComparison.Ordinal))
+            {
+                explorationMusicCandidateKey = candidate;
+                explorationMusicCandidateAt = now;
+            }
+
+            float candidateHeld = explorationMusicCandidateAt < 0f
+                ? 0f
+                : Mathf.Max(0f, now - explorationMusicCandidateAt);
+            float selectedDwell = explorationMusicSelectedAt < 0f
+                ? 0f
+                : Mathf.Max(0f, now - explorationMusicSelectedAt);
+            bool explicitWorldMapViewChange = string.Equals(
+                    explorationMusicSelectedKey,
+                    MusicDirectorRules.WorldMapOverview,
+                    StringComparison.Ordinal)
+                || string.Equals(candidate, MusicDirectorRules.WorldMapOverview, StringComparison.Ordinal);
+            ExplorationMusicSwitchDecision decision = MusicTransitionRules.EvaluateExplorationSwitch(
+                explorationMusicSelectedKey,
+                candidate,
+                candidateHeld,
+                selectedDwell,
+                candidateHeld,
+                explicitWorldMapViewChange);
+            if (decision.ShouldSwitch)
+            {
+                explorationMusicSelectedKey = candidate;
+                explorationMusicSelectedAt = now;
+                explorationMusicCandidateKey = "";
+                explorationMusicCandidateAt = -1f;
+            }
+
+            return string.IsNullOrEmpty(explorationMusicSelectedKey)
+                ? candidate
+                : explorationMusicSelectedKey;
+        }
+
+        private void ResetExplorationMusicPresentationState()
+        {
+            if (string.IsNullOrEmpty(explorationMusicSelectedKey)
+                && string.IsNullOrEmpty(explorationMusicCandidateKey))
+            {
+                return;
+            }
+
+            explorationMusicSelectedKey = "";
+            explorationMusicCandidateKey = "";
+            explorationMusicSelectedAt = -1f;
+            explorationMusicCandidateAt = -1f;
         }
 
         private AudioClip MusicClipForKey(string key)
@@ -3052,6 +3322,26 @@ namespace AshenHalls
             epicSpellEffectsAtlas = LoadExternalPng(RuntimeArtManifest.EpicSpellEffectsAtlas)
                 ?? LoadLatestExternalPng("combat-spell-effects-atlas-runtime-", "")
                 ?? LoadLatestExternalPng("epic-spell-effects-atlas-runtime-", "epic-spell-effects-atlas-runtime-v0.47.png");
+            mageWarlockSpellVfxAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.MageWarlockSpellVfxAtlas,
+                0.20f,
+                "mage and warlock spell VFX",
+                0.10f);
+            supportHexSpellVfxAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.SupportHexSpellVfxAtlas,
+                0.20f,
+                "support and hex spell VFX",
+                0.10f);
+            classSkillVfxAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.ClassSkillVfxAtlas,
+                0.20f,
+                "class skill VFX",
+                0.10f);
+            combatPowerTravelVfxAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.CombatPowerTravelVfxAtlas,
+                0.20f,
+                "combat power travel VFX",
+                0.10f);
             spellAnimationAtlas = LoadExternalPng(RuntimeArtManifest.SpellAnimationAtlas)
                 ?? LoadLatestExternalPng("spell-animation-atlas-runtime-", "");
             combatSpellbookUiAtlas = LoadLatestExternalPng("combat-spellbook-ui-atlas-runtime-", "combat-spellbook-ui-atlas-runtime-v0.47.png");
@@ -3100,6 +3390,42 @@ namespace AshenHalls
                 ?? LoadLatestExternalPng("splash-title-reference-", "splash-title-reference-v0.27.png");
             tavernUiAtlas = LoadExternalPng(RuntimeArtManifest.TavernUiAtlas)
                 ?? LoadLatestExternalPng("tavern-ui-atlas-runtime-", "tavern-ui-atlas-runtime-v0.49.png");
+            titleMenuScrollArt = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.TitleMenuScroll,
+                0.20f,
+                "title menu scroll",
+                0.52f);
+            if (!TitleScreenPresentationRules.SupportsMenuScrollArt(titleMenuScrollArt))
+            {
+                if (titleMenuScrollArt != null)
+                {
+                    Debug.LogWarning("Ignoring title menu scroll with non-approved dimensions.");
+                }
+                titleMenuScrollArt = null;
+            }
+            else
+            {
+                titleMenuScrollArt.filterMode = FilterMode.Bilinear;
+                titleMenuScrollArt.wrapMode = TextureWrapMode.Clamp;
+            }
+            titleMenuFocusArt = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.TitleMenuFocus,
+                0.45f,
+                "title menu focus ribbon",
+                0.20f);
+            if (!TitleScreenPresentationRules.SupportsMenuFocusArt(titleMenuFocusArt))
+            {
+                if (titleMenuFocusArt != null)
+                {
+                    Debug.LogWarning("Ignoring title menu focus ribbon with non-approved dimensions.");
+                }
+                titleMenuFocusArt = null;
+            }
+            else
+            {
+                titleMenuFocusArt.filterMode = FilterMode.Bilinear;
+                titleMenuFocusArt.wrapMode = TextureWrapMode.Clamp;
+            }
             inventoryConsumableAtlas = LoadLatestExternalPng("inventory-consumable-atlas-runtime-", "inventory-consumable-atlas-runtime-v0.50.png");
             combatCommandIconAtlas = LoadApprovedExternalPngWithAlpha(
                     RuntimeArtManifest.CombatCommandIconAtlas,
@@ -3243,6 +3569,38 @@ namespace AshenHalls
                 CombatIconCatalog.BookStateAtlasColumns,
                 CombatIconCatalog.BookStateAtlasRows,
                 1f);
+            ValidateAtlasCells(
+                mageWarlockSpellVfxAtlas,
+                "mage and warlock spell VFX",
+                4,
+                4,
+                true,
+                Enumerable.Range(0, 16).ToArray());
+            ValidateAtlasSquareCells(mageWarlockSpellVfxAtlas, "mage and warlock spell VFX", 4, 4, 1f);
+            ValidateAtlasCells(
+                supportHexSpellVfxAtlas,
+                "support and hex spell VFX",
+                4,
+                4,
+                true,
+                Enumerable.Range(0, 16).ToArray());
+            ValidateAtlasSquareCells(supportHexSpellVfxAtlas, "support and hex spell VFX", 4, 4, 1f);
+            ValidateAtlasCells(
+                classSkillVfxAtlas,
+                "class skill VFX",
+                4,
+                4,
+                true,
+                Enumerable.Range(0, 16).ToArray());
+            ValidateAtlasSquareCells(classSkillVfxAtlas, "class skill VFX", 4, 4, 1f);
+            ValidateAtlasCells(
+                combatPowerTravelVfxAtlas,
+                "combat power travel VFX",
+                4,
+                4,
+                true,
+                Enumerable.Range(0, 16).ToArray());
+            ValidateAtlasSquareCells(combatPowerTravelVfxAtlas, "combat power travel VFX", 4, 4, 1f);
             ValidateAtlasCells(spellAnimationAtlas, "spell animation", 4, 4, true, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
             ValidateAtlasSquareCells(spellAnimationAtlas, "spell animation", 4, 4, 1f);
             ValidateAtlasCells(midgaardGateAtlas, "Midgaard gate", 5, 4, false, 0, 1, 6, 7);
@@ -3356,6 +3714,10 @@ namespace AshenHalls
                 return;
             }
 
+            Color32[] pixels;
+            int textureWidth;
+            int textureHeight;
+            bool hasPixelSnapshot = TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight);
             foreach (int cell in requiredCells)
             {
                 if (cell < 0 || cell >= cellCount)
@@ -3365,7 +3727,9 @@ namespace AshenHalls
                 }
 
                 Rect source = AtlasCell(texture, cell, columns, rows);
-                float visible = VisiblePixelFraction(texture, source);
+                float visible = hasPixelSnapshot
+                    ? VisiblePixelFractionFromSnapshot(pixels, textureWidth, textureHeight, source)
+                    : -1f;
                 if (visible >= 0f && visible < 0.04f)
                 {
                     Debug.LogWarning($"{label} atlas '{texture.name}' cell {cell} is nearly empty ({Mathf.RoundToInt(visible * 100f)}% visible pixels).");
@@ -3376,7 +3740,9 @@ namespace AshenHalls
         private void ValidateSpriteAtlasAlpha(Texture2D texture, string label, float minimumTransparentFraction, float minimumVisibleFraction = 0f)
         {
             if (texture == null) return;
-            float fraction = TransparentPixelFraction(texture);
+            float fraction;
+            float visible;
+            MeasureAtlasAlpha(texture, out fraction, out visible);
             if (fraction < 0f)
             {
                 Debug.LogWarning($"Could not validate {label} alpha for '{texture.name}'.");
@@ -3388,7 +3754,6 @@ namespace AshenHalls
                 Debug.LogWarning($"{label} atlas '{texture.name}' is mostly opaque ({Mathf.RoundToInt(fraction * 100f)}% transparent); map sprites may blend into floor tiles.");
             }
 
-            float visible = VisiblePixelFraction(texture);
             if (minimumVisibleFraction > 0f && visible >= 0f && visible < minimumVisibleFraction)
             {
                 Debug.LogWarning($"{label} atlas '{texture.name}' may be over-pruned ({Mathf.RoundToInt(visible * 100f)}% visible pixels); sprites may appear broken or incomplete.");
@@ -3441,8 +3806,9 @@ namespace AshenHalls
                 {
                     Texture2D texture = TryLoadExternalPngPath(path);
                     if (texture == null) continue;
-                    float transparent = TransparentPixelFraction(texture);
-                    float visible = VisiblePixelFraction(texture);
+                    float transparent;
+                    float visible;
+                    MeasureAtlasAlpha(texture, out transparent, out visible);
                     bool transparentEnough = transparent < 0f || transparent >= minimumTransparentFraction;
                     bool visibleEnough = minimumVisibleFraction <= 0f || visible < 0f || visible >= minimumVisibleFraction;
                     if (transparentEnough && visibleEnough) return texture;
@@ -3474,8 +3840,9 @@ namespace AshenHalls
             Texture2D texture = LoadExternalPng(fileName);
             if (texture == null) return null;
 
-            float transparent = TransparentPixelFraction(texture);
-            float visible = VisiblePixelFraction(texture);
+            float transparent;
+            float visible;
+            MeasureAtlasAlpha(texture, out transparent, out visible);
             bool transparentEnough = transparent < 0f || transparent >= minimumTransparentFraction;
             bool visibleEnough = minimumVisibleFraction <= 0f || visible < 0f || visible >= minimumVisibleFraction;
             if (transparentEnough && visibleEnough) return texture;
@@ -3490,78 +3857,136 @@ namespace AshenHalls
         private float TransparentPixelFraction(Texture2D texture)
         {
             if (texture == null) return -1f;
-            try
-            {
-                Color32[] pixels = texture.GetPixels32();
-                if (pixels == null || pixels.Length == 0) return -1f;
-                int transparent = 0;
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    if (pixels[i].a < 32) transparent++;
-                }
-                return transparent / (float)pixels.Length;
-            }
-            catch
-            {
-                return -1f;
-            }
+            Color32[] pixels;
+            int textureWidth;
+            int textureHeight;
+            if (!TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight)) return -1f;
+            return TransparentPixelFractionFromSnapshot(pixels, textureWidth, textureHeight);
         }
 
         private float VisiblePixelFraction(Texture2D texture)
         {
             if (texture == null) return -1f;
-            try
-            {
-                Color32[] pixels = texture.GetPixels32();
-                if (pixels == null || pixels.Length == 0) return -1f;
-                int visible = 0;
-                for (int i = 0; i < pixels.Length; i++)
-                {
-                    if (pixels[i].a >= 32) visible++;
-                }
-                return visible / (float)pixels.Length;
-            }
-            catch
-            {
-                return -1f;
-            }
+            Color32[] pixels;
+            int textureWidth;
+            int textureHeight;
+            if (!TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight)) return -1f;
+            return VisiblePixelFractionFromSnapshot(pixels, textureWidth, textureHeight);
         }
 
         private float VisiblePixelFraction(Texture2D texture, Rect sourcePixels)
         {
             if (texture == null || sourcePixels.width <= 0f || sourcePixels.height <= 0f) return -1f;
+            Color32[] pixels;
+            int textureWidth;
+            int textureHeight;
+            if (!TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight)) return -1f;
+            return VisiblePixelFractionFromSnapshot(pixels, textureWidth, textureHeight, sourcePixels);
+        }
+
+        private void MeasureAtlasAlpha(Texture2D texture, out float transparentFraction, out float visibleFraction)
+        {
+            transparentFraction = -1f;
+            visibleFraction = -1f;
+
+            Color32[] pixels;
+            int textureWidth;
+            int textureHeight;
+            if (!TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight)) return;
+
+            transparentFraction = TransparentPixelFractionFromSnapshot(pixels, textureWidth, textureHeight);
+            visibleFraction = VisiblePixelFractionFromSnapshot(pixels, textureWidth, textureHeight);
+        }
+
+        private bool TrySnapshotAtlasPixels(Texture2D texture, out Color32[] pixels, out int textureWidth, out int textureHeight)
+        {
+            Exception error;
+            return TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight, out error);
+        }
+
+        private bool TrySnapshotAtlasPixels(Texture2D texture, out Color32[] pixels, out int textureWidth, out int textureHeight, out Exception error)
+        {
+            pixels = null;
+            textureWidth = texture == null ? 0 : texture.width;
+            textureHeight = texture == null ? 0 : texture.height;
+            error = null;
+            if (texture == null) return false;
+
             try
             {
-                Color32[] pixels = texture.GetPixels32();
-                if (pixels == null || pixels.Length == 0) return -1f;
-
-                int x0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.x), 0, texture.width - 1);
-                int x1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.x + sourcePixels.width), x0 + 1, texture.width);
-
-                // Atlas rects are authored and rendered from a top-left origin, while
-                // Texture2D.GetPixels32 is laid out from the bottom row upward.
-                int topY0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.y), 0, texture.height - 1);
-                int topY1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.y + sourcePixels.height), topY0 + 1, texture.height);
-                int y0 = Mathf.Clamp(texture.height - topY1, 0, texture.height - 1);
-                int y1 = Mathf.Clamp(texture.height - topY0, y0 + 1, texture.height);
-                int total = Mathf.Max(1, (x1 - x0) * (y1 - y0));
-                int visible = 0;
-
-                for (int y = y0; y < y1; y++)
-                {
-                    int row = y * texture.width;
-                    for (int x = x0; x < x1; x++)
-                    {
-                        if (pixels[row + x].a >= 32) visible++;
-                    }
-                }
-
-                return visible / (float)total;
+                pixels = texture.GetPixels32();
+                return AtlasPixelSnapshotIsUsable(pixels, textureWidth, textureHeight);
             }
-            catch
+            catch (Exception ex)
+            {
+                pixels = null;
+                error = ex;
+                return false;
+            }
+        }
+
+        private float TransparentPixelFractionFromSnapshot(Color32[] pixels, int textureWidth, int textureHeight)
+        {
+            if (!AtlasPixelSnapshotIsUsable(pixels, textureWidth, textureHeight)) return -1f;
+            int transparent = 0;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                if (pixels[i].a < 32) transparent++;
+            }
+            return transparent / (float)pixels.Length;
+        }
+
+        private float VisiblePixelFractionFromSnapshot(Color32[] pixels, int textureWidth, int textureHeight)
+        {
+            if (!AtlasPixelSnapshotIsUsable(pixels, textureWidth, textureHeight)) return -1f;
+            int visible = 0;
+            for (int i = 0; i < pixels.Length; i++)
+            {
+                if (pixels[i].a >= 32) visible++;
+            }
+            return visible / (float)pixels.Length;
+        }
+
+        private float VisiblePixelFractionFromSnapshot(Color32[] pixels, int textureWidth, int textureHeight, Rect sourcePixels)
+        {
+            if (!AtlasPixelSnapshotIsUsable(pixels, textureWidth, textureHeight)
+                || sourcePixels.width <= 0f
+                || sourcePixels.height <= 0f
+                || (long)textureWidth * textureHeight > pixels.Length)
             {
                 return -1f;
             }
+
+            int x0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.x), 0, textureWidth - 1);
+            int x1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.x + sourcePixels.width), x0 + 1, textureWidth);
+
+            // Atlas rects are authored and rendered from a top-left origin, while
+            // Texture2D.GetPixels32 is laid out from the bottom row upward.
+            int topY0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.y), 0, textureHeight - 1);
+            int topY1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.y + sourcePixels.height), topY0 + 1, textureHeight);
+            int y0 = Mathf.Clamp(textureHeight - topY1, 0, textureHeight - 1);
+            int y1 = Mathf.Clamp(textureHeight - topY0, y0 + 1, textureHeight);
+            int total = Mathf.Max(1, (x1 - x0) * (y1 - y0));
+            int visible = 0;
+
+            for (int y = y0; y < y1; y++)
+            {
+                int row = y * textureWidth;
+                for (int x = x0; x < x1; x++)
+                {
+                    if (pixels[row + x].a >= 32) visible++;
+                }
+            }
+
+            return visible / (float)total;
+        }
+
+        private bool AtlasPixelSnapshotIsUsable(Color32[] pixels, int textureWidth, int textureHeight)
+        {
+            return pixels != null
+                && textureWidth > 0
+                && textureHeight > 0
+                && (long)textureWidth * textureHeight == pixels.Length;
         }
 
         private Texture2D LoadExternalPng(string fileName)
@@ -3652,14 +4077,81 @@ namespace AshenHalls
             }
 
             Rect source = AtlasCell(texture, index, columns, rows);
-            if (!ExplorationAtlasCellLooksUsable(texture, source, index, label, minimumVisibleFraction, maximumVisibleFraction)) return false;
-            ExploreArtMetrics metrics = ExploreArtMetricsFor(texture, source, index, label);
+            ExploreArtMetrics metrics;
+            if (!TryResolveExploreArtMetrics(
+                    texture,
+                    source,
+                    index,
+                    label,
+                    minimumVisibleFraction,
+                    maximumVisibleFraction,
+                    out metrics))
+            {
+                return false;
+            }
             return DrawTextureRegionTintAnchored(texture, destination, metrics.Source, tint, spec);
+        }
+
+        private bool TryResolveExploreArtMetrics(
+            Texture2D texture,
+            Rect sourcePixels,
+            int index,
+            string label,
+            float minimumVisibleFraction,
+            float maximumVisibleFraction,
+            out ExploreArtMetrics metrics)
+        {
+            metrics = null;
+            if (texture == null) return false;
+
+            string usabilityKey = ExplorationAtlasCellUsabilityKey(texture, sourcePixels, minimumVisibleFraction, maximumVisibleFraction);
+            bool usable;
+            bool hasUsability = explorationAtlasCellUsable.TryGetValue(usabilityKey, out usable);
+            if (hasUsability && !usable) return false;
+
+            string metricsKey = ExploreArtMetricsKey(texture, sourcePixels, index);
+            bool hasMetrics = exploreArtMetrics.TryGetValue(metricsKey, out metrics);
+            if (hasUsability && hasMetrics) return true;
+
+            Color32[] pixels;
+            int textureWidth;
+            int textureHeight;
+            Exception snapshotError;
+            bool hasPixelSnapshot = TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight, out snapshotError);
+            if (!hasMetrics && snapshotError != null)
+            {
+                Debug.LogWarning($"Could not trim {label} cell {index}: {snapshotError.Message}");
+            }
+            if (!hasUsability)
+            {
+                float visible = hasPixelSnapshot
+                    ? VisiblePixelFractionFromSnapshot(pixels, textureWidth, textureHeight, sourcePixels)
+                    : -1f;
+                usable = CacheExplorationAtlasCellUsability(
+                    texture,
+                    usabilityKey,
+                    index,
+                    label,
+                    minimumVisibleFraction,
+                    maximumVisibleFraction,
+                    visible);
+                if (!usable) return false;
+            }
+
+            if (!hasMetrics)
+            {
+                Rect trimmedSource = hasPixelSnapshot
+                    ? TrimVisibleSourceFromSnapshot(pixels, textureWidth, textureHeight, sourcePixels)
+                    : sourcePixels;
+                metrics = new ExploreArtMetrics { Source = trimmedSource };
+                exploreArtMetrics[metricsKey] = metrics;
+            }
+            return true;
         }
 
         private ExploreArtMetrics ExploreArtMetricsFor(Texture2D texture, Rect sourcePixels, int index, string label)
         {
-            string key = texture.GetInstanceID() + ":" + index + ":" + Mathf.RoundToInt(sourcePixels.x) + ":" + Mathf.RoundToInt(sourcePixels.y) + ":" + Mathf.RoundToInt(sourcePixels.width) + ":" + Mathf.RoundToInt(sourcePixels.height);
+            string key = ExploreArtMetricsKey(texture, sourcePixels, index);
             ExploreArtMetrics cached;
             if (exploreArtMetrics.TryGetValue(key, out cached)) return cached;
 
@@ -3668,51 +4160,78 @@ namespace AshenHalls
             return metrics;
         }
 
+        private string ExploreArtMetricsKey(Texture2D texture, Rect sourcePixels, int index)
+        {
+            return texture.GetInstanceID() + ":" + index + ":" + Mathf.RoundToInt(sourcePixels.x) + ":" + Mathf.RoundToInt(sourcePixels.y) + ":" + Mathf.RoundToInt(sourcePixels.width) + ":" + Mathf.RoundToInt(sourcePixels.height);
+        }
+
         private Rect TrimVisibleSource(Texture2D texture, Rect sourcePixels, string label, int index)
         {
             if (texture == null || sourcePixels.width <= 0f || sourcePixels.height <= 0f) return sourcePixels;
             try
             {
-                Color32[] pixels = texture.GetPixels32();
-                if (pixels == null || pixels.Length == 0) return sourcePixels;
-
-                int x0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.x), 0, texture.width - 1);
-                int y0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.y), 0, texture.height - 1);
-                int x1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.x + sourcePixels.width), x0 + 1, texture.width);
-                int y1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.y + sourcePixels.height), y0 + 1, texture.height);
-                int minX = x1;
-                int minY = y1;
-                int maxX = x0;
-                int maxY = y0;
-
-                for (int topY = y0; topY < y1; topY++)
+                Color32[] pixels;
+                int textureWidth;
+                int textureHeight;
+                Exception snapshotError;
+                if (!TrySnapshotAtlasPixels(texture, out pixels, out textureWidth, out textureHeight, out snapshotError))
                 {
-                    int pixelY = texture.height - 1 - topY;
-                    if (pixelY < 0 || pixelY >= texture.height) continue;
-                    int row = pixelY * texture.width;
-                    for (int x = x0; x < x1; x++)
+                    if (snapshotError != null)
                     {
-                        if (pixels[row + x].a < 32) continue;
-                        minX = Mathf.Min(minX, x);
-                        minY = Mathf.Min(minY, topY);
-                        maxX = Mathf.Max(maxX, x + 1);
-                        maxY = Mathf.Max(maxY, topY + 1);
+                        Debug.LogWarning($"Could not trim {label} cell {index}: {snapshotError.Message}");
                     }
+                    return sourcePixels;
                 }
-
-                if (minX >= maxX || minY >= maxY) return sourcePixels;
-                int pad = Mathf.Max(1, Mathf.RoundToInt(Mathf.Min(sourcePixels.width, sourcePixels.height) * 0.015f));
-                minX = Mathf.Max(x0, minX - pad);
-                minY = Mathf.Max(y0, minY - pad);
-                maxX = Mathf.Min(x1, maxX + pad);
-                maxY = Mathf.Min(y1, maxY + pad);
-                return new Rect(minX, minY, Mathf.Max(1, maxX - minX), Mathf.Max(1, maxY - minY));
+                return TrimVisibleSourceFromSnapshot(pixels, textureWidth, textureHeight, sourcePixels);
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"Could not trim {label} cell {index}: {ex.Message}");
                 return sourcePixels;
             }
+        }
+
+        private Rect TrimVisibleSourceFromSnapshot(Color32[] pixels, int textureWidth, int textureHeight, Rect sourcePixels)
+        {
+            if (!AtlasPixelSnapshotIsUsable(pixels, textureWidth, textureHeight)
+                || sourcePixels.width <= 0f
+                || sourcePixels.height <= 0f
+                || (long)textureWidth * textureHeight > pixels.Length)
+            {
+                return sourcePixels;
+            }
+
+            int x0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.x), 0, textureWidth - 1);
+            int y0 = Mathf.Clamp(Mathf.FloorToInt(sourcePixels.y), 0, textureHeight - 1);
+            int x1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.x + sourcePixels.width), x0 + 1, textureWidth);
+            int y1 = Mathf.Clamp(Mathf.CeilToInt(sourcePixels.y + sourcePixels.height), y0 + 1, textureHeight);
+            int minX = x1;
+            int minY = y1;
+            int maxX = x0;
+            int maxY = y0;
+
+            for (int topY = y0; topY < y1; topY++)
+            {
+                int pixelY = textureHeight - 1 - topY;
+                if (pixelY < 0 || pixelY >= textureHeight) continue;
+                int row = pixelY * textureWidth;
+                for (int x = x0; x < x1; x++)
+                {
+                    if (pixels[row + x].a < 32) continue;
+                    minX = Mathf.Min(minX, x);
+                    minY = Mathf.Min(minY, topY);
+                    maxX = Mathf.Max(maxX, x + 1);
+                    maxY = Mathf.Max(maxY, topY + 1);
+                }
+            }
+
+            if (minX >= maxX || minY >= maxY) return sourcePixels;
+            int pad = Mathf.Max(1, Mathf.RoundToInt(Mathf.Min(sourcePixels.width, sourcePixels.height) * 0.015f));
+            minX = Mathf.Max(x0, minX - pad);
+            minY = Mathf.Max(y0, minY - pad);
+            maxX = Mathf.Min(x1, maxX + pad);
+            maxY = Mathf.Min(y1, maxY + pad);
+            return new Rect(minX, minY, Mathf.Max(1, maxX - minX), Mathf.Max(1, maxY - minY));
         }
 
         private bool DrawTextureRegionTintAnchored(Texture2D texture, Rect destination, Rect sourcePixels, Color tint, WorldMapArtSpec spec)
@@ -3761,11 +4280,28 @@ namespace AshenHalls
         private bool ExplorationAtlasCellLooksUsable(Texture2D texture, Rect sourcePixels, int index, string label, float minimumVisibleFraction, float maximumVisibleFraction)
         {
             if (texture == null) return false;
-            string key = texture.GetInstanceID() + ":" + Mathf.RoundToInt(sourcePixels.x) + ":" + Mathf.RoundToInt(sourcePixels.y) + ":" + Mathf.RoundToInt(sourcePixels.width) + ":" + Mathf.RoundToInt(sourcePixels.height) + ":" + Mathf.RoundToInt(minimumVisibleFraction * 10000f) + ":" + Mathf.RoundToInt(maximumVisibleFraction * 10000f);
+            string key = ExplorationAtlasCellUsabilityKey(texture, sourcePixels, minimumVisibleFraction, maximumVisibleFraction);
             bool cached;
             if (explorationAtlasCellUsable.TryGetValue(key, out cached)) return cached;
 
             float visible = VisiblePixelFraction(texture, sourcePixels);
+            return CacheExplorationAtlasCellUsability(texture, key, index, label, minimumVisibleFraction, maximumVisibleFraction, visible);
+        }
+
+        private string ExplorationAtlasCellUsabilityKey(Texture2D texture, Rect sourcePixels, float minimumVisibleFraction, float maximumVisibleFraction)
+        {
+            return texture.GetInstanceID() + ":" + Mathf.RoundToInt(sourcePixels.x) + ":" + Mathf.RoundToInt(sourcePixels.y) + ":" + Mathf.RoundToInt(sourcePixels.width) + ":" + Mathf.RoundToInt(sourcePixels.height) + ":" + Mathf.RoundToInt(minimumVisibleFraction * 10000f) + ":" + Mathf.RoundToInt(maximumVisibleFraction * 10000f);
+        }
+
+        private bool CacheExplorationAtlasCellUsability(
+            Texture2D texture,
+            string key,
+            int index,
+            string label,
+            float minimumVisibleFraction,
+            float maximumVisibleFraction,
+            float visible)
+        {
             bool usable = visible < 0f || (visible >= minimumVisibleFraction && visible <= maximumVisibleFraction);
             explorationAtlasCellUsable[key] = usable;
             if (!usable)
@@ -4309,8 +4845,15 @@ namespace AshenHalls
             }
         }
 
-        private void PlayCombatImpactSfx(CombatImpactProfile profile, int impactX, int impactY, int reactionCount)
+        private void PlayCombatImpactSfx(
+            CombatImpactProfile profile,
+            int impactX,
+            int impactY,
+            int reactionCount,
+            string exactPowerKey = "")
         {
+            if (TryPlayCombatPowerSfxPlan(profile, impactX, impactY, reactionCount, exactPowerKey)) return;
+
             bool reduced = state != null && state.ReducedMotion;
             CombatUnit caster = CurrentUnit();
             float impactPan = CombatAudioMixRules.StereoPanForColumn(impactX, CombatW);
@@ -4391,90 +4934,283 @@ namespace AshenHalls
             BeginCombatMusicDuck(profile, reactionCount, profile.ImpactDelay);
         }
 
+        private bool TryPlayCombatPowerSfxPlan(
+            CombatImpactProfile impactProfile,
+            int impactX,
+            int impactY,
+            int reactionCount,
+            string exactPowerKey)
+        {
+            if (!TryResolveCombatPowerSfxPlan(impactProfile, exactPowerKey, reactionCount, out CombatPowerSfxPlan plan)) return false;
+
+            CombatUnit caster = CurrentUnit();
+            float impactPan = CombatAudioMixRules.StereoPanForColumn(impactX, CombatW);
+            int sampleIndex = (impactX + 1) * 31 + (impactY + 1) * 17 + Mathf.Max(0, reactionCount) * 13;
+            float impactPitch = CombatPowerSfxRules.StablePitch(plan.Impact, plan.ProfileKey, sampleIndex, 3);
+            if (plan.ReducedAudio)
+            {
+                ScheduleCombatPowerSfxCue(
+                    plan.Impact,
+                    plan.ProfileKey,
+                    sampleIndex,
+                    3,
+                    impactPan,
+                    CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
+                BeginCombatMusicDuck(impactProfile, reactionCount, 0f);
+                return true;
+            }
+
+            PowerCastAura stagedCast = powerCastAuras.LastOrDefault(aura =>
+                aura != null
+                && aura.TargetX == impactX
+                && aura.TargetY == impactY);
+            int casterColumn = stagedCast?.SourceX ?? caster?.X ?? impactX;
+            float casterPan = CombatAudioMixRules.StereoPanForColumn(casterColumn, CombatW);
+            float releasePan = CombatAudioMixRules.StereoPanMidpoint(casterPan, impactPan);
+
+            ScheduleCombatPowerSfxCue(
+                plan.Cast,
+                plan.ProfileKey,
+                sampleIndex,
+                1,
+                casterPan,
+                CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            string casterVoice = CreatureAudioRules.CueFor(caster, "cast");
+            if (!string.IsNullOrEmpty(casterVoice))
+            {
+                float voicePitch = CombatAudioMixRules.PitchForCue(casterVoice, casterColumn);
+                PlaySfxSpatial(
+                    casterVoice,
+                    CombatAudioMixRules.AuxiliaryLayerVolume(0.24f),
+                    casterPan,
+                    Mathf.Clamp(voicePitch * 1.04f, 0.94f, 1.10f));
+            }
+
+            ScheduleCombatPowerSfxCue(
+                plan.Shimmer,
+                plan.ProfileKey,
+                sampleIndex,
+                7,
+                casterPan,
+                CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
+            ScheduleCombatPowerSfxCue(
+                plan.Release,
+                plan.ProfileKey,
+                sampleIndex,
+                2,
+                releasePan,
+                CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
+            ScheduleCombatPowerSfxCue(
+                plan.Impact,
+                plan.ProfileKey,
+                sampleIndex,
+                3,
+                impactPan,
+                CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
+            ScheduleCombatPowerSfxCue(
+                plan.Aftershock,
+                plan.ProfileKey,
+                sampleIndex,
+                4,
+                impactPan * 0.72f,
+                CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            ScheduleCombatPowerSfxCue(
+                plan.LowHit,
+                plan.ProfileKey,
+                sampleIndex,
+                5,
+                impactPan * 0.48f,
+                CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            ScheduleCombatPowerSfxCue(
+                plan.Rumble,
+                plan.ProfileKey,
+                sampleIndex,
+                6,
+                impactPan * 0.36f,
+                CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+
+            CombatUnit impactTarget = state?.Combat?.Units?.FirstOrDefault(unit =>
+                unit != null
+                && unit.X == impactX
+                && unit.Y == impactY
+                && unit.Id != caster?.Id);
+            string reactionCue = CreatureAudioRules.CueFor(impactTarget, impactTarget != null && impactTarget.Hp <= 0 ? "death" : "hurt");
+            if (!string.IsNullOrEmpty(reactionCue))
+            {
+                QueueSfx(
+                    reactionCue,
+                    plan.Impact.Delay + 0.035f,
+                    CombatAudioMixRules.AuxiliaryLayerVolume(impactTarget.Hp <= 0 ? 0.60f : 0.34f),
+                    impactPan,
+                    Mathf.Clamp(impactPitch * 1.02f, 0.94f, 1.10f),
+                    CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
+            }
+            if (CombatAudioMixRules.ShouldLayerReaction(reactionCount)
+                && !string.Equals(plan.Aftershock.Key, "resonance", StringComparison.OrdinalIgnoreCase))
+            {
+                QueueSfx(
+                    "resonance",
+                    plan.Impact.Delay + 0.055f,
+                    CombatAudioMixRules.AuxiliaryLayerVolume(0.40f + Mathf.Min(2, reactionCount) * 0.06f),
+                    impactPan * 0.62f,
+                    Mathf.Clamp(impactPitch * 1.02f, 0.94f, 1.10f),
+                    CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            }
+            BeginCombatMusicDuck(impactProfile, reactionCount, plan.Impact.Delay);
+            return true;
+        }
+
+        private bool TryResolveCombatPowerSfxPlan(
+            CombatImpactProfile impactProfile,
+            string exactPowerKey,
+            int reactionCount,
+            out CombatPowerSfxPlan plan)
+        {
+            plan = default;
+            if (string.IsNullOrWhiteSpace(exactPowerKey)) return false;
+
+            int intensity = CombatImpactRules.VisualIntensity(impactProfile, reactionCount);
+            bool reducedAudio = state != null && state.ReducedMotion;
+            if (CombatPowerSfxRules.IsSupportedFormula(exactPowerKey))
+            {
+                plan = CombatPowerSfxRules.PlanForFormula(exactPowerKey, intensity, reducedAudio);
+                return true;
+            }
+            if (CombatPowerSfxRules.IsSupportedAbility(exactPowerKey))
+            {
+                plan = CombatPowerSfxRules.PlanForAbility(exactPowerKey, intensity, reducedAudio);
+                return true;
+            }
+            return false;
+        }
+
+        private float ResolvedCombatPowerSfxImpactDelay(CombatImpactProfile profile, string exactPowerKey)
+        {
+            return TryResolveCombatPowerSfxPlan(profile, exactPowerKey, 0, out CombatPowerSfxPlan plan)
+                && plan.Impact.Enabled
+                ? plan.Impact.Delay
+                : profile.ImpactDelay;
+        }
+
+        private void ScheduleCombatPowerSfxCue(
+            CombatPowerSfxCuePlan cue,
+            string profileKey,
+            int sampleIndex,
+            int channel,
+            float pan,
+            int priority)
+        {
+            if (!cue.Enabled) return;
+            QueueSfx(
+                cue.Key,
+                cue.Delay,
+                cue.Gain,
+                pan,
+                CombatPowerSfxRules.StablePitch(cue, profileKey, sampleIndex, channel),
+                priority);
+        }
+
         private void PlayCombatMissSfx(CombatImpactProfile profile, int targetX)
         {
             if (string.IsNullOrEmpty(profile.CastSfx)) return;
-            float pan = CombatAudioMixRules.StereoPanForColumn(targetX, CombatW);
-            float pitch = CombatAudioMixRules.PitchForCue(profile.CastSfx, targetX);
+            CombatUnit caster = CurrentUnit();
+            int sourceX = caster?.X ?? targetX;
+            float pan = CombatAudioMixRules.StereoPanForColumn(sourceX, CombatW);
+            float pitch = CombatAudioMixRules.PitchForCue(profile.CastSfx, sourceX);
             PlaySfxSpatial(
                 profile.CastSfx,
                 Mathf.Min(0.78f, profile.CastVolume),
-                pan * 0.42f,
+                pan,
                 Mathf.Lerp(1f, pitch, 0.45f));
         }
 
         private void PlayWeaponAttackSequence(CombatUnit attacker, CombatUnit target, string damageType, bool critical, bool hit, bool ranged)
         {
+            int sourceX = attacker?.X ?? target?.X ?? 0;
             int targetX = target == null ? attacker?.X ?? 0 : target.X;
-            float pan = CombatAudioMixRules.StereoPanForColumn(targetX, CombatW);
+            float sourcePan = CombatAudioMixRules.StereoPanForColumn(sourceX, CombatW);
+            float impactPan = CombatAudioMixRules.StereoPanForColumn(targetX, CombatW);
             WeaponFeedbackProfile feedback = WeaponFeedbackRules.For(attacker?.WeaponName, ranged);
 
-            float pitch = CombatAudioMixRules.PitchForCue(feedback.ReleaseCue, targetX);
+            float releasePitch = CombatAudioMixRules.PitchForCue(feedback.ReleaseCue, sourceX);
+            float impactPitch = CombatAudioMixRules.PitchForCue(feedback.ContactCue, targetX);
             string attackerVoice = CreatureAudioRules.CueFor(attacker, "attack");
             if (!string.IsNullOrEmpty(attackerVoice))
             {
-                PlaySfxSpatial(attackerVoice, 0.26f, pan * 0.28f, Mathf.Clamp(pitch * 1.05f, 0.96f, 1.10f));
+                PlaySfxSpatial(attackerVoice, 0.26f, sourcePan, Mathf.Clamp(releasePitch * 1.05f, 0.96f, 1.10f));
             }
-            PlaySfxSpatial(feedback.ReleaseCue, feedback.ReleaseVolume, pan * 0.36f, pitch);
+            PlaySfxSpatial(feedback.ReleaseCue, feedback.ReleaseVolume, sourcePan, releasePitch);
             if (hit)
             {
                 QueueSfx(
                     feedback.ContactCue,
                     feedback.ImpactDelay,
                     WeaponFeedbackRules.ContactVolume(feedback, critical, target != null && target.Guarding),
-                    pan * 0.82f,
-                    Mathf.Clamp(pitch * (critical ? 0.95f : 1.02f), 0.90f, 1.10f));
+                    impactPan * 0.82f,
+                    Mathf.Clamp(impactPitch * (critical ? 0.95f : 1.02f), 0.90f, 1.10f));
                 QueueSfx(
-                    WeaponImpactSfx(attacker, target, damageType, critical),
+                    WeaponImpactSfx(attacker, target, damageType),
                     feedback.ImpactDelay + 0.012f,
-                    critical ? 0.90f : 0.62f,
-                    pan,
-                    Mathf.Clamp(pitch * (critical ? 0.96f : 1f), 0.90f, 1.10f),
+                    critical ? 0.82f : 0.62f,
+                    impactPan,
+                    Mathf.Clamp(impactPitch * (critical ? 0.96f : 1f), 0.90f, 1.10f),
                     CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
             }
             else
             {
-                QueueSfx("miss", feedback.ImpactDelay, 0.62f, pan, pitch, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
+                QueueSfx("miss", feedback.ImpactDelay, 0.62f, impactPan, impactPitch, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
             }
             if (hit)
             {
                 string reaction = CreatureAudioRules.CueFor(target, target.Hp <= 0 ? "death" : "hurt");
                 if (!string.IsNullOrEmpty(reaction))
                 {
-                    QueueSfx(reaction, feedback.ImpactDelay + 0.032f, target.Hp <= 0 ? 0.66f : 0.40f, pan, Mathf.Clamp(pitch * 1.03f, 0.94f, 1.10f), CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
+                    QueueSfx(reaction, feedback.ImpactDelay + 0.032f, target.Hp <= 0 ? 0.66f : 0.40f, impactPan, Mathf.Clamp(impactPitch * 1.03f, 0.94f, 1.10f), CombatAudioMixRules.ScheduledSfxPriorityAuxiliary);
                 }
             }
-            if (hit && critical) QueueSfx("impactlow", feedback.ImpactDelay + 0.022f, 0.30f, pan * 0.48f, 0.92f, CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            if (hit && critical)
+            {
+                QueueSfx(
+                    CombatAudioMixRules.CriticalCue,
+                    feedback.ImpactDelay + 0.022f,
+                    0.78f,
+                    impactPan,
+                    CombatAudioMixRules.PitchForCue(CombatAudioMixRules.CriticalCue, targetX),
+                    CombatAudioMixRules.ScheduledSfxPrioritySecondaryImpact);
+                QueueSfx("impactlow", feedback.ImpactDelay + 0.030f, 0.26f, impactPan * 0.48f, 0.92f, CombatAudioMixRules.ScheduledSfxPrioritySupporting);
+            }
         }
 
         private void PlayCoverAttackSequence(CombatUnit attacker, Point cover, bool ranged, bool broken, bool arcing = false)
         {
             if (attacker == null || cover == null) return;
             WeaponFeedbackProfile feedback = WeaponFeedbackRules.For(attacker.WeaponName, ranged);
-            float pan = CombatAudioMixRules.StereoPanForColumn(cover.X, CombatW);
+            float sourcePan = CombatAudioMixRules.StereoPanForColumn(attacker.X, CombatW);
+            float impactPan = CombatAudioMixRules.StereoPanForColumn(cover.X, CombatW);
             string releaseCue = arcing ? CoverArcReleaseCue(attacker.DamageType) : feedback.ReleaseCue;
             float impactDelay = arcing ? 0.09f : feedback.ImpactDelay;
-            float pitch = CombatAudioMixRules.PitchForCue(releaseCue, cover.X);
-            PlaySfxSpatial(releaseCue, arcing ? 0.46f : feedback.ReleaseVolume, pan * 0.36f, pitch);
+            float releasePitch = CombatAudioMixRules.PitchForCue(releaseCue, attacker.X);
+            float impactPitch = CombatAudioMixRules.PitchForCue(feedback.ContactCue, cover.X);
+            PlaySfxSpatial(releaseCue, arcing ? 0.46f : feedback.ReleaseVolume, sourcePan, releasePitch);
             if (!arcing)
             {
                 QueueSfx(
                     feedback.ContactCue,
                     impactDelay,
                     WeaponFeedbackRules.ContactVolume(feedback, broken, false) * 0.72f,
-                    pan * 0.78f,
-                    Mathf.Clamp(pitch * (broken ? 0.95f : 1.02f), 0.90f, 1.10f));
+                    impactPan * 0.78f,
+                    Mathf.Clamp(impactPitch * (broken ? 0.95f : 1.02f), 0.90f, 1.10f));
             }
             QueueSfx(
                 WeaponFeedbackRules.CoverContactCue(cover.Kind),
                 impactDelay + 0.014f,
                 WeaponFeedbackRules.CoverContactVolume(feedback, broken),
-                pan,
-                Mathf.Clamp(pitch * (cover.Kind == "tree" ? 1.03f : 0.92f), 0.88f, 1.10f),
+                impactPan,
+                Mathf.Clamp(impactPitch * (cover.Kind == "tree" ? 1.03f : 0.92f), 0.88f, 1.10f),
                 CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
             if (broken)
             {
-                QueueSfx("breakcover", impactDelay + 0.050f, 0.76f, pan * 0.88f, cover.Kind == "tree" ? 1.04f : 0.91f);
+                QueueSfx("breakcover", impactDelay + 0.050f, 0.76f, impactPan * 0.88f, cover.Kind == "tree" ? 1.04f : 0.91f);
             }
         }
 
@@ -4492,9 +5228,8 @@ namespace AshenHalls
             }
         }
 
-        private string WeaponImpactSfx(CombatUnit attacker, CombatUnit target, string damageType, bool critical)
+        private string WeaponImpactSfx(CombatUnit attacker, CombatUnit target, string damageType)
         {
-            if (critical) return "crit";
             if (damageType == "fire") return "fire";
             if (damageType == "cold") return "ice";
             if (damageType == "shock") return "shock";
@@ -4518,13 +5253,35 @@ namespace AshenHalls
             if (depth <= 0f || releaseDuration <= 0f) return;
 
             float now = Time.time;
-            if (now >= combatMusicDuckUntil) combatMusicDuckDepth = 0f;
+            if (!CombatAudioMixRules.ShouldReplaceActiveMusicDuck(
+                    now,
+                    combatMusicDuckUntil,
+                    combatMusicDuckDepth,
+                    depth))
+            {
+                return;
+            }
             float safeImpactDelay = Mathf.Clamp(impactDelay, 0f, 0.60f);
             combatMusicDuckFullDepthAt = now + safeImpactDelay;
             combatMusicDuckStartedAt = combatMusicDuckFullDepthAt - Mathf.Min(safeImpactDelay, attackDuration);
             combatMusicDuckHoldUntil = combatMusicDuckFullDepthAt + holdDuration;
             combatMusicDuckUntil = combatMusicDuckHoldUntil + releaseDuration;
-            combatMusicDuckDepth = Mathf.Max(combatMusicDuckDepth, depth);
+            combatMusicDuckDepth = depth;
+            ApplyAudioSettings();
+        }
+
+        private void ClearCombatAudioForReducedMotion()
+        {
+            scheduledSfx.Clear();
+            combatMusicDuckStartedAt = -1f;
+            combatMusicDuckFullDepthAt = -1f;
+            combatMusicDuckHoldUntil = -1f;
+            combatMusicDuckUntil = -1f;
+            combatMusicDuckDepth = 0f;
+            lastCombatForegroundSfxAt = Time.time;
+            nextCombatAmbienceAt = Mathf.Max(
+                nextCombatAmbienceAt,
+                lastCombatForegroundSfxAt + CombatAudioMixRules.CombatAmbienceForegroundQuietWindow);
             ApplyAudioSettings();
         }
 
@@ -5594,6 +6351,7 @@ namespace AshenHalls
             }
 
             DrawCombatSpriteSideRim(anchoredRect, unit, frame, active, figureAlpha);
+            DrawEnemyRankMarker(anchoredRect, unit, figureAlpha);
             if (active && figureAlpha > 0.05f) DrawActiveSpriteAccent(anchoredRect, unit);
 
             // Keep combat sprites art-first; tactical details live in HP bars, edge pips, hover cards, and side panels.
@@ -5638,6 +6396,59 @@ namespace AshenHalls
                 Mathf.Clamp01(figureAlpha) * (active ? 0.72f : 0.36f));
             DrawRect(stage.LeftRim, rim);
             DrawRect(stage.RightRim, rim.WithAlpha(rim.a * 0.72f));
+        }
+
+        private void DrawEnemyRankMarker(Rect rect, CombatUnit unit, float figureAlpha)
+        {
+            if (unit == null || unit.Side != UnitSide.Enemy || figureAlpha <= 0.05f) return;
+
+            int chevronCount;
+            Color accent;
+            if (string.Equals(unit.Rank, "veteran", StringComparison.OrdinalIgnoreCase))
+            {
+                chevronCount = 1;
+                accent = Color.Lerp(Hex("d0c5ae"), cursorWhite, 0.18f);
+            }
+            else if (string.Equals(unit.Rank, "elite", StringComparison.OrdinalIgnoreCase))
+            {
+                chevronCount = 2;
+                accent = Color.Lerp(gold, cursorWhite, 0.12f);
+            }
+            else
+            {
+                return;
+            }
+
+            float alpha = Mathf.Clamp01(figureAlpha);
+            float width = Mathf.Max(14f, rect.width * 0.18f);
+            float height = Mathf.Max(11f, rect.height * (chevronCount == 1 ? 0.12f : 0.17f));
+            Rect badge = new Rect(
+                rect.xMax - width - rect.width * 0.07f,
+                rect.y + rect.height * 0.09f,
+                width,
+                height);
+            DrawRect(badge, Hex("030405", 0.76f * alpha));
+            DrawBorder(badge, accent.WithAlpha(0.70f * alpha), 1);
+
+            float inset = Mathf.Max(3f, width * 0.20f);
+            float chevronHeight = Mathf.Max(3f, height * 0.25f);
+            float gap = Mathf.Max(2f, height * 0.11f);
+            float stroke = Mathf.Max(1f, rect.width * 0.018f);
+            Color shadow = Hex("030405", 0.90f * alpha);
+            Color mark = accent.WithAlpha(0.96f * alpha);
+            float stackHeight = chevronCount * chevronHeight + (chevronCount - 1) * gap;
+            float startY = badge.center.y - stackHeight * 0.5f;
+            for (int i = 0; i < chevronCount; i++)
+            {
+                float y = startY + i * (chevronHeight + gap);
+                Vector2 left = new Vector2(badge.x + inset, y + chevronHeight);
+                Vector2 peak = new Vector2(badge.center.x, y);
+                Vector2 right = new Vector2(badge.xMax - inset, y + chevronHeight);
+                DrawPixelLine(left, peak, shadow, stroke + 2f);
+                DrawPixelLine(peak, right, shadow, stroke + 2f);
+                DrawPixelLine(left, peak, mark, stroke);
+                DrawPixelLine(peak, right, mark, stroke);
+            }
         }
 
         private void DrawPartyPortraitSprite(Rect rect, PartyMember member, Color color)
@@ -6190,16 +7001,6 @@ namespace AshenHalls
             int seed = StableSeed(unit.Id + unit.Name + unit.Role + unit.Rank);
             Color color = unit.Color.ToColor();
             Color mark = Color.Lerp(DamageColor(unit.DamageType), cursorWhite, 0.08f);
-            if (unit.Rank == "veteran")
-            {
-                DrawRect(new Rect(rect.x + rect.width * 0.36f, rect.y + rect.height * 0.16f, rect.width * 0.28f, rect.height * 0.035f), Color.Lerp(gold, color, 0.35f));
-            }
-            else if (unit.Rank == "elite")
-            {
-                DrawBorder(new Rect(rect.x + rect.width * 0.29f, rect.y + rect.height * 0.18f, rect.width * 0.42f, rect.height * 0.20f), Color.Lerp(gold, mark, 0.25f), 1);
-                DrawPixelCross(new Rect(rect.x + rect.width * 0.43f, rect.y + rect.height * 0.12f, rect.width * 0.14f, rect.height * 0.10f), Color.Lerp(gold, cursorWhite, 0.18f));
-            }
-
             if (seed % 2 == 0)
             {
                 DrawRect(new Rect(rect.x + rect.width * 0.31f, rect.y + rect.height * 0.57f, rect.width * 0.38f, rect.height * 0.032f), Hex("101619", 0.55f));

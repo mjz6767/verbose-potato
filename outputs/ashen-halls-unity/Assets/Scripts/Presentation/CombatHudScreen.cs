@@ -85,7 +85,6 @@ namespace AshenHalls
             switch (state)
             {
                 case CombatHudCommandVisualState.Armed: return "ARMED";
-                case CombatHudCommandVisualState.Blocked: return "BLOCK";
                 case CombatHudCommandVisualState.Promoted: return "NEXT";
                 default: return "";
             }
@@ -102,7 +101,7 @@ namespace AshenHalls
                 case CombatHudCommandVisualState.Armed:
                     return StartsWithState(sub, "ARMED") ? sub : "ARMED \u00b7 " + First(sub, "Choose a target");
                 case CombatHudCommandVisualState.Blocked:
-                    return "BLOCKED \u00b7 " + First(reason, sub, "Unavailable");
+                    return First(reason, sub, "Unavailable");
                 case CombatHudCommandVisualState.Promoted:
                     return "READY \u00b7 Next combatant";
                 default:
@@ -145,6 +144,9 @@ namespace AshenHalls
     {
         public string Title;
         public string RouteLine;
+        public string ObjectiveLine;
+        public int LivingEnemyCount;
+        public int LivingPartyCount;
         public int RoundNumber;
         public int MovePoints;
         public int MovePointsMaximum;
@@ -419,8 +421,8 @@ namespace AshenHalls
         public static void SidePanels(Rect side, bool timelineExpanded, out Rect active, out Rect target, out Rect timeline)
         {
             const float gap = 8f;
-            float activeH = Mathf.Clamp(side.height * 0.26f, 166f, 198f);
-            float targetH = Mathf.Clamp(side.height * 0.235f, 150f, 182f);
+            float activeH = Mathf.Clamp(side.height * 0.17f, 132f, 168f);
+            float targetH = Mathf.Clamp(side.height * 0.20f, 150f, 196f);
             float timelineH = timelineExpanded
                 ? Mathf.Clamp(side.height * 0.46f, 284f, 420f)
                 : Mathf.Clamp(side.height * 0.19f, 126f, 154f);
@@ -773,6 +775,7 @@ namespace AshenHalls
         public bool TargetPortraitVisibleForTest => targetPortrait != null && targetPortrait.enabled && targetPortrait.sprite != null;
         public string ActiveCardTitleForTest => activeTitle == null ? "" : activeTitle.text;
         public string TargetCardTitleForTest => targetTitle == null ? "" : targetTitle.text;
+        public bool MenuVisibleForTest => menuButton != null && menuButton.gameObject.activeInHierarchy;
         public int VisibleTurnChipCountForTest
         {
             get
@@ -831,12 +834,12 @@ namespace AshenHalls
             Image fill = row?.Button?.targetGraphic as Image;
             return row != null
                 && fill != null
-                && fill.color == Hex("201316", 0.94f)
-                && row.Label.color == Hex("e0afa1", 0.96f)
-                && row.SubLabel.color == Hex("f0a08b", 1f)
+                && fill.color == Hex("0c1012", 0.76f)
+                && row.Label.color == Hex("b8aea5", 0.76f)
+                && row.SubLabel.color == Hex("8d9495", 0.82f)
                 && row.StateTagPanel != null
-                && row.StateTagPanel.gameObject.activeSelf
-                && string.Equals(row.StateTag?.text, "BLOCK", StringComparison.Ordinal);
+                && !row.StateTagPanel.gameObject.activeSelf
+                && !row.StatePip.gameObject.activeSelf;
         }
 
         public string CommandStateTagForTest(ActionMode mode)
@@ -1020,7 +1023,9 @@ namespace AshenHalls
             }
 
             titleText.text = string.IsNullOrEmpty(view.Title) ? VersionInfo.ProductName : view.Title;
-            routeText.text = view.RouteLine ?? "";
+            routeText.text = string.IsNullOrWhiteSpace(view.ObjectiveLine)
+                ? view.RouteLine ?? ""
+                : view.ObjectiveLine;
             phaseText.text = view.PhaseLine ?? "";
             displayedRoundNumber = view.RoundNumber;
             displayedMovePoints = view.MovePoints;
@@ -1068,13 +1073,16 @@ namespace AshenHalls
                 : "OPENING PLAN  /  " + view.TacticalLine;
 
             RefreshUnitCard(view.ActiveUnit, activeTitle, activeName, activeHeader, activeState, activeStatus, activePortrait, activePortraitFallback, activeHpFill, activeManaFill, "ACTIVE UNIT");
-            string targetContext = string.IsNullOrWhiteSpace(view.TargetTitle) ? "INSPECT" : view.TargetTitle.ToUpperInvariant();
-            string targetSource = string.IsNullOrWhiteSpace(view.TargetSourceLabel) ? "BOARD" : view.TargetSourceLabel.ToUpperInvariant();
+            string targetContext = string.IsNullOrWhiteSpace(view.TargetTitle) ? "UNIT" : view.TargetTitle.ToUpperInvariant();
+            string targetSource = string.IsNullOrWhiteSpace(view.TargetSourceLabel) ? "INSPECT" : view.TargetSourceLabel.ToUpperInvariant();
             string repeatedSourcePrefix = targetSource + " ";
             if (targetContext.StartsWith(repeatedSourcePrefix, StringComparison.Ordinal))
             {
                 targetContext = targetContext.Substring(repeatedSourcePrefix.Length);
             }
+            string targetCardTitle = view.TargetUnit == null
+                ? "INSPECT UNIT"
+                : targetSource + "  /  " + targetContext;
             RefreshUnitCard(
                 view.TargetUnit,
                 targetTitle,
@@ -1086,7 +1094,7 @@ namespace AshenHalls
                 targetPortraitFallback,
                 targetHpFill,
                 targetManaFill,
-                targetSource + "  /  " + targetContext);
+                targetCardTitle);
 
             for (int i = 0; i < commandRows.Count; i++)
             {
@@ -1129,10 +1137,10 @@ namespace AshenHalls
                     ? Hex("080b0d", 1f)
                     : available ? Hex("f3ead7", 1f) : Hex("777c7c", 0.82f);
                 commandRows[i].Label.color = visualState == CombatHudCommandVisualState.Blocked
-                    ? Hex("e0afa1", 0.96f)
+                    ? Hex("b8aea5", 0.76f)
                     : available ? Hex("f3ead7", 1f) : Hex("9aa0a1", 0.88f);
                 commandRows[i].SubLabel.color = visualState == CombatHudCommandVisualState.Blocked
-                    ? Hex("f0a08b", 1f)
+                    ? Hex("8d9495", 0.82f)
                     : available ? command.Promoted ? Hex("d7a84e", 1f) : Hex("c7baa2", 1f) : Hex("8d9495", 0.82f);
                 commandRows[i].StatePip.color = visualState == CombatHudCommandVisualState.Blocked
                     ? Hex("b94b56", 0.78f)
@@ -1140,8 +1148,7 @@ namespace AshenHalls
                     ? accent.WithAlpha(command.Promoted || command.Armed || command.Selected ? 1f : 0.72f)
                     : Hex("777c7c", 0.42f);
                 commandRows[i].StatePip.gameObject.SetActive(
-                    visualState == CombatHudCommandVisualState.Blocked
-                    || visualState == CombatHudCommandVisualState.Armed
+                    visualState == CombatHudCommandVisualState.Armed
                     || visualState == CombatHudCommandVisualState.Promoted);
                 string stateTag = CombatHudCommandStyleRules.StateTag(visualState);
                 commandRows[i].StateTag.text = stateTag;
@@ -1159,7 +1166,7 @@ namespace AshenHalls
                     command.Promoted || command.Armed || command.Selected && available ? 1f : available ? 0.44f : 0.16f);
                 Image image = commandRows[i].Button.targetGraphic as Image;
                 Color fill = visualState == CombatHudCommandVisualState.Blocked
-                    ? Hex("201316", 0.94f)
+                    ? Hex("0c1012", 0.76f)
                     : command.Promoted || command.Armed
                     ? Hex("352316", 0.94f)
                     : command.Selected && available
@@ -1178,7 +1185,7 @@ namespace AshenHalls
                 commandRows[i].Outline.effectColor = focused
                     ? Hex("f3ead7", 0.98f)
                     : visualState == CombatHudCommandVisualState.Blocked
-                        ? Hex("b94b56", 0.58f)
+                        ? Hex("3c4544", 0.20f)
                     : command.Promoted || command.Armed || command.Selected && available
                         ? accent.WithAlpha(0.95f)
                         : available ? Hex("3c4544", 0.34f) : Hex("3c4544", 0.18f);
@@ -1198,11 +1205,13 @@ namespace AshenHalls
             utilityOpen = false;
             utilityButton.gameObject.SetActive(false);
             utilityPopup.gameObject.SetActive(false);
+            menuButton.gameObject.SetActive(true);
+            menuButton.interactable = true;
             guardButton.interactable = view.GuardEnabled;
             elixirButton.interactable = view.ElixirEnabled;
             guardText.text = view.GuardEnabled ? "Guard\nG" : "Guard\n" + (view.GuardReason ?? "");
             elixirText.text = view.ElixirEnabled ? "Elixir\nH" : "Elixir\n" + (view.ElixirReason ?? "");
-            menuText.text = "Menu\nEsc";
+            menuText.text = "Menu  [Esc]";
 
             IReadOnlyList<CombatHudLogView> logs = view.Logs ?? Array.Empty<CombatHudLogView>();
             int visibleLogs = view.TimelineExpanded
@@ -1250,6 +1259,10 @@ namespace AshenHalls
             titleText.resizeTextMinSize = 14;
             titleText.resizeTextMaxSize = 21;
             routeText = AddText("Route", topPanel, "", 9, Hex("b7aa90", 0.94f), TextAnchor.MiddleLeft);
+            menuButton = AddButton("Menu", topPanel, "Menu  [Esc]", () => bindings?.OpenMenu?.Invoke(), false);
+            menuText = menuButton.GetComponentInChildren<Text>();
+            menuText.fontSize = 9;
+            menuText.color = Hex("f3ead7", 1f);
             phaseText = AddText("Phase", topPanel, "", 11, Hex("58b7a5", 1f), TextAnchor.MiddleCenter);
             phaseText.fontStyle = FontStyle.Bold;
             phaseText.resizeTextForBestFit = true;
@@ -1312,10 +1325,8 @@ namespace AshenHalls
             utilityPopup = AddPanel("Utility Popup", canvas.transform, Hex("080b0d", 0.98f), Hex("d7a84e", 0.88f));
             guardButton = AddButton("Guard", utilityPopup, "Guard", () => RunUtility(ActionMode.Guard), false);
             elixirButton = AddButton("Elixir", utilityPopup, "Elixir", () => RunUtility(ActionMode.Elixir), false);
-            menuButton = AddButton("Menu", utilityPopup, "Menu", () => bindings?.OpenMenu?.Invoke(), false);
             guardText = guardButton.GetComponentInChildren<Text>();
             elixirText = elixirButton.GetComponentInChildren<Text>();
-            menuText = menuButton.GetComponentInChildren<Text>();
             utilityPopup.gameObject.SetActive(false);
             utilityButton.gameObject.SetActive(false);
         }
@@ -1512,7 +1523,8 @@ namespace AshenHalls
             float phaseX = titleX + titleW + 8f;
             float phaseW = Mathf.Max(280f, statsX - phaseX - 8f);
             SetLocalRect(titleText.rectTransform, new Rect(titleX, 2f, titleW, 25f));
-            SetLocalRect(routeText.rectTransform, new Rect(titleX + 1f, 27f, titleW - 2f, 14f));
+            SetLocalRect(routeText.rectTransform, new Rect(titleX + 1f, 27f, titleW - 68f, 14f));
+            SetLocalRect(menuButton.GetComponent<RectTransform>(), new Rect(titleX + titleW - 62f, 25f, 62f, 18f));
             Rect phaseRect = new Rect(phaseX, 5f, phaseW, geometry.Top.height - 10f);
             float statH = geometry.Top.height - 12f;
             Rect roundRect = new Rect(statsX, 6f, statW, statH);
@@ -1658,19 +1670,18 @@ namespace AshenHalls
             RectTransform manaBackground = manaFill == null ? null : manaFill.parent as RectTransform;
             if (manaBackground != null) manaBackground.gameObject.SetActive(showMana);
             RectTransform panel = title == null ? null : title.rectTransform.parent as RectTransform;
+            bool activeCard = fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal);
+            Color fallbackAccent = activeCard
+                ? Hex("58b7a5", 0.82f)
+                : unit == null ? Hex("7f8b8c", 0.72f) : Hex("b94b56", 0.82f);
             Outline panelOutline = panel == null ? null : panel.GetComponent<Outline>();
             if (panelOutline != null)
             {
-                Color fallbackAccent = fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal)
-                    ? Hex("58b7a5", 0.82f)
-                    : Hex("b94b56", 0.82f);
                 panelOutline.effectColor = UnitAccent(unit?.AccentHex, fallbackAccent);
             }
             Color unitAccent = UnitAccent(
                 unit?.AccentHex,
-                fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal)
-                    ? Hex("58b7a5", 0.82f)
-                    : Hex("b94b56", 0.82f));
+                fallbackAccent);
             title.color = unitAccent;
             RectTransform portraitFrame = portrait == null ? null : portrait.rectTransform.parent as RectTransform;
             Outline portraitOutline = portraitFrame == null ? null : portraitFrame.GetComponent<Outline>();
@@ -1678,8 +1689,8 @@ namespace AshenHalls
             if (panel != null) LayoutUnitCard(panel, panel.rect.width, panel.rect.height, showMana);
             if (unit == null)
             {
-                name.text = fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal) ? "Waiting" : "Hover a unit";
-                header.text = fallbackTitle.StartsWith("ACTIVE", StringComparison.Ordinal) ? "No active combatant." : "Inspect targets from the board.";
+                name.text = activeCard ? "Waiting" : "Hover a unit";
+                header.text = activeCard ? "No active combatant." : "Inspect the board when you need details.";
                 state.text = "";
                 state.color = StateToneColor(CombatHudStateTone.Neutral);
                 status.text = "";

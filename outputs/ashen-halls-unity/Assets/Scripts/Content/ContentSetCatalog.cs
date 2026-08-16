@@ -46,6 +46,13 @@ namespace AshenHalls
             EncounterId.AshenPactWarden
         };
 
+        private static readonly EncounterId[] redGateEncounterIds =
+        {
+            EncounterId.RedGateVanguard,
+            EncounterId.OssuaryRoadSeal,
+            EncounterId.CrownroadMarshal
+        };
+
         private static readonly EncounterDefinition[] sewerSliceEncounters =
         {
             new EncounterDefinition
@@ -132,6 +139,15 @@ namespace AshenHalls
                 && flags != null
                 && flags.Contains(StoryFlags.GlassAndAshFrontierSurveyed)
                 && flags.Contains(StoryFlags.GlassAndAshExpeditionAccepted);
+        }
+
+        public static bool AllowRedGateChapter(string contentSet, IReadOnlyCollection<string> flags)
+        {
+            if (IsFullPrototype(contentSet)) return true;
+            return IsSewerSlice(contentSet)
+                && GlassAndAshComplete(flags)
+                && flags.Contains(StoryFlags.GlassAndAshDebriefed)
+                && flags.Contains(StoryFlags.RedGateAssaultAccepted);
         }
 
         public static bool IsKnown(string contentSet)
@@ -237,6 +253,13 @@ namespace AshenHalls
         public static bool GlassAndAshComplete(IReadOnlyCollection<string> flags)
         {
             return flags != null && flags.Contains(StoryFlags.EmberglassGateKeyRecovered);
+        }
+
+        public static bool RedGateComplete(IReadOnlyCollection<string> flags)
+        {
+            return flags != null
+                && flags.Contains(StoryFlags.CrownroadMarshalDefeated)
+                && flags.Contains(StoryFlags.MeteorCrownThresholdSurveyed);
         }
 
         public static void MarkSewerSliceRewardClaimed(ICollection<string> flags)
@@ -375,6 +398,27 @@ namespace AshenHalls
             };
         }
 
+        public static InventoryItem CreateCrownwardEmberglassWarblade()
+        {
+            return new InventoryItem
+            {
+                Mark = "crownward",
+                Material = "emberglass",
+                Form = "broadsword",
+                Trait = "warding",
+                Slot = "weapon",
+                Bonus = 6,
+                StrengthBonus = 2,
+                IntelligenceBonus = 1,
+                DamageMin = 8,
+                DamageMax = 13,
+                AttackSpeed = 3,
+                DamageType = "fire",
+                Rarity = "quest",
+                DisplayName = "+6 crownward emberglass warblade"
+            };
+        }
+
         public static bool HasSewerSafeRoomChoice(IReadOnlyCollection<string> flags)
         {
             return flags != null && flags.Contains(StoryFlags.SewerSafeRoomChoiceClaimed);
@@ -438,6 +482,12 @@ namespace AshenHalls
         public static bool IsGlassAndAshEncounterStyle(string style)
         {
             return glassAndAshEncounterIds.Any(id =>
+                string.Equals(EncounterCatalog.For(id).LegacyStyle, style, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static bool IsRedGateEncounterStyle(string style)
+        {
+            return redGateEncounterIds.Any(id =>
                 string.Equals(EncounterCatalog.For(id).LegacyStyle, style, StringComparison.OrdinalIgnoreCase));
         }
 

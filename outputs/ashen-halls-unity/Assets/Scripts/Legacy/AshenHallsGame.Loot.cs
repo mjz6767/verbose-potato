@@ -98,32 +98,54 @@ namespace AshenHalls
             EnsureInventoryEquipmentLinks();
             float remaining = lootPanelRequiresDismissal ? 0f : Mathf.Max(0f, lootPanelUntil - Time.time);
             InventoryItem item = lootPanelItem;
-            PartyMember owner = EquippedMember(item);
-            PartyMember best = BestInventoryFit(item, out _, out int comparisonScore);
-            TryGetInventoryItemIcon(item, out Texture2D iconTexture, out Rect iconUv);
-            bool canReview = item != null && state?.Inventory != null && state.Inventory.Contains(item);
-            string comparison = owner != null
-                ? $"{InventoryEquipmentRules.SlotLabel(item.Slot, item.Form)} is now active on {owner.Name}."
-                : best == null
-                    ? "Stored safely with the party's other gear."
-                    : $"Best fit: {best.Name}  •  {InventoryEquipmentRules.GradeLabel(InventoryEquipmentRules.Grade(comparisonScore))}  •  {InventoryComparisonLine(item, best)}";
+            bool hasItem = item != null;
+            bool equippable = InventoryEquipmentRules.IsEquippable(item);
+            PartyMember owner = equippable ? EquippedMember(item) : null;
+            PartyMember best = null;
+            int bestComparisonScore = 0;
+            if (equippable && owner == null)
+            {
+                best = BestInventoryFit(item, out _, out bestComparisonScore);
+            }
+            Texture2D iconTexture = null;
+            Rect iconUv = default;
+            if (hasItem) TryGetInventoryItemIcon(item, out iconTexture, out iconUv);
+            bool canReview = hasItem && state?.Inventory != null && state.Inventory.Contains(item);
+            string comparison = !hasItem
+                ? ""
+                : !equippable
+                    ? "A quest item, not equipment. It will not replace anyone's loadout."
+                    : owner != null
+                        ? $"{InventoryEquipmentRules.SlotLabel(item.Slot, item.Form)} is active on {owner.Name}."
+                        : best == null
+                            ? "Stored safely with the party's other gear."
+                            : $"Best fit: {best.Name}  •  {InventoryEquipmentRules.GradeLabel(InventoryEquipmentRules.Grade(bestComparisonScore))}  •  {InventoryComparisonLine(item, best)}";
             return new LootPopupView
             {
                 Visible = state != null
-                    && item != null
                     && !string.IsNullOrEmpty(lootPanelBody)
                     && (lootPanelRequiresDismissal || remaining > 0f),
+                HasItem = hasItem,
                 CanReview = canReview,
                 Title = lootPanelTitle,
-                ItemName = item == null ? "" : item.DisplayName,
-                ItemType = item == null ? "" : InventoryEquipmentRules.SlotLabel(item.Slot, item.Form),
-                Rarity = item == null ? "" : InventoryEquipmentRules.RarityLabel(item.Rarity),
+                ItemName = hasItem ? item.DisplayName : "Victory spoils",
+                ItemType = hasItem ? InventoryEquipmentRules.SlotLabel(item.Slot, item.Form) : "",
+                Rarity = hasItem ? InventoryEquipmentRules.RarityLabel(item.Rarity) : "",
                 TraitLine = lootPanelTraitLine,
                 EquipNote = lootPanelEquipNote,
-                Outcome = owner != null ? $"Equipped by {owner.Name}" : "Added to inventory",
+                Outcome = !hasItem
+                    ? "Added to company stores"
+                    : !equippable
+                        ? "Quest item secured"
+                        : owner != null ? $"Equipped by {owner.Name}" : "Added to inventory",
                 Comparison = comparison,
+                ReviewActionLabel = !hasItem
+                    ? ""
+                    : !equippable
+                    ? "View in inventory"
+                    : owner != null ? "Review or reassign" : "Compare & equip",
                 IconLabel = LootIconLabel(item),
-                AccentHex = item == null ? "#d7a84e" : InventoryRarityAccent(item.Rarity),
+                AccentHex = hasItem ? InventoryRarityAccent(item.Rarity) : "#d7a84e",
                 IconTexture = iconTexture,
                 IconUv = iconUv,
                 Gold = lootPanelGold,
@@ -150,6 +172,8 @@ namespace AshenHalls
             SuppressBoardPointer();
             DismissLootPopupSilently();
             if (inventoryIndex >= 0) armorySelectedInventoryIndex = inventoryIndex;
+            armoryPackFilter = 0;
+            armoryInventoryTargetPickerOpen = false;
             armoryTab = (int)ArmoryTab.Pack;
             showArmory = true;
             MarkUiDirty();
@@ -160,7 +184,7 @@ namespace AshenHalls
 
         private static string LootIconLabel(InventoryItem item)
         {
-            if (item == null) return "LOOT";
+            if (item == null) return "SPOILS";
             string slot = (item.Slot ?? "").Trim().ToLowerInvariant();
             string form = ((item.Form ?? "") + " " + (item.DisplayName ?? "")).Trim().ToLowerInvariant();
             if (InventoryEquipmentRules.IsWeaponSlot(slot, form)) return "WPN";

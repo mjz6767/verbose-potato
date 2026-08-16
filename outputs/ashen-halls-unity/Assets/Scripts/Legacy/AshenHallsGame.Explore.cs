@@ -12,6 +12,13 @@ namespace AshenHalls
         private const string RegionalSiteIdPrefix = "regional-site:";
         private const string RegionalSiteDecorationIdPrefix = "regional-site-decor:";
         private readonly List<int> generatedObjectCandidateIndices = new List<int>(2048);
+        private readonly HashSet<string> explorationChartCellCache =
+            new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        private List<string> explorationChartCacheSource;
+        private int explorationChartCacheSourceCount = -1;
+        private int explorationChartCacheDepth = -1;
+        private int explorationChartCacheDepthCount;
+        private int explorationChartRevision;
         private int exploreHoverMapX = -1;
         private int exploreHoverMapY = -1;
         private MapObject exploreFrameInteractionTarget;
@@ -381,7 +388,7 @@ namespace AshenHalls
         private bool TryRegionalSiteAt(MapData map, int x, int y, out WorldMapSite site)
         {
             site = default;
-            if (map == null) return false;
+            if (!UsesRegionalSiteLayout(map)) return false;
 
             bool found = false;
             int bestDistance = int.MaxValue;
@@ -1590,7 +1597,8 @@ namespace AshenHalls
             exploreHoverMapY = -1;
             boardRect = GetBoardRect();
             boardRect = ExplorationHudScreenLayout.ReserveDetailsFromBoard(boardRect, Screen.width, Screen.height, !exploreHudCollapsed);
-            DrawPanel(boardRect);
+            bool repaint = Event.current == null || Event.current.type == EventType.Repaint;
+            if (repaint) DrawPanel(boardRect);
             int viewW = Mathf.Min(ExploreViewportWidth(), state.Map.Width);
             int viewH = Mathf.Min(ExploreViewportHeight(), state.Map.Height);
             Point origin = ExploreViewportOrigin(viewW, viewH);
@@ -1603,7 +1611,13 @@ namespace AshenHalls
             grid.width = cell * viewW;
             grid.height = cell * viewH;
             UpdateExploreHoverLook(grid, cell, origin, viewW, viewH);
-            HashSet<int> guidanceCells = BuildCurrentExploreGuidanceCellSet();
+            if (!repaint)
+            {
+                HandleExploreMouse(grid, cell, origin, viewW, viewH);
+                return;
+            }
+            ExploreGuidancePlan guidancePlan = CurrentExploreGuidancePlan();
+            HashSet<int> guidanceCells = BuildCurrentExploreGuidanceCellSet(guidancePlan);
 
             for (int vy = 0; vy < viewH; vy++)
             for (int vx = 0; vx < viewW; vx++)
@@ -1613,6 +1627,11 @@ namespace AshenHalls
                 Rect c = new Rect(grid.x + vx * cell, grid.y + vy * cell, cell, cell);
                 int distance = Distance(x, y, state.PlayerX, state.PlayerY);
                 int tile = TileAt(state.Map, x, y);
+                if (exploreWideView && !IsExploreCellCharted(x, y))
+                {
+                    DrawRect(c, Hex("030607"));
+                    continue;
+                }
                 DrawRect(c, ExploreTileBaseColor(x, y, tile, true));
                 string tileKind = ExploreTileKind(x, y, tile);
                 bool drewTileArt = TryDrawExploreEnvironmentTile(c, x, y, tile, tileKind);
@@ -1660,9 +1679,10 @@ namespace AshenHalls
             // adjacent tent or wall is never striped by a path overlay. Authored
             // sites, route breadcrumbs, threats, and party cues still draw later.
             DrawRoamingThreatHabitats(grid, cell, origin, viewW, viewH, guidanceCells);
+            DrawExploreChartFogPass(grid, cell, origin, viewW, viewH);
             // Ground breadcrumbs may cross soft scenery but stay beneath roofs and
             // authored set-pieces. The later next-step/edge cue remains above art.
-            DrawExploreWaypointTrail(grid, cell, origin, viewW, viewH);
+            DrawExploreWaypointTrail(grid, cell, origin, viewW, viewH, guidancePlan);
             exploreFrameInteractionTarget = CurrentExploreInteraction().Target;
 
             foreach (MapObject obj in state.Map.Objects
@@ -1678,7 +1698,8 @@ namespace AshenHalls
                     if (showExploreArtDebug) DrawExploreArtDebugOverlay(objectCell, objectCell, "Wall terrain");
                     continue;
                 }
-                bool objective = IsCurrentMidgaardObjective(obj);
+                bool objective = IsCurrentMidgaardObjective(obj)
+                    || ReferenceEquals(guidancePlan.TargetObject, obj);
                 int objectDistance = Distance(obj.X, obj.Y, state.PlayerX, state.PlayerY);
                 if (ShouldSuppressExploreRegionObject(obj, objectDistance, objective)) continue;
                 Rect objectRect;
@@ -1697,6 +1718,7 @@ namespace AshenHalls
                     DrawExploreObject(objectCell, objectRect, obj);
                 }
                 bool currentTarget = ReferenceEquals(exploreFrameInteractionTarget, obj);
+                if (IsActiveRouteWaypointObject(obj)) DrawExploreMarkedWaypointMarker(objectCell);
                 if (!currentTarget)
                 {
                     if (objective) DrawExploreObjectiveMarker(objectCell, obj);
@@ -1731,7 +1753,7 @@ namespace AshenHalls
                 }
                 DrawExplorePlayerLocator(playerCell, tokenRect, leadColor);
             }
-            DrawExploreGuidanceCues(grid, cell, origin, viewW, viewH);
+            DrawExploreGuidanceCues(grid, cell, origin, viewW, viewH, guidancePlan);
             DrawExploreUseTargetCue(grid, cell, origin, viewW, viewH);
             if (showExploreArtDebug) DrawExploreArtDebugOverlay(playerCell, tokenRect, "Party");
             DrawExploreRegionStrip(grid);
@@ -1916,7 +1938,18 @@ namespace AshenHalls
 
         private bool ShouldSuppressExploreRegionObject(MapObject obj, int distance, bool objective)
         {
-            if (!exploreWideView || obj == null || objective || distance <= 2) return false;
+            if (obj == null) return false;
+            bool knownSite = TryRegionalSite(state?.Map, obj, out WorldMapSite site)
+                && RouteChartRules.IsSiteCharted(state?.StoryFlags, state?.Depth ?? 1, site.Id);
+            if (exploreWideView
+                && !IsExploreCellCharted(obj.X, obj.Y)
+                && !objective
+                && !knownSite
+                && !IsActiveRouteWaypointObject(obj))
+            {
+                return true;
+            }
+            if (!exploreWideView || objective || distance <= 2) return false;
             if (IsRegionalSiteDecoration(state?.Map, obj)) return true;
             if (obj.Type == ObjectType.TownGuard) return true;
             return IsMidgaardNpcObject(obj.Type)
@@ -2744,6 +2777,10 @@ namespace AshenHalls
         {
             if (obj == null) return -1;
             if (IsCurrentMidgaardObjective(obj)) return 2;
+            int chapterFiveSiteIcon = WorldMapProgressionPresentationRules.ChapterFiveSiteIcon(
+                obj.Id,
+                state?.StoryFlags);
+            if (chapterFiveSiteIcon >= 0) return chapterFiveSiteIcon;
             switch (obj.Type)
             {
                 case ObjectType.Camp: return 5;
@@ -2907,6 +2944,37 @@ namespace AshenHalls
                 WorldMapCellAccessKind access = ExploreCellAccessAt(step.X, step.Y, guidanceCells);
                 DrawExploreMovementCue(tile, step, ExplorationReadabilityRules.MovementCueKind(access), ExploreAccessColor(access));
             }
+        }
+
+        private bool IsActiveRouteWaypointObject(MapObject obj)
+        {
+            return TryRegionalSite(state?.Map, obj, out WorldMapSite site)
+                && RouteChartRules.IsSiteWaypoint(
+                    state?.ActiveRouteWaypointKey,
+                    state?.Depth ?? 1,
+                    site.Id);
+        }
+
+        private void DrawExploreMarkedWaypointMarker(Rect rect)
+        {
+            float pulse = state != null && state.ReducedMotion
+                ? 0.82f
+                : 0.82f + Mathf.Sin(Time.time * 4.2f) * 0.14f;
+            Rect cue = Pad(rect, rect.width * 0.055f);
+            DrawCornerBrackets(
+                cue,
+                gold.WithAlpha(Mathf.Clamp01(pulse)),
+                Mathf.Max(2f, rect.width * 0.055f),
+                rect.width * 0.24f);
+            float badgeSize = Mathf.Clamp(rect.width * 0.20f, 12f, 22f);
+            Rect badge = new Rect(
+                cue.xMax - badgeSize * 0.80f,
+                cue.y - badgeSize * 0.10f,
+                badgeSize,
+                badgeSize);
+            DrawRect(badge, Hex("030405", 0.92f));
+            DrawBorder(badge, gold.WithAlpha(0.94f), 1);
+            GUI.Label(badge, "J", CenterStyle(Mathf.Clamp(Mathf.RoundToInt(badgeSize * 0.52f), 8, 12), cursorWhite));
         }
 
         private Color ExploreAccessColor(WorldMapCellAccessKind access)
@@ -3078,6 +3146,11 @@ namespace AshenHalls
             if (!TryExploreGridToMap(grid, cell, origin, viewW, viewH, Event.current.mousePosition, out int x, out int y)) return;
 
             Rect tile = new Rect(grid.x + (x - origin.X) * cell, grid.y + (y - origin.Y) * cell, cell, cell);
+            if (exploreWideView && !IsExploreCellCharted(x, y))
+            {
+                exploreHoverLookLine = ExploreLookLine(x, y);
+                return;
+            }
             ExplorationInteraction interaction = CurrentExploreInteraction();
             if (interaction.HasTarget && interaction.Target.X == x && interaction.Target.Y == y)
             {
@@ -3251,6 +3324,7 @@ namespace AshenHalls
         private void CompleteExploreMove(ExplorationMoveResult move)
         {
             if (!move.Moved) return;
+            RevealExplorationChartAroundPlayer();
             string beforeRegion = ExploreRegionName(move.OldX, move.OldY);
             if (!state.ReducedMotion)
             {
@@ -3277,6 +3351,166 @@ namespace AshenHalls
             if (MaybeTriggerKoboldAmbush()) return;
             if (MaybeTriggerBoneRoadWatch()) return;
             ResolveExploreTile();
+        }
+
+        private void EnsureExplorationChartCache()
+        {
+            List<string> source = state?.DiscoveredZones;
+            int sourceCount = source?.Count ?? 0;
+            int depth = Mathf.Max(1, state?.Depth ?? 1);
+            if (ReferenceEquals(explorationChartCacheSource, source)
+                && explorationChartCacheSourceCount == sourceCount
+                && explorationChartCacheDepth == depth)
+            {
+                return;
+            }
+
+            explorationChartCellCache.Clear();
+            if (source != null)
+            {
+                foreach (string discovery in source)
+                {
+                    if (ExplorationChartRules.IsCellKey(discovery))
+                    {
+                        explorationChartCellCache.Add(discovery.Trim());
+                    }
+                }
+            }
+            explorationChartCacheSource = source;
+            explorationChartCacheSourceCount = sourceCount;
+            explorationChartCacheDepth = depth;
+            explorationChartCacheDepthCount = ExplorationChartRules.CountChartedCells(
+                explorationChartCellCache,
+                depth,
+                state?.Map?.Width ?? int.MaxValue,
+                state?.Map?.Height ?? int.MaxValue);
+            explorationChartRevision = unchecked(explorationChartRevision + 1);
+        }
+
+        private int AddExplorationChartKeys(IEnumerable<string> keys)
+        {
+            if (state == null || keys == null) return 0;
+            if (state.DiscoveredZones == null) state.DiscoveredZones = new List<string>();
+            EnsureExplorationChartCache();
+            int added = 0;
+            foreach (string key in keys)
+            {
+                if (string.IsNullOrEmpty(key) || !explorationChartCellCache.Add(key)) continue;
+                state.DiscoveredZones.Add(key);
+                added++;
+            }
+            explorationChartCacheSource = state.DiscoveredZones;
+            explorationChartCacheSourceCount = state.DiscoveredZones.Count;
+            explorationChartCacheDepth = Mathf.Max(1, state.Depth);
+            explorationChartCacheDepthCount += added;
+            if (added > 0) explorationChartRevision = unchecked(explorationChartRevision + 1);
+            return added;
+        }
+
+        private int RevealExplorationChartAroundPlayer()
+        {
+            if (state?.Map == null) return 0;
+            return AddExplorationChartKeys(ExplorationChartRules.RevealKeys(
+                state.Depth,
+                state.PlayerX,
+                state.PlayerY,
+                ExploreRevealRadius,
+                state.Map.Width,
+                state.Map.Height));
+        }
+
+        private int RevealKnownMidgaardChart()
+        {
+            if (state?.Map == null || state.Depth != 1) return 0;
+            List<string> keys = new List<string>();
+            for (int y = 0; y < state.Map.Height; y++)
+            for (int x = 0; x < state.Map.Width; x++)
+            {
+                if (!IsMidgaardCityCell(x, y, state.Map, state.Depth)) continue;
+                keys.Add(ExplorationChartRules.CellKey(state.Depth, x, y));
+            }
+            return AddExplorationChartKeys(keys);
+        }
+
+        private int RevealKnownRouteLandmarkChart()
+        {
+            if (state?.Map == null) return 0;
+            List<string> keys = new List<string>();
+            foreach (WorldMapJunction junction in WorldMapGenerationRules.RegionalJunctions(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY))
+            {
+                if (!RouteChartRules.IsCharted(state.DiscoveredZones, state.Depth, junction.Id)) continue;
+                keys.AddRange(ExplorationChartRules.RevealKeys(
+                    state.Depth,
+                    junction.X,
+                    junction.Y,
+                    1,
+                    state.Map.Width,
+                    state.Map.Height));
+            }
+
+            foreach (WorldMapSite site in WorldMapGenerationRules.RegionalSites(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY))
+            {
+                if (!RouteChartRules.IsSiteCharted(state.StoryFlags, state.Depth, site.Id)) continue;
+                keys.AddRange(ExplorationChartRules.RevealKeys(
+                    state.Depth,
+                    site.X,
+                    site.Y,
+                    Mathf.Max(1, site.Radius),
+                    state.Map.Width,
+                    state.Map.Height));
+            }
+            return AddExplorationChartKeys(keys);
+        }
+
+        private bool IsExploreCellCharted(int x, int y)
+        {
+            if (state?.Map == null
+                || x < 0
+                || y < 0
+                || x >= state.Map.Width
+                || y >= state.Map.Height)
+            {
+                return false;
+            }
+            if (Distance(x, y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius) return true;
+            EnsureExplorationChartCache();
+            return explorationChartCellCache.Contains(ExplorationChartRules.CellKey(state.Depth, x, y));
+        }
+
+        private int CurrentExplorationChartedCellCount()
+        {
+            EnsureExplorationChartCache();
+            return explorationChartCacheDepthCount;
+        }
+
+        private int ExploreGuidanceChartedPrefixCount(IReadOnlyList<Point> path)
+        {
+            if (path == null) return 0;
+            int count = 0;
+            foreach (Point point in path)
+            {
+                if (point == null || !IsExploreCellCharted(point.X, point.Y)) break;
+                count++;
+            }
+            return count;
+        }
+
+        private string ExploreChartProgressLabel()
+        {
+            int total = Math.Max(1, (state?.Map?.Width ?? 0) * (state?.Map?.Height ?? 0));
+            int percent = Mathf.Clamp(
+                Mathf.RoundToInt(CurrentExplorationChartedCellCount() * 100f / total),
+                0,
+                100);
+            return $"Chart {percent}%";
         }
 
         private void DiscoverRegionalJunction()
@@ -3326,14 +3560,20 @@ namespace AshenHalls
                 state.Map.Height,
                 state.Map.StartX,
                 state.Map.StartY);
+            WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(
+                state.Map.Width,
+                state.Map.Height,
+                state.Map.StartX,
+                state.Map.StartY);
             int charted = RouteChartRules.CountCharted(junctions, state.DiscoveredZones, state.Depth);
-            if (charted <= 0) return "";
-            if (RouteChartRules.TryResolveWaypoint(
+            if (RouteChartRules.TryResolveTarget(
                 junctions,
+                sites,
                 state.DiscoveredZones,
+                state.StoryFlags,
                 state.Depth,
                 state.ActiveRouteWaypointKey,
-                out WorldMapJunction waypoint))
+                out RouteChartTarget waypoint))
             {
                 IReadOnlyList<Point> path = ActiveRouteWaypointPath();
                 string waypointBearing = path.Count == 1
@@ -3343,6 +3583,7 @@ namespace AshenHalls
                         : RouteChartRules.DirectionLabel(state.PlayerX, state.PlayerY, waypoint.X, waypoint.Y) + " / route blocked";
                 return $"Waypoint: {waypoint.Name} {waypointBearing} / {charted}/{junctions.Length} charted.";
             }
+            if (charted <= 0) return "";
             if (!RouteChartRules.TryNearestCharted(junctions, state.DiscoveredZones, state.Depth, state.PlayerX, state.PlayerY, out RouteChartReading nearest))
             {
                 return $"Route chart: {charted}/{junctions.Length} markers.";
@@ -3827,6 +4068,8 @@ namespace AshenHalls
             foreach (RoamingThreat threat in state.RoamingThreats)
             {
                 if (threat == null || !threat.Active || threat.Depth != state.Depth) continue;
+                int playerDistance = Distance(threat.X, threat.Y, state.PlayerX, state.PlayerY);
+                if (!threat.Alerted && playerDistance > ExploreRevealRadius) continue;
                 Vector2 draw = RoamingThreatDrawPosition(threat);
                 if (draw.x < origin.X - 1f || draw.x >= origin.X + viewW || draw.y < origin.Y - 1f || draw.y >= origin.Y + viewH) continue;
                 Rect threatCell = new Rect(
@@ -3905,6 +4148,7 @@ namespace AshenHalls
                 case "reaver":
                 case "undead":
                 case "bonepriest":
+                case "gloamknight":
                 case "revenant": return -1;
                 case "rat":
                 case "rats":
@@ -4535,17 +4779,29 @@ namespace AshenHalls
 
         private void DrawExploreFogMotif(Rect rect, int x, int y)
         {
-            int n = ExploreNoise(x, y, 31) % 5;
-            DrawRect(rect, Hex("05090b", 0.72f));
-            if (n == 0)
+            DrawRect(rect, Hex("030607"));
+        }
+
+        private void DrawExploreChartFogPass(
+            Rect grid,
+            float cell,
+            Point origin,
+            int viewW,
+            int viewH)
+        {
+            if (!exploreWideView) return;
+            for (int vy = 0; vy < viewH; vy++)
+            for (int vx = 0; vx < viewW; vx++)
             {
-                float bandY = rect.y + rect.height * 0.44f;
-                DrawRect(new Rect(rect.x, bandY, rect.width, Mathf.Max(1f, rect.height * 0.08f)), Hex("9ba9a3", 0.035f));
-                DrawRect(new Rect(rect.x + rect.width * 0.08f, bandY + rect.height * 0.16f, rect.width * 0.62f, Mathf.Max(1f, rect.height * 0.06f)), Hex("c6cec4", 0.035f));
-            }
-            if (Distance(x, y, state.PlayerX, state.PlayerY) == ExploreRevealRadius + 1)
-            {
-                DrawBorder(rect, Hex("d9d3c4", 0.06f), 1);
+                int x = origin.X + vx;
+                int y = origin.Y + vy;
+                if (IsExploreCellCharted(x, y)) continue;
+                Rect rect = new Rect(
+                    grid.x + vx * cell,
+                    grid.y + vy * cell,
+                    cell,
+                    cell);
+                DrawExploreFogMotif(rect, x, y);
             }
         }
 
@@ -4866,9 +5122,14 @@ namespace AshenHalls
             }
         }
 
-        private void DrawExploreWaypointTrail(Rect grid, float cell, Point origin, int viewW, int viewH)
+        private void DrawExploreWaypointTrail(
+            Rect grid,
+            float cell,
+            Point origin,
+            int viewW,
+            int viewH,
+            ExploreGuidancePlan plan)
         {
-            ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
             IReadOnlyList<Point> path = plan.Path;
             if (!plan.HasTarget
                 || plan.Immediate
@@ -4884,6 +5145,10 @@ namespace AshenHalls
                 ExplorationMapGuidanceRules.VisiblePointLimit(
                     exploreWideView,
                     plan.MarkedWaypoint));
+            if (exploreWideView)
+            {
+                shown = Mathf.Min(shown, ExploreGuidanceChartedPrefixCount(path));
+            }
             float outerWidth = Mathf.Max(2f, cell * (exploreWideView ? 0.14f : 0.10f));
             float innerWidth = Mathf.Max(1f, outerWidth * (plan.MarkedWaypoint ? 0.52f : exploreWideView ? 0.46f : 0.38f));
             Color outer = Hex(
@@ -4924,9 +5189,9 @@ namespace AshenHalls
             float cell,
             Point origin,
             int viewW,
-            int viewH)
+            int viewH,
+            ExploreGuidancePlan plan)
         {
-            ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
             IReadOnlyList<Point> path = plan.Path;
             if (!plan.HasTarget
                 || plan.Immediate
@@ -4942,6 +5207,12 @@ namespace AshenHalls
             int visiblePointLimit = ExplorationMapGuidanceRules.VisiblePointLimit(
                 exploreWideView,
                 plan.MarkedWaypoint);
+            if (exploreWideView)
+            {
+                visiblePointLimit = Mathf.Min(
+                    visiblePointLimit,
+                    ExploreGuidanceChartedPrefixCount(path));
+            }
             if (ExplorationMapGuidanceRules.TryFindViewportExit(
                     path,
                     origin.X,
@@ -4959,6 +5230,7 @@ namespace AshenHalls
 
             if (plan.MarkedWaypoint) return;
             Point arrival = path[path.Count - 1];
+            if (exploreWideView && !IsExploreCellCharted(arrival.X, arrival.Y)) return;
             if (!ExplorePointInViewport(arrival.X, arrival.Y, origin, viewW, viewH)) return;
             Rect arrivalCell = new Rect(
                 grid.x + (arrival.X - origin.X) * cell,
@@ -6676,7 +6948,7 @@ namespace AshenHalls
             if (depth == 2) return "Chapter II: Kobold Smoke. Survive the Dusk Market ambush, clear the cave mouth, then break the Kobold King's shield hall.";
             if (depth == 3) return "Chapter III: The Bone Road. Break caster pressure in the Gloam Courts and recover the first Red Gate warning.";
             if (depth == 4) return "Chapter IV: Glass and Ash. Break the levy at the Glass Lore Library, recover the Mirror Index, and take the Emberglass key from the far seal.";
-            if (depth == 5) return "Chapter V: The Red Gate. Push through drow priests, bone wizards, and lesser demons to find the sealed descent.";
+            if (depth == 5) return "Chapter V: The Red Gate. Break the inner vanguard, recover the ossuary road seal, and confront the Crownroad Marshal at Salt Cistern Gate.";
             if (depth >= FinalBossDepth) return "Chapter VI: Meteor Crown. Break the ritual heart and defeat Vhal Rakh before the Old Road burns open.";
             return "Chapter V: Below the Old Road. The scaffold now points toward bosses, factions, and deeper world-state choices.";
         }
@@ -6716,6 +6988,10 @@ namespace AshenHalls
         {
             string region = ExploreRegionName(x, y);
             WorldZone zone = ZoneAt(x, y);
+            if (exploreWideView && !IsExploreCellCharted(x, y))
+            {
+                return "Uncharted ground / beyond the party's sight\nMove closer to add this terrain to the World Map";
+            }
             HashSet<int> guidanceCells = BuildCurrentExploreGuidanceCellSet();
             RoamingThreat threat = RoamingThreatAt(x, y);
             if (threat != null)
@@ -6750,7 +7026,8 @@ namespace AshenHalls
                     step = $"blocks movement / range {distance}";
                 }
                 string objective = IsCurrentMidgaardObjective(obj) ? " / current work" : "";
-                return $"{ObjectName(obj)} / {region} / {ZoneDangerText(zone)}{objective}\n{ObjectHint(obj)} / {step}";
+                string marked = IsActiveRouteWaypointObject(obj) ? " / marked waypoint" : "";
+                return $"{ObjectName(obj)} / {region} / {ZoneDangerText(zone)}{objective}{marked}\n{ObjectHint(obj)} / {step}";
             }
 
             if ((x != state.PlayerX || y != state.PlayerY)
@@ -6966,8 +7243,18 @@ namespace AshenHalls
             }
             if (obj != null && string.Equals(obj.Id, GlassAndAshPassageId, StringComparison.Ordinal))
             {
+                if (HasRedGateStoryProgress())
+                {
+                    return ContentSetCatalog.RedGateComplete(state?.StoryFlags)
+                        ? "retrace the secured Glass Road to revisit the charted Red Gate country"
+                        : "cross the secured Glass Road and carry Yara's crownward plan to the far seal";
+                }
                 if (ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags))
                 {
+                    if (HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
+                    {
+                        return "retrace the secured Glass Road to revisit the charted Red Gate country; Yara's bounded assault remains unaccepted";
+                    }
                     return "revisit the secured Glass-and-Ash road; no deeper production road is open";
                 }
                 if (HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted))
@@ -6980,6 +7267,29 @@ namespace AshenHalls
             }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite))
             {
+                if (state?.Depth == 5
+                    && ContentSetCatalog.AllowRedGateChapter(activeContentSet, state.StoryFlags)
+                    && !ContentSetCatalog.RedGateComplete(state.StoryFlags))
+                {
+                    if (string.Equals(regionalSite.Id, RedGateSealSiteId, StringComparison.Ordinal)
+                        && !HasStoryFlag(StoryFlags.RedGateVanguardDefeated))
+                    {
+                        return regionalSite.Summary + " The cinder vanguard holds the inner gatehouse and its crownward tally.";
+                    }
+                    if (string.Equals(regionalSite.Id, GloamDeepCryptSiteId, StringComparison.Ordinal)
+                        && !HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered))
+                    {
+                        return regionalSite.Summary + (HasStoryFlag(StoryFlags.RedGateVanguardDefeated)
+                            ? " The vanguard tally names a stolen ossuary road seal inside."
+                            : " Its crownward approach is unreadable until the inner-gate tally is recovered.");
+                    }
+                    if (string.Equals(regionalSite.Id, SaltCisternGateSiteId, StringComparison.Ordinal))
+                    {
+                        if (HasStoryFlag(StoryFlags.CrownroadMarshalDefeated)) return regionalSite.Summary + " The marshal is dead; the sealed Meteor Crown threshold can now be surveyed.";
+                        if (HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered)) return regionalSite.Summary + " The ossuary road seal fixes the true stair, where the Crownroad Marshal waits.";
+                        return regionalSite.Summary + " False ash miles hide its threshold until the ossuary road seal is recovered.";
+                    }
+                }
                 if (state?.Depth == 4
                     && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
                     && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))

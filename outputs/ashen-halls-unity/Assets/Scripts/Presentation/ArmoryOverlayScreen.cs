@@ -41,6 +41,7 @@ namespace AshenHalls
         public string Summary;
         public string ActionsHeading;
         public bool ExtendedSummary;
+        public bool PrioritizeDetailActions;
         public string AccentHex;
         public Texture2D IconTexture;
         public Rect IconUv;
@@ -129,10 +130,13 @@ namespace AshenHalls
 
     public static class ArmoryOverlayLayout
     {
+        public const float MinimumSupportedWidth = 960f;
+        public const float MinimumSupportedHeight = 600f;
+
         public static ArmoryOverlayGeometry Calculate(float width, float height)
         {
-            float panelW = Mathf.Min(Mathf.Max(960f, width * 0.82f), width - 48f);
-            float panelH = Mathf.Min(Mathf.Max(600f, height * 0.84f), height - 48f);
+            float panelW = Mathf.Min(Mathf.Max(MinimumSupportedWidth, width * 0.82f), width - 48f);
+            float panelH = Mathf.Min(Mathf.Max(MinimumSupportedHeight, height * 0.84f), height - 48f);
             Rect backdrop = new Rect(0f, 0f, width, height);
             Rect panel = new Rect((width - panelW) * 0.5f, (height - panelH) * 0.5f, panelW, panelH);
             Rect close = new Rect(panelW - 118f, 18f, 94f, 32f);
@@ -154,6 +158,26 @@ namespace AshenHalls
         public static Rect[] FilterRects(float width, int count)
         {
             return EvenButtonRects(width, Mathf.Max(0, count), 7f, 30f, 104f);
+        }
+
+        public static Rect DetailActionsArea(float detailWidth, float detailHeight, bool extendedSummary, int visibleCount)
+        {
+            bool denseActions = !extendedSummary && visibleCount > 4;
+            float actionsY = extendedSummary ? 244f : denseActions ? 168f : 196f;
+            return new Rect(16f, actionsY, detailWidth - 32f, detailHeight - actionsY - 16f);
+        }
+
+        public static Rect[] DetailActionRects(float width, float height, int count)
+        {
+            if (count <= 0) return Array.Empty<Rect>();
+            const float gap = 4f;
+            float actionHeight = Mathf.Clamp(
+                (height - gap * Mathf.Max(0, count - 1)) / count,
+                40f,
+                42f);
+            Rect[] rects = new Rect[count];
+            for (int i = 0; i < count; i++) rects[i] = new Rect(0f, i * (actionHeight + gap), width, actionHeight);
+            return rects;
         }
 
         private static Rect[] EvenButtonRects(float width, int count, float gap, float height, float maxWidth)
@@ -205,9 +229,6 @@ namespace AshenHalls
         private const float CompactRowHeight = 72f;
         private const float StandardRowGap = 8f;
         private const float CompactRowGap = 6f;
-        private const float DetailActionHeight = 42f;
-        private const float DetailActionGap = 5f;
-
         private readonly List<Button> tabButtons = new List<Button>();
         private readonly List<Text> tabLabels = new List<Text>();
         private readonly List<Button> filterButtons = new List<Button>();
@@ -248,7 +269,9 @@ namespace AshenHalls
         private int lastFilterCount = -1;
         private bool lastDetailVisible;
         private bool lastExtendedDetailSummary;
+        private bool lastPrioritizeDetailActions;
         private bool lastCompactRows;
+        private int lastDetailActionCount = -1;
         private int lastSelectedRowKey = int.MinValue;
         private bool lastRefreshSucceeded;
         private int visibleRowCount;
@@ -289,6 +312,34 @@ namespace AshenHalls
         public int HoveredRowIndexForTest => IsVisibleRowIndex(hoveredRowIndex) ? hoveredRowIndex : -1;
         public bool FocusedRowIsCommittedForTest =>
             IsVisibleRowIndex(focusedRowIndex) && rowControls[focusedRowIndex].Selected;
+        public int FocusedDetailActionIndexForTest
+        {
+            get
+            {
+                EventSystem eventSystem = EventSystem.current;
+                if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+                GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+                for (int i = 0; i < visibleDetailActionCount && i < detailActionControls.Count; i++)
+                {
+                    if (detailActionControls[i].Root.gameObject == selected) return i;
+                }
+                return -1;
+            }
+        }
+        public bool DetailActionsMeetAccessibleSizingForTest
+        {
+            get
+            {
+                if (visibleDetailActionCount <= 0 || detailActionsRoot == null) return true;
+                for (int i = 0; i < visibleDetailActionCount && i < detailActionControls.Count; i++)
+                {
+                    RectTransform rect = detailActionControls[i].Root.GetComponent<RectTransform>();
+                    float top = -rect.anchoredPosition.y;
+                    if (rect.rect.height < 39.5f || top < -0.5f || top + rect.rect.height > detailActionsRoot.rect.height + 0.5f) return false;
+                }
+                return true;
+            }
+        }
 
         public void Bind(ArmoryOverlayBindings overlayBindings)
         {
@@ -325,7 +376,10 @@ namespace AshenHalls
 
             bool detailVisible = view.Detail != null;
             bool extendedDetailSummary = view.Detail != null && view.Detail.ExtendedSummary;
+            bool prioritizeDetailActions = view.Detail != null && view.Detail.PrioritizeDetailActions;
+            int detailActionCount = view.Detail?.Actions?.Count ?? 0;
             bool navigationChanged = lastTab != view.ActiveTab || lastFilter != view.ActiveFilter;
+            bool detailFocusChanged = lastPrioritizeDetailActions != prioritizeDetailActions;
             int selectedRowKey = int.MinValue;
             for (int i = 0; i < view.Rows.Count; i++)
             {
@@ -341,11 +395,12 @@ namespace AshenHalls
                 || lastTab != view.ActiveTab
                 || lastDetailVisible != detailVisible
                 || lastExtendedDetailSummary != extendedDetailSummary
+                || lastDetailActionCount != detailActionCount
                 || lastFilterCount != view.Filters.Count
                 || lastCompactRows != view.CompactRows)
             {
                 lastCompactRows = view.CompactRows;
-                ApplyLayout(detailVisible, view.Filters.Count, extendedDetailSummary);
+                ApplyLayout(detailVisible, view.Filters.Count, extendedDetailSummary, detailActionCount);
             }
 
             titleText.text = string.IsNullOrWhiteSpace(view.Title) ? "Inventory & Equipment" : view.Title;
@@ -381,12 +436,14 @@ namespace AshenHalls
             lastFilterCount = view.Filters.Count;
             lastDetailVisible = detailVisible;
             lastExtendedDetailSummary = extendedDetailSummary;
+            lastPrioritizeDetailActions = prioritizeDetailActions;
+            lastDetailActionCount = detailActionCount;
             lastCompactRows = view.CompactRows;
             lastSelectedRowKey = selectedRowKey;
             lastRefreshSucceeded = true;
             EventSystem refreshEventSystem = EventSystem.current;
             bool focusNeedsRecovery = CanvasSelectionNeedsRecovery(refreshEventSystem);
-            if (navigationChanged || selectionChanged || focusNeedsRecovery)
+            if (navigationChanged || selectionChanged || detailFocusChanged || focusNeedsRecovery)
             {
                 ClearTransientRowContext();
                 if (refreshEventSystem != null && IsCanvasSelection(refreshEventSystem.currentSelectedGameObject))
@@ -560,6 +617,18 @@ namespace AshenHalls
 
         private void FocusSelectedRow(EventSystem eventSystem = null)
         {
+            if (lastPrioritizeDetailActions)
+            {
+                if (eventSystem == null) eventSystem = EventSystem.current;
+                if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+                int prioritizedActionIndex = FirstNavigableDetailActionIndex();
+                if (eventSystem != null && prioritizedActionIndex >= 0)
+                {
+                    eventSystem.SetSelectedGameObject(detailActionControls[prioritizedActionIndex].Root.gameObject);
+                    return;
+                }
+            }
+
             int index = CommittedVisibleRowIndex();
             if (!IsNavigableVisibleRowIndex(index)) index = -1;
             if (index < 0) index = FirstNavigableVisibleRowIndex();
@@ -622,6 +691,7 @@ namespace AshenHalls
             RefreshRowInteraction(previousHover);
             if (previousFocus != previousHover) RefreshRowInteraction(previousFocus);
             RefreshRowInteraction(index);
+            ScrollRowIntoView(index);
         }
 
         private void ClearFocusedRow(int index)
@@ -832,7 +902,7 @@ namespace AshenHalls
             footerText = AddText("Footer", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
         }
 
-        private void ApplyLayout(bool detailVisible, int filterCount, bool extendedDetailSummary)
+        private void ApplyLayout(bool detailVisible, int filterCount, bool extendedDetailSummary, int detailActionCount)
         {
             lastWidth = Screen.width;
             lastHeight = Screen.height;
@@ -859,12 +929,12 @@ namespace AshenHalls
             SetLocalRect(contentViewport, viewportArea);
             SetLocalRect(emptyText.rectTransform, new Rect(14f, 14f, viewportArea.width - 28f, viewportArea.height - 28f));
             SetLocalRect(detailPanel, geometry.Detail);
-            LayoutDetailPanel(geometry.Detail, extendedDetailSummary);
+            LayoutDetailPanel(geometry.Detail, extendedDetailSummary, detailActionCount);
             SetLocalRect(footerText.rectTransform, new Rect(26f, geometry.Panel.height - 30f, geometry.Panel.width - 52f, 18f));
             LayoutRows();
         }
 
-        private void LayoutDetailPanel(Rect detail, bool extendedSummary)
+        private void LayoutDetailPanel(Rect detail, bool extendedSummary, int detailActionCount)
         {
             SetLocalRect(detailIconFrame, new Rect(16f, 16f, 74f, 74f));
             Stretch(detailIcon.rectTransform, 5f, 5f);
@@ -872,12 +942,14 @@ namespace AshenHalls
             SetLocalRect(detailEyebrowText.rectTransform, new Rect(102f, 14f, detail.width - 118f, 18f));
             SetLocalRect(detailTitleText.rectTransform, new Rect(102f, 34f, detail.width - 118f, 36f));
             SetLocalRect(detailSubtitleText.rectTransform, new Rect(102f, 70f, detail.width - 118f, 22f));
-            float summaryHeight = extendedSummary ? 112f : 64f;
-            float headingY = extendedSummary ? 222f : 174f;
-            float actionsY = extendedSummary ? 244f : 196f;
+            bool denseActions = !extendedSummary && detailActionCount > 4;
+            float summaryHeight = extendedSummary ? 112f : denseActions ? 42f : 64f;
+            float headingY = extendedSummary ? 222f : denseActions ? 148f : 174f;
             SetLocalRect(detailSummaryText.rectTransform, new Rect(16f, 104f, detail.width - 32f, summaryHeight));
             SetLocalRect(detailActionsHeadingText.rectTransform, new Rect(16f, headingY, detail.width - 32f, 18f));
-            SetLocalRect(detailActionsRoot, new Rect(16f, actionsY, detail.width - 32f, detail.height - actionsY - 16f));
+            SetLocalRect(
+                detailActionsRoot,
+                ArmoryOverlayLayout.DetailActionsArea(detail.width, detail.height, extendedSummary, detailActionCount));
             LayoutDetailActions(visibleDetailActionCount);
         }
 
@@ -1050,16 +1122,13 @@ namespace AshenHalls
             if (detailActionsRoot == null) return;
             float width = Mathf.Max(1f, detailActionsRoot.rect.width);
             float availableHeight = Mathf.Max(1f, detailActionsRoot.rect.height);
-            float actionHeight = visibleCount <= 0
-                ? DetailActionHeight
-                : Mathf.Clamp(
-                    (availableHeight - DetailActionGap * Mathf.Max(0, visibleCount - 1)) / visibleCount,
-                    34f,
-                    DetailActionHeight);
+            Rect[] rects = ArmoryOverlayLayout.DetailActionRects(width, availableHeight, visibleCount);
             for (int i = 0; i < detailActionControls.Count; i++)
             {
                 DetailActionControls action = detailActionControls[i];
-                SetLocalRect(action.Root.GetComponent<RectTransform>(), new Rect(0f, i * (actionHeight + DetailActionGap), width, actionHeight));
+                Rect actionRect = i < rects.Length ? rects[i] : new Rect(0f, 0f, width, 42f);
+                float actionHeight = actionRect.height;
+                SetLocalRect(action.Root.GetComponent<RectTransform>(), actionRect);
                 SetLocalRect(action.Label.rectTransform, new Rect(10f, 2f, width - 98f, 18f));
                 SetLocalRect(action.Detail.rectTransform, new Rect(10f, Mathf.Max(18f, actionHeight - 19f), width - 98f, 16f));
                 SetLocalRect(action.ButtonLabel.rectTransform, new Rect(width - 88f, Mathf.Max(4f, (actionHeight - 24f) * 0.5f), 76f, 24f));

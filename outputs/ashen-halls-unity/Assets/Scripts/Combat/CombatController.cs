@@ -26,7 +26,8 @@ namespace AshenHalls
         TooFar,
         ActionUnavailable,
         NoElixir,
-        ResolverRejected
+        ResolverRejected,
+        NoRecoveryNeeded
     }
 
     public readonly struct CombatCommandResult
@@ -176,7 +177,13 @@ namespace AshenHalls
             }
         }
 
-        public bool ActionEnabled(ActionMode mode, CombatUnit active, bool hasSpell, bool hasMartialAbility, int elixirs)
+        public bool ActionEnabled(
+            ActionMode mode,
+            CombatUnit active,
+            bool hasSpell,
+            bool hasMartialAbility,
+            int elixirs,
+            bool elixirHasBenefit = true)
         {
             CombatState combat = state?.Combat;
             if (PlayerCommandFailureFor(active) != CombatCommandFailure.None) return false;
@@ -185,7 +192,7 @@ namespace AshenHalls
             if (mode == ActionMode.Attack) return combat.ActionAvailable;
             if (mode == ActionMode.Cast) return combat.ActionAvailable && hasSpell;
             if (mode == ActionMode.Ability) return combat.ActionAvailable && hasMartialAbility;
-            if (mode == ActionMode.Elixir) return !active.Summoned && combat.ActionAvailable && elixirs > 0;
+            if (mode == ActionMode.Elixir) return !active.Summoned && combat.ActionAvailable && elixirs > 0 && elixirHasBenefit;
             if (mode == ActionMode.Guard) return combat.ActionAvailable;
             return true;
         }
@@ -279,12 +286,24 @@ namespace AshenHalls
             if (!CanSpendAction(active)) return CombatCommandResult.Failed(ActionFailureFor(active), active);
             if (active.Side != UnitSide.Party || active.Summoned) return CombatCommandResult.Failed(CombatCommandFailure.NotPartyUnit, active);
             if (state.Elixirs <= 0) return CombatCommandResult.Failed(CombatCommandFailure.NoElixir, active);
+            if (!HasElixirRecoveryBenefit(active, healAmount, manaAmount))
+            {
+                return CombatCommandResult.Failed(CombatCommandFailure.NoRecoveryNeeded, active);
+            }
 
             state.Elixirs--;
             active.Hp = Mathf.Min(active.MaxHp, active.Hp + Mathf.Max(0, healAmount));
             active.Mana = Mathf.Min(active.MaxMana, active.Mana + Mathf.Max(0, manaAmount));
             CompleteAction(active, false);
             return CombatCommandResult.Completed(active);
+        }
+
+        public static bool HasElixirRecoveryBenefit(CombatUnit active, int healAmount, int manaAmount)
+        {
+            if (active == null) return false;
+            bool restoresHealth = healAmount > 0 && active.Hp < active.MaxHp;
+            bool restoresMana = manaAmount > 0 && active.Mana < active.MaxMana;
+            return restoresHealth || restoresMana;
         }
 
         public CombatCommandResult TryAttack(CombatUnit active, CombatUnit target, Func<CombatUnit, CombatUnit, bool> resolveAttack)

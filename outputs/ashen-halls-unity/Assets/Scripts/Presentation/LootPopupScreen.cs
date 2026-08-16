@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace AshenHalls
@@ -7,6 +8,7 @@ namespace AshenHalls
     public sealed class LootPopupView
     {
         public bool Visible;
+        public bool HasItem;
         public bool CanReview;
         public string Title;
         public string ItemName;
@@ -16,6 +18,7 @@ namespace AshenHalls
         public string EquipNote;
         public string Outcome;
         public string Comparison;
+        public string ReviewActionLabel;
         public string IconLabel;
         public string AccentHex;
         public Texture2D IconTexture;
@@ -31,6 +34,21 @@ namespace AshenHalls
         public Func<LootPopupView> View;
         public Action Dismiss;
         public Action ReviewInventory;
+    }
+
+    internal sealed class LootPopupFocusRelay : MonoBehaviour, ISelectHandler, IDeselectHandler
+    {
+        public Action<bool> FocusChanged;
+
+        public void OnSelect(BaseEventData eventData)
+        {
+            FocusChanged?.Invoke(true);
+        }
+
+        public void OnDeselect(BaseEventData eventData)
+        {
+            FocusChanged?.Invoke(false);
+        }
     }
 
     public readonly struct LootPopupGeometry
@@ -107,10 +125,10 @@ namespace AshenHalls
             Rect eyebrow = new Rect(158f, 47f, panelW - 182f, 18f);
             Rect itemTitle = new Rect(158f, 68f, panelW - 182f, 38f);
             Rect resourceRow = new Rect(158f, 112f, panelW - 182f, 30f);
-            Rect body = new Rect(158f, 151f, panelW - 182f, 62f);
-            Rect outcome = new Rect(24f, 226f, panelW - 48f, panelH - 290f);
-            Rect review = new Rect(panelW - 286f, panelH - 48f, 142f, 32f);
-            Rect dismiss = new Rect(panelW - 134f, panelH - 48f, 110f, 32f);
+            Rect body = new Rect(158f, 151f, panelW - 182f, 64f);
+            Rect review = new Rect(panelW - 322f, panelH - 54f, 160f, 40f);
+            Rect dismiss = new Rect(panelW - 152f, panelH - 54f, 128f, 40f);
+            Rect outcome = new Rect(24f, 226f, panelW - 48f, Mathf.Max(62f, review.y - 238f));
             return new LootPopupGeometry(backdrop, panel, icon, eyebrow, itemTitle, resourceRow, body, outcome, review, dismiss);
         }
     }
@@ -136,7 +154,7 @@ namespace AshenHalls
         private Text goldText;
         private Text suppliesText;
         private Text elixirText;
-        private Text timerText;
+        private Text inputHintText;
         private Button reviewButton;
         private Button dismissButton;
         private Font font;
@@ -152,6 +170,18 @@ namespace AshenHalls
         public bool HasRealIconForTest => iconImage != null && iconImage.gameObject.activeSelf && iconImage.texture != null;
         public bool HasReviewActionForTest => reviewButton != null && reviewButton.gameObject.activeSelf && reviewButton.interactable;
         public string PrimaryActionLabelForTest => dismissButton == null ? "" : dismissButton.GetComponentInChildren<Text>()?.text ?? "";
+        public string ReviewActionLabelForTest => reviewButton == null ? "" : reviewButton.GetComponentInChildren<Text>()?.text ?? "";
+        public bool HasDefaultFocusForTest
+        {
+            get
+            {
+                EventSystem eventSystem = EventSystem.current;
+                if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+                return eventSystem != null
+                    && dismissButton != null
+                    && eventSystem.currentSelectedGameObject == dismissButton.gameObject;
+            }
+        }
 
         public void Bind(LootPopupBindings popupBindings)
         {
@@ -163,8 +193,18 @@ namespace AshenHalls
 
         public void SetVisible(bool visible)
         {
-            if (visible) UiRuntime.EnsureEventSystemReady();
-            UiRuntime.SetCanvasVisible(canvas, visible);
+            EventSystem eventSystem = visible ? UiRuntime.EnsureEventSystemReady() : EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            bool ownedSelection = IsCanvasSelection(selected);
+            bool changed = UiRuntime.SetCanvasVisible(canvas, visible);
+            if (!visible)
+            {
+                if (ownedSelection && eventSystem != null) eventSystem.SetSelectedGameObject(null);
+                return;
+            }
+
+            if (changed || !IsUsableCanvasSelection(eventSystem)) FocusDefaultAction(eventSystem);
         }
 
         public void Refresh()
@@ -186,9 +226,11 @@ namespace AshenHalls
             outcomePanel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.60f);
             accentStrip.GetComponent<Image>().color = accent;
             headerText.text = string.IsNullOrWhiteSpace(view.Title) ? "Loot recovered" : view.Title;
-            eyebrowText.text = $"{SafeUpper(view.Rarity, "Common")} {SafeUpper(view.ItemType, "Item")}  •  ACQUIRED";
+            eyebrowText.text = view.HasItem
+                ? $"{SafeUpper(view.Rarity, "Common")} {SafeUpper(view.ItemType, "Item")}  •  ACQUIRED"
+                : "COMPANY SPOILS  •  ACQUIRED";
             eyebrowText.color = accent;
-            itemTitleText.text = string.IsNullOrWhiteSpace(view.ItemName) ? "Recovered supplies" : view.ItemName;
+            itemTitleText.text = string.IsNullOrWhiteSpace(view.ItemName) ? "Victory spoils" : view.ItemName;
             bodyText.text = BuildBody(view);
             outcomeTitleText.text = string.IsNullOrWhiteSpace(view.Outcome) ? "Stored in inventory" : view.Outcome;
             outcomeTitleText.color = accent;
@@ -212,7 +254,14 @@ namespace AshenHalls
 
             reviewButton.gameObject.SetActive(view.CanReview);
             reviewButton.interactable = view.CanReview;
-            timerText.text = view.SecondsRemaining > 0.5f ? $"{Mathf.CeilToInt(view.SecondsRemaining)}s" : "";
+            reviewButton.GetComponentInChildren<Text>().text = string.IsNullOrWhiteSpace(view.ReviewActionLabel)
+                ? "Compare & equip"
+                : view.ReviewActionLabel;
+            inputHintText.text = view.SecondsRemaining > 0.5f
+                ? $"{Mathf.CeilToInt(view.SecondsRemaining)}s"
+                : "ENTER / A  SELECT   •   ESC / B  CLOSE";
+            ConfigureActionNavigation(view.CanReview);
+            if (IsVisible && !IsUsableCanvasSelection(EventSystem.current)) FocusDefaultAction(EventSystem.current);
             Canvas.ForceUpdateCanvases();
             lastRefreshSucceeded = true;
         }
@@ -222,9 +271,16 @@ namespace AshenHalls
             if (reviewButton != null && reviewButton.gameObject.activeSelf && reviewButton.interactable) bindings?.ReviewInventory?.Invoke();
         }
 
+        public void InvokeDismissForTest()
+        {
+            if (dismissButton != null && dismissButton.gameObject.activeSelf && dismissButton.interactable) bindings?.Dismiss?.Invoke();
+        }
+
         private static string BuildBody(LootPopupView view)
         {
-            string trait = string.IsNullOrWhiteSpace(view.TraitLine) ? "Serviceable adventuring gear." : view.TraitLine;
+            string trait = string.IsNullOrWhiteSpace(view.TraitLine)
+                ? view.HasItem ? "Serviceable adventuring gear." : "Gold and supplies were added to the company stores."
+                : view.TraitLine;
             string comparison = string.IsNullOrWhiteSpace(view.Comparison) ? "" : "\n" + view.Comparison;
             return trait + comparison;
         }
@@ -254,7 +310,7 @@ namespace AshenHalls
             iconPanel = AddPanel("Item Art", panel, Hex("050708", 0.92f), Hex("d7a84e", 0.78f));
             iconImage = AddRawImage("Item Icon", iconPanel);
             iconFallbackText = AddText("Item Icon Fallback", iconPanel, "LOOT", 13, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
-            eyebrowText = AddText("Eyebrow", panel, "", 10, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
+            eyebrowText = AddText("Eyebrow", panel, "", 11, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
             itemTitleText = AddText("Item Name", panel, "", 18, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
             itemTitleText.fontStyle = FontStyle.Bold;
 
@@ -263,15 +319,16 @@ namespace AshenHalls
             goldText = AddChip("Gold", resourceRow, Hex("d7a84e", 0.72f));
             suppliesText = AddChip("Supplies", resourceRow, Hex("7f9d5b", 0.72f));
             elixirText = AddChip("Elixirs", resourceRow, Hex("58b7a5", 0.72f));
-            bodyText = AddText("Item Details", panel, "", 11, Hex("e1dacb", 1f), TextAnchor.UpperLeft);
+            bodyText = AddText("Item Details", panel, "", 12, Hex("e1dacb", 1f), TextAnchor.UpperLeft);
 
             outcomePanel = AddPanel("Loot Outcome", panel, Hex("080b0d", 0.86f), Hex("d7a84e", 0.58f));
             outcomeTitleText = AddText("Outcome", outcomePanel, "", 12, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
             outcomeTitleText.fontStyle = FontStyle.Bold;
-            outcomeDetailText = AddText("Outcome Detail", outcomePanel, "", 10, Hex("b7aa90", 1f), TextAnchor.UpperLeft);
-            timerText = AddText("Timer", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleRight);
-            reviewButton = AddButton("Review Equipment", panel, "Review equipment", () => bindings?.ReviewInventory?.Invoke(), Hex("58b7a5", 0.86f));
+            outcomeDetailText = AddText("Outcome Detail", outcomePanel, "", 11, Hex("b7aa90", 1f), TextAnchor.UpperLeft);
+            inputHintText = AddText("Input Hint", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            reviewButton = AddButton("Review Equipment", panel, "Compare & equip", () => bindings?.ReviewInventory?.Invoke(), Hex("58b7a5", 0.86f));
             dismissButton = AddButton("Continue", panel, "Continue", () => bindings?.Dismiss?.Invoke(), Hex("d7a84e", 0.86f));
+            ConfigureActionNavigation(true);
         }
 
         private void ApplyLayout()
@@ -295,7 +352,7 @@ namespace AshenHalls
             SetLocalRect(outcomeDetailText.rectTransform, new Rect(14f, 30f, geometry.Outcome.width - 28f, Mathf.Max(20f, geometry.Outcome.height - 36f)));
             SetLocalRect(reviewButton.GetComponent<RectTransform>(), geometry.ReviewButton);
             SetLocalRect(dismissButton.GetComponent<RectTransform>(), geometry.DismissButton);
-            SetLocalRect(timerText.rectTransform, new Rect(24f, geometry.DismissButton.y, 48f, geometry.DismissButton.height));
+            SetLocalRect(inputHintText.rectTransform, new Rect(24f, geometry.DismissButton.y, Mathf.Max(120f, geometry.ReviewButton.x - 40f), geometry.DismissButton.height));
             LayoutResourceChips();
         }
 
@@ -336,7 +393,7 @@ namespace AshenHalls
         private Text AddChip(string name, Transform parent, Color border)
         {
             RectTransform chip = AddPanel(name, parent, Hex("080b0d", 0.82f), border);
-            Text text = AddText("Label", chip, "", 10, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            Text text = AddText("Label", chip, "", 11, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             text.fontStyle = FontStyle.Bold;
             Stretch(text.rectTransform, 6f, 2f);
             return text;
@@ -360,12 +417,59 @@ namespace AshenHalls
             Outline outline = go.GetComponent<Outline>();
             outline.effectColor = border;
             outline.effectDistance = new Vector2(1f, -1f);
+            LootPopupFocusRelay focusRelay = go.AddComponent<LootPopupFocusRelay>();
+            focusRelay.FocusChanged = focused =>
+            {
+                outline.effectColor = focused ? Hex("f3ead7", 1f) : border;
+                outline.effectDistance = focused ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
+            };
             if (action != null) button.onClick.AddListener(() => action());
 
-            Text text = AddText("Label", go.transform, label, 11, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            Text text = AddText("Label", go.transform, label, 12, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             text.fontStyle = FontStyle.Bold;
             Stretch(text.rectTransform, 6f, 3f);
             return button;
+        }
+
+        private void ConfigureActionNavigation(bool canReview)
+        {
+            if (reviewButton == null || dismissButton == null) return;
+            Navigation dismissNavigation = new Navigation { mode = Navigation.Mode.Explicit };
+            dismissNavigation.selectOnLeft = canReview ? reviewButton : dismissButton;
+            dismissNavigation.selectOnRight = canReview ? reviewButton : dismissButton;
+            dismissNavigation.selectOnUp = canReview ? reviewButton : dismissButton;
+            dismissNavigation.selectOnDown = canReview ? reviewButton : dismissButton;
+            dismissButton.navigation = dismissNavigation;
+
+            Navigation reviewNavigation = new Navigation { mode = Navigation.Mode.Explicit };
+            reviewNavigation.selectOnLeft = dismissButton;
+            reviewNavigation.selectOnRight = dismissButton;
+            reviewNavigation.selectOnUp = dismissButton;
+            reviewNavigation.selectOnDown = dismissButton;
+            reviewButton.navigation = reviewNavigation;
+        }
+
+        private bool IsCanvasSelection(GameObject selected)
+        {
+            if (selected == null || canvas == null) return false;
+            Transform selectedTransform = selected.transform;
+            Transform canvasTransform = canvas.transform;
+            return selectedTransform == canvasTransform || selectedTransform.IsChildOf(canvasTransform);
+        }
+
+        private bool IsUsableCanvasSelection(EventSystem eventSystem)
+        {
+            GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            if (!IsCanvasSelection(selected) || !selected.activeInHierarchy) return false;
+            Selectable selectable = selected.GetComponent<Selectable>();
+            return selectable != null && selectable.IsActive() && selectable.IsInteractable();
+        }
+
+        private void FocusDefaultAction(EventSystem eventSystem)
+        {
+            if (eventSystem == null) eventSystem = EventSystem.current;
+            if (eventSystem == null || dismissButton == null || !dismissButton.gameObject.activeInHierarchy) return;
+            eventSystem.SetSelectedGameObject(dismissButton.gameObject);
         }
 
         private RectTransform AddPanel(string name, Transform parent, Color fill, Color border)

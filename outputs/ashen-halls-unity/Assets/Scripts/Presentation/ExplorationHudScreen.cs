@@ -37,6 +37,7 @@ namespace AshenHalls
         public string ZoneName;
         public string ZoneDetail;
         public string DangerLabel;
+        public string DangerColorHex;
         public string LookLine;
         public string ObjectiveLine;
         public string ObjectiveSummary;
@@ -161,17 +162,49 @@ namespace AshenHalls
         public static Rect[] CommandButtons(float width)
         {
             float scale = Mathf.Clamp(width / 1256f, 1f, 1.25f);
-            float gap = 8f * scale;
+            float gap = 6f * scale;
             float x = 10f * scale;
             float y = 8f * scale;
             float h = 52f * scale;
-            float menuW = Mathf.Clamp(width * 0.12f, 128f * scale, 176f * scale);
-            float actionW = Mathf.Clamp(width - menuW - gap - 20f * scale, 280f * scale, Mathf.Max(280f * scale, width - menuW - gap - 20f * scale));
+            const int secondaryCount = 4;
+            float secondaryW = Mathf.Clamp(width * 0.105f, 96f * scale, 142f * scale);
+            float actionW = Mathf.Max(
+                280f * scale,
+                width - 20f * scale - secondaryW * secondaryCount - gap * secondaryCount);
             return new[]
             {
                 new Rect(x, y, actionW, h),
-                new Rect(x + actionW + gap, y, menuW, h)
+                new Rect(x + actionW + gap, y, secondaryW, h),
+                new Rect(x + actionW + gap + (secondaryW + gap), y, secondaryW, h),
+                new Rect(x + actionW + gap + (secondaryW + gap) * 2f, y, secondaryW, h),
+                new Rect(x + actionW + gap + (secondaryW + gap) * 3f, y, secondaryW, h)
             };
+        }
+
+        public static Rect DetailsButton(float sideWidth, float sideHeight, float scale)
+        {
+            float padding = 14f * scale;
+            return new Rect(
+                padding,
+                sideHeight - 40f * scale,
+                Mathf.Max(1f, sideWidth - padding * 2f),
+                32f * scale);
+        }
+
+        public static Rect[] PartyRows(float sideWidth, float scale, bool detailsOpen, int count)
+        {
+            count = Mathf.Max(0, count);
+            float padding = 14f * scale;
+            float width = Mathf.Max(1f, sideWidth - padding * 2f);
+            float startY = (detailsOpen ? 278f : 234f) * scale;
+            float step = 30f * scale;
+            float height = (detailsOpen ? 27f : 26f) * scale;
+            Rect[] rows = new Rect[count];
+            for (int i = 0; i < count; i++)
+            {
+                rows[i] = new Rect(padding, startY + i * step, width, height);
+            }
+            return rows;
         }
     }
 
@@ -206,8 +239,14 @@ namespace AshenHalls
         private Text actionTargetText;
         private Text detailsButtonText;
         private Button actionButton;
+        private Button mapButton;
+        private Button journalButton;
+        private Button partyButton;
         private Button menuButton;
         private Button detailsButton;
+        private Text mapButtonText;
+        private Text journalButtonText;
+        private Text partyButtonText;
         private Text menuButtonText;
         private Font font;
         private float lastWidth = -1f;
@@ -215,8 +254,45 @@ namespace AshenHalls
         private bool lastDetailsOpen;
         private int detailLogCapacity = 3;
 
-        public bool IsReady => canvas != null && commandPanel != null && actionButton != null;
+        public bool IsReady => canvas != null
+            && canvasGroup != null
+            && topPanel != null
+            && sidePanel != null
+            && commandPanel != null
+            && actionButton != null
+            && mapButton != null
+            && journalButton != null
+            && partyButton != null
+            && menuButton != null;
         public bool IsVisible => IsReady && UiRuntime.IsCanvasVisible(canvas);
+        public bool IsSuppressedByImguiFallback => IsVisible
+            && canvasGroup != null
+            && canvasGroup.alpha <= 0.01f
+            && !canvasGroup.interactable
+            && !canvasGroup.blocksRaycasts;
+        public bool HasLaidOutHud
+        {
+            get
+            {
+                if (!IsReady || !UiRuntime.IsRenderableRootOverlay(canvas)) return false;
+                Rect commandRect = commandPanel.rect;
+                if (commandRect.width < 700f || commandRect.height < 52f) return false;
+                Button[] commands = { actionButton, mapButton, journalButton, partyButton, menuButton };
+                foreach (Button command in commands)
+                {
+                    if (command == null || !command.gameObject.activeInHierarchy) return false;
+                    Rect rect = command.GetComponent<RectTransform>().rect;
+                    if (rect.width < 80f || rect.height < 48f) return false;
+                }
+                return true;
+            }
+        }
+        public bool IsInteractionOwner => IsVisible
+            && canvasGroup.alpha > 0.01f
+            && canvasGroup.interactable
+            && canvasGroup.blocksRaycasts
+            && UiRuntime.HasUsableEventSystem();
+        public bool HasUsableHud => HasLaidOutHud && IsInteractionOwner;
         public bool HasVisibleCompactGuidance => IsVisible
             && !lastDetailsOpen
             && objectiveText != null
@@ -246,6 +322,10 @@ namespace AshenHalls
             && row.ManaText != null
             && row.HpText.text.StartsWith("HP ", StringComparison.Ordinal)
             && row.ManaText.text.StartsWith("MP ", StringComparison.Ordinal));
+        public int VisiblePersistentCommandCountForTest => new[] { actionButton, mapButton, journalButton, partyButton, menuButton }
+            .Count(button => button != null && button.gameObject.activeInHierarchy);
+        public int VisibleCompactManaRowsForTest => partyRows.Count(row =>
+            row.ManaBg != null && row.ManaBg.gameObject.activeInHierarchy);
 
         public void Bind(ExplorationHudScreenBindings screenBindings)
         {
@@ -292,7 +372,7 @@ namespace AshenHalls
                 ApplyLayout(view.DetailsOpen);
             }
 
-            titleText.text = string.IsNullOrEmpty(view.Title) ? VersionInfo.ProductName : view.Title;
+            titleText.text = string.IsNullOrEmpty(view.Title) ? "World Map" : view.Title;
             routeText.text = view.RouteLine ?? "";
             focusText.text = view.FocusHint ?? "";
             goldText.text = "Gold\n" + (view.Gold ?? "0");
@@ -300,6 +380,7 @@ namespace AshenHalls
             elixirsText.text = "Elixirs\n" + (view.Elixirs ?? "0");
             sideTitleText.text = string.IsNullOrEmpty(view.ZoneName) ? "Location" : view.ZoneName;
             sideDangerText.text = view.DangerLabel ?? "";
+            sideDangerText.color = ParseColor(view.DangerColorHex, Hex("66c9b6", 1f));
             waypointTitleText.text = "NEXT";
             nearbyTitleText.text = view.DetailsOpen ? "HERE" : "NEARBY";
             sideDetailText.text = view.WaypointLine ?? "";
@@ -312,7 +393,12 @@ namespace AshenHalls
             actionTargetText.text = view.HasAction ? view.ActionTarget ?? "" : "Nothing nearby";
             actionButton.interactable = view.HasAction;
             detailsButtonText.text = view.DetailsOpen ? "Close" : "Details";
-            menuButtonText.text = "Menu";
+            mapButtonText.text = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase)
+                ? "Local\nTab"
+                : "Region\nTab";
+            journalButtonText.text = "Journal\nJ";
+            partyButtonText.text = "Party\nF";
+            menuButtonText.text = "Menu\nEsc";
             SetModeObjectsVisible(view.DetailsOpen);
 
             IReadOnlyList<ExplorationHudPartyMemberView> party = view.Party ?? Array.Empty<ExplorationHudPartyMemberView>();
@@ -385,6 +471,12 @@ namespace AshenHalls
             actionButton = AddButton("Use Action", commandPanel, "", bindings?.UseContextual, true);
             actionLabelText = actionButton.GetComponentInChildren<Text>();
             actionTargetText = AddText("Use Target", actionButton.transform, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("d0c5ae", 1f), TextAnchor.LowerCenter);
+            mapButton = AddButton("Map View", commandPanel, "Region\nTab", bindings?.ToggleView, false);
+            mapButtonText = mapButton.GetComponentInChildren<Text>();
+            journalButton = AddButton("Journal", commandPanel, "Journal\nJ", bindings?.OpenJournal, false);
+            journalButtonText = journalButton.GetComponentInChildren<Text>();
+            partyButton = AddButton("Party", commandPanel, "Party\nF", bindings?.OpenParty, false);
+            partyButtonText = partyButton.GetComponentInChildren<Text>();
             menuButton = AddButton("Menu", commandPanel, "Menu", bindings?.OpenMenu, false);
             menuButtonText = menuButton.GetComponentInChildren<Text>();
         }
@@ -422,24 +514,24 @@ namespace AshenHalls
             SetLocalRect(sideDangerText.rectTransform, new Rect(sidePad, 35f * scale, innerW, 18f * scale));
             if (detailsOpen)
             {
-                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 58f * scale, innerW, 14f * scale));
-                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 72f * scale, innerW, 30f * scale));
-                SetLocalRect(nearbyTitleText.rectTransform, new Rect(sidePad, 106f * scale, innerW, 14f * scale));
-                SetLocalRect(lookText.rectTransform, new Rect(sidePad, 120f * scale, innerW, 28f * scale));
-                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 152f * scale, innerW, 14f * scale));
-                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 166f * scale, innerW, 60f * scale));
-                SetLocalRect(growthText.rectTransform, new Rect(sidePad, 232f * scale, innerW, 32f * scale));
-                SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 270f * scale, innerW, 20f * scale));
-                float partyStartY = 294f * scale;
-                float partyStep = 34f * scale;
+                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 54f * scale, innerW, 14f * scale));
+                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 68f * scale, innerW, 32f * scale));
+                SetLocalRect(nearbyTitleText.rectTransform, new Rect(sidePad, 104f * scale, innerW, 14f * scale));
+                SetLocalRect(lookText.rectTransform, new Rect(sidePad, 118f * scale, innerW, 34f * scale));
+                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 156f * scale, innerW, 14f * scale));
+                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 170f * scale, innerW, 58f * scale));
+                SetLocalRect(growthText.rectTransform, new Rect(sidePad, 232f * scale, innerW, 28f * scale));
+                SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 258f * scale, innerW, 18f * scale));
+                Rect[] rows = ExplorationHudScreenLayout.PartyRows(geometry.Side.width, scale, true, partyRows.Count);
                 for (int i = 0; i < partyRows.Count; i++)
                 {
-                    SetLocalRect(partyRows[i].Root, new Rect(sidePad, partyStartY + i * partyStep, innerW, 30f * scale));
-                    LayoutPartyRow(partyRows[i], innerW, 30f * scale, scale);
+                    SetLocalRect(partyRows[i].Root, rows[i]);
+                    LayoutPartyRow(partyRows[i], rows[i].width, rows[i].height, scale, false);
                 }
 
-                float latestY = partyStartY + partyRows.Count * partyStep + 6f * scale;
-                float buttonY = geometry.Side.height - 42f * scale;
+                float latestY = rows.Length == 0 ? 284f * scale : rows[rows.Length - 1].yMax + 6f * scale;
+                Rect detailsRect = ExplorationHudScreenLayout.DetailsButton(geometry.Side.width, geometry.Side.height, scale);
+                float buttonY = detailsRect.y;
                 SetLocalRect(latestTitleText.rectTransform, new Rect(sidePad, latestY, innerW, 20f * scale));
                 float logsStart = latestY + 24f * scale;
                 float logsBottom = buttonY - 8f * scale;
@@ -454,26 +546,23 @@ namespace AshenHalls
                     SetLocalRect(logRows[i].Root, new Rect(sidePad, logsStart + i * logStep, innerW, logHeight));
                     LayoutLogRow(logRows[i], innerW, logHeight, scale);
                 }
-                SetLocalRect(detailsButton.GetComponent<RectTransform>(), new Rect(sidePad, buttonY, innerW, 32f * scale));
+                SetLocalRect(detailsButton.GetComponent<RectTransform>(), detailsRect);
             }
             else
             {
                 detailLogCapacity = 0;
-                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 62f * scale, innerW, 16f * scale));
-                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 80f * scale, innerW, 48f * scale));
-                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 136f * scale, innerW, 16f * scale));
-                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 154f * scale, innerW, 88f * scale));
-                SetLocalRect(nearbyTitleText.rectTransform, new Rect(sidePad, 250f * scale, innerW, 16f * scale));
-                SetLocalRect(lookText.rectTransform, new Rect(sidePad, 268f * scale, innerW, 58f * scale));
-                SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 334f * scale, innerW, 20f * scale));
-                float compactPartyStartY = 358f * scale;
-                float compactPartyStep = 34f * scale;
+                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 54f * scale, innerW, 16f * scale));
+                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 72f * scale, innerW, 42f * scale));
+                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 120f * scale, innerW, 16f * scale));
+                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 138f * scale, innerW, 66f * scale));
+                SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 210f * scale, innerW, 20f * scale));
+                Rect[] rows = ExplorationHudScreenLayout.PartyRows(geometry.Side.width, scale, false, partyRows.Count);
                 for (int i = 0; i < partyRows.Count; i++)
                 {
-                    SetLocalRect(partyRows[i].Root, new Rect(sidePad, compactPartyStartY + i * compactPartyStep, innerW, 30f * scale));
-                    LayoutPartyRow(partyRows[i], innerW, 30f * scale, scale);
+                    SetLocalRect(partyRows[i].Root, rows[i]);
+                    LayoutPartyRow(partyRows[i], rows[i].width, rows[i].height, scale, true);
                 }
-                SetLocalRect(detailsButton.GetComponent<RectTransform>(), new Rect(sidePad, geometry.Side.height - 42f * scale, innerW, 32f * scale));
+                SetLocalRect(detailsButton.GetComponent<RectTransform>(), ExplorationHudScreenLayout.DetailsButton(geometry.Side.width, geometry.Side.height, scale));
             }
 
             Rect[] buttons = ExplorationHudScreenLayout.CommandButtons(geometry.Command.width);
@@ -481,7 +570,10 @@ namespace AshenHalls
             SetLocalRect(actionLabelText.rectTransform, new Rect(12f * scale, 5f * scale, buttons[0].width - 24f * scale, 24f * scale));
             actionLabelText.alignment = TextAnchor.MiddleCenter;
             SetLocalRect(actionTargetText.rectTransform, new Rect(12f * scale, 29f * scale, buttons[0].width - 24f * scale, 18f * scale));
-            SetLocalRect(menuButton.GetComponent<RectTransform>(), buttons[1]);
+            SetLocalRect(mapButton.GetComponent<RectTransform>(), buttons[1]);
+            SetLocalRect(journalButton.GetComponent<RectTransform>(), buttons[2]);
+            SetLocalRect(partyButton.GetComponent<RectTransform>(), buttons[3]);
+            SetLocalRect(menuButton.GetComponent<RectTransform>(), buttons[4]);
         }
 
         private void ApplyResponsiveTypography()
@@ -512,6 +604,9 @@ namespace AshenHalls
             detailsButtonText.fontSize = commandSize;
             actionLabelText.fontSize = commandSize + 1;
             actionTargetText.fontSize = eyebrowSize;
+            mapButtonText.fontSize = commandSize;
+            journalButtonText.fontSize = commandSize;
+            partyButtonText.fontSize = commandSize;
             menuButtonText.fontSize = commandSize;
             foreach (PartyRow row in partyRows)
             {
@@ -527,12 +622,18 @@ namespace AshenHalls
         {
             waypointTitleText.gameObject.SetActive(true);
             objectiveTitleText.gameObject.SetActive(true);
-            nearbyTitleText.gameObject.SetActive(true);
-            lookText.gameObject.SetActive(true);
+            nearbyTitleText.gameObject.SetActive(detailsOpen);
+            lookText.gameObject.SetActive(detailsOpen);
             objectiveText.gameObject.SetActive(true);
             growthText.gameObject.SetActive(detailsOpen);
             partyTitleText.gameObject.SetActive(true);
             latestTitleText.gameObject.SetActive(detailsOpen && detailLogCapacity > 0);
+            foreach (PartyRow row in partyRows)
+            {
+                row.ClassLine.gameObject.SetActive(detailsOpen);
+                row.ManaBg.gameObject.SetActive(detailsOpen);
+                row.ManaText.gameObject.SetActive(detailsOpen);
+            }
         }
 
         private PartyRow CreatePartyRow(Transform parent, int index)
@@ -560,17 +661,17 @@ namespace AshenHalls
             return new LogRow(root, stripe, text);
         }
 
-        private static void LayoutPartyRow(PartyRow row, float width, float height, float scale)
+        private static void LayoutPartyRow(PartyRow row, float width, float height, float scale, bool compact)
         {
             SetLocalRect(row.Accent.rectTransform, new Rect(0f, 0f, 4f * scale, height));
-            float vitalsW = 116f * scale;
+            float vitalsW = (compact ? 124f : 116f) * scale;
             float vitalsX = width - vitalsW - 8f * scale;
-            SetLocalRect(row.Name.rectTransform, new Rect(10f * scale, 2f * scale, Mathf.Max(72f * scale, vitalsX - 16f * scale), 15f * scale));
-            SetLocalRect(row.ClassLine.rectTransform, new Rect(10f * scale, 16f * scale, Mathf.Max(72f * scale, vitalsX - 16f * scale), 12f * scale));
-            SetLocalRect(row.HpBg, new Rect(vitalsX, 3f * scale, vitalsW, 11f * scale));
-            SetLocalRect(row.HpText.rectTransform, new Rect(vitalsX, 2f * scale, vitalsW, 12f * scale));
-            SetLocalRect(row.ManaBg, new Rect(vitalsX, 16f * scale, vitalsW, 11f * scale));
-            SetLocalRect(row.ManaText.rectTransform, new Rect(vitalsX, 15f * scale, vitalsW, 12f * scale));
+            SetLocalRect(row.Name.rectTransform, new Rect(10f * scale, compact ? 3f * scale : 1f * scale, Mathf.Max(72f * scale, vitalsX - 16f * scale), compact ? 20f * scale : 14f * scale));
+            SetLocalRect(row.ClassLine.rectTransform, new Rect(10f * scale, 14f * scale, Mathf.Max(72f * scale, vitalsX - 16f * scale), 11f * scale));
+            SetLocalRect(row.HpBg, new Rect(vitalsX, compact ? 7f * scale : 2f * scale, vitalsW, compact ? 12f * scale : 10f * scale));
+            SetLocalRect(row.HpText.rectTransform, new Rect(vitalsX, compact ? 4f * scale : 1f * scale, vitalsW, compact ? 17f * scale : 12f * scale));
+            SetLocalRect(row.ManaBg, new Rect(vitalsX, 14f * scale, vitalsW, 10f * scale));
+            SetLocalRect(row.ManaText.rectTransform, new Rect(vitalsX, 13f * scale, vitalsW, 12f * scale));
             Stretch(row.HpFill);
             Stretch(row.ManaFill);
         }

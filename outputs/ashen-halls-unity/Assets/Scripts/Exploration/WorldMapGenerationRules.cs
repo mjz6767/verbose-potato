@@ -311,7 +311,7 @@ namespace AshenHalls
                     "salt-cistern-gate",
                     "salt-cisterns",
                     "Salt Cistern Gate",
-                    "Flood-scored doors open onto chained sluices and the first authored under-road.",
+                    "Flood-scored doors guard chained sluices and a crownward stair cut beneath the old road.",
                     centerSiteX,
                     bottomSmallSiteY,
                     2,

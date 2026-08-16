@@ -117,6 +117,101 @@ namespace AshenHalls
                 && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form) == weapon);
         }
 
+        private int EffectiveWeaponRange(InventoryItem item, PartyMember member)
+        {
+            return Mathf.Max(WeaponRange(item, member), StartingRange(member?.Role));
+        }
+
+        private InventoryItem SnapshotMemberEquipment(PartyMember member, bool weapon)
+        {
+            if (member == null) return null;
+            string displayName = weapon ? member.WeaponName : member.ArmorName;
+            if (string.IsNullOrWhiteSpace(displayName)) return null;
+
+            if (weapon)
+            {
+                return new InventoryItem
+                {
+                    Mark = "loadout-snapshot",
+                    EquippedById = member.Id,
+                    Material = EnchantmentWeaponMaterial(displayName),
+                    Form = EnchantmentWeaponForm(displayName),
+                    Trait = EnchantmentWeaponTrait(displayName),
+                    Slot = "weapon",
+                    Bonus = member.WeaponBonus,
+                    StrengthBonus = member.WeaponStrengthBonus,
+                    IntelligenceBonus = member.WeaponIntelligenceBonus,
+                    AgilityBonus = member.WeaponAgilityBonus,
+                    HealthBonus = member.WeaponHealthBonus,
+                    DamageMin = Mathf.Max(1, member.WeaponDamageMin > 0 ? member.WeaponDamageMin : member.DamageMin),
+                    DamageMax = Mathf.Max(
+                        Mathf.Max(1, member.WeaponDamageMin > 0 ? member.WeaponDamageMin : member.DamageMin) + 1,
+                        member.WeaponDamageMax > 0 ? member.WeaponDamageMax : member.DamageMax),
+                    AttackSpeed = Mathf.Max(1, member.WeaponAttackSpeed > 0 ? member.WeaponAttackSpeed : member.AttackSpeed),
+                    Rarity = member.WeaponBonus > 2 ? "rare" : member.WeaponBonus > 0 ? "common" : "starter",
+                    DamageType = string.IsNullOrWhiteSpace(member.WeaponDamageType) ? "physical" : member.WeaponDamageType,
+                    DisplayName = displayName
+                };
+            }
+
+            return new InventoryItem
+            {
+                Mark = "loadout-snapshot",
+                EquippedById = member.Id,
+                Material = EnchantmentWeaponMaterial(displayName),
+                Form = "armor",
+                Trait = EnchantmentWeaponTrait(displayName),
+                Slot = "armor",
+                Bonus = member.ArmorBonus,
+                StrengthBonus = member.ArmorStrengthBonus,
+                IntelligenceBonus = member.ArmorIntelligenceBonus,
+                AgilityBonus = member.ArmorAgilityBonus,
+                HealthBonus = member.ArmorHealthBonus,
+                Rarity = member.ArmorBonus > 2 ? "rare" : member.ArmorBonus > 0 ? "common" : "starter",
+                DisplayName = displayName
+            };
+        }
+
+        private InventoryItem InventorySwapReplacement(PartyMember target, bool weapon)
+        {
+            return EquippedInventoryItem(target, weapon) ?? SnapshotMemberEquipment(target, weapon);
+        }
+
+        private void ApplyInventoryItemToLoadout(InventoryItem item, PartyMember target, bool weapon)
+        {
+            if (item == null || target == null) return;
+            if (weapon)
+            {
+                target.WeaponName = item.DisplayName;
+                target.WeaponBonus = item.Bonus;
+                target.WeaponDamageType = string.IsNullOrEmpty(item.DamageType) ? "physical" : item.DamageType;
+                target.WeaponDamageMin = Mathf.Max(1, item.DamageMin);
+                target.WeaponDamageMax = Mathf.Max(target.WeaponDamageMin + 1, item.DamageMax);
+                target.WeaponAttackSpeed = Mathf.Max(1, item.AttackSpeed);
+                ApplyGearStatBonuses(target, item, true);
+                target.Range = EffectiveWeaponRange(item, target);
+                return;
+            }
+
+            target.ArmorName = item.DisplayName;
+            target.ArmorBonus = ArmorDefenseBonus(item);
+            ApplyGearStatBonuses(target, item, false);
+        }
+
+        private int InventoryReassignmentScore(InventoryItem item, PartyMember target, PartyMember currentOwner)
+        {
+            if (item == null || target == null || currentOwner == null || target == currentOwner) return int.MinValue / 4;
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+            InventoryItem replacement = InventorySwapReplacement(target, weapon);
+            if (replacement == null
+                || !InventoryEquipmentRules.IsEquippable(replacement)
+                || InventoryEquipmentRules.IsWeaponSlot(replacement.Slot, replacement.Form) != weapon)
+            {
+                return int.MinValue / 4;
+            }
+            return InventoryComparisonScore(item, target) + InventoryComparisonScore(replacement, currentOwner);
+        }
+
         private bool EquipInventoryItemToMember(InventoryItem item, PartyMember target, out string result)
         {
             result = "";
@@ -131,44 +226,46 @@ namespace AshenHalls
                 return false;
             }
 
+            EnsureInventoryList();
             EnsureInventoryEquipmentLinks();
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             PartyMember currentOwner = EquippedMember(item);
-            if (currentOwner != null && currentOwner != target)
-            {
-                result = $"{currentOwner.Name} is already using {item.DisplayName}. Equip something else there before moving it.";
-                return false;
-            }
             if (currentOwner == target)
             {
                 result = $"{target.Name} already has {item.DisplayName} equipped.";
                 return false;
             }
 
-            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+            if (currentOwner != null)
+            {
+                InventoryItem replacement = InventorySwapReplacement(target, weapon);
+                if (replacement == null
+                    || !InventoryEquipmentRules.IsEquippable(replacement)
+                    || InventoryEquipmentRules.IsWeaponSlot(replacement.Slot, replacement.Form) != weapon)
+                {
+                    result = $"{target.Name} has no {InventoryEquipmentRules.SlotLabel(item.Slot, item.Form).ToLowerInvariant()} to exchange with {currentOwner.Name}.";
+                    return false;
+                }
+
+                string replacementName = replacement.DisplayName;
+                InventoryItem linkedReplacement = state.Inventory.Contains(replacement) ? replacement : null;
+                ApplyInventoryItemToLoadout(replacement, currentOwner, weapon);
+                ApplyInventoryItemToLoadout(item, target, weapon);
+                if (linkedReplacement != null) linkedReplacement.EquippedById = currentOwner.Id;
+                item.EquippedById = target.Id;
+                RecalculateMember(currentOwner);
+                RecalculateMember(target);
+                result = $"{target.Name} equips {item.DisplayName}; {currentOwner.Name} receives {replacementName}.";
+                return true;
+            }
+
             InventoryItem previousItem = EquippedInventoryItem(target, weapon);
             if (previousItem != null && previousItem != item) previousItem.EquippedById = "";
             string old = weapon
                 ? string.IsNullOrWhiteSpace(target.WeaponName) ? "their previous weapon" : target.WeaponName
                 : string.IsNullOrWhiteSpace(target.ArmorName) ? "their previous armor" : target.ArmorName;
 
-            if (weapon)
-            {
-                target.WeaponName = item.DisplayName;
-                target.WeaponBonus = item.Bonus;
-                target.WeaponDamageType = string.IsNullOrEmpty(item.DamageType) ? "physical" : item.DamageType;
-                target.WeaponDamageMin = Mathf.Max(1, item.DamageMin);
-                target.WeaponDamageMax = Mathf.Max(target.WeaponDamageMin + 1, item.DamageMax);
-                target.WeaponAttackSpeed = Mathf.Max(1, item.AttackSpeed);
-                ApplyGearStatBonuses(target, item, true);
-                target.Range = WeaponRange(item, target);
-            }
-            else
-            {
-                target.ArmorName = item.DisplayName;
-                target.ArmorBonus = ArmorDefenseBonus(item);
-                ApplyGearStatBonuses(target, item, false);
-            }
-
+            ApplyInventoryItemToLoadout(item, target, weapon);
             item.EquippedById = target.Id;
             RecalculateMember(target);
             result = weapon
@@ -180,6 +277,7 @@ namespace AshenHalls
         private int InventoryComparisonScore(InventoryItem item, PartyMember member)
         {
             if (item == null || member == null) return int.MinValue / 4;
+            if (!InventoryEquipmentRules.IsEquippable(item)) return int.MinValue / 4;
             bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             if (weapon)
             {
@@ -188,29 +286,43 @@ namespace AshenHalls
                 int oldMax = Mathf.Max(oldMin + 1, member.WeaponDamageMax > 0 ? member.WeaponDamageMax : member.DamageMax);
                 int newStats = item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus;
                 int oldStats = member.WeaponStrengthBonus + member.WeaponIntelligenceBonus + member.WeaponAgilityBonus + member.WeaponHealthBonus;
+                InventoryItem currentWeapon = EquippedInventoryItem(member, true) ?? new InventoryItem
+                {
+                    Slot = "weapon",
+                    Form = member.WeaponName,
+                    DisplayName = member.WeaponName
+                };
                 int newScore = item.Bonus * 10
                     + newDamage * 3
                     + Mathf.Max(1, item.AttackSpeed)
-                    + WeaponRange(item, member) * 2
+                    + EffectiveWeaponRange(item, member) * 2
                     + WeaponRoleFit(item, member) * 3
                     + newStats * 4;
                 int oldScore = member.WeaponBonus * 10
                     + (oldMin + oldMax) * 3
                     + Mathf.Max(1, member.WeaponAttackSpeed > 0 ? member.WeaponAttackSpeed : member.AttackSpeed)
                     + Mathf.Max(1, member.Range) * 2
+                    + WeaponRoleFit(currentWeapon, member) * 3
                     + oldStats * 4;
                 return newScore - oldScore;
             }
 
             int newArmorStats = item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus;
             int oldArmorStats = member.ArmorStrengthBonus + member.ArmorIntelligenceBonus + member.ArmorAgilityBonus + member.ArmorHealthBonus;
+            InventoryItem currentArmor = EquippedInventoryItem(member, false) ?? new InventoryItem
+            {
+                Slot = "armor",
+                Form = member.ArmorName,
+                DisplayName = member.ArmorName
+            };
             int newArmorScore = ArmorDefenseBonus(item) * 14
                 + ArmorAgilityModifier(item.DisplayName) * 3
                 + newArmorStats * 4
                 - ArmorRolePenalty(item, member) * 2;
             int oldArmorScore = member.ArmorBonus * 14
                 + ArmorAgilityModifier(member.ArmorName) * 3
-                + oldArmorStats * 4;
+                + oldArmorStats * 4
+                - ArmorRolePenalty(currentArmor, member) * 2;
             return newArmorScore - oldArmorScore;
         }
 
@@ -218,7 +330,7 @@ namespace AshenHalls
         {
             partyIndex = -1;
             comparisonScore = int.MinValue / 4;
-            if (item == null || state?.Party == null) return null;
+            if (!InventoryEquipmentRules.IsEquippable(item) || state?.Party == null) return null;
             PartyMember best = null;
             for (int i = 0; i < state.Party.Count; i++)
             {
@@ -264,18 +376,43 @@ namespace AshenHalls
                 int oldSpeed = Mathf.Max(1, member.WeaponAttackSpeed > 0 ? member.WeaponAttackSpeed : member.AttackSpeed);
                 int newSpeed = Mathf.Max(1, item.AttackSpeed);
                 int oldRange = Mathf.Max(1, member.Range);
-                int newRange = WeaponRange(item, member);
-                return $"{newMin}-{newMax} dmg vs {oldMin}-{oldMax} / "
-                    + ComparisonToken("SPD", newSpeed, oldSpeed) + " / "
-                    + ComparisonToken("RNG", newRange, oldRange);
+                int newRange = EffectiveWeaponRange(item, member);
+                int oldStats = member.WeaponStrengthBonus + member.WeaponIntelligenceBonus + member.WeaponAgilityBonus + member.WeaponHealthBonus;
+                int newStats = item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus;
+                InventoryItem currentWeapon = EquippedInventoryItem(member, true) ?? SnapshotMemberEquipment(member, true);
+                List<string> comparisons = new List<string>
+                {
+                    $"{newMin}-{newMax} dmg vs {oldMin}-{oldMax}",
+                    ComparisonToken("BON", item.Bonus, member.WeaponBonus),
+                    ComparisonToken("SPD", newSpeed, oldSpeed),
+                    ComparisonToken("RNG", newRange, oldRange)
+                };
+                if (currentWeapon != null && WeaponRoleFit(item, member) != WeaponRoleFit(currentWeapon, member))
+                {
+                    comparisons.Add(ComparisonToken("FIT", WeaponRoleFit(item, member), WeaponRoleFit(currentWeapon, member)));
+                }
+                if (newStats != oldStats) comparisons.Add(ComparisonToken("ATTR", newStats, oldStats));
+                return string.Join(" / ", comparisons);
             }
 
             int newArmor = ArmorDefenseBonus(item);
             int oldArmor = member.ArmorBonus;
             int newAgility = ArmorAgilityModifier(item.DisplayName);
             int oldAgility = ArmorAgilityModifier(member.ArmorName);
-            return ComparisonToken("ARM", newArmor, oldArmor) + " / "
-                + ComparisonToken("AGI", newAgility, oldAgility);
+            int newArmorStats = item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus;
+            int oldArmorStats = member.ArmorStrengthBonus + member.ArmorIntelligenceBonus + member.ArmorAgilityBonus + member.ArmorHealthBonus;
+            InventoryItem currentArmor = EquippedInventoryItem(member, false) ?? SnapshotMemberEquipment(member, false);
+            List<string> armorComparisons = new List<string>
+            {
+                ComparisonToken("ARM", newArmor, oldArmor),
+                ComparisonToken("AGI", newAgility, oldAgility)
+            };
+            if (currentArmor != null && ArmorRolePenalty(item, member) != ArmorRolePenalty(currentArmor, member))
+            {
+                armorComparisons.Add(ComparisonToken("FIT", -ArmorRolePenalty(item, member), -ArmorRolePenalty(currentArmor, member)));
+            }
+            if (newArmorStats != oldArmorStats) armorComparisons.Add(ComparisonToken("ATTR", newArmorStats, oldArmorStats));
+            return string.Join(" / ", armorComparisons);
         }
 
         private static string ComparisonToken(string label, int next, int current)

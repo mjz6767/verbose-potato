@@ -1,5 +1,3 @@
-using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace AshenHalls
@@ -13,12 +11,43 @@ namespace AshenHalls
         Testing
     }
 
+    public readonly struct TitleMenuScrollStyle
+    {
+        public readonly Color Paper;
+        public readonly Color Roll;
+        public readonly Color Edge;
+        public readonly Color Ink;
+        public readonly Color Accent;
+        public readonly Color Selection;
+        public readonly Color SelectionInk;
+        public readonly Color Shadow;
+
+        public TitleMenuScrollStyle(
+            Color paper,
+            Color roll,
+            Color edge,
+            Color ink,
+            Color accent,
+            Color selection,
+            Color selectionInk,
+            Color shadow)
+        {
+            Paper = paper;
+            Roll = roll;
+            Edge = edge;
+            Ink = ink;
+            Accent = accent;
+            Selection = selection;
+            SelectionInk = selectionInk;
+            Shadow = shadow;
+        }
+    }
+
     public readonly struct TitleOpeningFrame
     {
         public readonly float BackdropReveal;
         public readonly float MenuAlpha;
         public readonly float MenuRise;
-        public readonly float ChronicleAlpha;
         public readonly float VignetteAlpha;
         public readonly float HearthPulse;
 
@@ -26,14 +55,12 @@ namespace AshenHalls
             float backdropReveal,
             float menuAlpha,
             float menuRise,
-            float chronicleAlpha,
             float vignetteAlpha,
             float hearthPulse)
         {
             BackdropReveal = Mathf.Clamp01(backdropReveal);
             MenuAlpha = Mathf.Clamp01(menuAlpha);
             MenuRise = Mathf.Max(0f, menuRise);
-            ChronicleAlpha = Mathf.Clamp01(chronicleAlpha);
             VignetteAlpha = Mathf.Clamp01(vignetteAlpha);
             HearthPulse = Mathf.Clamp01(hearthPulse);
         }
@@ -63,37 +90,69 @@ namespace AshenHalls
         public const float RevealStrikeAt = 0.28f;
         public const float RevealChimeAt = 0.72f;
         public const float MenuRevealAt = 0.62f;
-        public const float ChronicleRevealAt = 1.28f;
-        public const float IdleChronicleSeconds = 7.5f;
+        public const int MenuScrollTextureWidth = 1280;
+        public const int MenuScrollTextureHeight = 1280;
+        public const float MenuScrollPixelsPerUnit = 1500f;
+        public const float MenuScrollReferencePixelsPerUnit = 100f;
+        public const int MenuFocusTextureWidth = 2048;
+        public const int MenuFocusTextureHeight = 768;
+        public const float MenuFocusPixelsPerUnit = 1200f;
+        public static Vector4 MenuScrollSpriteBorder => new Vector4(360f, 360f, 360f, 360f);
+        public static Rect MenuFocusSpriteRect => new Rect(0f, 192f, 2048f, 384f);
+        public static Vector4 MenuFocusSpriteBorder => new Vector4(360f, 96f, 360f, 96f);
+        public static float MenuScrollSideInset => MenuScrollSpriteBorder.x
+            / (MenuScrollPixelsPerUnit / MenuScrollReferencePixelsPerUnit)
+            + 7f;
+        public static float MenuScrollTopInset => MenuScrollSpriteBorder.w
+            / (MenuScrollPixelsPerUnit / MenuScrollReferencePixelsPerUnit)
+            + 8f;
+        public static float MenuScrollBottomInset => MenuScrollSpriteBorder.y
+            / (MenuScrollPixelsPerUnit / MenuScrollReferencePixelsPerUnit);
+        // The approved Grand Hearth painting deliberately leaves these horizontal
+        // bands quiet enough for the title plaque and menu. Project them through
+        // the cover crop instead of treating screen percentages as art positions.
+        public static Rect LogoSafeZoneNormalized => new Rect(0f, 0f, 0.42f, 1f);
+        public static Rect MenuSafeZoneNormalized => new Rect(0.73f, 0f, 0.27f, 1f);
+        public static TitleMenuScrollStyle MenuScrollStyle => new TitleMenuScrollStyle(
+            new Color(0.784f, 0.706f, 0.467f, 0.98f),
+            new Color(0.561f, 0.412f, 0.227f, 1f),
+            new Color(0.227f, 0.129f, 0.078f, 1f),
+            new Color(0.149f, 0.086f, 0.055f, 1f),
+            new Color(0.776f, 0.584f, 0.298f, 1f),
+            new Color(0.357f, 0.184f, 0.118f, 1f),
+            new Color(0.957f, 0.898f, 0.761f, 1f),
+            new Color(0.012f, 0.008f, 0.004f, 0.68f));
 
-        private static readonly string[] chronicleLines =
+        public static bool SupportsMenuScrollArt(Texture2D texture)
         {
-            "Four names by the fire. One road beyond the rain.",
-            "Midgaard keeps its lamps for those who find the way home.",
-            "The Old Road remembers every oath - and every silence.",
-            "Beyond the last gate, ash falls where stars once burned."
-        };
+            return texture != null
+                && texture.width == MenuScrollTextureWidth
+                && texture.height == MenuScrollTextureHeight;
+        }
 
-        public static IReadOnlyList<string> ChronicleLines => chronicleLines;
+        public static bool SupportsMenuFocusArt(Texture2D texture)
+        {
+            return texture != null
+                && texture.width == MenuFocusTextureWidth
+                && texture.height == MenuFocusTextureHeight;
+        }
 
         public static TitleOpeningFrame Evaluate(float elapsedSeconds, bool reducedMotion)
         {
             if (reducedMotion)
             {
-                return new TitleOpeningFrame(1f, 1f, 0f, 1f, 0.58f, 0.46f);
+                return new TitleOpeningFrame(1f, 1f, 0f, 0.58f, 0.46f);
             }
 
             float elapsed = Mathf.Max(0f, elapsedSeconds);
             float backdrop = Smooth01(elapsed / 0.92f);
             float menu = Smooth01((elapsed - MenuRevealAt) / 0.58f);
-            float chronicle = Smooth01((elapsed - ChronicleRevealAt) / 0.72f);
             float settled = Smooth01((elapsed - 1.10f) / 1.20f);
             float hearth = 0.42f + Mathf.Sin(elapsed * 1.17f) * 0.08f + Mathf.Sin(elapsed * 0.43f + 0.8f) * 0.04f;
             return new TitleOpeningFrame(
                 backdrop,
                 menu,
                 Mathf.Lerp(14f, 0f, menu),
-                chronicle,
                 Mathf.Lerp(0.74f, 0.58f, settled),
                 hearth);
         }
@@ -114,23 +173,6 @@ namespace AshenHalls
             float previous = Mathf.Max(0f, previousElapsed);
             float current = Mathf.Max(previous, currentElapsed);
             return previous < cueAt && current >= cueAt;
-        }
-
-        public static int ChronicleIndex(float elapsedSeconds, bool reducedMotion)
-        {
-            if (chronicleLines.Length == 0 || reducedMotion) return 0;
-            float active = Mathf.Max(0f, elapsedSeconds - ChronicleRevealAt);
-            return Mathf.FloorToInt(active / IdleChronicleSeconds) % chronicleLines.Length;
-        }
-
-        public static float ChronicleCycleAlpha(float elapsedSeconds, bool reducedMotion)
-        {
-            if (reducedMotion) return 1f;
-            float active = Mathf.Max(0f, elapsedSeconds - ChronicleRevealAt);
-            float phase = Mathf.Repeat(active, IdleChronicleSeconds) / IdleChronicleSeconds;
-            float fadeIn = Smooth01(phase / 0.10f);
-            float fadeOut = Smooth01((1f - phase) / 0.12f);
-            return Mathf.Min(fadeIn, fadeOut);
         }
 
         public static int MenuIconIndex(TitleMenuChoiceKind kind)
@@ -174,6 +216,30 @@ namespace AshenHalls
                 first.width + padding * 2f,
                 first.height + padding * 2f);
             return expandedFirst.Overlaps(second);
+        }
+
+        public static float RelativeLuminance(Color color)
+        {
+            float red = LinearChannel(Mathf.Clamp01(color.r));
+            float green = LinearChannel(Mathf.Clamp01(color.g));
+            float blue = LinearChannel(Mathf.Clamp01(color.b));
+            return red * 0.2126f + green * 0.7152f + blue * 0.0722f;
+        }
+
+        public static float ContrastRatio(Color first, Color second)
+        {
+            float firstLuminance = RelativeLuminance(first);
+            float secondLuminance = RelativeLuminance(second);
+            float lighter = Mathf.Max(firstLuminance, secondLuminance);
+            float darker = Mathf.Min(firstLuminance, secondLuminance);
+            return (lighter + 0.05f) / (darker + 0.05f);
+        }
+
+        private static float LinearChannel(float channel)
+        {
+            return channel <= 0.04045f
+                ? channel / 12.92f
+                : Mathf.Pow((channel + 0.055f) / 1.055f, 2.4f);
         }
 
         private static float Smooth01(float value)

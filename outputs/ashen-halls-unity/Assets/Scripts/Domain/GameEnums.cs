@@ -95,6 +95,9 @@ namespace AshenHalls
         GloamWarden,
         GlasswardAmbush,
         GlassIndexKeepers,
-        AshenPactWarden
+        AshenPactWarden,
+        RedGateVanguard,
+        OssuaryRoadSeal,
+        CrownroadMarshal
     }
 }

@@ -29,6 +29,8 @@ namespace AshenHalls
 
         private readonly List<PowerCastAura> powerCastAuras = new List<PowerCastAura>();
 
+        private readonly List<PowerTravelVfx> powerTravelVfx = new List<PowerTravelVfx>();
+
         private readonly List<CombatUnitPresentationBeat> combatUnitPresentationBeats = new List<CombatUnitPresentationBeat>();
 
         private readonly List<Rect> combatTooltipBlockers = new List<Rect>(32);
@@ -58,6 +60,10 @@ namespace AshenHalls
         private float enemyActionResolutionDelay;
 
         private string enemyActionResolutionLabel = "";
+
+        private bool betaVfxShowcaseOpen;
+
+        private int betaVfxShowcaseIndex;
 
         private struct EnemyPowerBeat
         {
@@ -169,6 +175,7 @@ namespace AshenHalls
 
             // Foreground action art may cross unit cells, but never the tactical readout.
             DrawBeams(grid, cell);
+            DrawPowerTravelVfx(grid, cell);
             DrawParticles(grid, cell);
             DrawCombatPowerPulse(grid);
 
@@ -1006,7 +1013,9 @@ namespace AshenHalls
                 drawLine = target.Side != active.Side;
                 bool invalid = !forecast.Legal;
                 color = invalid ? Hex("8a5c35") : blood;
-                string label = forecast.BlockReason == AttackForecastBlockReason.LineOfSight ? "BLOCK" : invalid ? "NO" : $"{forecast.HitChance}%";
+                string label = invalid
+                    ? CombatTargetingRules.BlockedBadge(forecast.BlockReason)
+                    : $"{forecast.HitChance}%";
                 DrawTargetReticle(tile, color, label, !invalid);
             }
             else if (selectedAction == ActionMode.Attack)
@@ -1017,14 +1026,14 @@ namespace AshenHalls
                     drawLine = true;
                     bool valid = CanAttackCombatObstacle(active, cover);
                     color = valid ? ObstacleAccent(cover.Kind) : Hex("8a5c35");
-                    DrawTargetReticle(tile, color, valid ? "BREAK" : "NO", valid);
+                    DrawTargetReticle(tile, color, valid ? "BREAK" : CombatTargetingRules.BlockedBadge(CombatObstacleAttackBlockReason(active, cover)), valid);
                 }
                 else if (IsBreakableCover(cover))
                 {
                     drawLine = true;
                     bool valid = CanAttackCombatObstacle(active, cover);
                     color = valid ? gold : Hex("8a5c35");
-                    DrawTargetReticle(tile, color, valid ? "BREAK" : "NO", valid);
+                    DrawTargetReticle(tile, color, valid ? "BREAK" : CombatTargetingRules.BlockedBadge(CombatObstacleAttackBlockReason(active, cover)), valid);
                 }
             }
             else if (selectedAction == ActionMode.Cast)
@@ -1041,13 +1050,13 @@ namespace AshenHalls
                     string tag = profile.Kind == CombatPowerFootprintKind.Single
                         ? FormulaCanArcOverCover(formula, x, y) ? "ARC" : FormulaBaseRequiresLineOfSight(formula) ? "CAST" : FormulaPathLabel(formula).ToUpperInvariant()
                         : profile.BoardLabel;
-                    DrawTargetReticle(tile, color, actionable ? tag : "NO", actionable);
+                    DrawTargetReticle(tile, color, actionable ? tag : CombatTargetingRules.BlockedBadge(FormulaPreview(active, formula, target, x, y)), actionable);
                 }
             }
             else if (selectedAction == ActionMode.Ability)
             {
                 MartialAbility ability = AbilityDef(pendingAbilityId);
-                string reason;
+                string reason = "";
                 bool actionable = ability != null && CanTargetAbility(active, ability, target, x, y, out reason);
                 CombatPowerTargetingProfile profile = CombatPowerTargetingRules.ForAbility(ability);
                 drawLine = actionable && profile.Kind != CombatPowerFootprintKind.ChargeLanding && profile.Kind != CombatPowerFootprintKind.CrossArea;
@@ -1055,7 +1064,7 @@ namespace AshenHalls
                     ? CombatPowerPresentationRules.AbilityAccent(ability.ClassKey).ToColor()
                     : Hex("8a5c35");
                 if (ability != null) DrawAbilityFootprintPreview(grid, cell, ability, active, target, x, y, actionable);
-                DrawTargetReticle(tile, color, actionable ? ability.Short : "NO", actionable);
+                DrawTargetReticle(tile, color, actionable ? ability.Short : CombatTargetingRules.BlockedBadge(reason), actionable);
             }
 
             if (selectedAction == ActionMode.Move) DrawBorder(Pad(tile, cell * 0.05f), color, 2);
@@ -1127,15 +1136,18 @@ namespace AshenHalls
             float stroke = Mathf.Max(2f, tile.width * 0.035f);
             if (!valid)
             {
-                float inset = tile.width * 0.10f;
-                Vector2 topLeft = new Vector2(ring.x + inset, ring.y + inset);
-                Vector2 topRight = new Vector2(ring.xMax - inset, ring.y + inset);
-                Vector2 bottomLeft = new Vector2(ring.x + inset, ring.yMax - inset);
-                Vector2 bottomRight = new Vector2(ring.xMax - inset, ring.yMax - inset);
-                DrawPixelLine(topLeft, bottomRight, Hex("030405", 0.72f), stroke + 3f);
-                DrawPixelLine(topRight, bottomLeft, Hex("030405", 0.72f), stroke + 3f);
-                DrawPixelLine(topLeft, bottomRight, color.WithAlpha(0.90f), stroke);
-                DrawPixelLine(topRight, bottomLeft, color.WithAlpha(0.90f), stroke);
+                float dash = ring.width * 0.30f;
+                float shadowStroke = stroke + 3f;
+                Color shadow = Hex("030405", 0.72f);
+                Color blocked = color.WithAlpha(0.90f);
+                DrawRect(new Rect(ring.center.x - dash * 0.5f, ring.y - 1.5f, dash, shadowStroke), shadow);
+                DrawRect(new Rect(ring.center.x - dash * 0.5f, ring.yMax - shadowStroke + 1.5f, dash, shadowStroke), shadow);
+                DrawRect(new Rect(ring.x - 1.5f, ring.center.y - dash * 0.5f, shadowStroke, dash), shadow);
+                DrawRect(new Rect(ring.xMax - shadowStroke + 1.5f, ring.center.y - dash * 0.5f, shadowStroke, dash), shadow);
+                DrawRect(new Rect(ring.center.x - dash * 0.5f, ring.y, dash, stroke), blocked);
+                DrawRect(new Rect(ring.center.x - dash * 0.5f, ring.yMax - stroke, dash, stroke), blocked);
+                DrawRect(new Rect(ring.x, ring.center.y - dash * 0.5f, stroke, dash), blocked);
+                DrawRect(new Rect(ring.xMax - stroke, ring.center.y - dash * 0.5f, stroke, dash), blocked);
                 return;
             }
 
@@ -1482,6 +1494,11 @@ namespace AshenHalls
                 if (beam.Kind == "death" || beam.Kind == "hex")
                 {
                     DrawJaggedPixelLine(from, head, c, Mathf.Max(2f, cell * 0.035f), cell * 0.09f);
+                    float soulSize = cell * (0.38f + Mathf.Sin(t * Mathf.PI) * 0.10f);
+                    TryDrawMageWarlockSpellVfxAtlasIcon(
+                        new Rect(head.x - soulSize * 0.5f, head.y - soulSize * 0.5f, soulSize, soulSize),
+                        MageWarlockSpellVfxRules.SoulProjectileCell,
+                        Color.white.WithAlpha(c.a * 0.92f));
                     DrawRect(new Rect(head.x - cell * 0.07f, head.y - cell * 0.07f, cell * 0.14f, cell * 0.14f), Color.Lerp(c, retroBlack, 0.22f));
                     continue;
                 }
@@ -1507,8 +1524,20 @@ namespace AshenHalls
                 }
                 else if (beam.Kind == "ice")
                 {
-                    DrawRect(new Rect(head.x - cell * 0.11f, head.y - cell * 0.025f, cell * 0.22f, cell * 0.05f), frost.WithAlpha(c.a));
-                    DrawRect(new Rect(head.x - cell * 0.025f, head.y - cell * 0.11f, cell * 0.05f, cell * 0.22f), Hex("d6f4ff", c.a));
+                    Vector2 tangent = head - from;
+                    float angle = tangent.sqrMagnitude < 0.001f ? 0f : Mathf.Atan2(tangent.y, tangent.x) * Mathf.Rad2Deg;
+                    float lanceSize = cell * 0.58f;
+                    bool drewLance = DrawRotatedMageWarlockSpellVfx(
+                        new Rect(head.x - lanceSize * 0.5f, head.y - lanceSize * 0.5f, lanceSize, lanceSize),
+                        MageWarlockSpellVfxRules.FrostLanceCell,
+                        Color.white.WithAlpha(c.a),
+                        angle + 45f,
+                        head);
+                    if (!drewLance)
+                    {
+                        DrawRect(new Rect(head.x - cell * 0.11f, head.y - cell * 0.025f, cell * 0.22f, cell * 0.05f), frost.WithAlpha(c.a));
+                        DrawRect(new Rect(head.x - cell * 0.025f, head.y - cell * 0.11f, cell * 0.05f, cell * 0.22f), Hex("d6f4ff", c.a));
+                    }
                 }
                 else if (beam.Kind == "spell")
                 {
@@ -1523,7 +1552,7 @@ namespace AshenHalls
             float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(progress));
             Vector2 head = ProjectileArcPoint(from, to, t, cell, "fireball");
             float trailStart = Mathf.Max(0f, t - Mathf.Lerp(0.16f, 0.32f, t));
-            int trailSegments = 7;
+            int trailSegments = 11;
             Vector2 previous = ProjectileArcPoint(from, to, trailStart, cell, "fireball");
             for (int i = 1; i <= trailSegments; i++)
             {
@@ -1544,23 +1573,27 @@ namespace AshenHalls
                 DrawRect(new Rect(echo.x - size * 0.5f, echo.y - size * 0.5f, size, size), Color.Lerp(ember, gold, 0.35f).WithAlpha(0.54f - i * 0.11f));
             }
 
-            float flicker = 0.86f + Mathf.Sin((t * 19f + from.x * 0.013f + to.y * 0.017f) * Mathf.PI) * 0.08f;
-            int atlasCell = CombatPowerVisualRules.ProjectileAtlasCell("fireball", t);
-            float artSize = cell * (atlasCell == 1 ? 0.82f : 0.68f) * flicker;
-            Rect art = new Rect(head.x - artSize * 0.5f, head.y - artSize * 0.5f, artSize, artSize);
+            float flicker = 0.88f + Mathf.Sin((t * 19f + from.x * 0.013f + to.y * 0.017f) * Mathf.PI) * 0.08f;
+            MageWarlockSpellVfxArtPlan projectilePlan = MageWarlockSpellVfxRules.ProjectilePlan("fireball", 3, t, false);
+            float artSize = cell * Mathf.Clamp(projectilePlan.PrimaryScale * 0.80f, 0.72f, 1.02f) * flicker;
+            Rect art = new Rect(head.x - artSize * 0.58f, head.y - artSize * 0.43f, artSize * 1.16f, artSize * 0.86f);
             Vector2 tangent = ProjectileArcPoint(from, to, Mathf.Min(1f, t + 0.025f), cell, "fireball")
                 - ProjectileArcPoint(from, to, Mathf.Max(0f, t - 0.025f), cell, "fireball");
             float angle = tangent.sqrMagnitude < 0.001f ? 0f : Mathf.Atan2(tangent.y, tangent.x) * Mathf.Rad2Deg;
-            Matrix4x4 oldMatrix = GUI.matrix;
-            bool drewArt = false;
-            try
+            DrawRect(
+                Pad(art, artSize * 0.18f),
+                Color.Lerp(ember, retroBlack, 0.42f).WithAlpha(0.22f));
+            bool drewArt = projectilePlan.HasPrimary && DrawRotatedMageWarlockSpellVfx(
+                art,
+                projectilePlan.PrimaryCell,
+                Color.white.WithAlpha(Mathf.Max(0.82f, tint.a) * projectilePlan.PrimaryOpacity),
+                angle - 45f,
+                head);
+
+            if (!drewArt)
             {
-                if (atlasCell == 1) GUIUtility.RotateAroundPivot(angle - 135f, head);
+                int atlasCell = CombatPowerVisualRules.ProjectileAtlasCell("fireball", t);
                 drewArt = TryDrawSpellAnimationAtlasIcon(art, atlasCell, Color.white.WithAlpha(Mathf.Max(0.76f, tint.a)));
-            }
-            finally
-            {
-                GUI.matrix = oldMatrix;
             }
 
             if (!drewArt)
@@ -1571,6 +1604,198 @@ namespace AshenHalls
 
             float halo = cell * (0.34f + Mathf.Sin(t * Mathf.PI * 7f) * 0.025f);
             DrawBorder(new Rect(head.x - halo * 0.5f, head.y - halo * 0.5f, halo, halo), gold.WithAlpha(0.54f), Mathf.Max(1, Mathf.RoundToInt(cell * 0.018f)));
+        }
+
+        private bool DrawRotatedMageWarlockSpellVfx(Rect rect, int atlasCell, Color tint, float angle, Vector2 pivot)
+        {
+            Matrix4x4 oldMatrix = GUI.matrix;
+            try
+            {
+                GUIUtility.RotateAroundPivot(angle, pivot);
+                return TryDrawMageWarlockSpellVfxAtlasIcon(rect, atlasCell, tint);
+            }
+            finally
+            {
+                GUI.matrix = oldMatrix;
+            }
+        }
+
+        private void DrawPowerTravelVfx(Rect grid, float cell)
+        {
+            if (state == null || state.ReducedMotion || powerTravelVfx.Count == 0) return;
+            float now = Time.time;
+            foreach (PowerTravelVfx travel in powerTravelVfx)
+            {
+                if (travel == null || now < travel.Start || travel.Duration <= 0f) continue;
+                float progress = CombatPowerTravelVfxRules.TravelProgress(now - travel.Start, travel.Duration);
+                CombatPowerTravelVfxPlan plan = CombatPowerTravelVfxRules.PlanFor(
+                    travel.PowerKey,
+                    travel.Intensity,
+                    progress,
+                    false,
+                    travel.SequenceIndex);
+                if (!plan.HasTravel) continue;
+
+                Vector2 from = new Vector2(
+                    grid.x + (travel.SourceX + 0.5f) * cell,
+                    grid.y + (travel.SourceY + 0.5f) * cell);
+                Vector2 to = new Vector2(
+                    grid.x + (travel.TargetX + 0.5f) * cell,
+                    grid.y + (travel.TargetY + 0.5f) * cell);
+                Vector2 head = CombatPowerTravelPoint(plan, from, to, progress, cell, travel.SequenceIndex);
+                Color powerColor = travel.Color.ToColor();
+                float fade = 1f - Mathf.SmoothStep(0.82f, 1f, progress) * 0.48f;
+                Color trailColor = Color.Lerp(powerColor, cursorWhite, 0.24f).WithAlpha(plan.Opacity * fade);
+
+                int trailSamples = Mathf.Clamp(plan.TrailSampleCount, 2, 10);
+                Vector2 previous = head;
+                for (int sampleIndex = 1; sampleIndex < trailSamples; sampleIndex++)
+                {
+                    float sampleProgress = CombatPowerTravelVfxRules.TrailSampleProgress(plan, sampleIndex);
+                    Vector2 sample = CombatPowerTravelPoint(plan, from, to, sampleProgress, cell, travel.SequenceIndex);
+                    float sampleFade = 1f - sampleIndex / (float)trailSamples;
+                    Color sampleColor = trailColor.WithAlpha(trailColor.a * sampleFade * 0.54f);
+                    float width = Mathf.Max(1f, cell * Mathf.Lerp(0.018f, 0.052f, sampleFade));
+                    if (plan.Path == CombatPowerTravelPath.Chain)
+                    {
+                        DrawJaggedPixelLine(sample, previous, sampleColor, width, cell * 0.045f);
+                    }
+                    else
+                    {
+                        DrawPixelLine(sample, previous, sampleColor, width);
+                    }
+                    previous = sample;
+                }
+
+                Vector2 before = CombatPowerTravelPoint(
+                    plan,
+                    from,
+                    to,
+                    Mathf.Max(0f, progress - 0.018f),
+                    cell,
+                    travel.SequenceIndex);
+                Vector2 after = CombatPowerTravelPoint(
+                    plan,
+                    from,
+                    to,
+                    Mathf.Min(1f, progress + 0.018f),
+                    cell,
+                    travel.SequenceIndex);
+                Vector2 tangent = after - before;
+                if (tangent.sqrMagnitude < 0.001f) tangent = to - from;
+                if (tangent.sqrMagnitude < 0.001f) tangent = Vector2.right;
+                bool verticalTravel = plan.Path == CombatPowerTravelPath.Rain || plan.Path == CombatPowerTravelPath.Vertical;
+                float angle = verticalTravel
+                    ? plan.SpinDegrees
+                    : Mathf.Atan2(tangent.y, tangent.x) * Mathf.Rad2Deg + plan.SpinDegrees;
+                if (plan.AtlasCell == CombatPowerTravelVfxRules.RangerArrowsVolleyCell)
+                {
+                    // The authored arrows face left in their atlas cell. Straight shots flip into
+                    // the trajectory; rain turns the same cluster downward into the board.
+                    angle += verticalTravel ? -90f : 180f;
+                }
+                if (plan.AtlasCell == CombatPowerTravelVfxRules.ThrownKnifeCell)
+                {
+                    angle += progress * 540f;
+                }
+                float artSize = cell * plan.Scale;
+                Rect artRect = new Rect(
+                    head.x - artSize * 0.5f,
+                    head.y - artSize * 0.5f,
+                    artSize,
+                    artSize);
+                Color artTint = Color.Lerp(Color.white, powerColor, 0.10f).WithAlpha(plan.Opacity * fade);
+
+                if (plan.Path == CombatPowerTravelPath.Teleport || plan.Path == CombatPowerTravelPath.Dash)
+                {
+                    float echoProgress = Mathf.Max(0f, progress - 0.12f);
+                    Vector2 echo = CombatPowerTravelPoint(plan, from, to, echoProgress, cell, travel.SequenceIndex);
+                    float echoSize = artSize * 0.78f;
+                    DrawRotatedCombatPowerTravelVfx(
+                        new Rect(echo.x - echoSize * 0.5f, echo.y - echoSize * 0.5f, echoSize, echoSize),
+                        plan.AtlasCell,
+                        artTint.WithAlpha(artTint.a * 0.24f),
+                        angle,
+                        echo);
+                }
+
+                bool drewArt = DrawRotatedCombatPowerTravelVfx(
+                    artRect,
+                    plan.AtlasCell,
+                    artTint,
+                    angle,
+                    head);
+                if (!drewArt)
+                {
+                    float fallbackSize = cell * 0.20f * Mathf.Clamp(plan.Scale, 0.7f, 1.4f);
+                    DrawRect(
+                        new Rect(head.x - fallbackSize * 0.5f, head.y - fallbackSize * 0.5f, fallbackSize, fallbackSize),
+                        trailColor);
+                    DrawPixelCross(
+                        new Rect(head.x - fallbackSize * 0.36f, head.y - fallbackSize * 0.36f, fallbackSize * 0.72f, fallbackSize * 0.72f),
+                        cursorWhite.WithAlpha(trailColor.a * 0.86f));
+                }
+            }
+        }
+
+        private Vector2 CombatPowerTravelPoint(
+            CombatPowerTravelVfxPlan plan,
+            Vector2 from,
+            Vector2 to,
+            float progress,
+            float cell,
+            int sequenceIndex)
+        {
+            float t = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(progress));
+            Vector2 direction = to - from;
+            if (direction.sqrMagnitude < 0.001f) direction = Vector2.right;
+            direction.Normalize();
+            Vector2 side = new Vector2(-direction.y, direction.x);
+            float stableSide = plan.LateralJitter * cell;
+            switch (plan.Path)
+            {
+                case CombatPowerTravelPath.Arc:
+                    return Vector2.Lerp(from, to, t)
+                        - Vector2.up * cell * (0.58f + Mathf.Abs(plan.LateralJitter) * 0.18f) * Mathf.Sin(t * Mathf.PI)
+                        + side * stableSide * 0.08f * Mathf.Sin(t * Mathf.PI);
+                case CombatPowerTravelPath.Vertical:
+                case CombatPowerTravelPath.Rain:
+                {
+                    float lane = (sequenceIndex % 5 - 2) * cell * 0.18f + stableSide * 0.22f;
+                    Vector2 rainStart = to + new Vector2(lane, -cell * (3.15f + (sequenceIndex % 3) * 0.24f));
+                    return Vector2.Lerp(rainStart, to, t);
+                }
+                case CombatPowerTravelPath.Tether:
+                    return Vector2.Lerp(to, from, t)
+                        + side * stableSide * 0.06f * Mathf.Sin(t * Mathf.PI * 2f);
+                case CombatPowerTravelPath.Chain:
+                    return Vector2.Lerp(from, to, t)
+                        + side * cell * (0.06f + Mathf.Abs(plan.LateralJitter) * 0.06f)
+                        * Mathf.Sin((t * 5f + plan.LateralJitter) * Mathf.PI);
+                case CombatPowerTravelPath.Dash:
+                    return Vector2.Lerp(from, to, t)
+                        + side * stableSide * 0.025f * Mathf.Sin(t * Mathf.PI);
+                case CombatPowerTravelPath.Teleport:
+                    return Vector2.Lerp(from, to, t)
+                        + side * stableSide * 0.10f * Mathf.Sin(t * Mathf.PI);
+                default:
+                    return Vector2.Lerp(from, to, t)
+                        + side * stableSide * 0.035f * Mathf.Sin(t * Mathf.PI);
+            }
+        }
+
+        private bool DrawRotatedCombatPowerTravelVfx(Rect rect, int atlasCell, Color tint, float angle, Vector2 pivot)
+        {
+            Matrix4x4 oldMatrix = GUI.matrix;
+            try
+            {
+                GUIUtility.RotateAroundPivot(angle, pivot);
+                return TryDrawCombatPowerTravelVfxAtlasIcon(rect, atlasCell, tint);
+            }
+            finally
+            {
+                GUI.matrix = oldMatrix;
+            }
         }
 
         private Vector2 ProjectileArcPoint(Vector2 from, Vector2 to, float progress, float cell, string kind)
@@ -1734,6 +1959,19 @@ namespace AshenHalls
                     {
                         DrawBorder(Pad(tile, cell * Mathf.Lerp(0.38f, 0.07f, t)), c.WithAlpha(c.a * 0.84f), 2);
                         DrawImpactBrackets(Pad(tile, cell * Mathf.Lerp(0.28f, 0.14f, t)), Color.Lerp(c, cursorWhite, 0.28f).WithAlpha(c.a * 0.72f), Mathf.Max(2f, cell * 0.026f));
+                        continue;
+                    }
+                }
+                if (!string.IsNullOrEmpty(glyph.Kind) && glyph.Kind.StartsWith("spellvfx:", StringComparison.OrdinalIgnoreCase))
+                {
+                    int index = 0;
+                    int.TryParse(glyph.Kind.Substring("spellvfx:".Length), out index);
+                    float bloom = Mathf.Sin(Mathf.Min(1f, t * 1.45f) * Mathf.PI) * 0.08f;
+                    Rect stamp = Pad(tile, cell * (Mathf.Lerp(0.12f, -0.12f, Mathf.Min(1f, t * 1.55f)) - bloom));
+                    DrawRect(Pad(stamp, cell * 0.12f), Color.Lerp(c, retroBlack, 0.60f).WithAlpha(c.a * 0.20f));
+                    if (TryDrawMageWarlockSpellVfxAtlasIcon(stamp, index, Color.white.WithAlpha(c.a)))
+                    {
+                        DrawBorder(Pad(tile, cell * Mathf.Lerp(0.38f, 0.05f, t)), c.WithAlpha(c.a * 0.82f), 2);
                         continue;
                     }
                 }
@@ -1936,8 +2174,69 @@ namespace AshenHalls
                 return $"Click a highlighted enemy to use {ability.Name}. Esc/right-click cancels.";
             }
             if (selectedAction == ActionMode.Guard) return state.Combat.ActionAvailable ? "Press Guard to brace until next turn." : "Guard already spent.";
-            if (selectedAction == ActionMode.Elixir) return state.Elixirs > 0 ? "Use a shared elixir as this unit's action." : "No elixirs remain.";
+            if (selectedAction == ActionMode.Elixir)
+            {
+                if (state.Elixirs <= 0) return "No elixirs remain.";
+                return CombatController.HasElixirRecoveryBenefit(active, 18, 6)
+                    ? "Use a shared elixir as this unit's action."
+                    : "Health and mana are already full.";
+            }
             return "Press End Turn to pass.";
+        }
+
+        private void ApplyDefaultCombatSelection(CombatUnit active)
+        {
+            if (state?.Combat == null || active == null || active.Side != UnitSide.Party) return;
+
+            ActionMode powerMode = PreferredThirdAction(active);
+            bool hasActionablePower = HasActionableCombatPower(active, powerMode);
+            if (!hasActionablePower)
+            {
+                ActionMode alternatePower = powerMode == ActionMode.Ability
+                    ? ActionMode.Cast
+                    : ActionMode.Ability;
+                if (HasActionableCombatPower(active, alternatePower))
+                {
+                    powerMode = alternatePower;
+                    hasActionablePower = true;
+                }
+            }
+
+            selectedAction = CombatTurnFlowRules.DefaultAction(
+                active.Stunned > 0 || active.Sleeping > 0,
+                state.Combat.ActionAvailable,
+                CountLegalAttackTargets(active) > 0,
+                CountReachableMoveDestinations(active) > 0,
+                hasActionablePower,
+                powerMode,
+                ActionEnabled(ActionMode.Guard, active));
+        }
+
+        private bool HasActionableCombatPower(CombatUnit active, ActionMode mode)
+        {
+            if (active == null || state?.Combat?.ActionAvailable != true) return false;
+            if (mode == ActionMode.Cast)
+            {
+                if (string.IsNullOrEmpty(active.Spell)) return false;
+                foreach (FormulaDef formula in ActiveFormulaBook().Where(candidate =>
+                             candidate != null && SchoolMatches(candidate, active.Spell)))
+                {
+                    CombatActionCard card = FormulaActionCard(formula, active);
+                    if (card == null || !card.Usable) continue;
+                    if (!card.Targeted || CountLegalFormulaTargets(formula, active) > 0) return true;
+                }
+                return false;
+            }
+            if (mode == ActionMode.Ability)
+            {
+                foreach (MartialAbility ability in MartialAbilitiesFor(active))
+                {
+                    CombatActionCard card = AbilityActionCard(ability, active);
+                    if (card == null || !card.Usable) continue;
+                    if (!card.Targeted || CountLegalAbilityTargets(ability, active) > 0) return true;
+                }
+            }
+            return false;
         }
 
         private void NormalizeCombatSelection(CombatUnit active)
@@ -1956,21 +2255,7 @@ namespace AshenHalls
             }
             if (!ActionEnabled(selectedAction, active))
             {
-                if (state.Combat.ActionAvailable)
-                {
-                    if (ActionEnabled(ActionMode.Attack, active)) selectedAction = ActionMode.Attack;
-                    else if (ActionEnabled(PreferredThirdAction(active), active)) selectedAction = PreferredThirdAction(active);
-                    else if (ActionEnabled(ActionMode.Guard, active)) selectedAction = ActionMode.Guard;
-                    else selectedAction = ActionMode.Wait;
-                }
-                else if (ActionEnabled(ActionMode.Move, active))
-                {
-                    selectedAction = ActionMode.Move;
-                }
-                else
-                {
-                    selectedAction = ActionMode.Wait;
-                }
+                ApplyDefaultCombatSelection(active);
             }
         }
 
@@ -2247,7 +2532,7 @@ namespace AshenHalls
                         ability,
                         x,
                         y);
-                    if (highlight == CombatTargetHighlightState.None) continue;
+                    if (!CombatTargetingRules.ShouldDrawPassiveTargetState(highlight)) continue;
                     bool legal = highlight == CombatTargetHighlightState.Legal;
                     Color accent = Hex("8a5c35");
                     if (legal && selectedAction == ActionMode.Cast)
@@ -2296,7 +2581,7 @@ namespace AshenHalls
                     ability,
                     x,
                     y);
-                if (highlight == CombatTargetHighlightState.None) continue;
+                if (!CombatTargetingRules.ShouldDrawPassiveTargetState(highlight)) continue;
                 bool legal = highlight == CombatTargetHighlightState.Legal;
                 Color accent = Hex("8a5c35");
                 if (legal && selectedAction == ActionMode.Cast)
@@ -2743,13 +3028,17 @@ namespace AshenHalls
         private void DrawExploreMiniMap(Rect rect)
         {
             if (state?.Map == null) return;
+            if (Event.current != null && Event.current.type != EventType.Repaint) return;
             float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
             DrawRect(rect, Hex("080b0d", 0.78f));
             DrawBorder(rect, line.WithAlpha(0.62f), 1);
 
             float labelH = Mathf.Min(22f * scale, rect.height * 0.26f);
             int labelSize = ExplorationHudScreenLayout.FontSize(11, Screen.width, Screen.height);
-            GUI.Label(new Rect(rect.x + 9f * scale, rect.y + 3f * scale, rect.width * 0.58f, labelH), ExploreViewLabel(), CenterLeftStyle(labelSize, exploreWideView ? frost : teal));
+            GUI.Label(
+                new Rect(rect.x + 9f * scale, rect.y + 3f * scale, rect.width * 0.58f, labelH),
+                "World Map / " + ExploreChartProgressLabel(),
+                CenterLeftStyle(labelSize, frost));
             GUI.Label(new Rect(rect.xMax - 88f * scale, rect.y + 3f * scale, 78f * scale, labelH), "TAB", CenterRightStyle(labelSize, Hex("d0c5ae")));
 
             Rect map = new Rect(rect.x + 9f * scale, rect.y + labelH + 7f * scale, rect.width - 18f * scale, rect.height - labelH - 16f * scale);
@@ -2771,23 +3060,22 @@ namespace AshenHalls
             DrawRect(map, Hex("020303", 0.94f));
             float sx = map.width / state.Map.Width;
             float sy = map.height / state.Map.Height;
-            for (int y = 0; y < state.Map.Height; y++)
-            for (int x = 0; x < state.Map.Width; x++)
+            Texture2D terrain = ExploreMiniMapTerrainTexture();
+            if (terrain != null)
             {
-                int tile = TileAt(state.Map, x, y);
-                bool near = Distance(x, y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius;
-                Color c = tile == 0
-                    ? Hex("050708", near ? 0.74f : 0.36f)
-                    : Color.Lerp(ZoneDangerColor(ZoneFor(x, y, state.Map, state.Depth)), Hex("151b20"), near ? 0.36f : 0.68f).WithAlpha(near ? 0.86f : 0.38f);
-                DrawRect(new Rect(map.x + x * sx, map.y + y * sy, Mathf.Max(1f, sx + 0.35f), Mathf.Max(1f, sy + 0.35f)), c);
+                GUI.DrawTexture(map, terrain, ScaleMode.StretchToFill, true);
             }
+
+            DrawExploreMiniMapGuidanceRoute(map, sx, sy, scale);
+            ExploreGuidancePlan miniMapGuidance = CurrentExploreGuidancePlan();
 
             foreach (MapObject mapObject in state.Map.Objects)
             {
                 if (mapObject == null) continue;
                 if (TryRegionalSite(state.Map, mapObject, out _)) continue;
                 bool near = Distance(mapObject.X, mapObject.Y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius;
-                bool important = IsCurrentMidgaardObjective(mapObject) || mapObject.Type == ObjectType.Stairs || mapObject.Type == ObjectType.Encounter || IsRouteScaffoldObject(mapObject.Type);
+                bool important = IsCurrentMidgaardObjective(mapObject)
+                    || ReferenceEquals(miniMapGuidance.TargetObject, mapObject);
                 if (!near && !important) continue;
                 float dot = important ? 4f : 3f;
                 Rect dotRect = new Rect(map.x + mapObject.X * sx + sx * 0.5f - dot * 0.5f, map.y + mapObject.Y * sy + sy * 0.5f - dot * 0.5f, dot, dot);
@@ -2813,6 +3101,112 @@ namespace AshenHalls
             DrawBorder(Pad(party, -1f), cursorWhite.WithAlpha(0.86f), 1);
         }
 
+        private Texture2D ExploreMiniMapTerrainTexture()
+        {
+            MapData map = state?.Map;
+            if (map?.Tiles == null || map.Width <= 0 || map.Height <= 0) return null;
+
+            int fingerprint = ExploreMiniMapTerrainFingerprint(map);
+            long cacheKey = ExplorationMiniMapPresentationRules.TerrainCacheKey(
+                map.GetHashCode(),
+                map.Width,
+                map.Height,
+                state.Depth,
+                state.PlayerX,
+                state.PlayerY,
+                fingerprint);
+            if (explorationMiniMapTerrainCache.IsCurrent(cacheKey, map.Width, map.Height))
+            {
+                return explorationMiniMapTerrainCache.Texture;
+            }
+
+            int pixelCount = checked(map.Width * map.Height);
+            if (explorationMiniMapTerrainPixels == null || explorationMiniMapTerrainPixels.Length != pixelCount)
+            {
+                explorationMiniMapTerrainPixels = new Color32[pixelCount];
+            }
+
+            for (int y = 0; y < map.Height; y++)
+            for (int x = 0; x < map.Width; x++)
+            {
+                int tile = TileAt(map, x, y);
+                bool near = Distance(x, y, state.PlayerX, state.PlayerY) <= ExploreRevealRadius;
+                bool charted = IsExploreCellCharted(x, y);
+                Color32 color = charted
+                    ? (Color32)(tile == 0
+                        ? Hex("050708", near ? 0.74f : 0.58f)
+                        : Color.Lerp(
+                            ZoneDangerColor(ZoneFor(x, y, map, state.Depth)),
+                            Hex("151b20"),
+                            near ? 0.36f : 0.55f).WithAlpha(near ? 0.86f : 0.62f))
+                    : ExplorationMiniMapPresentationRules.UnchartedTerrainPixel();
+                int pixel = ExplorationMiniMapPresentationRules.PixelIndexForTopDownMapCell(
+                    x,
+                    y,
+                    map.Width,
+                    map.Height);
+                explorationMiniMapTerrainPixels[pixel] = color;
+            }
+
+            return explorationMiniMapTerrainCache.GetOrBuild(
+                cacheKey,
+                map.Width,
+                map.Height,
+                explorationMiniMapTerrainPixels);
+        }
+
+        private int ExploreMiniMapTerrainFingerprint(MapData map)
+        {
+            if (map == null) return 0;
+            int hash = 17;
+            hash = unchecked(hash * 31 + map.Width);
+            hash = unchecked(hash * 31 + map.Height);
+            hash = unchecked(hash * 31 + map.StartX);
+            hash = unchecked(hash * 31 + map.StartY);
+            hash = unchecked(hash * 31 + (map.Tiles?.Count ?? 0));
+            hash = unchecked(hash * 31 + map.TerrainPresentationRevision);
+            hash = unchecked(hash * 31 + CurrentExplorationChartedCellCount());
+            hash = unchecked(hash * 31 + explorationChartRevision);
+            return hash;
+        }
+
+        private void DrawExploreMiniMapGuidanceRoute(Rect map, float sx, float sy, float scale)
+        {
+            ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
+            IReadOnlyList<Point> path = plan.Path;
+            if (!plan.HasTarget || plan.Immediate || plan.RouteBlocked || path == null || path.Count <= 1) return;
+
+            float outerWidth = Mathf.Max(2f, 3f * scale);
+            float innerWidth = Mathf.Max(1f, 1.25f * scale);
+            Color outer = Hex("030405", 0.82f);
+            Color inner = gold.WithAlpha(plan.MarkedWaypoint ? 0.92f : 0.76f);
+            int shown = ExploreGuidanceChartedPrefixCount(path);
+            for (int i = 1; i < shown; i++)
+            {
+                Point from = path[i - 1];
+                Point to = path[i];
+                Vector2 fromCenter = new Vector2(
+                    map.x + (from.X + 0.5f) * sx,
+                    map.y + (from.Y + 0.5f) * sy);
+                Vector2 toCenter = new Vector2(
+                    map.x + (to.X + 0.5f) * sx,
+                    map.y + (to.Y + 0.5f) * sy);
+                DrawExploreWaypointTrailSegment(fromCenter, toCenter, outerWidth, outer);
+                DrawExploreWaypointTrailSegment(fromCenter, toCenter, innerWidth, inner);
+            }
+
+            Point destination = path[path.Count - 1];
+            if (!IsExploreCellCharted(destination.X, destination.Y)) return;
+            float ringSize = Mathf.Max(7f, 9f * scale);
+            Rect destinationRing = new Rect(
+                map.x + (destination.X + 0.5f) * sx - ringSize * 0.5f,
+                map.y + (destination.Y + 0.5f) * sy - ringSize * 0.5f,
+                ringSize,
+                ringSize);
+            DrawBorder(destinationRing, outer, 3);
+            DrawBorder(Pad(destinationRing, 1f), inner, 1);
+        }
+
         private void DrawExploreMiniMapAuthoredSites(
             Rect map,
             float sx,
@@ -2820,6 +3214,7 @@ namespace AshenHalls
             float scale,
             bool currentOnly)
         {
+            if (!UsesRegionalSiteLayout(state?.Map)) return;
             WorldMapSite[] sites = WorldMapGenerationRules.RegionalSites(
                 state.Map.Width,
                 state.Map.Height,
@@ -2844,21 +3239,30 @@ namespace AshenHalls
                 ExplorationMiniMapMarkerKind kind = current
                     ? ExplorationMiniMapMarkerKind.CurrentSite
                     : ExplorationMiniMapMarkerKind.AuthoredSite;
-                float markerSize = ExplorationMiniMapPresentationRules.MarkerPixels(kind) * scale;
+                bool waypoint = RouteChartRules.IsSiteWaypoint(
+                    state.ActiveRouteWaypointKey,
+                    state.Depth,
+                    site.Id);
+                float markerSize = (ExplorationMiniMapPresentationRules.MarkerPixels(kind)
+                    + (waypoint ? 3f : 0f)) * scale;
                 Rect marker = new Rect(
                     map.x + (site.X + 0.5f) * sx - markerSize * 0.5f,
                     map.y + (site.Y + 0.5f) * sy - markerSize * 0.5f,
                     markerSize,
                     markerSize);
-                Color accent = current
+                Color accent = current || waypoint
                     ? gold
                     : ZoneDangerColor(ZoneFor(site.X, site.Y, state.Map, state.Depth));
                 DrawRect(marker, Hex("020303", 0.96f));
                 DrawPixelCross(Pad(marker, markerSize * 0.22f), accent.WithAlpha(0.96f));
                 DrawBorder(
-                    Pad(marker, current ? -2f * scale : -1f * scale),
-                    (current ? cursorWhite : accent).WithAlpha(current ? 0.88f : 0.64f),
+                    Pad(marker, current || waypoint ? -2f * scale : -1f * scale),
+                    (current ? cursorWhite : accent).WithAlpha(current || waypoint ? 0.88f : 0.64f),
                     1);
+                if (waypoint)
+                {
+                    DrawBorder(Pad(marker, -4f * scale), gold.WithAlpha(0.76f), 1);
+                }
             }
         }
 
@@ -3011,6 +3415,201 @@ namespace AshenHalls
             return "Old Road open: travel east through Lanternless Cross toward Dusk Market.";
         }
 
+        private readonly struct AuthoredPowerVfxPlan
+        {
+            public readonly int PrimaryCell;
+            public readonly float PrimaryScale;
+            public readonly float PrimaryOpacity;
+            public readonly int SecondaryCell;
+            public readonly float SecondaryScale;
+            public readonly float SecondaryOpacity;
+
+            public bool HasPrimary => PrimaryCell >= 0;
+            public bool HasSecondary => SecondaryCell >= 0;
+
+            public AuthoredPowerVfxPlan(
+                int primaryCell,
+                float primaryScale,
+                float primaryOpacity,
+                int secondaryCell,
+                float secondaryScale,
+                float secondaryOpacity)
+            {
+                PrimaryCell = primaryCell;
+                PrimaryScale = primaryScale;
+                PrimaryOpacity = primaryOpacity;
+                SecondaryCell = secondaryCell;
+                SecondaryScale = secondaryScale;
+                SecondaryOpacity = secondaryOpacity;
+            }
+        }
+
+        private bool TryGetAuthoredPowerCastPlan(
+            string visualKind,
+            int intensity,
+            float progress,
+            bool reducedMotion,
+            out AuthoredPowerVfxPlan plan)
+        {
+            if (IsSupportHexSpellVfxAtlas() && SupportHexSpellVfxRules.IsSupported(visualKind))
+            {
+                SupportHexSpellVfxArtPlan source = SupportHexSpellVfxRules.CastPlan(visualKind, intensity, progress, reducedMotion);
+                plan = new AuthoredPowerVfxPlan(
+                    source.PrimaryCell,
+                    source.PrimaryScale,
+                    source.PrimaryOpacity,
+                    source.SecondaryCell,
+                    source.SecondaryScale,
+                    source.SecondaryOpacity);
+                return source.HasPrimary;
+            }
+            if (IsClassSkillVfxAtlas() && ClassSkillVfxRules.IsSupported(visualKind))
+            {
+                ClassSkillVfxArtPlan source = ClassSkillVfxRules.CastPlan(visualKind, intensity, progress, reducedMotion);
+                plan = new AuthoredPowerVfxPlan(
+                    source.PrimaryCell,
+                    source.PrimaryScale,
+                    source.PrimaryOpacity,
+                    source.SecondaryCell,
+                    source.SecondaryScale,
+                    source.SecondaryOpacity);
+                return source.HasPrimary;
+            }
+            int rangerCell = CombatFeedbackRules.RangerImpactIndex(visualKind);
+            if (IsRangerAbilityEffectAtlas() && rangerCell >= 0)
+            {
+                float scale = Mathf.Clamp(0.68f + intensity * 0.08f + progress * 0.14f, 0.70f, 1.08f);
+                plan = new AuthoredPowerVfxPlan(rangerCell, scale, 0.86f, -1, 0f, 0f);
+                return true;
+            }
+            if (IsMageWarlockSpellVfxAtlas() && MageWarlockSpellVfxRules.IsSupported(visualKind))
+            {
+                MageWarlockSpellVfxArtPlan source = MageWarlockSpellVfxRules.CastPlan(visualKind, intensity, progress, reducedMotion);
+                plan = new AuthoredPowerVfxPlan(
+                    source.PrimaryCell,
+                    source.PrimaryScale,
+                    source.PrimaryOpacity,
+                    source.SecondaryCell,
+                    source.SecondaryScale,
+                    source.SecondaryOpacity);
+                return source.HasPrimary;
+            }
+            plan = default;
+            return false;
+        }
+
+        private bool TryGetAuthoredPowerImpactPlan(
+            string visualKind,
+            int intensity,
+            float progress,
+            bool reducedMotion,
+            out AuthoredPowerVfxPlan plan)
+        {
+            if (IsSupportHexSpellVfxAtlas() && SupportHexSpellVfxRules.IsSupported(visualKind))
+            {
+                SupportHexSpellVfxArtPlan source = SupportHexSpellVfxRules.ImpactPlan(visualKind, intensity, progress, reducedMotion);
+                plan = new AuthoredPowerVfxPlan(
+                    source.PrimaryCell,
+                    source.PrimaryScale,
+                    source.PrimaryOpacity,
+                    source.SecondaryCell,
+                    source.SecondaryScale,
+                    source.SecondaryOpacity);
+                return source.HasPrimary;
+            }
+            if (IsClassSkillVfxAtlas() && ClassSkillVfxRules.IsSupported(visualKind))
+            {
+                ClassSkillVfxArtPlan source = ClassSkillVfxRules.ImpactPlan(visualKind, intensity, progress, reducedMotion);
+                plan = new AuthoredPowerVfxPlan(
+                    source.PrimaryCell,
+                    source.PrimaryScale,
+                    source.PrimaryOpacity,
+                    source.SecondaryCell,
+                    source.SecondaryScale,
+                    source.SecondaryOpacity);
+                return source.HasPrimary;
+            }
+            int rangerCell = CombatFeedbackRules.RangerImpactIndex(visualKind);
+            if (IsRangerAbilityEffectAtlas() && rangerCell >= 0)
+            {
+                float scale = Mathf.Clamp(0.96f + intensity * 0.12f + Mathf.Sin(progress * Mathf.PI) * 0.18f, 1.02f, 1.52f);
+                int accentCell = string.Equals(visualKind, "volley", StringComparison.OrdinalIgnoreCase) && intensity >= 2 ? 10 : -1;
+                plan = new AuthoredPowerVfxPlan(
+                    rangerCell,
+                    scale,
+                    0.96f,
+                    accentCell,
+                    accentCell >= 0 ? scale * 1.28f : 0f,
+                    accentCell >= 0 ? 0.38f : 0f);
+                return true;
+            }
+            if (IsMageWarlockSpellVfxAtlas() && MageWarlockSpellVfxRules.IsSupported(visualKind))
+            {
+                MageWarlockSpellVfxArtPlan source = MageWarlockSpellVfxRules.ImpactPlan(visualKind, intensity, progress, reducedMotion);
+                plan = new AuthoredPowerVfxPlan(
+                    source.PrimaryCell,
+                    source.PrimaryScale,
+                    source.PrimaryOpacity,
+                    source.SecondaryCell,
+                    source.SecondaryScale,
+                    source.SecondaryOpacity);
+                return source.HasPrimary;
+            }
+            plan = default;
+            return false;
+        }
+
+        private bool TryDrawAuthoredPowerVfxIcon(Rect rect, string visualKind, int atlasCell, Color tint)
+        {
+            if (IsSupportHexSpellVfxAtlas() && SupportHexSpellVfxRules.IsSupported(visualKind))
+            {
+                return TryDrawSupportHexSpellVfxAtlasIcon(rect, atlasCell, tint);
+            }
+            if (IsClassSkillVfxAtlas() && ClassSkillVfxRules.IsSupported(visualKind))
+            {
+                return TryDrawClassSkillVfxAtlasIcon(rect, atlasCell, tint);
+            }
+            if (IsRangerAbilityEffectAtlas() && CombatFeedbackRules.RangerImpactIndex(visualKind) >= 0)
+            {
+                return TryDrawRangerAbilityEffectAtlasIcon(rect, atlasCell, tint);
+            }
+            if (IsMageWarlockSpellVfxAtlas() && MageWarlockSpellVfxRules.IsSupported(visualKind))
+            {
+                return TryDrawMageWarlockSpellVfxAtlasIcon(rect, atlasCell, tint);
+            }
+            return false;
+        }
+
+        private bool DrawRotatedAuthoredPowerVfx(
+            Rect rect,
+            string visualKind,
+            int atlasCell,
+            Color tint,
+            float angle,
+            Vector2 pivot)
+        {
+            if (IsClassSkillVfxAtlas() && ClassSkillVfxRules.IsSupported(visualKind))
+            {
+                return TryDrawClassSkillVfxAtlasIcon(rect, atlasCell, tint);
+            }
+            if (IsMageWarlockSpellVfxAtlas() && MageWarlockSpellVfxRules.IsSupported(visualKind)
+                && !(IsSupportHexSpellVfxAtlas() && SupportHexSpellVfxRules.IsSupported(visualKind)))
+            {
+                return DrawRotatedMageWarlockSpellVfx(rect, atlasCell, tint, angle, pivot);
+            }
+
+            Matrix4x4 previous = GUI.matrix;
+            GUIUtility.RotateAroundPivot(angle, pivot);
+            try
+            {
+                return TryDrawAuthoredPowerVfxIcon(rect, visualKind, atlasCell, tint);
+            }
+            finally
+            {
+                GUI.matrix = previous;
+            }
+        }
+
         private void DrawPowerImpactEchoes(Rect grid, float cell)
         {
             if (powerImpactEchoes.Count == 0) return;
@@ -3040,6 +3639,19 @@ namespace AshenHalls
                             DrawImpactBrackets(incoming, Color.Lerp(accent, cursorWhite, 0.20f).WithAlpha(Mathf.Min(0.84f, pulse + 0.18f)), Mathf.Max(2f, cell * 0.035f));
                         }
                         DrawAnticipationMotif(motif, center, cell, t, accent, intensity);
+                        AuthoredPowerVfxPlan omenPlan;
+                        if (TryGetAuthoredPowerCastPlan(echo.Kind, intensity, t, false, out omenPlan))
+                        {
+                            float omenSize = cell * omenPlan.PrimaryScale * Mathf.Lerp(0.72f, 1f, eased);
+                            Rect omen = new Rect(center.x - omenSize * 0.5f, center.y - omenSize * 0.5f, omenSize, omenSize);
+                            DrawRotatedAuthoredPowerVfx(
+                                omen,
+                                echo.Kind,
+                                omenPlan.PrimaryCell,
+                                Color.white.WithAlpha(omenPlan.PrimaryOpacity * Mathf.Lerp(0.22f, 0.66f, eased)),
+                                -36f + eased * 72f,
+                                center);
+                        }
                         continue;
                     }
 
@@ -3049,7 +3661,12 @@ namespace AshenHalls
                     if (echo.StaticStamp)
                     {
                         CombatImpactArtPlan staticArtPlan = CombatPowerVisualRules.ReducedMotionImpactArtPlan(echo.Kind, intensity);
-                        float stampSize = cell * CombatPowerVisualRules.ReducedMotionStampScale(motif, intensity);
+                        AuthoredPowerVfxPlan authoredStaticPlan;
+                        bool hasAuthoredStatic = TryGetAuthoredPowerImpactPlan(echo.Kind, intensity, 0.50f, true, out authoredStaticPlan);
+                        float stampScale = hasAuthoredStatic && authoredStaticPlan.HasPrimary
+                            ? authoredStaticPlan.PrimaryScale
+                            : CombatPowerVisualRules.ReducedMotionStampScale(motif, intensity);
+                        float stampSize = cell * stampScale;
                         Rect stamp = new Rect(
                             center.x - stampSize * 0.5f,
                             center.y - stampSize * 0.5f,
@@ -3058,11 +3675,17 @@ namespace AshenHalls
                         DrawRect(
                             Pad(stamp, stampSize * 0.20f),
                             Color.Lerp(accent, retroBlack, 0.58f).WithAlpha(fade * 0.22f));
-                        bool stampDrawn = staticArtPlan.HasPrimary
-                            && TryDrawSpellAnimationAtlasIcon(
+                        bool stampDrawn = hasAuthoredStatic && authoredStaticPlan.HasPrimary
+                            ? TryDrawAuthoredPowerVfxIcon(
                                 stamp,
-                                staticArtPlan.PrimaryCell,
-                                Color.white.WithAlpha(fade * Mathf.Min(0.86f, staticArtPlan.PrimaryOpacity)));
+                                echo.Kind,
+                                authoredStaticPlan.PrimaryCell,
+                                Color.white.WithAlpha(fade * Mathf.Min(0.90f, authoredStaticPlan.PrimaryOpacity)))
+                            : staticArtPlan.HasPrimary
+                                && TryDrawSpellAnimationAtlasIcon(
+                                    stamp,
+                                    staticArtPlan.PrimaryCell,
+                                    Color.white.WithAlpha(fade * Mathf.Min(0.86f, staticArtPlan.PrimaryOpacity)));
                         if (!stampDrawn)
                         {
                             DrawImpactBrackets(stamp, accent.WithAlpha(fade * 0.88f), Mathf.Max(2f, cell * 0.04f));
@@ -3085,36 +3708,78 @@ namespace AshenHalls
                         }
                         continue;
                     }
-                    CombatImpactArtPlan artPlan = CombatPowerVisualRules.ImpactArtPlan(echo.Kind, intensity, tImpact);
                     bool secondaryArtDrawn = false;
-                    if (artPlan.HasSecondary)
-                    {
-                        float secondaryFade = 1f - Mathf.SmoothStep(0f, 0.52f, tImpact);
-                        float secondarySize = cell * artPlan.SecondaryScale;
-                        Rect secondaryArt = new Rect(
-                            center.x - secondarySize * 0.5f,
-                            center.y - secondarySize * 0.5f,
-                            secondarySize,
-                            secondarySize);
-                        secondaryArtDrawn = TryDrawEpicSpellEffectsAtlasIcon(
-                            secondaryArt,
-                            artPlan.SecondaryCell,
-                            Color.white.WithAlpha(secondaryFade * artPlan.SecondaryOpacity));
-                    }
-
                     bool primaryArtDrawn = false;
-                    if (artPlan.HasPrimary)
+                    AuthoredPowerVfxPlan authoredPlan;
+                    if (TryGetAuthoredPowerImpactPlan(echo.Kind, intensity, tImpact, false, out authoredPlan))
                     {
-                        float primarySize = cell * artPlan.PrimaryScale;
-                        Rect primaryArt = new Rect(
-                            center.x - primarySize * 0.5f,
-                            center.y - primarySize * 0.5f,
-                            primarySize,
-                            primarySize);
-                        primaryArtDrawn = TryDrawSpellAnimationAtlasIcon(
-                            primaryArt,
-                            artPlan.PrimaryCell,
-                            Color.white.WithAlpha(fade * artPlan.PrimaryOpacity));
+                        if (authoredPlan.HasSecondary)
+                        {
+                            float secondaryFade = 1f - Mathf.SmoothStep(0f, 0.58f, tImpact);
+                            float secondarySize = cell * authoredPlan.SecondaryScale;
+                            Rect secondaryArt = new Rect(
+                                center.x - secondarySize * 0.5f,
+                                center.y - secondarySize * 0.5f,
+                                secondarySize,
+                                secondarySize);
+                            secondaryArtDrawn = DrawRotatedAuthoredPowerVfx(
+                                secondaryArt,
+                                echo.Kind,
+                                authoredPlan.SecondaryCell,
+                                Color.white.WithAlpha(secondaryFade * authoredPlan.SecondaryOpacity),
+                                22f - tImpact * 54f,
+                                center);
+                        }
+                        if (authoredPlan.HasPrimary)
+                        {
+                            float primarySize = cell * authoredPlan.PrimaryScale;
+                            Rect primaryArt = new Rect(
+                                center.x - primarySize * 0.5f,
+                                center.y - primarySize * 0.5f,
+                                primarySize,
+                                primarySize);
+                            primaryArtDrawn = TryDrawAuthoredPowerVfxIcon(
+                                primaryArt,
+                                echo.Kind,
+                                authoredPlan.PrimaryCell,
+                                Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity));
+                        }
+                        if (MageWarlockSpellVfxRules.IsSupported(echo.Kind)
+                            && !SupportHexSpellVfxRules.IsSupported(echo.Kind))
+                        {
+                            DrawMageWarlockImpactAccent(echo.Kind, center, cell, tImpact, fade, accent, intensity);
+                        }
+                    }
+                    else
+                    {
+                        CombatImpactArtPlan artPlan = CombatPowerVisualRules.ImpactArtPlan(echo.Kind, intensity, tImpact);
+                        if (artPlan.HasSecondary)
+                        {
+                            float secondaryFade = 1f - Mathf.SmoothStep(0f, 0.52f, tImpact);
+                            float secondarySize = cell * artPlan.SecondaryScale;
+                            Rect secondaryArt = new Rect(
+                                center.x - secondarySize * 0.5f,
+                                center.y - secondarySize * 0.5f,
+                                secondarySize,
+                                secondarySize);
+                            secondaryArtDrawn = TryDrawEpicSpellEffectsAtlasIcon(
+                                secondaryArt,
+                                artPlan.SecondaryCell,
+                                Color.white.WithAlpha(secondaryFade * artPlan.SecondaryOpacity));
+                        }
+                        if (artPlan.HasPrimary)
+                        {
+                            float primarySize = cell * artPlan.PrimaryScale;
+                            Rect primaryArt = new Rect(
+                                center.x - primarySize * 0.5f,
+                                center.y - primarySize * 0.5f,
+                                primarySize,
+                                primarySize);
+                            primaryArtDrawn = TryDrawSpellAnimationAtlasIcon(
+                                primaryArt,
+                                artPlan.PrimaryCell,
+                                Color.white.WithAlpha(fade * artPlan.PrimaryOpacity));
+                        }
                     }
                     bool impactArtDrawn = secondaryArtDrawn || primaryArtDrawn;
                     if (!impactArtDrawn)
@@ -3158,6 +3823,94 @@ namespace AshenHalls
             finally
             {
                 GUI.EndClip();
+            }
+        }
+
+        private void DrawMageWarlockImpactAccent(
+            string visualKind,
+            Vector2 center,
+            float cell,
+            float progress,
+            float fade,
+            Color accent,
+            int intensity)
+        {
+            string key = MageWarlockSpellVfxRules.NormalizeKey(visualKind);
+            float t = Mathf.Clamp01(progress);
+            float thickness = Mathf.Max(2f, cell * 0.028f);
+            Color bright = Color.Lerp(accent, cursorWhite, 0.58f);
+
+            if (key == "fireball" || key == "meteor")
+            {
+                float flash = 1f - Mathf.SmoothStep(0f, key == "fireball" ? 0.14f : 0.20f, t);
+                float coreSize = cell * Mathf.Lerp(0.92f + intensity * 0.16f, 0.30f, Mathf.Min(1f, t * 5f));
+                DrawRect(
+                    new Rect(center.x - coreSize * 0.5f, center.y - coreSize * 0.5f, coreSize, coreSize),
+                    Color.Lerp(gold, cursorWhite, 0.72f).WithAlpha(flash * 0.34f));
+                float ringT = Mathf.Clamp01(t * 1.65f);
+                float ringSize = cell * Mathf.Lerp(0.44f, key == "meteor" ? 3.05f : 2.75f, ringT);
+                DrawBorder(
+                    new Rect(center.x - ringSize * 0.5f, center.y - ringSize * 0.5f, ringSize, ringSize),
+                    Color.Lerp(ember, gold, 0.42f).WithAlpha(fade * (1f - ringT * 0.42f) * 0.72f),
+                    intensity >= 3 ? 3 : 2);
+                int rays = 8;
+                float inner = cell * Mathf.Lerp(0.12f, 0.42f, ringT);
+                float outer = cell * Mathf.Lerp(0.48f, 1.34f + intensity * 0.08f, ringT);
+                for (int i = 0; i < rays; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / rays + (key == "meteor" ? 0.20f : 0f);
+                    Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                    DrawPixelLine(center + direction * inner, center + direction * outer, bright.WithAlpha(fade * 0.52f), thickness);
+                }
+                return;
+            }
+
+            if (key == "frost")
+            {
+                int shards = 8;
+                float length = cell * Mathf.Lerp(0.34f, 1.18f + intensity * 0.08f, Mathf.Min(1f, t * 1.8f));
+                for (int i = 0; i < shards; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / shards + t * 0.18f;
+                    Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                    DrawPixelLine(center + direction * cell * 0.16f, center + direction * length, bright.WithAlpha(fade * 0.66f), thickness);
+                }
+                return;
+            }
+
+            if (key == "tempest")
+            {
+                int bolts = 6 + intensity * 2;
+                float radius = cell * Mathf.Lerp(0.32f, 1.24f + intensity * 0.10f, Mathf.Min(1f, t * 1.7f));
+                for (int i = 0; i < bolts; i++)
+                {
+                    float angle = i * Mathf.PI * 2f / bolts + t * 0.55f;
+                    Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                    DrawJaggedPixelLine(center, center + direction * radius, Hex("d6f4ff", fade * 0.68f), thickness, cell * 0.045f);
+                }
+                return;
+            }
+
+            bool riftForm = key == "riftbolt" || key == "lessersummon" || key == "greatersummon" || key == "ascendance" || key == "pactbrand";
+            float inwardT = Mathf.SmoothStep(0f, 1f, t);
+            float outerRadius = cell * Mathf.Lerp(1.28f + intensity * 0.10f, 0.34f, inwardT);
+            int spokes = riftForm ? 9 : 7;
+            for (int i = 0; i < spokes; i++)
+            {
+                float angle = i * Mathf.PI * 2f / spokes - t * (riftForm ? 1.20f : 0.52f);
+                Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                Vector2 outer = center + direction * outerRadius;
+                Vector2 inner = center + direction * cell * 0.16f;
+                DrawJaggedPixelLine(outer, inner, Color.Lerp(accent, retroBlack, 0.44f).WithAlpha(fade * 0.68f), thickness, cell * 0.035f);
+            }
+            float voidSize = cell * Mathf.Lerp(0.18f, riftForm ? 0.66f : 0.48f, Mathf.Min(1f, t * 2.4f));
+            DrawRect(
+                new Rect(center.x - voidSize * 0.5f, center.y - voidSize * 0.5f, voidSize, voidSize),
+                retroBlack.WithAlpha(fade * 0.52f));
+            if (key == "lessersummon" || key == "greatersummon" || key == "ascendance")
+            {
+                float tear = cell * Mathf.Lerp(0.26f, key == "ascendance" ? 1.52f : 1.12f, Mathf.Min(1f, t * 1.7f));
+                DrawJaggedPixelLine(center - Vector2.up * tear * 0.52f, center + Vector2.up * tear * 0.52f, bright.WithAlpha(fade * 0.76f), thickness + 1f, cell * 0.055f);
             }
         }
 
@@ -3428,8 +4181,19 @@ namespace AshenHalls
                         : 1f - Mathf.Clamp01((now - aura.ImpactAt) / Mathf.Max(0.08f, aura.Start + aura.Duration - aura.ImpactAt));
                     float wave = 0.70f + Mathf.Sin((now - aura.Start) * (12f + aura.Intensity * 2f)) * 0.22f;
 
+                    AuthoredPowerVfxPlan authoredPlan;
+                    bool usesAuthoredArt = TryGetAuthoredPowerCastPlan(
+                        aura.Kind,
+                        aura.Intensity,
+                        charge,
+                        false,
+                        out authoredPlan);
                     int anticipationCell = CombatPowerVisualRules.AnticipationAtlasCell(motif);
-                    bool usesAnticipationArt = ritualPresentation && anticipationCell >= 0 && (aura.Intensity >= 2 || aura.Focused);
+                    bool usesLegacyAnticipationArt = !usesAuthoredArt
+                        && ritualPresentation
+                        && anticipationCell >= 0
+                        && (aura.Intensity >= 2 || aura.Focused);
+                    bool usesAnticipationArt = usesAuthoredArt || usesLegacyAnticipationArt;
                     if (!usesAnticipationArt)
                     {
                         float outerSize = cell * Mathf.Lerp(0.92f, 0.52f, Mathf.SmoothStep(0f, 1f, charge));
@@ -3440,7 +4204,35 @@ namespace AshenHalls
                         DrawImpactBrackets(inner, focusColor.WithAlpha(fade * 0.82f), Mathf.Max(2f, cell * 0.03f));
                     }
 
-                    if (usesAnticipationArt)
+                    if (usesAuthoredArt && authoredPlan.HasPrimary)
+                    {
+                        float artSize = cell * authoredPlan.PrimaryScale;
+                        Rect outerArt = new Rect(
+                            source.x - artSize * 0.60f,
+                            source.y - artSize * 0.60f,
+                            artSize * 1.20f,
+                            artSize * 1.20f);
+                        Rect coreArt = new Rect(
+                            source.x - artSize * 0.5f,
+                            source.y - artSize * 0.5f,
+                            artSize,
+                            artSize);
+                        DrawRotatedAuthoredPowerVfx(
+                            outerArt,
+                            aura.Kind,
+                            authoredPlan.PrimaryCell,
+                            Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity * 0.24f),
+                            -28f - charge * 82f,
+                            source);
+                        DrawRotatedAuthoredPowerVfx(
+                            coreArt,
+                            aura.Kind,
+                            authoredPlan.PrimaryCell,
+                            Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity),
+                            18f + charge * 46f,
+                            source);
+                    }
+                    else if (usesLegacyAnticipationArt)
                     {
                         float artScale = CombatPowerVisualRules.AnticipationArtScale(motif, aura.Intensity, charge);
                         float artSize = cell * artScale;
@@ -3449,9 +4241,17 @@ namespace AshenHalls
                         TryDrawEpicSpellEffectsAtlasIcon(art, anticipationCell, Color.white.WithAlpha(artAlpha));
                     }
 
-                    if (!usesAnticipationArt)
+                    if (!usesAnticipationArt || usesAuthoredArt)
                     {
-                        DrawSemanticCastMotif(motif, source, target, cell, charge, fade, focusColor, aura.Intensity);
+                        DrawSemanticCastMotif(
+                            motif,
+                            source,
+                            target,
+                            cell,
+                            charge,
+                            fade * (usesAuthoredArt ? 0.58f : 1f),
+                            focusColor,
+                            aura.Intensity);
                     }
                 }
             }
@@ -3653,8 +4453,21 @@ namespace AshenHalls
         {
             type = ObjectType.Market;
             if (state == null || state.Depth != 1) return false;
+            if (ContentSetCatalog.RedGateComplete(state.StoryFlags)
+                && !HasStoryFlag(StoryFlags.RedGateDebriefed))
+            {
+                type = ObjectType.OldRoadScout;
+                return true;
+            }
             if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
                 && !HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
+            {
+                type = ObjectType.OldRoadScout;
+                return true;
+            }
+            if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                && HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
+                && !HasStoryFlag(StoryFlags.RedGateAssaultAccepted))
             {
                 type = ObjectType.OldRoadScout;
                 return true;
@@ -3667,6 +4480,13 @@ namespace AshenHalls
             }
             if (HasGlassAndAshStoryProgress()
                 && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
+                && state.Map?.FindObjectById(OldRoadDescentId) != null)
+            {
+                type = ObjectType.Stairs;
+                return true;
+            }
+            if (HasRedGateStoryProgress()
+                && !ContentSetCatalog.RedGateComplete(state.StoryFlags)
                 && state.Map?.FindObjectById(OldRoadDescentId) != null)
             {
                 type = ObjectType.Stairs;
@@ -4576,6 +5396,7 @@ namespace AshenHalls
             if (mode == ActionMode.Cast && string.IsNullOrEmpty(active.Spell)) return "No spell craft";
             if (mode == ActionMode.Ability && !HasMartialAbilities(active)) return "No martial skills";
             if (mode == ActionMode.Elixir && state.Elixirs <= 0) return "No elixirs";
+            if (mode == ActionMode.Elixir && !CombatController.HasElixirRecoveryBenefit(active, 18, 6)) return "Health and mana full";
             if (mode != ActionMode.Move && mode != ActionMode.Wait && !state.Combat.ActionAvailable) return "Action already used";
             return "Unavailable";
         }
@@ -4655,7 +5476,13 @@ namespace AshenHalls
 
         private int CountReachableMoveDestinations(CombatUnit active)
         {
-            if (active == null || state?.Combat == null || state.Combat.MovePoints <= 0) return 0;
+            if (active == null
+                || state?.Combat == null
+                || state.Combat.MovePoints <= 0
+                || active.Webbed > 0)
+            {
+                return 0;
+            }
             int[,] reachable = ReachableMoveCosts(active, state.Combat.MovePoints);
             int count = 0;
             for (int y = 0; y < CombatH; y++)
@@ -4903,8 +5730,8 @@ namespace AshenHalls
             float x = rect.x + 154;
             float gap = 6f;
             string[] labels = martial
-                ? new[] { "Refill", "Promote", "Wound", "Cluster", "Reset", "Spawn", "Audio" }
-                : new[] { "Refill", "Mage", "Pact", "Craft", "Stage", "Hazards", "Spawn", "Reset", "Audio" };
+                ? new[] { "Refill", "Promote", "Wound", "Cluster", "Reset", "Spawn", "Showcase" }
+                : new[] { "Refill", "Mage", "Warlock", "Craft", "Stage", "Hazards", "Spawn", "Reset", "Showcase" };
             float buttonW = martial ? 68f : 62f;
             if (!martial) gap = 4f;
             for (int i = 0; i < labels.Length; i++)
@@ -4914,7 +5741,7 @@ namespace AshenHalls
                 {
                     if (labels[i] == "Refill") RefillBetaLab();
                     else if (labels[i] == "Mage") PromoteMageTester(active);
-                    else if (labels[i] == "Pact") PromoteWarlockTester(active);
+                    else if (labels[i] == "Warlock") PromoteWarlockTester(active);
                     else if (labels[i] == "Craft") EmpowerSpellLabCasters();
                     else if (labels[i] == "Stage") StageSpellLabTargets(active);
                     else if (labels[i] == "Promote") PromoteMartialLabUnits();
@@ -4927,7 +5754,11 @@ namespace AshenHalls
                     }
                     else if (labels[i] == "Hazards") AddBetaLabHazards();
                     else if (labels[i] == "Spawn") SpawnBetaLabWave();
-                    else TestSfx();
+                    else if (labels[i] == "Showcase")
+                    {
+                        betaVfxShowcaseOpen = !betaVfxShowcaseOpen;
+                        if (betaVfxShowcaseOpen) ReplayBetaVfxShowcase();
+                    }
                 }
             }
 
@@ -4941,6 +5772,231 @@ namespace AshenHalls
                     GUI.Label(new Rect(statusX, rect.y + 5, statusW, 18), FitText(who, statusW, CenterLeftStyle(11, muted)), CenterLeftStyle(11, muted));
                 }
             }
+        }
+
+        private void DrawBetaVfxShowcaseToolbar(Rect rect)
+        {
+            CombatVfxShowcaseEntry entry = CombatVfxShowcaseRules.At(betaVfxShowcaseIndex);
+            DrawRect(rect, Hex("080b0d", 0.96f));
+            DrawBorder(rect, Hex("8a61d4", 0.88f), 1);
+
+            string kind = entry.Kind == CombatVfxShowcasePowerKind.Formula ? "SPELL" : "SKILL";
+            string label = $"{kind}  {entry.Id} · {entry.DisplayName} · {betaVfxShowcaseIndex + 1}/{CombatVfxShowcaseRules.Count}";
+            float controlsWidth = 4f * 98f + 3f * 5f;
+            float labelWidth = Mathf.Max(60f, rect.width - controlsWidth - 18f);
+            GUI.Label(
+                new Rect(rect.x + 8f, rect.y + 5f, labelWidth, 18f),
+                FitText(label, labelWidth, CenterLeftStyle(11, gold)),
+                CenterLeftStyle(11, gold));
+
+            float x = rect.xMax - controlsWidth - 7f;
+            string motion = state != null && state.ReducedMotion ? "Motion: Reduced" : "Motion: Full";
+            string[] actions = { "Replay", "Next", "Cue", motion };
+            for (int i = 0; i < actions.Length; i++)
+            {
+                Rect button = new Rect(x + i * 103f, rect.y + 3f, 98f, 24f);
+                if (!GUI.Button(button, actions[i], smallButtonStyle)) continue;
+                if (i == 0)
+                {
+                    ReplayBetaVfxShowcase();
+                }
+                else if (i == 1)
+                {
+                    betaVfxShowcaseIndex = CombatVfxShowcaseRules.NextIndex(betaVfxShowcaseIndex);
+                    ReplayBetaVfxShowcase();
+                }
+                else if (i == 2)
+                {
+                    CueBetaVfxShowcaseAudio();
+                }
+                else
+                {
+                    ToggleReducedMotionSetting();
+                    ReplayBetaVfxShowcase();
+                }
+            }
+        }
+
+        private void ReplayBetaVfxShowcase()
+        {
+            if (!betaLabMode || state?.Combat == null) return;
+            CombatVfxShowcaseEntry entry = CombatVfxShowcaseRules.At(betaVfxShowcaseIndex);
+            CombatUnit source = CurrentUnit();
+            if (source == null || source.Side != UnitSide.Party || source.Hp <= 0)
+            {
+                source = state.Combat.Units.FirstOrDefault(unit => unit.Side == UnitSide.Party && unit.Hp > 0);
+            }
+            if (source == null) return;
+
+            CombatUnit target = state.Combat.Units
+                .Where(unit => unit.Side == UnitSide.Enemy && unit.Hp > 0)
+                .OrderBy(unit => Distance(source.X, source.Y, unit.X, unit.Y))
+                .FirstOrDefault();
+            Point impact = BetaVfxShowcaseImpactCell(entry, source, target);
+            CombatImpactProfile profile;
+            Color color;
+            if (entry.Kind == CombatVfxShowcasePowerKind.Formula)
+            {
+                FormulaDef formula = formulaBook.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Code, entry.Id, StringComparison.OrdinalIgnoreCase));
+                if (formula == null)
+                {
+                    ShowBanner("Showcase formula unavailable");
+                    return;
+                }
+                profile = CombatImpactRules.ForFormula(formula);
+                color = FormulaColor(formula);
+            }
+            else
+            {
+                MartialAbility ability = AbilityDef(entry.Id);
+                if (ability == null)
+                {
+                    ShowBanner("Showcase skill unavailable");
+                    return;
+                }
+                profile = CombatImpactRules.ForAbility(ability);
+                CombatPowerIdentity identity = CombatPowerPresentationRules.ForAbility(ability, source.Name, target?.Name);
+                color = string.IsNullOrWhiteSpace(identity.AccentHex) ? gold : identity.AccentHex.ToColor();
+            }
+
+            ClearBetaVfxShowcasePresentation();
+            BeginCombatPowerReactionCapture();
+            StageCombatPowerCast(
+                profile,
+                source.X,
+                source.Y,
+                impact.X,
+                impact.Y,
+                color,
+                false,
+                entry.Id);
+            StageBetaVfxShowcaseTravel(entry, source, impact, color, profile);
+            ApplyCombatImpactFeedback(
+                profile,
+                impact.X,
+                impact.Y,
+                color,
+                entry.Id,
+                entry.Id);
+            ShowBanner($"Showcase · {entry.DisplayName}");
+            MarkUiDirty();
+        }
+
+        private void StageBetaVfxShowcaseTravel(
+            CombatVfxShowcaseEntry entry,
+            CombatUnit source,
+            Point impact,
+            Color color,
+            CombatImpactProfile profile)
+        {
+            if (source == null) return;
+            float arrivalDelay = ResolvedCombatPowerSfxImpactDelay(profile, entry.Id);
+            bool sequencedRain = string.Equals(entry.Id, "MTR", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(entry.Id, "AST", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(entry.Id, "volley", StringComparison.OrdinalIgnoreCase);
+            if (!sequencedRain)
+            {
+                StageCombatPowerTravel(
+                    entry.Id,
+                    source.X,
+                    source.Y,
+                    impact.X,
+                    impact.Y,
+                    color,
+                    CombatImpactRules.VisualIntensity(profile),
+                    arrivalDelay);
+                return;
+            }
+
+            int[][] offsets =
+            {
+                new[] { 0, 0 },
+                new[] { -1, 0 },
+                new[] { 1, 0 },
+                new[] { 0, -1 },
+                new[] { 0, 1 }
+            };
+            for (int i = 0; i < offsets.Length; i++)
+            {
+                int targetX = Mathf.Clamp(impact.X + offsets[i][0], 0, CombatW - 1);
+                int targetY = Mathf.Clamp(impact.Y + offsets[i][1], 0, CombatH - 1);
+                StageCombatPowerTravel(
+                    entry.Id,
+                    source.X,
+                    source.Y,
+                    targetX,
+                    targetY,
+                    color,
+                    CombatImpactRules.VisualIntensity(profile),
+                    arrivalDelay,
+                    i,
+                    i * 0.045f);
+            }
+        }
+
+        private Point BetaVfxShowcaseImpactCell(
+            CombatVfxShowcaseEntry entry,
+            CombatUnit source,
+            CombatUnit target)
+        {
+            switch (entry.Scenario)
+            {
+                case CombatVfxShowcaseScenario.Transformation:
+                case CombatVfxShowcaseScenario.SupportWard:
+                case CombatVfxShowcaseScenario.MeleeArea:
+                    return new Point(source.X, source.Y);
+                default:
+                    if (target != null) return new Point(target.X, target.Y);
+                    return new Point(
+                        Mathf.Clamp(source.X + 3, 0, CombatW - 1),
+                        Mathf.Clamp(source.Y, 0, CombatH - 1));
+            }
+        }
+
+        private void CueBetaVfxShowcaseAudio()
+        {
+            if (!betaLabMode || state?.Combat == null) return;
+            CombatVfxShowcaseEntry entry = CombatVfxShowcaseRules.At(betaVfxShowcaseIndex);
+            CombatImpactProfile profile;
+            if (entry.Kind == CombatVfxShowcasePowerKind.Formula)
+            {
+                FormulaDef formula = formulaBook.FirstOrDefault(candidate =>
+                    string.Equals(candidate.Code, entry.Id, StringComparison.OrdinalIgnoreCase));
+                if (formula == null) return;
+                profile = CombatImpactRules.ForFormula(formula);
+            }
+            else
+            {
+                MartialAbility ability = AbilityDef(entry.Id);
+                if (ability == null) return;
+                profile = CombatImpactRules.ForAbility(ability);
+            }
+
+            ClearCombatAudioForReducedMotion();
+            CombatUnit target = state.Combat.Units.FirstOrDefault(unit => unit.Side == UnitSide.Enemy && unit.Hp > 0);
+            int impactX = target?.X ?? Mathf.Clamp((CurrentUnit()?.X ?? 2) + 3, 0, CombatW - 1);
+            int impactY = target?.Y ?? (CurrentUnit()?.Y ?? 3);
+            PlayCombatImpactSfx(profile, impactX, impactY, 0, entry.Id);
+            ShowBanner($"Audio cue · {entry.DisplayName}");
+        }
+
+        private void ClearBetaVfxShowcasePresentation()
+        {
+            powerCastAuras.Clear();
+            powerImpactEchoes.Clear();
+            powerTravelVfx.Clear();
+            particles.Clear();
+            beams.Clear();
+            flashes.Clear();
+            castGlyphs.Clear();
+            combatShakeStarted = 0f;
+            combatShakeUntil = 0f;
+            combatShakeMagnitude = 0f;
+            combatImpactFrameStarted = 0f;
+            combatImpactFrameUntil = 0f;
+            combatImpactFrameIntensity = 0;
+            ClearCombatAudioForReducedMotion();
         }
 
         private void RefillBetaLab()
@@ -4970,25 +6026,15 @@ namespace AshenHalls
         private void PromoteMageTester(CombatUnit active)
         {
             if (state == null) return;
-            CombatUnit unit = active != null && active.Side == UnitSide.Party
-                ? active
-                : state.Combat?.Units?.FirstOrDefault(u => u.Side == UnitSide.Party && u.Hp > 0);
-            if (unit != null)
+            CombatUnit unit = ConfigureBetaSpellTester(false);
+            if (unit == null)
             {
-                ApplyMageTesterKit(unit);
-                if (unit.PartyIndex >= 0 && unit.PartyIndex < state.Party.Count) ApplyMageTesterKit(state.Party[unit.PartyIndex]);
-                state.Combat.ActiveId = unit.Id;
-                state.Combat.ActionAvailable = true;
-                selectedAction = ActionMode.Cast;
-                showSpellbook = true;
-                showAbilityPanel = false;
-                ClearFormulaEntry();
-                AddFloat(unit.X, unit.Y, "mage lab", ember);
+                PushLog("Beta Lab needs a living party member for the Mage test kit.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return;
             }
-            else if (state.Party != null && state.Party.Count > 0)
-            {
-                ApplyMageTesterKit(state.Party[0]);
-            }
+            ActivateBetaSpellTester(unit, true);
+            AddFloat(unit.X, unit.Y, "mage lab", ember);
             PushLog("Beta Lab Mage kit ready: focused casting, Veil Step, Meteor Shower, and Arcane Tempest are available for testing.", Tone.Good);
             ShowBanner("Mage test ready");
             PlaySfx("spell", 0.92f);
@@ -5001,7 +6047,7 @@ namespace AshenHalls
             member.ClassKey = "mage";
             member.Role = "ember";
             member.Spell = "ember";
-            member.Level = Mathf.Max(member.Level, 6);
+            member.Level = ProgressionRules.MaximumLevel;
             member.Skills.Ember = Mathf.Max(member.Skills.Ember, 34);
             member.Skills.Hex = Mathf.Max(member.Skills.Hex, 6);
             member.MaxMana = Mathf.Max(member.MaxMana, 58);
@@ -5019,7 +6065,7 @@ namespace AshenHalls
             unit.ClassKey = "mage";
             unit.Role = "ember";
             unit.Spell = "ember";
-            unit.Level = Mathf.Max(unit.Level, 6);
+            unit.Level = ProgressionRules.MaximumLevel;
             unit.Skills.Ember = Mathf.Max(unit.Skills.Ember, 34);
             unit.Skills.Hex = Mathf.Max(unit.Skills.Hex, 6);
             unit.MaxMana = Mathf.Max(unit.MaxMana, 58);
@@ -5034,23 +6080,17 @@ namespace AshenHalls
         private void PromoteWarlockTester(CombatUnit active)
         {
             if (state == null) return;
-            CombatUnit unit = active != null && active.Side == UnitSide.Party
-                ? active
-                : state.Combat?.Units?.FirstOrDefault(u => u.Side == UnitSide.Party && u.Hp > 0);
-            if (unit != null)
+            CombatUnit unit = ConfigureBetaSpellTester(true);
+            if (unit == null)
             {
-                ApplyWarlockTesterKit(unit);
-                if (unit.PartyIndex >= 0 && unit.PartyIndex < state.Party.Count) ApplyWarlockTesterKit(state.Party[unit.PartyIndex]);
-                state.Combat.ActiveId = unit.Id;
-                state.Combat.ActionAvailable = true;
-                selectedAction = ActionMode.Cast;
-                showSpellbook = true;
-                showAbilityPanel = false;
-                ClearFormulaEntry();
-                AddFloat(unit.X, unit.Y, "pact lab", violet);
+                PushLog("Beta Lab needs a living party member for the Warlock test kit.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return;
             }
-            PushLog("Beta Lab Pact kit ready: all three summons, Pact Brand, and Abyssal Ascendance are available for testing.", Tone.Good);
-            ShowBanner("Pact test ready");
+            ActivateBetaSpellTester(unit, true);
+            AddFloat(unit.X, unit.Y, "warlock lab", violet);
+            PushLog("Beta Lab Warlock kit ready: all three summons, Pact Brand, Drain Life, and Abyssal Ascendance are available for testing.", Tone.Good);
+            ShowBanner("Warlock test ready");
             PlaySfx("curse", 0.92f);
         }
 
@@ -5061,7 +6101,7 @@ namespace AshenHalls
             member.ClassKey = "warlock";
             member.Role = "hex";
             member.Spell = "hex|pact";
-            member.Level = Mathf.Max(member.Level, 6);
+            member.Level = ProgressionRules.MaximumLevel;
             member.Skills.Hex = Mathf.Max(member.Skills.Hex, 36);
             member.MaxMana = Mathf.Max(member.MaxMana, 64);
             member.Mana = member.MaxMana;
@@ -5078,7 +6118,7 @@ namespace AshenHalls
             unit.ClassKey = "warlock";
             unit.Role = "hex";
             unit.Spell = "hex|pact";
-            unit.Level = Mathf.Max(unit.Level, 6);
+            unit.Level = ProgressionRules.MaximumLevel;
             unit.Skills.Hex = Mathf.Max(unit.Skills.Hex, 36);
             unit.MaxMana = Mathf.Max(unit.MaxMana, 64);
             unit.Mana = unit.MaxMana;
@@ -5089,11 +6129,111 @@ namespace AshenHalls
             unit.Color = RoleColor("hex").ToHex();
         }
 
+        private CombatUnit ConfigureBetaSpellTester(bool warlock)
+        {
+            CombatUnit unit = FindBetaLabCombatTester(warlock, null);
+            if (unit == null) return null;
+            if (warlock) ApplyWarlockTesterKit(unit);
+            else ApplyMageTesterKit(unit);
+            if (state?.Party != null && unit.PartyIndex >= 0 && unit.PartyIndex < state.Party.Count)
+            {
+                if (warlock) ApplyWarlockTesterKit(state.Party[unit.PartyIndex]);
+                else ApplyMageTesterKit(state.Party[unit.PartyIndex]);
+            }
+            return unit;
+        }
+
+        private void ActivateBetaSpellTester(CombatUnit unit, bool openSpellbook)
+        {
+            if (unit == null || unit.Side != UnitSide.Party || unit.Summoned || unit.Hp <= 0 || state?.Combat == null) return;
+            CancelCombatResolutionBeat(false);
+            aiActAt = -1f;
+            ClearFormulaEntry();
+            ClearAbilityEntry();
+            showSpellbook = false;
+            showAbilityPanel = false;
+            unit.Stunned = 0;
+            unit.Sleeping = 0;
+            unit.Webbed = 0;
+            if (state.Combat.InitiativeQueue == null || !state.Combat.InitiativeQueue.Contains(unit.Id))
+            {
+                RebuildInitiativeQueue(state.Combat);
+            }
+            CombatLifecycle().BeginTurn(unit, false);
+            selectedAction = ActionMode.Cast;
+            showSpellbook = openSpellbook;
+            MarkUiDirty();
+        }
+
+        private CombatUnit FindBetaLabCombatTester(bool warlock, CombatUnit excluded)
+        {
+            if (state?.Combat?.Units == null) return null;
+            return state.Combat.Units
+                .Where(unit => unit != null
+                    && unit.Side == UnitSide.Party
+                    && !unit.Summoned
+                    && unit.Hp > 0
+                    && !ReferenceEquals(unit, excluded))
+                .OrderBy(unit => BetaLabTesterPreference(unit.ClassKey, unit.Role, warlock))
+                .ThenBy(unit => unit.PartyIndex < 0 ? int.MaxValue : unit.PartyIndex)
+                .ThenBy(unit => unit.Id)
+                .FirstOrDefault();
+        }
+
+        private PartyMember FindBetaLabPartyTester(bool warlock, PartyMember excluded)
+        {
+            if (state?.Party == null) return null;
+            return state.Party
+                .Select((member, index) => new { Member = member, Index = index })
+                .Where(entry => entry.Member != null
+                    && entry.Member.Hp > 0
+                    && !ReferenceEquals(entry.Member, excluded))
+                .OrderBy(entry => BetaLabTesterPreference(entry.Member.ClassKey, entry.Member.Role, warlock))
+                .ThenBy(entry => entry.Index)
+                .Select(entry => entry.Member)
+                .FirstOrDefault();
+        }
+
+        private static int BetaLabTesterPreference(string classKey, string roleKey, bool warlock)
+        {
+            string cls = (classKey ?? "").ToLowerInvariant();
+            string role = (roleKey ?? "").ToLowerInvariant();
+            if (warlock)
+            {
+                if (cls == "warlock") return 0;
+                if (role == "hex") return 1;
+                if (cls == "ranger" || cls == "rogue" || role == "bow" || role == "knife") return 2;
+                if (cls == "mage" || cls == "wizard" || role == "ember") return 30;
+            }
+            else
+            {
+                if (cls == "mage") return 0;
+                if (role == "ember") return 1;
+                if (cls == "wizard") return 2;
+                if (cls == "ranger" || cls == "rogue" || role == "bow" || role == "knife") return 3;
+                if (cls == "warlock" || role == "hex") return 30;
+            }
+            if (cls == "priest" || cls == "paladin" || role == "mender" || role == "ward") return 20;
+            return 4;
+        }
+
+        private static bool IsWarlockBetaLabTester(CombatUnit unit)
+        {
+            if (unit == null || unit.Side != UnitSide.Party || unit.Summoned || unit.Hp <= 0) return false;
+            return string.Equals(unit.ClassKey, "warlock", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(unit.Role, "hex", StringComparison.OrdinalIgnoreCase);
+        }
+
         private void PrepareBetaSpellLabParty()
         {
-            if (state?.Party == null) return;
+            if (state?.Party == null || state.Party.Count == 0) return;
+            PartyMember mage = FindBetaLabPartyTester(false, null);
+            PartyMember warlock = FindBetaLabPartyTester(true, mage);
+            if (mage != null) ApplyMageTesterKit(mage);
+            if (warlock != null) ApplyWarlockTesterKit(warlock);
             foreach (PartyMember member in state.Party)
             {
+                if (ReferenceEquals(member, mage) || ReferenceEquals(member, warlock)) continue;
                 ApplySpellLabCraft(member);
             }
         }
@@ -5103,7 +6243,16 @@ namespace AshenHalls
             if (member == null) return;
             if (member.Skills == null) member.Skills = StartingSkills(member.ClassKey).Normalize();
             string cls = (member.ClassKey ?? "").ToLowerInvariant();
-            if (cls == "warlock" || cls == "wizard" || cls == "mage" || member.Role == "hex" || member.Role == "ember")
+            string role = (member.Role ?? "").ToLowerInvariant();
+            if (cls == "mage")
+            {
+                ApplyMageTesterKit(member);
+            }
+            else if (cls == "warlock")
+            {
+                ApplyWarlockTesterKit(member);
+            }
+            else if (cls == "wizard" || role == "hex" || role == "ember")
             {
                 member.Spell = MergeSpellSchools(member.Spell, "ember", "hex", "pact");
                 member.Level = Mathf.Max(member.Level, 3);
@@ -5112,7 +6261,7 @@ namespace AshenHalls
                 member.MaxMana = Mathf.Max(member.MaxMana, 42);
                 member.Mana = member.MaxMana;
             }
-            else if (cls == "priest" || cls == "paladin" || member.Role == "mender" || member.Role == "ward")
+            else if (cls == "priest" || cls == "paladin" || role == "mender" || role == "ward")
             {
                 member.Spell = MergeSpellSchools(member.Spell, "mend");
                 member.Level = Mathf.Max(member.Level, 2);
@@ -5128,7 +6277,18 @@ namespace AshenHalls
             if (unit == null || unit.Side != UnitSide.Party || unit.Summoned) return;
             if (unit.Skills == null) unit.Skills = new SkillSet().Normalize();
             string cls = (unit.ClassKey ?? "").ToLowerInvariant();
-            if (cls == "warlock" || cls == "wizard" || cls == "mage" || unit.Role == "hex" || unit.Role == "ember")
+            string role = (unit.Role ?? "").ToLowerInvariant();
+            if (cls == "mage")
+            {
+                ApplyMageTesterKit(unit);
+                AddFloat(unit.X, unit.Y, "mage craft", ember);
+            }
+            else if (cls == "warlock")
+            {
+                ApplyWarlockTesterKit(unit);
+                AddFloat(unit.X, unit.Y, "warlock craft", violet);
+            }
+            else if (cls == "wizard" || role == "hex" || role == "ember")
             {
                 unit.Spell = MergeSpellSchools(unit.Spell, "ember", "hex", "pact");
                 unit.Level = Mathf.Max(unit.Level, 3);
@@ -5138,7 +6298,7 @@ namespace AshenHalls
                 unit.Mana = unit.MaxMana;
                 AddFloat(unit.X, unit.Y, "all craft", violet);
             }
-            else if (cls == "priest" || cls == "paladin" || unit.Role == "mender" || unit.Role == "ward")
+            else if (cls == "priest" || cls == "paladin" || role == "mender" || role == "ward")
             {
                 unit.Spell = MergeSpellSchools(unit.Spell, "mend");
                 unit.Level = Mathf.Max(unit.Level, 2);
@@ -5192,47 +6352,183 @@ namespace AshenHalls
         private void StageSpellLabTargets(CombatUnit active)
         {
             if (state?.Combat?.Units == null) return;
+            bool warlock = IsWarlockBetaLabTester(active);
+            CancelCombatResolutionBeat(false);
+            aiActAt = -1f;
+            CombatUnit caster = ConfigureBetaSpellTester(warlock);
+            if (caster == null)
+            {
+                PushLog("Spell Lab needs a living party caster before it can stage targets.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return;
+            }
+
+            List<CombatUnit> enemies = PrepareBetaLabFormation(caster);
+            int staged = warlock
+                ? StageWarlockSpellLab(caster, enemies)
+                : StageMageSpellLab(caster, enemies);
+            RebuildInitiativeQueue(state.Combat);
+            ActivateBetaSpellTester(caster, true);
+            SyncPartyFromCombat();
+            if (warlock)
+            {
+                PushLog($"Warlock Lab stages {staged} adjacent targets for Pact Brand, opens three summon bays, and wounds {caster.Name} for Drain Life and Abyssal Ascendance testing.", Tone.Warn);
+                ShowBanner("Warlock arena staged");
+            }
+            else
+            {
+                PushLog($"Mage Lab stages {staged} targets inside Fireball range, conductive gas/ice/web fields, and a clear Thunder Step lane.", Tone.Warn);
+                ShowBanner("Mage arena staged");
+            }
+            PlaySfx("spell", 0.88f);
+        }
+
+        private List<CombatUnit> PrepareBetaLabFormation(CombatUnit caster)
+        {
+            if (state?.Combat?.Units == null || caster == null) return new List<CombatUnit>();
+            state.Combat.Units.RemoveAll(unit => unit != null && unit.Side == UnitSide.Party && unit.Summoned);
+            state.Combat.Obstacles.RemoveAll(obstacle => obstacle != null
+                && obstacle.X >= 2 && obstacle.X <= 8
+                && obstacle.Y >= 1 && obstacle.Y <= 6);
+
+            List<CombatUnit> enemies = state.Combat.Units
+                .Where(unit => unit != null && unit.Side == UnitSide.Enemy && unit.Hp > 0)
+                .ToList();
+            string[] kinds = { "koboldshield", "cinderling", "ratmage", "drowpriest" };
+            while (enemies.Count < 4)
+            {
+                CombatUnit enemy = MakeEnemy(kinds[enemies.Count % kinds.Length], state.Combat.Units.Count);
+                state.Combat.Units.Add(enemy);
+                enemies.Add(enemy);
+            }
+
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                int parkingX = Mathf.Max(9, CombatW - 1 - i / CombatH);
+                int parkingY = i % CombatH;
+                MoveBetaLabUnit(enemies[i], parkingX, parkingY);
+            }
+
+            MoveBetaLabUnit(caster, 3, 3);
+            List<CombatUnit> allies = state.Combat.Units
+                .Where(unit => unit != null
+                    && unit.Side == UnitSide.Party
+                    && !unit.Summoned
+                    && unit.Hp > 0
+                    && unit.Id != caster.Id)
+                .OrderBy(unit => unit.PartyIndex < 0 ? int.MaxValue : unit.PartyIndex)
+                .ThenBy(unit => unit.Id)
+                .ToList();
+            for (int i = 0; i < allies.Count; i++)
+            {
+                int parkingX = Mathf.Max(0, 1 - i / 4);
+                int parkingY = (i % 4) * 2;
+                MoveBetaLabUnit(allies[i], parkingX, parkingY);
+            }
+            return enemies;
+        }
+
+        private int StageMageSpellLab(CombatUnit caster, List<CombatUnit> enemies)
+        {
             Point[] enemySpots =
             {
-                new Point(8, 3),
-                new Point(8, 2),
-                new Point(8, 4),
-                new Point(9, 3)
+                new Point(7, 3),
+                new Point(7, 2),
+                new Point(7, 4),
+                new Point(8, 3)
             };
-            string[] kinds = { "koboldshield", "cinderling", "ratmage", "drowpriest" };
-            List<CombatUnit> enemies = state.Combat.Units.Where(u => u.Side == UnitSide.Enemy && u.Hp > 0).ToList();
-            int staged = 0;
-            for (int i = 0; i < enemySpots.Length; i++)
+            int staged = StageBetaLabEnemies(enemies, enemySpots);
+            ClearBetaLabCells(new[] { new Point(4, 3), new Point(5, 3), new Point(6, 3) });
+            AddBetaLabFieldUnderTarget(7, 3, "gas", 9);
+            AddBetaLabFieldUnderTarget(7, 2, "web", 9);
+            AddBetaLabFieldUnderTarget(7, 4, "ice", 9);
+            AddFloat(caster.X, caster.Y, "fireball line", ember);
+            return staged;
+        }
+
+        private int StageWarlockSpellLab(CombatUnit caster, List<CombatUnit> enemies)
+        {
+            Point[] enemySpots =
             {
-                Point spot = enemySpots[i];
-                if (UnitAt(spot.X, spot.Y)?.Side == UnitSide.Party) continue;
-                CombatUnit enemy = i < enemies.Count ? enemies[i] : null;
-                if (enemy == null)
-                {
-                    enemy = MakeEnemy(kinds[i % kinds.Length], state.Combat.Units.Count + i);
-                    state.Combat.Units.Add(enemy);
-                }
-                state.Combat.Obstacles.RemoveAll(o => o.X == spot.X && o.Y == spot.Y);
-                Vector2 from = new Vector2(enemy.X, enemy.Y);
-                enemy.X = spot.X;
-                enemy.Y = spot.Y;
-                enemy.Hp = Mathf.Max(1, enemy.MaxHp);
-                AddTween(enemy.Id, from, new Vector2(spot.X, spot.Y), TweenKind.Move);
+                new Point(6, 3),
+                new Point(6, 2),
+                new Point(6, 4),
+                new Point(7, 3)
+            };
+            int staged = StageBetaLabEnemies(enemies, enemySpots);
+            Point[] summonBays = { new Point(4, 2), new Point(4, 3), new Point(4, 4) };
+            ClearBetaLabCells(summonBays);
+            foreach (Point bay in summonBays) AddFlash(bay.X, bay.Y, violet.WithAlpha(0.72f));
+            caster.DemonFormTurns = 0;
+            caster.Regenerating = 0;
+            caster.Shielded = 0;
+            caster.Hp = caster.MaxHp <= 1
+                ? Mathf.Max(1, caster.MaxHp)
+                : Mathf.Clamp(Mathf.FloorToInt(caster.MaxHp * 0.45f), 1, caster.MaxHp - 1);
+            caster.Mana = caster.MaxMana;
+            AddFloat(caster.X, caster.Y, "drain test", violet);
+            return staged;
+        }
+
+        private int StageBetaLabEnemies(List<CombatUnit> enemies, Point[] spots)
+        {
+            if (enemies == null || spots == null) return 0;
+            int staged = 0;
+            for (int i = 0; i < spots.Length && i < enemies.Count; i++)
+            {
+                CombatUnit enemy = enemies[i];
+                Point spot = spots[i];
+                RefreshBetaLabEnemy(enemy);
+                MoveBetaLabUnit(enemy, spot.X, spot.Y);
                 AddFloat(enemy.X, enemy.Y, "mark", blood);
                 AddFlash(enemy.X, enemy.Y, blood);
                 staged++;
             }
+            return staged;
+        }
 
-            AddOrRefreshObstacle(7, 2, "tree", SummonedTreeDuration);
-            AddOrRefreshObstacle(7, 3, "gas", 5);
-            AddOrRefreshObstacle(9, 2, "web", 5);
-            AddOrRefreshObstacle(9, 4, "ice", 5);
-            AddOrRefreshObstacle(6, 4, "stone", 0);
-            AddOrRefreshObstacle(5, 5, "sanctuary", 8);
-            AddOrRefreshObstacle(8, 5, "curse", 8);
-            PushLog($"Spell Lab stages {staged} marked targets and reactive hazards for Fireball, Meteor, Shock, Cold, Burn Cover, Tree Cover, Hallowed Circle, and Doom Circle testing.", Tone.Warn);
-            ShowBanner("Spell targets staged");
-            PlaySfx("spell", 0.88f);
+        private void RefreshBetaLabEnemy(CombatUnit enemy)
+        {
+            if (enemy == null) return;
+            enemy.Hp = Mathf.Max(1, enemy.MaxHp);
+            enemy.Poisoned = 0;
+            enemy.Bleeding = 0;
+            enemy.Stunned = 0;
+            enemy.Sleeping = 0;
+            enemy.Webbed = 0;
+            enemy.Hexed = 0;
+            enemy.Shielded = 0;
+        }
+
+        private void MoveBetaLabUnit(CombatUnit unit, int x, int y)
+        {
+            if (unit == null || state?.Combat == null || x < 0 || x >= CombatW || y < 0 || y >= CombatH) return;
+            state.Combat.Obstacles.RemoveAll(obstacle => obstacle != null && obstacle.X == x && obstacle.Y == y);
+            if (unit.X == x && unit.Y == y) return;
+            Vector2 from = new Vector2(unit.X, unit.Y);
+            unit.X = x;
+            unit.Y = y;
+            AddTween(unit.Id, from, new Vector2(x, y), TweenKind.Move);
+        }
+
+        private void ClearBetaLabCells(IEnumerable<Point> cells)
+        {
+            if (state?.Combat?.Obstacles == null || cells == null) return;
+            foreach (Point cell in cells)
+            {
+                if (cell == null) continue;
+                state.Combat.Obstacles.RemoveAll(obstacle => obstacle != null && obstacle.X == cell.X && obstacle.Y == cell.Y);
+            }
+        }
+
+        private void AddBetaLabFieldUnderTarget(int x, int y, string kind, int duration)
+        {
+            if (state?.Combat?.Obstacles == null || x < 0 || x >= CombatW || y < 0 || y >= CombatH) return;
+            state.Combat.Obstacles.RemoveAll(obstacle => obstacle != null && obstacle.X == x && obstacle.Y == y);
+            int rounds = FieldDurationRounds(kind, duration);
+            Point field = new Point(x, y, kind, rounds);
+            state.Combat.Obstacles.Add(field);
+            AddFlash(x, y, TerrainHighlightColor(field, 0.8f));
         }
 
         private void PromoteMartialLabUnits()
@@ -5773,7 +7069,8 @@ namespace AshenHalls
                 active,
                 active != null && !string.IsNullOrEmpty(active.Spell),
                 HasMartialAbilities(active),
-                state?.Elixirs ?? 0);
+                state?.Elixirs ?? 0,
+                CombatController.HasElixirRecoveryBenefit(active, 18, 6));
         }
 
         private bool CanInspectCombatPowerBook(ActionMode mode, CombatUnit active)
@@ -5883,6 +7180,9 @@ namespace AshenHalls
         {
             if (state?.Map == null) return;
             if (state.DiscoveredZones == null) state.DiscoveredZones = new List<string>();
+            RevealKnownMidgaardChart();
+            RevealKnownRouteLandmarkChart();
+            RevealExplorationChartAroundPlayer();
             WorldZone zone = ZoneAt(state.PlayerX, state.PlayerY);
             if (zone == null || string.IsNullOrEmpty(zone.Id)) return;
             string key = ZoneKey(state.Depth, zone.Id);
@@ -5921,6 +7221,7 @@ namespace AshenHalls
         private const string GloamDeepCryptSiteId = "gloam-deep-crypt";
         private const string GlassLoreLibrarySiteId = "glass-lore-library";
         private const string RedGateSealSiteId = "red-gate-seal";
+        private const string SaltCisternGateSiteId = "salt-cistern-gate";
 
         private bool IsKoboldStoryCave(MapObject cave)
         {
@@ -6010,6 +7311,7 @@ namespace AshenHalls
         private string BoneRoadObjectiveForProgress()
         {
             if (ShouldPreserveAdvancedFullPrototypeStory()) return AdvancedFullPrototypeObjective();
+            if (HasRedGateStoryProgress()) return RedGateObjectiveForProgress();
             if (HasGlassAndAshStoryProgress()) return GlassAndAshObjectiveForProgress();
             int depth = state?.Depth ?? 1;
             if (HasStoryFlag(StoryFlags.RedGateWarningRecovered))
@@ -6099,12 +7401,13 @@ namespace AshenHalls
         private string GlassAndAshObjectiveForProgress()
         {
             if (ShouldPreserveAdvancedFullPrototypeStory()) return AdvancedFullPrototypeObjective();
+            if (HasRedGateStoryProgress()) return RedGateObjectiveForProgress();
             int depth = state?.Depth ?? 1;
             if (ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags))
             {
                 if (HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
                 {
-                    return "Chapter IV complete: Glass and Ash. Yara has copied the Emberglass key. No safe company road beyond the far seal is charted yet.";
+                    return "Chapter IV complete: Glass and Ash. Yara has copied the Emberglass key and can now review a bounded assault through the inner Red Gate.";
                 }
                 return "Chapter IV complete: Glass and Ash. The Emberglass gate key is recovered. Recall to Midgaard and let Yara read what the far seal was guarding.";
             }
@@ -6138,6 +7441,7 @@ namespace AshenHalls
 
         private void RepairGlassAndAshStoryObjective(bool force = false)
         {
+            if (HasRedGateStoryProgress()) return;
             if (state == null || state.Depth > 4 || !HasGlassAndAshStoryProgress()) return;
             string current = state.ActiveStory ?? "";
             bool glassObjective = string.IsNullOrWhiteSpace(current)
@@ -6149,6 +7453,81 @@ namespace AshenHalls
                 || current.IndexOf("next expedition", StringComparison.OrdinalIgnoreCase) >= 0;
             if (!force && !glassObjective) return;
             state.ActiveStory = GlassAndAshObjectiveForProgress();
+        }
+
+        private bool HasRedGateStoryProgress()
+        {
+            if (ShouldPreserveAdvancedFullPrototypeStory()) return false;
+            return HasStoryFlag(StoryFlags.RedGateAssaultAccepted)
+                || HasStoryFlag(StoryFlags.RedGateEntered)
+                || HasStoryFlag(StoryFlags.RedGateVanguardDefeated)
+                || HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered)
+                || HasStoryFlag(StoryFlags.CrownroadMarshalDefeated)
+                || HasStoryFlag(StoryFlags.MeteorCrownThresholdSurveyed)
+                || HasStoryFlag(StoryFlags.RedGateDebriefed);
+        }
+
+        private string RedGateObjectiveForProgress()
+        {
+            if (ShouldPreserveAdvancedFullPrototypeStory()) return AdvancedFullPrototypeObjective();
+            int depth = state?.Depth ?? 1;
+            if (ContentSetCatalog.RedGateComplete(state?.StoryFlags))
+            {
+                if (HasStoryFlag(StoryFlags.RedGateDebriefed))
+                {
+                    return "Chapter V complete: The Red Gate. Yara has charted the crownward threshold. The final descent remains sealed until a final assault is prepared.";
+                }
+                return "Chapter V complete: The Red Gate. The Meteor Crown threshold is charted. Recall to Midgaard and give Yara the marshal's road seal.";
+            }
+            if (!HasStoryFlag(StoryFlags.RedGateAssaultAccepted)
+                && !ContentSetCatalog.IsFullPrototype(activeContentSet))
+            {
+                return "Chapter IV complete: Glass and Ash. Return to Yara and plan the assault through the inner Red Gate.";
+            }
+            if (depth <= 1)
+            {
+                return "Chapter V: The Red Gate. Follow the Old Road east and regain the far seal carrying Yara's crownward plan.";
+            }
+            if (depth == 2)
+            {
+                return "Chapter V: The Red Gate. Pass beneath Varkh's broken hall and regain the Bone Road.";
+            }
+            if (depth == 3)
+            {
+                return "Chapter V: The Red Gate. Cross the surveyed Glass Road and return to the far seal.";
+            }
+            if (depth == 4)
+            {
+                return "Chapter V: The Red Gate. Carry the copied Emberglass key to the Red Gate Seal and open its inner war road.";
+            }
+            if (HasStoryFlag(StoryFlags.CrownroadMarshalDefeated))
+            {
+                return "Chapter V: The Red Gate. Inspect the sealed descent at Salt Cistern Gate and chart the Meteor Crown threshold without crossing it.";
+            }
+            if (HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered))
+            {
+                return "Chapter V: The Red Gate. Carry the ossuary road seal south to Salt Cistern Gate and break the Crownroad Marshal's last defense.";
+            }
+            if (HasStoryFlag(StoryFlags.RedGateVanguardDefeated))
+            {
+                return "Chapter V: The Red Gate. Follow the vanguard's crownward tally north to Gloam Deep Crypt and recover the stolen road seal.";
+            }
+            return "Chapter V: The Red Gate. Reach the inner Red Gate Seal and break the cinder vanguard holding the war road.";
+        }
+
+        private void RepairRedGateStoryObjective(bool force = false)
+        {
+            if (state == null || state.Depth > 5 || !HasRedGateStoryProgress()) return;
+            string current = state.ActiveStory ?? "";
+            bool redGateObjective = string.IsNullOrWhiteSpace(current)
+                || current.IndexOf("Chapter IV", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Chapter V", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Red Gate", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Crownroad", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Ossuary", StringComparison.OrdinalIgnoreCase) >= 0
+                || current.IndexOf("Meteor Crown threshold", StringComparison.OrdinalIgnoreCase) >= 0;
+            if (!force && !redGateObjective) return;
+            state.ActiveStory = RedGateObjectiveForProgress();
         }
 
         private bool TryKoboldStorySite(out WorldMapSite site)
@@ -6245,6 +7624,7 @@ namespace AshenHalls
             // Yara can annotate depth-four regions before the company crosses the
             // frontier. Only the durable entry flag proves an actual visit there.
             if (safeDepth == 4) return HasStoryFlag(StoryFlags.GlassAndAshEntered);
+            if (safeDepth == 5) return HasStoryFlag(StoryFlags.RedGateEntered);
             string prefix = safeDepth + ":";
             if (state?.DiscoveredZones != null
                 && state.DiscoveredZones.Any(key => key != null && key.StartsWith(prefix, StringComparison.Ordinal)))
@@ -6626,6 +8006,7 @@ namespace AshenHalls
                 PlaySfx("cache");
                 AddBurst(state.PlayerX, state.PlayerY, gold);
                 AwardWorldExperience(8 + state.Depth * 3, "Cache charted");
+                AutosaveCheckpoint("cache claimed");
             }
             else if (obj.Type == ObjectType.Shrine)
             {
@@ -6746,6 +8127,7 @@ namespace AshenHalls
 
             if (TryResolveBoneRoadStorySite(site)) return true;
             if (TryResolveGlassAndAshStorySite(site)) return true;
+            if (TryResolveRedGateStorySite(site)) return true;
 
             if (!WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
             {
@@ -6874,10 +8256,15 @@ namespace AshenHalls
                 return true;
             }
 
-            if (!string.Equals(site.Id, RedGateSealSiteId, StringComparison.Ordinal)
-                || ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+            if (!string.Equals(site.Id, RedGateSealSiteId, StringComparison.Ordinal))
             {
                 return false;
+            }
+
+            if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags))
+            {
+                EnterRedGateChapter();
+                return true;
             }
 
             if (!HasStoryFlag(StoryFlags.GlassIndexRecovered))
@@ -6892,6 +8279,114 @@ namespace AshenHalls
             PushLog("The Mirror Index names the far seal. A cinder-bound warden tears free with the Emberglass key chained beneath its ribs.", Tone.Warn);
             ShowBanner("Warden of the Ashen Pact");
             StartCombat(EncounterId.AshenPactWarden);
+            return true;
+        }
+
+        private void EnterRedGateChapter()
+        {
+            if (state == null || state.Mode != GameMode.Explore || state.Depth != 4) return;
+            if (!ContentSetCatalog.AllowRedGateChapter(activeContentSet, state.StoryFlags))
+            {
+                PushLog("The Emberglass key is copied, but Yara has not authorized an inner-road assault.", Tone.Warn);
+                ShowBanner("Red Gate Contract Required");
+                PlaySfx("blocked", 0.56f);
+                return;
+            }
+
+            bool firstArrival = !HasVisitedExplorationDepth(5);
+            state.ActiveRouteWaypointKey = "";
+            state.Depth = 5;
+            SetStoryFlag(StoryFlags.RedGateEntered);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 5);
+            state.ActiveStory = RedGateObjectiveForProgress();
+            if (firstArrival) state.Supplies += 2;
+            state.Map = GenerateMap(state.Depth, state.Seed);
+            InvalidateExplorationController();
+            EnsureWorldLandmarks();
+            PlacePlayerAtExplorationStart();
+            lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
+            DiscoverCurrentZone(true);
+            PushLog("The copied Emberglass key opens the Red Gate's inner lock. Beyond it, the crownward road divides among drow glass, ossuary stone, and cinder watch. " + state.ActiveStory, Tone.Good);
+            if (firstArrival)
+            {
+                AwardWorldExperience(48, "Chapter V reached");
+                AutosaveCheckpoint("Red Gate entered");
+            }
+            ShowBanner("Chapter V: The Red Gate");
+            PlaySfx("encounter", 0.86f);
+        }
+
+        private bool TryResolveRedGateStorySite(WorldMapSite site)
+        {
+            if (!ContentSetCatalog.AllowRedGateChapter(activeContentSet, state?.StoryFlags)
+                || state == null
+                || state.Depth != 5)
+            {
+                return false;
+            }
+
+            if (string.Equals(site.Id, RedGateSealSiteId, StringComparison.Ordinal)
+                && !HasStoryFlag(StoryFlags.RedGateVanguardDefeated))
+            {
+                state.ActiveStory = RedGateObjectiveForProgress();
+                PushLog("The copied key opens the gatehouse, but a cinder vanguard has chained itself across the inner road.", Tone.Warn);
+                ShowBanner("Inner Gate Vanguard");
+                StartCombat(EncounterId.RedGateVanguard);
+                return true;
+            }
+
+            if (string.Equals(site.Id, GloamDeepCryptSiteId, StringComparison.Ordinal)
+                && !HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered))
+            {
+                if (!HasStoryFlag(StoryFlags.RedGateVanguardDefeated))
+                {
+                    PushLog("The crypt's crownward doors have no readable approach. The inner-gate vanguard still holds the tally that names this road.", Tone.Warn);
+                    ShowBanner("Crownward Tally Required");
+                    PlaySfx("blocked", 0.56f);
+                    return true;
+                }
+
+                state.ActiveStory = RedGateObjectiveForProgress();
+                PushLog("The vanguard tally fits a reliquary lock. Bone priests lift the stolen ossuary road seal behind a Gloam Knight's shield.", Tone.Warn);
+                ShowBanner("Ossuary Road Seal");
+                StartCombat(EncounterId.OssuaryRoadSeal);
+                return true;
+            }
+
+            if (!string.Equals(site.Id, SaltCisternGateSiteId, StringComparison.Ordinal)
+                || ContentSetCatalog.RedGateComplete(state.StoryFlags))
+            {
+                return false;
+            }
+
+            if (!HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered))
+            {
+                PushLog(HasStoryFlag(StoryFlags.RedGateVanguardDefeated)
+                    ? "Salt Cistern Gate repeats the same ash mile. The stolen ossuary road seal in Gloam Deep is required to name its true threshold."
+                    : "The inner gate vanguard still holds the first crownward tally. Salt Cistern Gate cannot yet be read as a route.", Tone.Warn);
+                ShowBanner(HasStoryFlag(StoryFlags.RedGateVanguardDefeated) ? "Ossuary Seal Required" : "Inner Gate First");
+                PlaySfx("blocked", 0.56f);
+                return true;
+            }
+
+            if (!HasStoryFlag(StoryFlags.CrownroadMarshalDefeated))
+            {
+                state.ActiveStory = RedGateObjectiveForProgress();
+                PushLog("The ossuary seal fixes one true stair beneath Salt Cistern Gate. The Crownroad Marshal binds every surviving pact to its threshold.", Tone.Warn);
+                ShowBanner("Marshal of the Crownroad");
+                StartCombat(EncounterId.CrownroadMarshal);
+                return true;
+            }
+
+            SetStoryFlag(StoryFlags.MeteorCrownThresholdSurveyed);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 6);
+            state.ActiveStory = RedGateObjectiveForProgress();
+            AwardWorldExperience(64, "Chapter V completed");
+            PushLog("Beyond the broken marshal, falling-star script names the Meteor Crown descent. The company charts the threshold and seals it without entering the final road.", Tone.Good);
+            PushLog(state.ActiveStory, Tone.Good);
+            ShowBanner("The Red Gate Complete");
+            PlaySfx("wayfind", 0.94f);
+            AutosaveCheckpoint("Meteor Crown threshold surveyed");
             return true;
         }
 
@@ -8806,7 +10301,7 @@ namespace AshenHalls
             owner.WeaponDamageMax = Mathf.Max(owner.WeaponDamageMin + 1, item.DamageMax);
             owner.WeaponAttackSpeed = Mathf.Max(1, item.AttackSpeed);
             ApplyGearStatBonuses(owner, item, true);
-            owner.Range = WeaponRange(item, owner);
+            owner.Range = EffectiveWeaponRange(item, owner);
             RecalculateMember(owner);
         }
 
@@ -9098,6 +10593,8 @@ namespace AshenHalls
             bool frontierSurveyed = HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed);
             bool expeditionAccepted = HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted);
             bool glassRoadComplete = ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags);
+            bool redGateAccepted = HasStoryFlag(StoryFlags.RedGateAssaultAccepted);
+            bool redGateComplete = ContentSetCatalog.RedGateComplete(state?.StoryFlags);
             bool firstGlassRoadDebrief = glassRoadComplete
                 && !HasStoryFlag(StoryFlags.GlassAndAshDebriefed);
             if (firstGlassRoadDebrief)
@@ -9109,13 +10606,38 @@ namespace AshenHalls
                 ShowBanner("Glass Road Debriefed");
                 PlaySfx("wayfind", 0.76f);
             }
-            DialogueChoiceView[] choices = glassRoadComplete
+            bool firstRedGateDebrief = redGateComplete
+                && !HasStoryFlag(StoryFlags.RedGateDebriefed);
+            if (firstRedGateDebrief)
+            {
+                SetStoryFlag(StoryFlags.RedGateDebriefed);
+                state.ActiveStory = RedGateObjectiveForProgress();
+                PushLog("Yara binds the marshal's seal into the road chart. The crownward threshold is mapped, but the final descent remains closed.", Tone.Good);
+                AutosaveCheckpoint("Red Gate assault debriefed");
+                ShowBanner("Crownward Road Charted");
+                PlaySfx("wayfind", 0.82f);
+            }
+            DialogueChoiceView[] choices = redGateComplete
                 ? new[]
                 {
-                    MakeDialogueChoice("emberkey", "What does the Emberglass key open?", "Yara's reading of the key and the sealed war road."),
-                    MakeDialogueChoice("pact", "Who held the far seal?", "What the Ashen Pact was buying with the road."),
+                    MakeDialogueChoice("meteorthreshold", "What waits below the threshold?", "What Yara can prove about the final road and its limits."),
+                    MakeDialogueChoice("marshal", "Who was the Crownroad Marshal?", "How the inner road joined drow, dead, and demon forces."),
                     MakeDialogueChoice("cover", "Remind me about road cover.", "Using roots and stone without becoming trapped behind them.")
                 }
+                : redGateAccepted
+                    ? new[]
+                    {
+                        MakeDialogueChoice("redgateroute", "Run the crownward route again.", "The inner gate, ossuary road seal, Salt Cistern threshold, and recall plan."),
+                        MakeDialogueChoice("roadseal", "Why do we need the ossuary seal?", "How the stolen seal names the true descent."),
+                        MakeDialogueChoice("cover", "Remind me about road cover.", "Using roots and stone without becoming trapped behind them.")
+                    }
+                : glassRoadComplete
+                    ? new[]
+                    {
+                        MakePrimaryDialogueChoice("redgateplan", "Plan the Red Gate assault.", "Review the inner road, ordered objectives, and retreat boundary before Chapter V."),
+                        MakeDialogueChoice("emberkey", "What does the Emberglass key open?", "Yara's reading of the key and the sealed war road."),
+                        MakeDialogueChoice("pact", "Who held the far seal?", "What the Ashen Pact was buying with the road.")
+                    }
                 : expeditionAccepted
                     ? new[]
                     {
@@ -9153,10 +10675,16 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Old Road Scout",
                 "Yara",
-                glassRoadComplete
+                redGateComplete
+                    ? firstRedGateDebrief
+                        ? "Put the marshal's seal beside the chart. Good. The cuts agree with the threshold you surveyed, and none of them grants permission to descend. We have the final road now; we do not yet have the final assault."
+                        : "The crownward chart is stable. The last road falls beneath Salt Cistern Gate, and the marks name Meteor Crown country. Until Midgaard can hold the return line, the threshold stays sealed."
+                : redGateAccepted
+                    ? "The key opens the inner gate, not the whole war. Break its vanguard, take the stolen road seal from Gloam Deep, and let that seal lead you to Salt Cistern Gate."
+                : glassRoadComplete
                     ? firstGlassRoadDebrief
                         ? "Set the key here. I will copy every cut while the glass is still warm. You brought back a road, not just a trophy—and we are not opening its inner lock blind."
-                        : "The copy is dry. The long tooth points below the far seal, but no safe company road reaches that lock yet. The key stays wrapped until our map catches up."
+                        : "The copy is dry, and the captured Index gives us a bounded inner route: gatehouse, ossuary seal, then Salt Cistern threshold. We can plan the crossing without pretending it is the final descent."
                     : expeditionAccepted
                         ? "The route has not changed because we want it to. Library first, far seal second, and no wandering after the ash starts keeping your footprints."
                     : frontierSurveyed
@@ -9176,6 +10704,21 @@ namespace AshenHalls
         {
             switch (choice)
             {
+                case "redgateplan":
+                    ShowRedGateAssaultReview();
+                    break;
+                case "redgateroute":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "Take the known roads back to the far seal and use the copied Emberglass key. Break the inner vanguard first. Its tally points to the stolen ossuary road seal in Gloam Deep Crypt. Carry that seal south to Salt Cistern Gate, defeat the marshal, survey the threshold, and stop. Recall preserves every cleared line.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "roadseal":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "The inner gate opens onto several false descents. The ossuary seal is older than the pact and records which road still reaches the crownward lock. Without it, Salt Cistern Gate can turn a company back into the same ash mile until the packs are empty.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "meteorthreshold":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "The threshold is real, stable, and still shut. Below it the road marks change to falling-star script, the same hand that ordered the drow levy and the dead processions. That is enough to prepare a final assault, not enough to spend a company on one tonight.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
+                case "marshal":
+                    ShowDialogueResponse("Old Road Scout", "Yara", "A lesser demon wearing an old road-company title. It held drow glass on one flank and an ossuary oath on the other, which means the pact beyond the threshold has been buying obedience from every faction we met. Killing it broke the command line, not the crown behind it.", ObjectType.OldRoadScout, moss, ShowYaraConversation);
+                    break;
                 case "expedition":
                     ShowGlassAndAshExpeditionReview();
                     break;
@@ -9572,6 +11115,7 @@ namespace AshenHalls
             RepairKoboldStoryObjective(true);
             RepairBoneRoadStoryObjective(true);
             RepairGlassAndAshStoryObjective(true);
+            RepairRedGateStoryObjective(true);
             MapObject recall = state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.RecallCircle)
                 ?? state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.Fountain)
                 ?? state.Map.Objects.FirstOrDefault(o => o.Type == ObjectType.Temple);
@@ -9587,6 +11131,9 @@ namespace AshenHalls
                 state.PlayerX = recall.X;
                 state.PlayerY = recall.Y;
             }
+            RevealKnownMidgaardChart();
+            RevealKnownRouteLandmarkChart();
+            RevealExplorationChartAroundPlayer();
             lastExploreRegion = ExploreRegionName(state.PlayerX, state.PlayerY);
             if (!state.ReducedMotion) tweens.Add(new Tween("party", new Vector2(oldX, oldY), new Vector2(state.PlayerX, state.PlayerY), Time.time, 0.20f, TweenKind.Move));
             RestorePartyFully();
@@ -9985,18 +11532,20 @@ namespace AshenHalls
             if (enemy.Rank == "elite")
             {
                 item.Rarity = RarityAtLeast(item.Rarity, "rare");
-                if (!item.DisplayName.StartsWith("+") && item.Bonus > 0) item.DisplayName = "+" + item.Bonus + " " + item.DisplayName;
-                item.DisplayName = item.DisplayName.Contains("marked") ? item.DisplayName : "marked " + item.DisplayName;
             }
             else if (enemy.Rank == "veteran")
             {
                 item.Rarity = RarityAtLeast(item.Rarity, "uncommon");
-                item.DisplayName = item.DisplayName.Contains("old-road") ? item.DisplayName : "old-road " + item.DisplayName;
             }
             else if (state.Depth >= 4)
             {
                 item.Rarity = RarityAtLeast(item.Rarity, "uncommon");
             }
+
+            string provenance = enemy.Rank == "elite" ? "marked " : enemy.Rank == "veteran" ? "old-road " : "";
+            string plus = item.Bonus > 0 ? $"+{item.Bonus} " : item.Bonus < 0 ? $"{item.Bonus} " : "";
+            string trait = string.IsNullOrWhiteSpace(item.Trait) ? "" : " of " + item.Trait.Trim();
+            item.DisplayName = $"{provenance}{plus}{item.Mark} {item.Material} {item.Form}{trait}".Trim();
         }
 
         private string DamageTraitName(string damageType)
@@ -10192,26 +11741,26 @@ namespace AshenHalls
         private string AutoEquipItem(InventoryItem item)
         {
             if (item == null || state?.Party == null) return "";
+            if (!InventoryEquipmentRules.IsEquippable(item)) return "Quest item secured with the party's materials.";
             EnsureInventoryEquipmentLinks();
-            IEnumerable<PartyMember> candidates = state.Party.Where(p => p.Hp > 0);
-            if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+            PartyMember target = state.Party
+                .Where(candidate => candidate != null && candidate.Hp > 0)
+                .OrderByDescending(candidate => InventoryComparisonScore(item, candidate))
+                .ThenByDescending(candidate => weapon ? WeaponRoleFit(item, candidate) : -ArmorRolePenalty(item, candidate))
+                .FirstOrDefault();
+            if (target == null) return "Kept in the pack until a party member can use it.";
+
+            int score = InventoryComparisonScore(item, target);
+            InventoryUpgradeGrade grade = InventoryEquipmentRules.Grade(score);
+            string comparison = InventoryComparisonLine(item, target);
+            if (grade != InventoryUpgradeGrade.Upgrade)
             {
-                candidates = candidates.OrderByDescending(p => WeaponRoleFit(item, p)).ThenBy(p => p.WeaponBonus);
-                PartyMember target = candidates.FirstOrDefault(p => WeaponRoleFit(item, p) > 0 && item.Bonus >= p.WeaponBonus);
-                if (target == null) target = state.Party.Where(p => p.Hp > 0).OrderBy(p => p.WeaponBonus).FirstOrDefault();
-                if (target == null) return "";
-                if (item.Bonus < target.WeaponBonus) return "No one claims it yet.";
-                EquipInventoryItemToMember(item, target, out string result);
-                return result;
+                return $"{InventoryEquipmentRules.GradeLabel(grade)} for {target.Name} — {comparison}. Kept in the pack.";
             }
-            else
-            {
-                PartyMember target = candidates.OrderBy(p => p.ArmorBonus + ArmorRolePenalty(item, p)).FirstOrDefault();
-                if (target == null) return "";
-                if (item.Bonus < target.ArmorBonus) return "It goes into the pack.";
-                EquipInventoryItemToMember(item, target, out string result);
-                return result;
-            }
+
+            if (!EquipInventoryItemToMember(item, target, out string failure)) return failure;
+            return $"Clear upgrade for {target.Name} — {comparison}. Auto-equipped.";
         }
 
         private void ShowGlassAndAshExpeditionReview()
@@ -10280,6 +11829,75 @@ namespace AshenHalls
             PlaySfx("wayfind", 0.82f);
         }
 
+        private void ShowRedGateAssaultReview()
+        {
+            if (!ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags)
+                || !HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
+                || HasStoryFlag(StoryFlags.RedGateAssaultAccepted))
+            {
+                ShowYaraConversation();
+                return;
+            }
+
+            ShowDialogueChoices(
+                "Red Gate Assault",
+                "Yara",
+                "Take the copied key to the inner gate. Break its vanguard; the tally leads to Gloam Deep Crypt. Take the ossuary road seal to Salt Cistern Gate, defeat the marshal, survey the descent, and stop. Recall is an ordered retreat, not a failed contract.",
+                ObjectType.OldRoadScout,
+                blood,
+                new[]
+                {
+                    MakePrimaryDialogueChoice(
+                        "accept_red_gate",
+                        "Take the Red Gate contract",
+                        "Begin Chapter V and authorize the copied key at the far seal."),
+                    MakeDialogueChoice(
+                        "not_yet",
+                        "Not yet - keep the key wrapped",
+                        "Return to Yara's questions without changing the campaign.")
+                },
+                ResolveRedGateAssaultReview);
+        }
+
+        private void ResolveRedGateAssaultReview(string choice)
+        {
+            if (!string.Equals(choice, "accept_red_gate", StringComparison.Ordinal))
+            {
+                ShowYaraConversation();
+                return;
+            }
+            if (!ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags)
+                || !HasStoryFlag(StoryFlags.GlassAndAshDebriefed))
+            {
+                ShowYaraConversation();
+                return;
+            }
+
+            bool firstAcceptance = !HasStoryFlag(StoryFlags.RedGateAssaultAccepted);
+            SetStoryFlag(StoryFlags.RedGateAssaultAccepted);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 5);
+            state.ActiveStory = RedGateObjectiveForProgress();
+            EnsureOldRoadDescentMarker();
+            DiscoverZoneHint(5, "red-gate");
+            DiscoverZoneHint(5, "gloam-courts");
+            DiscoverZoneHint(5, "salt-cisterns");
+            if (firstAcceptance)
+            {
+                AwardWorldExperience(16, "Red Gate assault briefed");
+                PushLog("Yara binds the inner gate, ossuary seal, Salt Cistern threshold, and hard stop into one crownward route.", Tone.Good);
+                AutosaveCheckpoint("Red Gate assault accepted");
+            }
+            ShowDialogueResponse(
+                "Red Gate Assault",
+                "Yara",
+                "Then the key leaves its wrapping. Gatehouse first. Ossuary seal second. Salt Cistern threshold last. Bring me the road you can prove, and leave the one you cannot for another dawn.",
+                ObjectType.OldRoadScout,
+                blood,
+                ShowYaraConversation);
+            ShowBanner("The Red Gate Begins");
+            PlaySfx("wayfind", 0.88f);
+        }
+
         private void ApplyGearStatBonuses(PartyMember member, InventoryItem item, bool weapon)
         {
             if (member == null || item == null) return;
@@ -10305,31 +11923,37 @@ namespace AshenHalls
 
         private int WeaponRoleFit(InventoryItem item, PartyMember member)
         {
-            string form = item.Form ?? "";
-            if (member.Role == "bow" && (form.Contains("bow") || form.Contains("crossbow"))) return 6;
-            if (member.Role == "pike" && (form.Contains("spear") || form.Contains("halberd"))) return 6;
-            if (member.Role == "knife" && (form.Contains("knife") || form.Contains("epee") || form.Contains("sabre"))) return 6;
-            if ((member.Role == "ember" || member.Role == "hex" || member.Role == "mender") && (form.Contains("staff") || form.Contains("ritual"))) return 6;
-            if (member.Role == "shield" || member.Role == "ward") return form.Contains("mace") || form.Contains("sword") || form.Contains("flail") ? 5 : 2;
+            if (item == null || member == null) return 0;
+            string form = ((item.Form ?? "") + " " + (item.DisplayName ?? "")).ToLowerInvariant();
+            string role = (member.Role ?? "").ToLowerInvariant();
+            if (role == "bow" && (form.Contains("bow") || form.Contains("crossbow") || form.Contains("sling") || form.Contains("dart"))) return 6;
+            if (role == "pike" && (form.Contains("spear") || form.Contains("pike") || form.Contains("glaive") || form.Contains("halberd"))) return 6;
+            if (role == "knife" && (form.Contains("knife") || form.Contains("epee") || form.Contains("sabre"))) return 6;
+            if ((role == "ember" || role == "hex" || role == "mender")
+                && (form.Contains("staff") || form.Contains("ritual") || form.Contains("focus") || form.Contains("orb") || form.Contains("scepter") || form.Contains("bell"))) return 6;
+            if (role == "shield" || role == "ward") return form.Contains("mace") || form.Contains("sword") || form.Contains("flail") || form.Contains("hammer") ? 5 : 2;
             return 2;
         }
 
         private int WeaponRange(InventoryItem item, PartyMember member)
         {
-            string form = item.Form ?? "";
+            string form = (item?.Form ?? "").ToLowerInvariant();
+            string role = (member?.Role ?? "").ToLowerInvariant();
             if (form.Contains("longbow") || form.Contains("crossbow")) return 4;
             if (form.Contains("throwing")) return 3;
             if (form.Contains("sling") || form.Contains("darts")) return 3;
             if (form.Contains("spear") || form.Contains("pike") || form.Contains("glaive") || form.Contains("halberd")) return 2;
-            if ((form.Contains("focus") || form.Contains("orb") || form.Contains("scepter") || form.Contains("staff")) && (member.Role == "ember" || member.Role == "hex" || member.Role == "mender")) return 4;
-            return member.Role == "bow" ? 4 : member.Role == "ember" || member.Role == "hex" ? 3 : 1;
+            if ((form.Contains("focus") || form.Contains("orb") || form.Contains("scepter") || form.Contains("staff")) && (role == "ember" || role == "hex" || role == "mender")) return 4;
+            return role == "bow" ? 4 : role == "ember" || role == "hex" ? 3 : 1;
         }
 
         private int ArmorRolePenalty(InventoryItem item, PartyMember member)
         {
-            string form = item.Form ?? "";
-            if ((member.Role == "ember" || member.Role == "hex" || member.Role == "mender") && (form.Contains("plate") || form.Contains("chain") || form.Contains("tower"))) return 3;
-            if ((member.Role == "shield" || member.Role == "ward") && (form.Contains("plate") || form.Contains("shield"))) return -2;
+            if (item == null || member == null) return 0;
+            string form = ((item.Form ?? "") + " " + (item.DisplayName ?? "")).ToLowerInvariant();
+            string role = (member.Role ?? "").ToLowerInvariant();
+            if ((role == "ember" || role == "hex" || role == "mender") && (form.Contains("plate") || form.Contains("chain") || form.Contains("tower"))) return 3;
+            if ((role == "shield" || role == "ward") && (form.Contains("plate") || form.Contains("shield"))) return -2;
             return 0;
         }
 
@@ -10351,7 +11975,7 @@ namespace AshenHalls
             string text = ((item.DisplayName ?? "") + " " + (item.Form ?? "") + " " + (item.Trait ?? "")).ToLowerInvariant();
             if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
             {
-                int range = WeaponRange(item, target);
+                int range = EffectiveWeaponRange(item, target);
                 if (range >= 4) notes.Add("long range");
                 else if (range == 3) notes.Add("ranged");
                 else if (range == 2) notes.Add("reach");
@@ -10512,6 +12136,16 @@ namespace AshenHalls
                 {
                     warden.Rank = "";
                     warden.Name = "Warden of the Ashen Pact";
+                }
+            }
+
+            if (encounter.Id == EncounterId.CrownroadMarshal)
+            {
+                CombatUnit marshal = enemies.FirstOrDefault(enemy => enemy.Role == "lesserdemon");
+                if (marshal != null)
+                {
+                    marshal.Rank = "";
+                    marshal.Name = "Marshal of the Crownroad";
                 }
             }
 
@@ -10927,7 +12561,7 @@ namespace AshenHalls
             ClearAbilityEntry();
             showSpellbook = false;
             showAbilityPanel = false;
-            selectedAction = ActionMode.Attack;
+            ApplyDefaultCombatSelection(CurrentUnit());
             state.Combat.Phase = CombatPhase.ChooseAction;
             PushLog($"{(string.IsNullOrWhiteSpace(targetName) ? "Targeting" : targetName)} canceled. The action remains ready.", Tone.Normal);
             PlaySfx("ui", 0.45f);
@@ -10987,7 +12621,7 @@ namespace AshenHalls
                 return;
             }
             CombatLifecycle().BeginTurn(active, active.Side == UnitSide.Enemy);
-            selectedAction = ActionMode.Attack;
+            if (active.Side == UnitSide.Enemy) selectedAction = ActionMode.Attack;
             ShowBanner(active.Side == UnitSide.Party ? active.Name + "'s turn" : active.Name + " moves");
             bool skipped = ApplyStartTurnEffects(active);
             if (active.Hp <= 0)
@@ -11009,7 +12643,11 @@ namespace AshenHalls
                 FinishCombatAction(active, true);
                 return;
             }
-            if (active.Side == UnitSide.Party) PlaySfx("turn", 0.48f);
+            if (active.Side == UnitSide.Party)
+            {
+                ApplyDefaultCombatSelection(active);
+                PlaySfx("turn", 0.48f);
+            }
             if (active.Side == UnitSide.Enemy)
             {
                 aiActAt = Time.time + (state.ReducedMotion ? 0.05f : 0.45f);
@@ -11063,30 +12701,35 @@ namespace AshenHalls
             AwardExperience(xp);
             if (finalBattle)
             {
-                FinishCampaignVictory(foundGold, xp);
+                FinishCampaignVictory(foundGold, foundElixirs, xp);
                 return;
             }
             if (koboldKingBattle)
             {
-                FinishKoboldKingVictory(foundGold, xp);
+                FinishKoboldKingVictory(foundGold, foundElixirs, xp);
                 return;
             }
-            InventoryItem battleLoot = ContentSetCatalog.IsSewerSliceEncounterStyle(encounterStyle)
-                || ContentSetCatalog.IsBoneRoadEncounterStyle(encounterStyle)
-                || ContentSetCatalog.IsGlassAndAshEncounterStyle(encounterStyle)
-                    ? null
-                    : MakeCombatLootItem(encounterStyle, false);
+            InventoryItem battleLoot = ShouldRollRandomCombatLoot(encounterStyle)
+                ? MakeCombatLootItem(encounterStyle, false)
+                : null;
             state.Mode = GameMode.Explore;
             state.Combat = null;
             InvalidateCombatController();
             betaLabMode = false;
             showSpellbook = false;
             showAbilityPanel = false;
+            int storyGoldBefore = state.Gold;
+            int storySuppliesBefore = state.Supplies;
+            int storyElixirsBefore = state.Elixirs;
             ResolveRoamingThreatVictory(roamingThreatId);
             ApplyKoboldStoryVictory(encounterStyle);
             ApplyBoneRoadStoryVictory(encounterStyle);
             ApplyGlassAndAshStoryVictory(encounterStyle);
+            ApplyRedGateStoryVictory(encounterStyle);
             ApplyMidgaardStoryVictory(encounterStyle);
+            RevealKnownMidgaardChart();
+            RevealKnownRouteLandmarkChart();
+            RevealExplorationChartAroundPlayer();
             if (battleLoot != null)
             {
                 EnsureInventoryList();
@@ -11097,14 +12740,31 @@ namespace AshenHalls
             }
             else
             {
+                bool authoredPopupOpen = IsLootPopupOpen();
+                int storyGold = Mathf.Max(0, state.Gold - storyGoldBefore);
+                int storySupplies = Mathf.Max(0, state.Supplies - storySuppliesBefore);
+                int storyElixirs = Mathf.Max(0, state.Elixirs - storyElixirsBefore);
+                QueueLootPanelResources(
+                    foundGold + (authoredPopupOpen ? 0 : storyGold),
+                    authoredPopupOpen ? 0 : storySupplies,
+                    foundElixirs + (authoredPopupOpen ? 0 : storyElixirs));
                 PushLog($"The field is won. {foundGold} gold and {xp} XP recovered{(foundElixirs > 0 ? ", plus an elixir" : "")}.", Tone.Good);
             }
             AutosaveCheckpoint(string.IsNullOrWhiteSpace(encounterStyle) ? "combat victory" : encounterStyle + " cleared");
-            if (!string.Equals(encounterStyle, "ashen-pact-warden-boss", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(encounterStyle, "ashen-pact-warden-boss", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(encounterStyle, "crownroad-marshal-boss", StringComparison.OrdinalIgnoreCase))
             {
                 ShowBanner("Victory");
             }
             PlaySfx("victory");
+        }
+
+        private static bool ShouldRollRandomCombatLoot(string encounterStyle)
+        {
+            return !ContentSetCatalog.IsSewerSliceEncounterStyle(encounterStyle)
+                && !ContentSetCatalog.IsBoneRoadEncounterStyle(encounterStyle)
+                && !ContentSetCatalog.IsGlassAndAshEncounterStyle(encounterStyle)
+                && !ContentSetCatalog.IsRedGateEncounterStyle(encounterStyle);
         }
 
         private bool IsFinalBossCombat()
@@ -11264,7 +12924,64 @@ namespace AshenHalls
             ShowBanner("Glass and Ash Complete");
         }
 
-        private void FinishKoboldKingVictory(int foundGold, int xp)
+        private void ApplyRedGateStoryVictory(string encounterStyle)
+        {
+            if (!ContentSetCatalog.AllowRedGateChapter(activeContentSet, state?.StoryFlags)
+                || !ContentSetCatalog.IsRedGateEncounterStyle(encounterStyle))
+            {
+                return;
+            }
+
+            if (string.Equals(encounterStyle, "red-gate-vanguard", StringComparison.OrdinalIgnoreCase))
+            {
+                bool firstVictory = !HasStoryFlag(StoryFlags.RedGateVanguardDefeated);
+                SetStoryFlag(StoryFlags.RedGateVanguardDefeated);
+                state.ActiveStory = RedGateObjectiveForProgress();
+                if (firstVictory)
+                {
+                    PushLog("The inner vanguard breaks. Its crownward tally names a stolen ossuary road seal in Gloam Deep Crypt.", Tone.Good);
+                }
+                return;
+            }
+
+            if (string.Equals(encounterStyle, "ossuary-road-seal", StringComparison.OrdinalIgnoreCase))
+            {
+                bool firstVictory = !HasStoryFlag(StoryFlags.OssuaryRoadSealRecovered);
+                SetStoryFlag(StoryFlags.OssuaryRoadSealRecovered);
+                state.ActiveStory = RedGateObjectiveForProgress();
+                if (firstVictory)
+                {
+                    state.Supplies += 1;
+                    PushLog("The reliquary court falls silent. The recovered ossuary seal fixes one true crownward road to Salt Cistern Gate. Supplies +1.", Tone.Good);
+                }
+                return;
+            }
+
+            if (!string.Equals(encounterStyle, "crownroad-marshal-boss", StringComparison.OrdinalIgnoreCase)) return;
+            bool firstMarshalVictory = !HasStoryFlag(StoryFlags.CrownroadMarshalDefeated);
+            SetStoryFlag(StoryFlags.CrownroadMarshalDefeated);
+            state.StoryChapter = Mathf.Max(state.StoryChapter, 5);
+            state.ActiveStory = RedGateObjectiveForProgress();
+            if (!firstMarshalVictory) return;
+
+            EnsureInventoryList();
+            InventoryItem reward = ContentSetCatalog.CreateCrownwardEmberglassWarblade();
+            state.Inventory.Add(reward);
+            state.Supplies += 2;
+            string equipNote = AutoEquipItem(reward);
+            ShowLootPanel(
+                reward,
+                0,
+                2,
+                0,
+                "Recovered from the marshal's broken command seal. " + (string.IsNullOrEmpty(equipNote) ? "It goes into the pack." : equipNote),
+                "Crownroad Command Cache");
+            PushLog("The Crownroad Marshal falls. Its emberglass warblade and the sealed Meteor Crown threshold remain beneath Salt Cistern Gate.", Tone.Good);
+            PushLog(state.ActiveStory, Tone.Good);
+            ShowBanner("Crownroad Marshal Falls");
+        }
+
+        private void FinishKoboldKingVictory(int foundGold, int foundElixirs, int xp)
         {
             SetStoryFlag(StoryFlags.KoboldCaveFound);
             SetStoryFlag(StoryFlags.KoboldCaveCleared);
@@ -11286,19 +13003,24 @@ namespace AshenHalls
             state.Inventory.Add(trophy);
             string equipNote = AutoEquipItem(trophy);
             string swordNote = "Taken from a fallen adventurer in the king's hoard. " + (string.IsNullOrEmpty(equipNote) ? "It goes into the pack." : equipNote);
-            ShowLootPanel(trophy, bonusGold, 2, 1, swordNote, "Kobold King's Hoard");
+            int totalGold = foundGold + bonusGold;
+            int totalElixirs = foundElixirs + 1;
+            ShowLootPanel(trophy, totalGold, 2, totalElixirs, swordNote, "Kobold King's Hoard");
 
             EnsureBoneRoadPassageMarker();
 
             state.ActiveStory = KoboldStoryObjectiveForProgress();
-            PushLog($"Varkh falls. The king's hoard adds {bonusGold} gold, supplies, an elixir, and the {trophy.DisplayName}.", Tone.Good);
+            PushLog($"Varkh falls. The victory yields {totalGold} gold, 2 supplies, {totalElixirs} elixir{(totalElixirs == 1 ? "" : "s")}, and the {trophy.DisplayName}.", Tone.Good);
             PushLog(state.ActiveStory, Tone.Good);
             ShowBanner("Kobold King Falls");
             PlaySfx("victory", 1.08f);
+            RevealKnownMidgaardChart();
+            RevealKnownRouteLandmarkChart();
+            RevealExplorationChartAroundPlayer();
             AutosaveCheckpoint("kobold king defeated");
         }
 
-        private void FinishCampaignVictory(int foundGold, int xp)
+        private void FinishCampaignVictory(int foundGold, int foundElixirs, int xp)
         {
             string encounterStyle = state.Combat?.EncounterStyle ?? "boss";
             InventoryItem relic = MakeBossLoot(encounterStyle);
@@ -11307,7 +13029,11 @@ namespace AshenHalls
                 EnsureInventoryList();
                 state.Inventory.Add(relic);
                 string equipNote = AutoEquipItem(relic);
-                ShowLootPanel(relic, foundGold, 0, 0, string.IsNullOrEmpty(equipNote) ? "A future art pass can give this final relic unique artwork." : equipNote, "Final Gate Relic");
+                ShowLootPanel(relic, foundGold, 0, foundElixirs, string.IsNullOrEmpty(equipNote) ? "A future art pass can give this final relic unique artwork." : equipNote, "Final Gate Relic");
+            }
+            else
+            {
+                ShowLootPanel(null, foundGold, 0, foundElixirs, "The final spoils are secured.", "Final Gate Spoils");
             }
             state.Mode = GameMode.Victory;
             state.Combat = null;
@@ -11321,6 +13047,7 @@ namespace AshenHalls
             PushLog("Vhal Rakh's meteor crown breaks above the ritual heart. This beta route is complete.", Tone.Good);
             ShowBanner("The Old Road Is Sealed");
             PlaySfx("victory", 1.15f);
+            AutosaveCheckpoint("final gate sealed");
         }
 
         private int CombatExperienceReward()
@@ -12597,7 +14324,6 @@ namespace AshenHalls
             showSpellbook = false;
             ClearAbilityEntry();
             ClearFormulaEntry();
-            TickSummonBindingEndOfTurn(active);
             SyncPartyFromCombat();
             if (state != null && !state.ReducedMotion)
             {
@@ -12610,6 +14336,32 @@ namespace AshenHalls
                 QueueCombatAdvance(active, resolutionDelay, resolutionLabel);
                 return;
             }
+            CompleteCombatActionAdvance(active);
+        }
+
+        private void CompleteCombatActionAdvance(CombatUnit active)
+        {
+            if (state?.Combat == null) return;
+            CombatOutcome outcome = CombatLifecycle().CurrentOutcome();
+            if (CombatTurnFlowRules.ShouldResumePostActionMovement(
+                    active != null && active.Side == UnitSide.Party,
+                    active != null && active.Hp > 0,
+                    state.Combat.ActionAvailable,
+                    state.Combat.MovePoints,
+                    outcome == CombatOutcome.Ongoing,
+                    CountReachableMoveDestinations(active) > 0))
+            {
+                selectedAction = ActionMode.Move;
+                state.Combat.Phase = CombatPhase.ChooseTarget;
+                aiActAt = -1f;
+                PushLog($"{active.Name} can still reposition with {state.Combat.MovePoints} move remaining.", Tone.Good);
+                ShowBanner("Movement remains");
+                MarkUiDirty();
+                return;
+            }
+
+            TickSummonBindingEndOfTurn(active);
+            SyncPartyFromCombat();
             NextTurn();
         }
 
@@ -12664,7 +14416,11 @@ namespace AshenHalls
                 BeginQueuedCombatTurn(reservedUnit);
                 return;
             }
-            NextTurn();
+            CombatUnit completedUnit = string.IsNullOrEmpty(expectedUnitId)
+                ? CurrentUnit()
+                : state.Combat.Units?.FirstOrDefault(unit =>
+                    unit != null && string.Equals(unit.Id, expectedUnitId, StringComparison.Ordinal));
+            CompleteCombatActionAdvance(completedUnit);
         }
 
         private void CancelCombatResolutionBeat(bool restoreActionPhase)
@@ -12794,9 +14550,17 @@ namespace AshenHalls
             CombatImpactProfile impactProfile = CombatImpactRules.ForAbility(ability);
             CombatPowerIdentity identity = CombatPowerPresentationRules.ForAbility(ability, active.Name, null);
             Color powerColor = string.IsNullOrWhiteSpace(identity.AccentHex) ? gold : identity.AccentHex.ToColor();
-            PowerCastAura stagedAura = StageCombatPowerCast(impactProfile, active.X, active.Y, active.X, active.Y, powerColor, false);
+            PowerCastAura stagedAura = StageCombatPowerCast(
+                impactProfile,
+                active.X,
+                active.Y,
+                active.X,
+                active.Y,
+                powerColor,
+                false,
+                ability.Id);
             BeginCombatPowerReactionCapture();
-            float previousVfxDelay = BeginCombatVfxTimeline(impactProfile);
+            float previousVfxDelay = BeginCombatVfxTimeline(impactProfile, ability.Id);
             bool success;
             try
             {
@@ -12819,7 +14583,7 @@ namespace AshenHalls
             if (success)
             {
                 ShowAbilityPowerCue(active, ability, null);
-                ApplyCombatImpactFeedback(impactProfile, active.X, active.Y, powerColor);
+                ApplyCombatImpactFeedback(impactProfile, active.X, active.Y, powerColor, ability.Id, ability.Id);
             }
             return success;
         }
@@ -12839,9 +14603,26 @@ namespace AshenHalls
             Color powerColor = string.IsNullOrWhiteSpace(identity.AccentHex) ? gold : identity.AccentHex.ToColor();
             int sourceX = active.X;
             int sourceY = active.Y;
-            PowerCastAura stagedAura = StageCombatPowerCast(impactProfile, sourceX, sourceY, x, y, powerColor, false);
+            PowerCastAura stagedAura = StageCombatPowerCast(
+                impactProfile,
+                sourceX,
+                sourceY,
+                x,
+                y,
+                powerColor,
+                false,
+                ability.Id);
+            PowerTravelVfx stagedTravel = StageCombatPowerTravel(
+                ability.Id,
+                sourceX,
+                sourceY,
+                x,
+                y,
+                powerColor,
+                CombatImpactRules.VisualIntensity(impactProfile),
+                ResolvedCombatPowerSfxImpactDelay(impactProfile, ability.Id));
             BeginCombatPowerReactionCapture();
-            float previousVfxDelay = BeginCombatVfxTimeline(impactProfile);
+            float previousVfxDelay = BeginCombatVfxTimeline(impactProfile, ability.Id);
             targetedMartialHitConnected = true;
             bool success;
             try
@@ -12874,11 +14655,12 @@ namespace AshenHalls
             {
                 combatPowerReactions.Clear();
                 if (stagedAura != null) powerCastAuras.Remove(stagedAura);
+                if (stagedTravel != null) powerTravelVfx.Remove(stagedTravel);
             }
             if (success)
             {
                 ShowAbilityPowerCue(active, ability, target);
-                if (targetedMartialHitConnected) ApplyCombatImpactFeedback(impactProfile, x, y, powerColor);
+                if (targetedMartialHitConnected) ApplyCombatImpactFeedback(impactProfile, x, y, powerColor, ability.Id, ability.Id);
                 else ApplyCombatMissFeedback(impactProfile, x);
             }
             return success;
@@ -14200,9 +15982,31 @@ namespace AshenHalls
             caster.Mana -= manaCost;
             string skill = FormulaSkill(formula, caster);
             CombatImpactProfile impactProfile = CombatImpactRules.ForFormula(formula);
-            PowerCastAura stagedAura = StageCombatPowerCast(impactProfile, caster.X, caster.Y, x, y, FormulaColor(formula), focused);
+            bool usesAuthoredFormulaArt = SupportHexSpellVfxRules.IsSupported(formula.Code)
+                || MageWarlockSpellVfxRules.IsSupported(formula.Code);
+            string castVisualKind = usesAuthoredFormulaArt
+                ? formula.Code
+                : CombatPowerVisualRules.CastKindForFormula(formula, impactProfile.CastSfx);
+            PowerCastAura stagedAura = StageCombatPowerCast(
+                impactProfile,
+                caster.X,
+                caster.Y,
+                x,
+                y,
+                FormulaColor(formula),
+                focused,
+                castVisualKind);
+            PowerTravelVfx stagedTravel = StageCombatPowerTravel(
+                formula.Code,
+                caster.X,
+                caster.Y,
+                x,
+                y,
+                FormulaColor(formula),
+                CombatImpactRules.VisualIntensity(impactProfile),
+                ResolvedCombatPowerSfxImpactDelay(impactProfile, formula.Code));
             BeginCombatPowerReactionCapture();
-            float previousVfxDelay = BeginCombatVfxTimeline(impactProfile);
+            float previousVfxDelay = BeginCombatVfxTimeline(impactProfile, formula.Code);
             bool success;
             try
             {
@@ -14217,6 +16021,7 @@ namespace AshenHalls
                 caster.Mana += manaCost;
                 combatPowerReactions.Clear();
                 if (stagedAura != null) powerCastAuras.Remove(stagedAura);
+                if (stagedTravel != null) powerTravelVfx.Remove(stagedTravel);
                 PlaySfx("blocked");
                 return false;
             }
@@ -14276,15 +16081,20 @@ namespace AshenHalls
 
         private void ApplyFormulaImpactFeedback(FormulaDef formula, CombatImpactProfile impactProfile, int x, int y)
         {
-            string visualKind = CombatPowerVisualRules.ImpactKindForFormula(formula, impactProfile.ImpactSfx);
+            bool usesAuthoredFormulaArt = formula != null
+                && (SupportHexSpellVfxRules.IsSupported(formula.Code)
+                    || MageWarlockSpellVfxRules.IsSupported(formula.Code));
+            string visualKind = usesAuthoredFormulaArt
+                ? formula.Code
+                : CombatPowerVisualRules.ImpactKindForFormula(formula, impactProfile.ImpactSfx);
             if (formula != null
                 && formula.Effect == "terrain"
                 && string.Equals(visualKind, impactProfile.ImpactSfx, StringComparison.OrdinalIgnoreCase))
             {
-                ApplyCombatImpactAudioFeedback(impactProfile, x, y);
+                ApplyCombatImpactAudioFeedback(impactProfile, x, y, formula?.Code);
                 return;
             }
-            ApplyCombatImpactFeedback(impactProfile, x, y, FormulaColor(formula), visualKind);
+            ApplyCombatImpactFeedback(impactProfile, x, y, FormulaColor(formula), visualKind, formula?.Code);
         }
 
         private bool ResolveFormula(FormulaDef formula, CombatUnit caster, CombatUnit target, int x, int y)
@@ -14300,6 +16110,7 @@ namespace AshenHalls
                 AddFlash(fromX, fromY, color);
                 caster.X = x;
                 caster.Y = y;
+                CombatLifecycle().ApplyMovementBudgetResult(true, state.Combat.MovePoints, state.Combat.MovePoints);
                 AddTween(caster.Id, new Vector2(fromX, fromY), new Vector2(x, y), TweenKind.Move);
                 AddBeam(fromX, fromY, x, y, color, "arc");
                 AddTileGlyph(x, y, formula, "impact", color);
@@ -14852,7 +16663,7 @@ namespace AshenHalls
         {
             if (caster == null || target == null || formula == null) return;
             Color color = FormulaColor(formula);
-            AddBeam(caster.X, caster.Y, target.X, target.Y, color, "fireball");
+            AddFireballAftermathDelayed(target.X, target.Y, color, 0f);
         }
 
         private void AddMeteorShowerFlourish(CombatUnit caster, CombatUnit target, FormulaDef formula)
@@ -16088,6 +17899,11 @@ namespace AshenHalls
                         PushLog("No elixirs remain.", Tone.Warn);
                         PlaySfx("blocked");
                     }
+                    else if (result.Failure == CombatCommandFailure.NoRecoveryNeeded)
+                    {
+                        PushLog($"{active.Name} is already at full health and mana. The elixir and action remain ready.", Tone.Normal);
+                        PlaySfx("blocked", 0.55f);
+                    }
                     return;
                 }
                 AddFloat(active.X, active.Y, "elixir", teal);
@@ -16147,7 +17963,8 @@ namespace AshenHalls
                 state.Combat.ActiveId = active.Id;
             }
             CombatLifecycle().RepairActiveTurnState(active, active.Side == UnitSide.Enemy);
-            selectedAction = ActionMode.Attack;
+            if (active.Side == UnitSide.Party) ApplyDefaultCombatSelection(active);
+            else selectedAction = ActionMode.Attack;
             aiActAt = active.Side == UnitSide.Enemy ? Time.time + (state.ReducedMotion ? 0.05f : 0.45f) : -1f;
         }
 
@@ -16434,10 +18251,12 @@ namespace AshenHalls
             if (combatPowerReactions.Count < 2) combatPowerReactions.Add(clean);
         }
 
-        private float BeginCombatVfxTimeline(CombatImpactProfile profile)
+        private float BeginCombatVfxTimeline(CombatImpactProfile profile, string exactPowerKey = "")
         {
             float previous = combatVfxImpactDelay;
-            combatVfxImpactDelay = state != null && state.ReducedMotion ? 0f : profile.ImpactDelay;
+            combatVfxImpactDelay = state != null && state.ReducedMotion
+                ? 0f
+                : ResolvedCombatPowerSfxImpactDelay(profile, exactPowerKey);
             return previous;
         }
 
@@ -16458,10 +18277,13 @@ namespace AshenHalls
             int targetX,
             int targetY,
             Color color,
-            bool focused)
+            bool focused,
+            string visualKind = "")
         {
             if (state == null || state.ReducedMotion) return null;
             float now = Time.time;
+            string resolvedVisualKind = string.IsNullOrWhiteSpace(visualKind) ? profile.CastSfx : visualKind;
+            float impactDelay = ResolvedCombatPowerSfxImpactDelay(profile, resolvedVisualKind);
             PowerCastAura aura = new PowerCastAura
             {
                 SourceX = sourceX,
@@ -16469,17 +18291,69 @@ namespace AshenHalls
                 TargetX = targetX,
                 TargetY = targetY,
                 Color = color.ToHex(),
-                Kind = profile.CastSfx,
+                Kind = resolvedVisualKind,
                 Intensity = CombatImpactRules.VisualIntensity(profile),
                 Focused = focused,
                 Start = now,
-                ImpactAt = now + profile.ImpactDelay,
+                ImpactAt = now + impactDelay,
                 Duration = CombatImpactRules.CastAuraDuration(profile)
             };
             powerCastAuras.Add(aura);
             if (powerCastAuras.Count > 10) powerCastAuras.RemoveRange(0, powerCastAuras.Count - 10);
             MarkUiDirty();
             return aura;
+        }
+
+        private PowerTravelVfx StageCombatPowerTravel(
+            string exactPowerKey,
+            int sourceX,
+            int sourceY,
+            int targetX,
+            int targetY,
+            Color color,
+            int intensity,
+            float arrivalDelay = -1f,
+            int sequenceIndex = 0,
+            float startDelay = 0f)
+        {
+            if (state == null || state.ReducedMotion) return null;
+            CombatPowerTravelVfxPlan plan = CombatPowerTravelVfxRules.PlanFor(
+                exactPowerKey,
+                intensity,
+                0f,
+                false,
+                sequenceIndex);
+            if (!plan.HasTravel) return null;
+
+            float safeStartDelay = Mathf.Clamp(startDelay, 0f, 0.75f);
+            float duration = arrivalDelay > 0f
+                ? Mathf.Clamp(arrivalDelay, CombatPowerTravelVfxRules.MinimumDurationSeconds, CombatPowerTravelVfxRules.MaximumDurationSeconds)
+                : plan.DurationSeconds;
+            PowerTravelVfx travel = new PowerTravelVfx
+            {
+                SourceX = sourceX,
+                SourceY = sourceY,
+                TargetX = targetX,
+                TargetY = targetY,
+                Color = color.ToHex(),
+                PowerKey = plan.Key,
+                Intensity = Mathf.Clamp(intensity, 1, 3),
+                SequenceIndex = Mathf.Max(0, sequenceIndex),
+                StableSeed = Mathf.Max(
+                    1,
+                    unchecked(
+                        CombatPowerTravelVfxRules.StableTravelHash(plan.Key, sequenceIndex, 7)
+                        ^ (sourceX * 73856093)
+                        ^ (sourceY * 19349663)
+                        ^ (targetX * 83492791)
+                        ^ (targetY * 297121507)) & int.MaxValue),
+                Start = Time.time + safeStartDelay,
+                Duration = duration
+            };
+            powerTravelVfx.Add(travel);
+            if (powerTravelVfx.Count > 24) powerTravelVfx.RemoveRange(0, powerTravelVfx.Count - 24);
+            MarkUiDirty();
+            return travel;
         }
 
         private void ApplyCombatImpactFeedback(
@@ -16489,9 +18363,21 @@ namespace AshenHalls
             Color color,
             string visualKind = "")
         {
-            int reactionCount = ApplyCombatImpactAudioFeedback(profile, x, y);
+            ApplyCombatImpactFeedback(profile, x, y, color, visualKind, "");
+        }
+
+        private void ApplyCombatImpactFeedback(
+            CombatImpactProfile profile,
+            int x,
+            int y,
+            Color color,
+            string visualKind,
+            string exactPowerKey)
+        {
+            int reactionCount = ApplyCombatImpactAudioFeedback(profile, x, y, exactPowerKey);
             int visualIntensity = CombatImpactRules.VisualIntensity(profile, reactionCount);
             string resolvedVisualKind = string.IsNullOrWhiteSpace(visualKind) ? profile.ImpactSfx : visualKind;
+            float impactDelay = ResolvedCombatPowerSfxImpactDelay(profile, exactPowerKey);
             if (state == null) return;
             if (state.ReducedMotion)
             {
@@ -16523,7 +18409,7 @@ namespace AshenHalls
                 Intensity = visualIntensity,
                 ReactionCount = reactionCount,
                 Start = Time.time,
-                ImpactAt = Time.time + profile.ImpactDelay,
+                ImpactAt = Time.time + impactDelay,
                 Duration = CombatImpactRules.EchoDuration(profile, reactionCount)
             });
             if (powerImpactEchoes.Count > 12) powerImpactEchoes.RemoveRange(0, powerImpactEchoes.Count - 12);
@@ -16531,7 +18417,7 @@ namespace AshenHalls
             int burstCount = CombatImpactRules.PresentationBurstCount(profile, reactionCount);
             if (motif == CombatPowerVisualMotif.Generic && burstCount > 0)
             {
-                AddEpicBurstDelayed(x, y, color, burstCount, profile.BurstSpeed, profile.ImpactDelay);
+                AddEpicBurstDelayed(x, y, color, burstCount, profile.BurstSpeed, impactDelay);
             }
             if (motif != CombatPowerVisualMotif.Generic)
             {
@@ -16545,20 +18431,26 @@ namespace AshenHalls
             }
             if (visualIntensity >= 3)
             {
-                combatImpactFrameStarted = Time.time + profile.ImpactDelay;
+                combatImpactFrameStarted = Time.time + impactDelay;
                 combatImpactFrameUntil = combatImpactFrameStarted + CombatImpactRules.ImpactFrameDuration(profile);
                 combatImpactFrameColor = color.ToHex();
                 combatImpactFrameIntensity = visualIntensity;
             }
-            StartCombatImpactShake(profile);
+            StartCombatImpactShake(profile, impactDelay);
             MarkUiDirty();
         }
 
-        private int ApplyCombatImpactAudioFeedback(CombatImpactProfile profile, int x, int y)
+        private int ApplyCombatImpactAudioFeedback(
+            CombatImpactProfile profile,
+            int x,
+            int y,
+            string exactPowerKey = "")
         {
             int reactionCount = combatPowerReactions.Count;
-            pendingCombatPowerOutcomeDelay = state != null && state.ReducedMotion ? 0f : profile.ImpactDelay;
-            PlayCombatImpactSfx(profile, x, y, reactionCount);
+            pendingCombatPowerOutcomeDelay = state != null && state.ReducedMotion
+                ? 0f
+                : ResolvedCombatPowerSfxImpactDelay(profile, exactPowerKey);
+            PlayCombatImpactSfx(profile, x, y, reactionCount, exactPowerKey);
             return reactionCount;
         }
 
@@ -16570,10 +18462,11 @@ namespace AshenHalls
             MarkUiDirty();
         }
 
-        private void StartCombatImpactShake(CombatImpactProfile profile)
+        private void StartCombatImpactShake(CombatImpactProfile profile, float impactDelay = -1f)
         {
             if (profile.ShakeMagnitude <= 0f || profile.ShakeDuration <= 0f) return;
-            combatShakeStarted = Time.time + profile.ImpactDelay;
+            float resolvedDelay = impactDelay >= 0f ? impactDelay : profile.ImpactDelay;
+            combatShakeStarted = Time.time + resolvedDelay;
             combatShakeUntil = combatShakeStarted + profile.ShakeDuration;
             combatShakeMagnitude = profile.ShakeMagnitude;
         }
@@ -16609,6 +18502,7 @@ namespace AshenHalls
             castGlyphs.Clear();
             powerCastAuras.Clear();
             powerImpactEchoes.Clear();
+            powerTravelVfx.Clear();
             combatUnitPresentationBeats.Clear();
             combatShakeStarted = 0f;
             combatShakeUntil = 0f;
@@ -16617,6 +18511,7 @@ namespace AshenHalls
             combatImpactFrameUntil = 0f;
             combatImpactFrameIntensity = 0;
             combatPowerPulseUntil = 0f;
+            ClearCombatAudioForReducedMotion();
 
             if (latestImpact != null)
             {
@@ -16702,6 +18597,7 @@ namespace AshenHalls
             floatTexts.Clear();
             powerImpactEchoes.Clear();
             powerCastAuras.Clear();
+            powerTravelVfx.Clear();
             combatUnitPresentationBeats.Clear();
             float now = Time.time;
             CombatUnit active = CurrentUnit();
@@ -16714,7 +18610,8 @@ namespace AshenHalls
             // Leave a short board-establishing beat before the capture coroutine
             // follows this impact time and records the authored effect at its peak.
             float showcaseStart = now + 1.30f;
-            float showcaseImpact = showcaseStart + fireballProfile.ImpactDelay;
+            float showcaseTravelDuration = ResolvedCombatPowerSfxImpactDelay(fireballProfile, "FBL");
+            float showcaseImpact = showcaseStart + showcaseTravelDuration;
 
             if (active != null && enemies.Count > 0)
             {
@@ -16747,6 +18644,17 @@ namespace AshenHalls
                     ImpactAt = showcaseImpact,
                     Duration = CombatImpactRules.CastAuraDuration(fireballProfile)
                 });
+                StageCombatPowerTravel(
+                    "FBL",
+                    active.X,
+                    active.Y,
+                    smokeTarget.X,
+                    smokeTarget.Y,
+                    ember,
+                    3,
+                    showcaseTravelDuration,
+                    0,
+                    showcaseStart - now);
                 CombatUnitPresentationRules.AddBounded(
                     combatUnitPresentationBeats,
                     CombatUnitPresentationRules.Create(
@@ -16975,25 +18883,30 @@ namespace AshenHalls
             Color smoke = Color.Lerp(color, retroBlack, 0.78f);
             for (int i = 0; i < 7; i++)
             {
+                int sampleIndex = i + x * 37 + y * 101;
                 particles.Add(new ParticleDot
                 {
-                    X = x + 0.5f + UnityEngine.Random.Range(-0.12f, 0.12f),
-                    Y = y + 0.5f + UnityEngine.Random.Range(-0.06f, 0.10f),
-                    VX = UnityEngine.Random.Range(-0.18f, 0.18f),
-                    VY = UnityEngine.Random.Range(-0.58f, -0.22f),
+                    X = x + 0.5f + MageWarlockSpellVfxRules.StableVisualSignedSample("fireball", sampleIndex, 0) * 0.12f,
+                    Y = y + 0.5f + Mathf.Lerp(-0.06f, 0.10f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 1)),
+                    VX = MageWarlockSpellVfxRules.StableVisualSignedSample("fireball", sampleIndex, 2) * 0.18f,
+                    VY = Mathf.Lerp(-0.58f, -0.22f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 3)),
                     Color = smoke.ToHex(),
                     Kind = "smoke",
-                    Size = UnityEngine.Random.Range(0.16f, 0.28f),
-                    Gravity = UnityEngine.Random.Range(-0.10f, 0.02f),
-                    Seed = UnityEngine.Random.Range(0, 1000000),
-                    Start = start + UnityEngine.Random.Range(0.08f, 0.22f),
-                    Duration = UnityEngine.Random.Range(0.72f, 1.08f)
+                    Size = Mathf.Lerp(0.16f, 0.28f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 4)),
+                    Gravity = Mathf.Lerp(-0.10f, 0.02f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 5)),
+                    Seed = MageWarlockSpellVfxRules.StableVisualHash("fireball", sampleIndex, 6),
+                    Start = start + Mathf.Lerp(0.08f, 0.22f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 7)),
+                    Duration = Mathf.Lerp(0.72f, 1.08f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 8))
                 });
             }
             for (int i = 0; i < 8; i++)
             {
-                float angle = UnityEngine.Random.Range(Mathf.PI * 1.10f, Mathf.PI * 1.90f);
-                float velocity = UnityEngine.Random.Range(0.42f, 1.12f);
+                int sampleIndex = 97 + i + x * 43 + y * 109;
+                float angle = Mathf.Lerp(
+                    Mathf.PI * 1.10f,
+                    Mathf.PI * 1.90f,
+                    MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 0));
+                float velocity = Mathf.Lerp(0.42f, 1.12f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 1));
                 particles.Add(new ParticleDot
                 {
                     X = x + 0.5f,
@@ -17002,11 +18915,11 @@ namespace AshenHalls
                     VY = Mathf.Sin(angle) * velocity,
                     Color = Color.Lerp(color, gold, 0.58f).ToHex(),
                     Kind = "ember",
-                    Size = UnityEngine.Random.Range(0.045f, 0.085f),
-                    Gravity = UnityEngine.Random.Range(0.42f, 0.78f),
-                    Seed = UnityEngine.Random.Range(0, 1000000),
+                    Size = Mathf.Lerp(0.045f, 0.085f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 2)),
+                    Gravity = Mathf.Lerp(0.42f, 0.78f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 3)),
+                    Seed = MageWarlockSpellVfxRules.StableVisualHash("fireball", sampleIndex, 4),
                     Start = start,
-                    Duration = UnityEngine.Random.Range(0.62f, 0.94f)
+                    Duration = Mathf.Lerp(0.62f, 0.94f, MageWarlockSpellVfxRules.StableVisualSample("fireball", sampleIndex, 5))
                 });
             }
             TrimCombatParticles();
@@ -18139,7 +20052,13 @@ namespace AshenHalls
         private void SetTile(MapData map, int x, int y, int tile)
         {
             if (map == null || map.Tiles == null || x < 0 || y < 0 || x >= map.Width || y >= map.Height) return;
-            map.Tiles[y * map.Width + x] = tile == 0 ? 0 : 1;
+            int index = y * map.Width + x;
+            int next = tile == 0 ? 0 : 1;
+            if (map.Tiles[index] != next)
+            {
+                map.Tiles[index] = next;
+                map.InvalidateTerrainPresentation();
+            }
             ExplorationSurfaceRules.EnsureGrid(map);
         }
 

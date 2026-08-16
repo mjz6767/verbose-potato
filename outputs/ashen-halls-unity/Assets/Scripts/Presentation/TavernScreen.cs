@@ -9,11 +9,12 @@ namespace AshenHalls
     public sealed class TavernScreenBindings
     {
         public string Title;
-        public string Subtitle;
         public Func<string> VersionLine;
         public Texture2D BackdropArt;
         public Texture2D TitleArt;
         public Texture2D MenuIconAtlas;
+        public Texture2D MenuScrollArt;
+        public Texture2D MenuFocusArt;
         public Func<bool> HasSavedGame;
         public Func<bool> SettingsVisible;
         public Func<bool> TestingVisible;
@@ -48,15 +49,13 @@ namespace AshenHalls
         public readonly Rect Menu;
         public readonly Rect Settings;
         public readonly Rect Testing;
-        public readonly Rect Chronicle;
 
-        public TavernScreenGeometry(Rect title, Rect menu, Rect settings, Rect testing, Rect chronicle)
+        public TavernScreenGeometry(Rect title, Rect menu, Rect settings, Rect testing)
         {
             Title = title;
             Menu = menu;
             Settings = settings;
             Testing = testing;
-            Chronicle = chronicle;
         }
 
         public bool Fits(float width, float height)
@@ -64,8 +63,7 @@ namespace AshenHalls
             return FitsRect(Title, width, height)
                 && FitsRect(Menu, width, height)
                 && FitsRect(Settings, width, height)
-                && FitsRect(Testing, width, height)
-                && FitsRect(Chronicle, width, height);
+                && FitsRect(Testing, width, height);
         }
 
         private static bool FitsRect(Rect rect, float width, float height)
@@ -74,69 +72,255 @@ namespace AshenHalls
         }
     }
 
+    public readonly struct TavernMenuScrollGeometry
+    {
+        public readonly Rect Bounds;
+        public readonly Rect Sheet;
+        public readonly Rect TopRoll;
+        public readonly Rect BottomRoll;
+        public readonly Rect Content;
+        public readonly Rect Header;
+        public readonly Rect Rule;
+
+        public TavernMenuScrollGeometry(
+            Rect bounds,
+            Rect sheet,
+            Rect topRoll,
+            Rect bottomRoll,
+            Rect content,
+            Rect header,
+            Rect rule)
+        {
+            Bounds = bounds;
+            Sheet = sheet;
+            TopRoll = topRoll;
+            BottomRoll = bottomRoll;
+            Content = content;
+            Header = header;
+            Rule = rule;
+        }
+
+        public bool Fits(float width, float height)
+        {
+            return Contains(Bounds, Sheet)
+                && Contains(Bounds, TopRoll)
+                && Contains(Bounds, BottomRoll)
+                && Contains(Bounds, Content)
+                && Contains(Content, Header)
+                && Contains(Content, Rule)
+                && Bounds.xMin >= 0f
+                && Bounds.yMin >= 0f
+                && Bounds.xMax <= width
+                && Bounds.yMax <= height;
+        }
+
+        public bool ContainsContent(Rect rect)
+        {
+            return Contains(Content, rect);
+        }
+
+        private static bool Contains(Rect outer, Rect inner)
+        {
+            return inner.width > 0f
+                && inner.height > 0f
+                && inner.xMin >= outer.xMin - 0.01f
+                && inner.yMin >= outer.yMin - 0.01f
+                && inner.xMax <= outer.xMax + 0.01f
+                && inner.yMax <= outer.yMax + 0.01f;
+        }
+    }
+
     public static class TavernScreenLayout
     {
-        public static TavernScreenGeometry Calculate(float width, float height, bool saveExists)
+        public static bool IsCompactMenu(float menuWidth)
         {
-            float titleW = Mathf.Clamp(width * 0.40f, 500f, 700f);
-            float titleY = Mathf.Clamp(height * 0.06f, 34f, 76f);
-            Rect title = new Rect(
-                Mathf.Clamp(width * 0.042f, 30f, 82f),
-                titleY,
-                titleW,
-                titleW / 3f);
+            return menuWidth < 240f;
+        }
 
-            float menuW = Mathf.Clamp(width * 0.29f, 356f, 438f);
-            float menuH = saveExists ? 430f : 374f;
-            float menuX = Mathf.Clamp(
-                width - menuW - Mathf.Clamp(width * 0.045f, 36f, 80f),
-                24f,
-                width - menuW - 24f);
-            float menuY = Mathf.Clamp(height * 0.19f, 106f, 176f);
+        public static TavernScreenGeometry Calculate(
+            float width,
+            float height,
+            bool saveExists,
+            bool developerTestingVisible = false,
+            float artWidth = 1672f,
+            float artHeight = 941f)
+        {
+            width = Mathf.Max(1f, width);
+            height = Mathf.Max(1f, height);
+            TitleBackdropProjection projection = TitleScreenPresentationRules.ProjectBackdrop(
+                width,
+                height,
+                artWidth,
+                artHeight);
+            Rect logoSafeZone = projection.ProjectNormalized(TitleScreenPresentationRules.LogoSafeZoneNormalized);
+            Rect menuSafeZone = projection.ProjectNormalized(TitleScreenPresentationRules.MenuSafeZoneNormalized);
+
+            float titleX = Mathf.Clamp(width * 0.035f, 28f, 72f);
+            float titleY = Mathf.Clamp(height * 0.06f, 34f, 54f);
+            float desiredTitleW = Mathf.Clamp(
+                Mathf.Min(width * 0.38f, height * 0.75f),
+                280f,
+                700f);
+            float titleSafeW = Mathf.Max(280f, Mathf.Min(width - titleX - 24f, logoSafeZone.xMax - titleX));
+            float titleW = Mathf.Min(desiredTitleW, titleSafeW);
+            Rect title = new Rect(titleX, titleY, titleW, titleW / 3f);
+
+            float desiredMenuW = Mathf.Clamp(
+                Mathf.Min(width * 0.255f, height * 0.515f),
+                256f,
+                438f);
+            float rightInset = Mathf.Clamp(width * 0.015f, 16f, 32f);
+            float menuSafeW = Mathf.Max(176f, width - rightInset - menuSafeZone.xMin);
+            float menuW = Mathf.Min(desiredMenuW, menuSafeW);
+            float menuH = MenuHeight(menuW, saveExists, developerTestingVisible);
+            float menuX = Mathf.Max(16f, width - menuW - rightInset);
+            float menuY = Mathf.Clamp(height * 0.30f, 112f, height - menuH - 42f);
             Rect menu = new Rect(menuX, menuY, menuW, menuH);
-            if (menu.yMax > height - 48f) menu.y = Mathf.Max(64f, height - menu.height - 48f);
 
-            float settingsW = Mathf.Clamp(menuW + 18f, 374f, 456f);
+            float settingsW = Mathf.Max(288f, menuW);
             float settingsH = 352f;
-            float settingsX = Mathf.Clamp(menu.x + (menu.width - settingsW) * 0.5f, 24f, width - settingsW - 24f);
-            float settingsY = Mathf.Clamp(menu.y + 18f, 24f, height - settingsH - 32f);
+            float settingsX = menu.xMax - settingsW;
+            float settingsY = Mathf.Clamp(menu.y, 24f, height - settingsH - 32f);
             Rect settings = new Rect(settingsX, settingsY, settingsW, settingsH);
 
-            float testingW = Mathf.Clamp(width * 0.43f, 430f, 620f);
-            float testingX = Mathf.Clamp(width * 0.045f, 32f, 88f);
+            float testingW = Mathf.Clamp(width * 0.43f, 360f, 620f);
+            float testingX = titleX;
             float testingY = Mathf.Clamp(height - 174f, 24f, height - 156f);
             Rect testing = new Rect(testingX, testingY, testingW, 132f);
 
-            float chronicleW = Mathf.Clamp(width * 0.39f, 390f, 640f);
-            float chronicleX = Mathf.Clamp(width * 0.045f, 32f, 88f);
-            float chronicleY = Mathf.Clamp(height - 120f, title.yMax + 24f, height - 106f);
-            Rect chronicle = new Rect(chronicleX, chronicleY, chronicleW, 82f);
-            return new TavernScreenGeometry(title, menu, settings, testing, chronicle);
+            return new TavernScreenGeometry(title, menu, settings, testing);
         }
 
         public static IReadOnlyList<Rect> ButtonRects(bool saveExists, float menuWidth)
         {
             List<Rect> rects = new List<Rect>();
-            float y = 116f;
-            float gap = 8f;
-            float buttonW = menuWidth - 48f;
+            bool compact = IsCompactMenu(menuWidth);
+            TavernMenuScrollGeometry scroll = ScrollGeometry(menuWidth, MenuHeight(menuWidth, saveExists, false));
+            float y = scroll.Rule.yMax + (compact ? 8f : 12f);
+            float gap = compact ? 6f : 8f;
+            float heroHeight = compact ? 48f : 54f;
+            float regularHeight = compact ? 44f : 48f;
             if (saveExists)
             {
-                rects.Add(new Rect(24f, y, buttonW, 52f));
-                y += 60f;
+                rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, heroHeight));
+                y += heroHeight + gap;
             }
 
-            rects.Add(new Rect(24f, y, buttonW, 58f));
-            y += 58f + gap;
-            rects.Add(new Rect(24f, y, buttonW, 48f));
-            y += 48f + gap;
-            rects.Add(new Rect(24f, y, buttonW, 48f));
+            rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, heroHeight));
+            y += heroHeight + gap;
+            rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, regularHeight));
+            y += regularHeight + gap;
+            rects.Add(new Rect(scroll.Content.x, y, scroll.Content.width, regularHeight));
             return rects;
         }
 
-        public static Rect TestingButtonRect(float menuWidth, float menuHeight)
+        public static Rect TestingButtonRect(
+            bool saveExists,
+            float menuWidth,
+            bool developerTestingVisible)
         {
-            return new Rect(24f, menuHeight - 50f, menuWidth - 48f, 34f);
+            if (!developerTestingVisible) return Rect.zero;
+            bool compact = IsCompactMenu(menuWidth);
+            IReadOnlyList<Rect> buttons = ButtonRects(saveExists, menuWidth);
+            Rect lastButton = buttons[buttons.Count - 1];
+            return new Rect(
+                lastButton.x,
+                lastButton.yMax + (compact ? 10f : 12f),
+                lastButton.width,
+                compact ? 28f : 30f);
+        }
+
+        public static TavernMenuScrollGeometry ScrollGeometry(float menuWidth, float menuHeight)
+        {
+            float width = Mathf.Max(1f, menuWidth);
+            float height = Mathf.Max(1f, menuHeight);
+            bool compact = IsCompactMenu(width);
+            float rollHeight = RollHeight(width);
+            float bodySide = BodySide(width);
+            float contentX = ContentSideInset(width);
+            float contentWidth = Mathf.Max(1f, width - contentX * 2f);
+            float contentY = ContentTopInset(width);
+            Rect bounds = new Rect(0f, 0f, width, height);
+            Rect sheet = new Rect(bodySide, rollHeight * 0.5f, width - bodySide * 2f, height - rollHeight);
+            Rect topRoll = new Rect(0f, 0f, width, rollHeight);
+            Rect bottomRoll = new Rect(0f, height - rollHeight, width, rollHeight);
+            Rect content = new Rect(
+                contentX,
+                contentY,
+                contentWidth,
+                Mathf.Max(1f, height - contentY * 2f));
+            Rect header = new Rect(content.x, content.y, content.width, compact ? 24f : 30f);
+            Rect rule = new Rect(content.x, header.yMax + 4f, content.width, 2f);
+            return new TavernMenuScrollGeometry(bounds, sheet, topRoll, bottomRoll, content, header, rule);
+        }
+
+        public static float MenuHeight(float menuWidth, bool saveExists, bool developerTestingVisible)
+        {
+            bool compact = IsCompactMenu(menuWidth);
+            IReadOnlyList<Rect> buttons = ButtonRectsForHeight(saveExists, menuWidth);
+            float lastVisibleY = buttons[buttons.Count - 1].yMax;
+            if (developerTestingVisible)
+            {
+                lastVisibleY += (compact ? 10f : 12f) + (compact ? 28f : 30f);
+            }
+            return Mathf.Ceil(
+                lastVisibleY
+                + (compact ? 10f : 14f)
+                + Mathf.Max(RollHeight(menuWidth), TitleScreenPresentationRules.MenuScrollBottomInset));
+        }
+
+        private static IReadOnlyList<Rect> ButtonRectsForHeight(bool saveExists, float menuWidth)
+        {
+            List<Rect> rects = new List<Rect>();
+            bool compact = IsCompactMenu(menuWidth);
+            float rollHeight = RollHeight(menuWidth);
+            float contentX = ContentSideInset(menuWidth);
+            float contentWidth = Mathf.Max(1f, menuWidth - contentX * 2f);
+            float headerHeight = compact ? 24f : 30f;
+            float y = ContentTopInset(menuWidth) + headerHeight + 4f + 2f + (compact ? 8f : 12f);
+            float gap = compact ? 6f : 8f;
+            float heroHeight = compact ? 48f : 54f;
+            float regularHeight = compact ? 44f : 48f;
+            if (saveExists)
+            {
+                rects.Add(new Rect(contentX, y, contentWidth, heroHeight));
+                y += heroHeight + gap;
+            }
+            rects.Add(new Rect(contentX, y, contentWidth, heroHeight));
+            y += heroHeight + gap;
+            rects.Add(new Rect(contentX, y, contentWidth, regularHeight));
+            y += regularHeight + gap;
+            rects.Add(new Rect(contentX, y, contentWidth, regularHeight));
+            return rects;
+        }
+
+        private static float RollHeight(float menuWidth)
+        {
+            return Mathf.Clamp(menuWidth * 0.075f, 16f, 26f);
+        }
+
+        private static float BodySide(float menuWidth)
+        {
+            return Mathf.Clamp(menuWidth * 0.032f, 6f, 14f);
+        }
+
+        private static float PaperPadding(float menuWidth)
+        {
+            return Mathf.Clamp(menuWidth * 0.045f, 8f, 18f);
+        }
+
+        private static float ContentSideInset(float menuWidth)
+        {
+            return Mathf.Max(
+                BodySide(menuWidth) + PaperPadding(menuWidth),
+                TitleScreenPresentationRules.MenuScrollSideInset);
+        }
+
+        private static float ContentTopInset(float menuWidth)
+        {
+            return Mathf.Max(
+                RollHeight(menuWidth) + 8f,
+                TitleScreenPresentationRules.MenuScrollTopInset);
         }
 
         public static IReadOnlyList<Rect> StormWindowRects(
@@ -171,7 +355,6 @@ namespace AshenHalls
         public readonly float FaceAlpha;
         public readonly float GlowAlpha;
         public readonly float ShadowAlpha;
-        public readonly float SubtitleAlpha;
         public readonly float Scale;
         public readonly float UnderlineProgress;
         public readonly float UnderlineAlpha;
@@ -181,7 +364,6 @@ namespace AshenHalls
             float faceAlpha,
             float glowAlpha,
             float shadowAlpha,
-            float subtitleAlpha,
             float scale,
             float underlineProgress,
             float underlineAlpha,
@@ -190,7 +372,6 @@ namespace AshenHalls
             FaceAlpha = Mathf.Clamp01(faceAlpha);
             GlowAlpha = Mathf.Clamp01(glowAlpha);
             ShadowAlpha = Mathf.Clamp01(shadowAlpha);
-            SubtitleAlpha = Mathf.Clamp01(subtitleAlpha);
             Scale = Mathf.Max(0.01f, scale);
             UnderlineProgress = Mathf.Clamp01(underlineProgress);
             UnderlineAlpha = Mathf.Clamp01(underlineAlpha);
@@ -206,12 +387,11 @@ namespace AshenHalls
         {
             if (reducedMotion)
             {
-                return new TavernTitleAnimationFrame(1f, 0.17f, 0.88f, 1f, 1f, 1f, 0.44f, 0f);
+                return new TavernTitleAnimationFrame(1f, 0.17f, 0.88f, 1f, 1f, 0.44f, 0f);
             }
 
             float elapsed = Mathf.Max(0f, elapsedSeconds);
             float face = Smooth01((elapsed - 0.08f) / 0.82f);
-            float subtitle = Smooth01((elapsed - 0.68f) / 0.56f);
             float underline = Smooth01((elapsed - 0.28f) / 0.74f);
             float strikeHeat = Mathf.Clamp01(1f - Mathf.Abs(elapsed - 0.72f) / 0.62f);
             float settledPulse = elapsed <= RevealDuration
@@ -225,7 +405,6 @@ namespace AshenHalls
                 face,
                 glow,
                 face * 0.88f,
-                subtitle,
                 Mathf.Lerp(1.065f, 1f, face),
                 underline,
                 underlineAlpha,
@@ -260,7 +439,10 @@ namespace AshenHalls
         private sealed class TitleChoiceVisual
         {
             public TitleMenuChoiceKind Kind;
+            public bool Hero;
             public Button Button;
+            public Image FocusPlaque;
+            public Image IconFrame;
             public Image Icon;
             public Text Cursor;
             public RectTransform FocusRule;
@@ -273,12 +455,23 @@ namespace AshenHalls
         private RectTransform atmosphereLayer;
         private RectTransform titlePanel;
         private RectTransform menuPanel;
+        private RectTransform menuAuthoredScrollShadow;
+        private RectTransform menuAuthoredScrollFrame;
+        private RectTransform menuScrollShadow;
+        private RectTransform menuScrollSheet;
+        private RectTransform menuScrollTopRoll;
+        private RectTransform menuScrollBottomRoll;
+        private RectTransform menuScrollTopHighlight;
+        private RectTransform menuScrollTopShade;
+        private RectTransform menuScrollBottomHighlight;
+        private RectTransform menuScrollBottomShade;
+        private RectTransform menuScrollLeftShade;
+        private RectTransform menuScrollRightShade;
+        private readonly List<RectTransform> menuScrollEndCaps = new List<RectTransform>();
         private RectTransform settingsPanel;
         private RectTransform testingPanel;
-        private RectTransform chroniclePanel;
         private RectTransform stormLayer;
         private CanvasGroup menuCanvasGroup;
-        private CanvasGroup chronicleCanvasGroup;
         private Image openingVeil;
         private Image colorGrade;
         private Image hearthGlow;
@@ -296,13 +489,10 @@ namespace AshenHalls
         private Text titleShadowText;
         private Text titleGlowText;
         private Text titleText;
-        private Text subtitleText;
         private RectTransform titleUnderlineGlow;
         private RectTransform titleUnderlineCore;
         private Text versionText;
-        private Text menuEyebrowText;
         private Text menuTitleText;
-        private Text menuHintText;
         private RectTransform menuRuleGlow;
         private RectTransform menuRuleCore;
         private Text settingsTitleText;
@@ -310,8 +500,6 @@ namespace AshenHalls
         private Text settingsStateText;
         private Text testingTitleText;
         private Text testingHintText;
-        private Text chronicleEyebrowText;
-        private Text chronicleBodyText;
         private Text audioButtonText;
         private Text sfxVolumeText;
         private Text musicVolumeText;
@@ -337,6 +525,9 @@ namespace AshenHalls
         private float lastWidth = -1f;
         private float lastHeight = -1f;
         private bool lastSaveExists;
+        private bool lastDeveloperTestingVisible;
+        private int lastPhysicalScreenWidth = -1;
+        private int lastPhysicalScreenHeight = -1;
         private float titleAnimationStartedAt;
         private bool titleMotionInitialized;
         private bool lastTitleReducedMotion;
@@ -347,9 +538,13 @@ namespace AshenHalls
         private float lastMenuFocusCueAt = -10f;
         private Vector2 menuRestPosition;
         private Sprite softGlowSprite;
+        private Sprite parchmentSprite;
+        private Sprite authoredMenuScrollSprite;
+        private Sprite authoredMenuFocusSprite;
 
         private void Update()
         {
+            EnsureLayoutCurrent();
             UpdateStormMotion();
             UpdateTitleAnimation();
             UpdateOpeningPresentation();
@@ -359,19 +554,14 @@ namespace AshenHalls
 
         private void OnDestroy()
         {
-            if (softGlowSprite == null) return;
-            Texture2D texture = softGlowSprite.texture;
-            if (Application.isPlaying)
-            {
-                Destroy(softGlowSprite);
-                if (texture != null) Destroy(texture);
-            }
-            else
-            {
-                DestroyImmediate(softGlowSprite);
-                if (texture != null) DestroyImmediate(texture);
-            }
+            DestroyRuntimeSprite(softGlowSprite);
+            DestroyRuntimeSprite(parchmentSprite);
+            DestroyExternalSprite(authoredMenuScrollSprite);
+            DestroyExternalSprite(authoredMenuFocusSprite);
             softGlowSprite = null;
+            parchmentSprite = null;
+            authoredMenuScrollSprite = null;
+            authoredMenuFocusSprite = null;
         }
 
         public void Bind(TavernScreenBindings screenBindings)
@@ -398,23 +588,23 @@ namespace AshenHalls
             bool testingVisible = bindings.TestingVisible != null && bindings.TestingVisible();
             bool devVisible = bindings.DeveloperTestingVisible != null && bindings.DeveloperTestingVisible();
 
-            if (!Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height) || lastSaveExists != saveExists)
+            Vector2 canvasSize = CanvasSize();
+            if (!Mathf.Approximately(lastWidth, canvasSize.x)
+                || !Mathf.Approximately(lastHeight, canvasSize.y)
+                || lastSaveExists != saveExists
+                || lastDeveloperTestingVisible != devVisible)
             {
-                ApplyLayout(saveExists);
+                ApplyLayout(saveExists, devVisible);
             }
 
             continueButton.gameObject.SetActive(saveExists);
             testingButton.gameObject.SetActive(devVisible);
             testingButtonText.text = testingVisible ? "Hide Beta Testing" : "Beta Testing";
-            continueButtonText.text = "Continue the Old Road";
-            newGameButtonText.text = saveExists ? "Begin a New Company" : "Begin the Old Road";
+            continueButtonText.text = "Continue";
+            newGameButtonText.text = "New Game";
             menuPanel.gameObject.SetActive(!settingsVisible);
             settingsPanel.gameObject.SetActive(settingsVisible);
             testingPanel.gameObject.SetActive(devVisible && testingVisible);
-            chroniclePanel.gameObject.SetActive(!settingsVisible && !testingVisible);
-            menuHintText.text = saveExists
-                ? "The Grand Hearth still burns. Take up the road again."
-                : "Gather your company beneath the old rafters, then face the storm.";
             versionText.text = bindings.VersionLine == null ? "" : bindings.VersionLine();
 
             bool muted = bindings.AudioMuted != null && bindings.AudioMuted();
@@ -436,7 +626,6 @@ namespace AshenHalls
             titleShadowText.text = brimstoneLine;
             titleGlowText.text = brimstoneLine;
             titleText.text = brimstoneLine;
-            subtitleText.text = SmallCaps(bindings.Subtitle);
             ConfigureMenuNavigation(saveExists);
         }
 
@@ -450,6 +639,7 @@ namespace AshenHalls
             canvas.sortingOrder = 10;
             CanvasScaler scaler = canvas.gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            scaler.referencePixelsPerUnit = TitleScreenPresentationRules.MenuScrollReferencePixelsPerUnit;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             Stretch(canvas.GetComponent<RectTransform>());
 
@@ -560,12 +750,12 @@ namespace AshenHalls
             titleShadowText = AddText("Brimstone Emboss", titlePanel, brimstoneLine, 50, Hex("090403", 0f), TextAnchor.MiddleCenter);
             titleGlowText = AddText("Brimstone Ember Halo", titlePanel, brimstoneLine, 52, Hex("ef6328", 0f), TextAnchor.MiddleCenter);
             titleText = AddText("Brimstone Face", titlePanel, brimstoneLine, 50, Hex("f3ead7", 0f), TextAnchor.MiddleCenter);
-            ConfigureForgedTitleLayer(ashShadowText, 19, 34);
-            ConfigureForgedTitleLayer(ashGlowText, 19, 36);
-            ConfigureForgedTitleLayer(ashText, 19, 34);
-            ConfigureForgedTitleLayer(titleShadowText, 28, 50);
-            ConfigureForgedTitleLayer(titleGlowText, 28, 52);
-            ConfigureForgedTitleLayer(titleText, 28, 50);
+            ConfigureForgedTitleLayer(ashShadowText, 12, 34);
+            ConfigureForgedTitleLayer(ashGlowText, 12, 36);
+            ConfigureForgedTitleLayer(ashText, 12, 34);
+            ConfigureForgedTitleLayer(titleShadowText, 18, 50);
+            ConfigureForgedTitleLayer(titleGlowText, 18, 52);
+            ConfigureForgedTitleLayer(titleText, 18, 50);
             DisableTextShadow(ashShadowText);
             DisableTextShadow(ashGlowText);
             DisableTextShadow(titleShadowText);
@@ -576,47 +766,115 @@ namespace AshenHalls
             Outline titleOutline = titleText.gameObject.AddComponent<Outline>();
             titleOutline.effectColor = Hex("3a130d", 0.88f);
             titleOutline.effectDistance = new Vector2(1.5f, -1.5f);
-            subtitleText = AddText("Subtitle Text", titlePanel, SmallCaps(bindings?.Subtitle), 13, Hex("d7a84e", 1f), TextAnchor.MiddleCenter);
-            subtitleText.font = UiRuntime.DialogueFont ?? font;
-            subtitleText.fontStyle = FontStyle.Normal;
-            subtitleText.raycastTarget = false;
             versionText = AddText("Version", canvas.transform, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleRight);
 
-            chroniclePanel = AddPanel("Old Road Chronicle", canvas.transform, Hex("060707", 0.68f), Hex("8e6a34", 0.54f));
-            chronicleCanvasGroup = chroniclePanel.gameObject.AddComponent<CanvasGroup>();
-            chronicleEyebrowText = AddText(
-                "Chronicle Eyebrow",
-                chroniclePanel,
-                "FROM THE ANNALS OF MIDGAARD",
-                10,
-                Hex("d7a84e", 1f),
-                TextAnchor.MiddleLeft);
-            chronicleEyebrowText.font = UiRuntime.TitleFont ?? font;
-            chronicleEyebrowText.fontStyle = FontStyle.Normal;
-            chronicleBodyText = AddText(
-                "Chronicle Line",
-                chroniclePanel,
-                TitleScreenPresentationRules.ChronicleLines[0],
-                14,
-                Hex("f3ead7", 1f),
-                TextAnchor.MiddleLeft);
-            chronicleBodyText.font = UiRuntime.DialogueFont ?? font;
-            chronicleBodyText.fontStyle = FontStyle.Italic;
-
-            menuPanel = AddPanel("Title Menu", canvas.transform, Hex("070808", 0.79f), Hex("c69248", 0.78f));
+            TitleMenuScrollStyle scrollStyle = TitleScreenPresentationRules.MenuScrollStyle;
+            authoredMenuScrollSprite = CreateExternalSlicedSprite(
+                TitleScreenPresentationRules.SupportsMenuScrollArt(bindings?.MenuScrollArt)
+                    ? bindings.MenuScrollArt
+                    : null,
+                new Rect(
+                    0f,
+                    0f,
+                    TitleScreenPresentationRules.MenuScrollTextureWidth,
+                    TitleScreenPresentationRules.MenuScrollTextureHeight),
+                TitleScreenPresentationRules.MenuScrollSpriteBorder,
+                TitleScreenPresentationRules.MenuScrollPixelsPerUnit,
+                "Ashen Road Charter Frame");
+            authoredMenuFocusSprite = CreateExternalSlicedSprite(
+                TitleScreenPresentationRules.SupportsMenuFocusArt(bindings?.MenuFocusArt)
+                    ? bindings.MenuFocusArt
+                    : null,
+                TitleScreenPresentationRules.MenuFocusSpriteRect,
+                TitleScreenPresentationRules.MenuFocusSpriteBorder,
+                TitleScreenPresentationRules.MenuFocusPixelsPerUnit,
+                "Ashen Road Charter Focus Ribbon");
+            bool useAuthoredScroll = authoredMenuScrollSprite != null;
+            parchmentSprite = useAuthoredScroll ? null : CreateParchmentSprite();
+            menuPanel = new GameObject("Title Menu Scroll", typeof(RectTransform)).GetComponent<RectTransform>();
+            menuPanel.SetParent(canvas.transform, false);
             menuCanvasGroup = menuPanel.gameObject.AddComponent<CanvasGroup>();
-            menuEyebrowText = AddText("Menu Eyebrow", menuPanel, "MIDGAARD CHRONICLE  /  BOOK I", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
-            menuEyebrowText.font = UiRuntime.DialogueFont ?? font;
-            menuEyebrowText.fontStyle = FontStyle.Normal;
-            menuTitleText = AddText("Menu Title", menuPanel, "The Grand Hearth", 24, Hex("e7c477", 1f), TextAnchor.MiddleLeft);
+
+            Image authoredShadow = AddImage("Authored Charter Shadow", menuPanel, Hex("020100", 0.64f));
+            authoredShadow.raycastTarget = false;
+            authoredShadow.sprite = authoredMenuScrollSprite;
+            authoredShadow.type = useAuthoredScroll ? Image.Type.Sliced : Image.Type.Simple;
+            authoredShadow.fillCenter = true;
+            authoredShadow.preserveAspect = false;
+            authoredShadow.gameObject.SetActive(useAuthoredScroll);
+            menuAuthoredScrollShadow = authoredShadow.rectTransform;
+
+            Image authoredFrame = AddImage("Authored Ashen Road Charter", menuPanel, Color.white);
+            authoredFrame.raycastTarget = false;
+            authoredFrame.sprite = authoredMenuScrollSprite;
+            authoredFrame.type = useAuthoredScroll ? Image.Type.Sliced : Image.Type.Simple;
+            authoredFrame.fillCenter = true;
+            authoredFrame.preserveAspect = false;
+            authoredFrame.gameObject.SetActive(useAuthoredScroll);
+            menuAuthoredScrollFrame = authoredFrame.rectTransform;
+
+            Image scrollShadow = AddImage("Scroll Shadow", menuPanel, scrollStyle.Shadow);
+            scrollShadow.raycastTarget = false;
+            menuScrollShadow = scrollShadow.rectTransform;
+
+            Image scrollSheet = AddImage("Aged Parchment Sheet", menuPanel, scrollStyle.Paper);
+            scrollSheet.raycastTarget = false;
+            scrollSheet.sprite = parchmentSprite;
+            menuScrollSheet = scrollSheet.rectTransform;
+            Outline sheetOutline = scrollSheet.gameObject.AddComponent<Outline>();
+            sheetOutline.effectColor = Alpha(scrollStyle.Edge, 0.90f);
+            sheetOutline.effectDistance = new Vector2(1f, -1f);
+
+            Image leftShade = AddImage("Parchment Left Age", menuPanel, Alpha(scrollStyle.Edge, 0.18f));
+            leftShade.raycastTarget = false;
+            menuScrollLeftShade = leftShade.rectTransform;
+            Image rightShade = AddImage("Parchment Right Age", menuPanel, Alpha(scrollStyle.Edge, 0.18f));
+            rightShade.raycastTarget = false;
+            menuScrollRightShade = rightShade.rectTransform;
+
+            Image topRoll = AddImage("Top Parchment Roll", menuPanel, scrollStyle.Roll);
+            topRoll.raycastTarget = false;
+            topRoll.sprite = parchmentSprite;
+            menuScrollTopRoll = topRoll.rectTransform;
+            Outline topRollOutline = topRoll.gameObject.AddComponent<Outline>();
+            topRollOutline.effectColor = scrollStyle.Edge;
+            topRollOutline.effectDistance = new Vector2(1f, -1f);
+            Image topHighlight = AddImage("Top Roll Highlight", menuPanel, Alpha(scrollStyle.SelectionInk, 0.46f));
+            topHighlight.raycastTarget = false;
+            menuScrollTopHighlight = topHighlight.rectTransform;
+            Image topShade = AddImage("Top Roll Shade", menuPanel, Alpha(scrollStyle.Edge, 0.42f));
+            topShade.raycastTarget = false;
+            menuScrollTopShade = topShade.rectTransform;
+
+            Image bottomRoll = AddImage("Bottom Parchment Roll", menuPanel, scrollStyle.Roll);
+            bottomRoll.raycastTarget = false;
+            bottomRoll.sprite = parchmentSprite;
+            menuScrollBottomRoll = bottomRoll.rectTransform;
+            Outline bottomRollOutline = bottomRoll.gameObject.AddComponent<Outline>();
+            bottomRollOutline.effectColor = scrollStyle.Edge;
+            bottomRollOutline.effectDistance = new Vector2(1f, -1f);
+            Image bottomHighlight = AddImage("Bottom Roll Highlight", menuPanel, Alpha(scrollStyle.SelectionInk, 0.36f));
+            bottomHighlight.raycastTarget = false;
+            menuScrollBottomHighlight = bottomHighlight.rectTransform;
+            Image bottomShade = AddImage("Bottom Roll Shade", menuPanel, Alpha(scrollStyle.Edge, 0.52f));
+            bottomShade.raycastTarget = false;
+            menuScrollBottomShade = bottomShade.rectTransform;
+
+            for (int i = 0; i < 4; i++)
+            {
+                Image endCap = AddImage("Rolled Parchment End " + i, menuPanel, Alpha(scrollStyle.Edge, 0.70f));
+                endCap.raycastTarget = false;
+                menuScrollEndCaps.Add(endCap.rectTransform);
+            }
+            SetProceduralMenuGraphicsActive(!useAuthoredScroll);
+
+            menuTitleText = AddText("Menu Title", menuPanel, "Main Menu", 22, scrollStyle.Ink, TextAnchor.MiddleCenter);
             menuTitleText.font = UiRuntime.TitleFont ?? font;
             menuTitleText.fontStyle = FontStyle.Normal;
-            menuHintText = AddText("Menu Hint", menuPanel, "", 12, Hex("e8dfcf", 1f), TextAnchor.UpperLeft);
-            menuHintText.font = UiRuntime.DialogueFont ?? font;
-            menuHintText.fontStyle = FontStyle.Normal;
-            menuRuleGlow = AddImage("Menu Rule Glow", menuPanel, Hex("e45b25", 0.14f)).rectTransform;
+            DisableTextShadow(menuTitleText);
+            menuRuleGlow = AddImage("Menu Rule Glow", menuPanel, Alpha(scrollStyle.Accent, 0.20f)).rectTransform;
             menuRuleGlow.GetComponent<Image>().raycastTarget = false;
-            menuRuleCore = AddImage("Menu Rule Core", menuPanel, Hex("d7a84e", 0.68f)).rectTransform;
+            menuRuleCore = AddImage("Menu Rule Core", menuPanel, Alpha(scrollStyle.Accent, 0.82f)).rectTransform;
             menuRuleCore.GetComponent<Image>().raycastTarget = false;
             continueButton = AddTitleChoiceButton(
                 "Continue",
@@ -640,12 +898,13 @@ namespace AshenHalls
                 false);
             quitButton = AddTitleChoiceButton(
                 "Exit Game",
-                "Leave Game",
+                "Exit Game",
                 TitleMenuChoiceKind.Exit,
                 bindings?.Quit,
                 false);
             testingButton = AddButton("Beta Testing", menuPanel, "Beta Testing", bindings?.ToggleTesting, false);
             testingButtonText = testingButton.GetComponentInChildren<Text>();
+            StyleScrollUtilityButton(testingButton, testingButtonText);
 
             settingsPanel = AddPanel("Settings", canvas.transform, Hex("080b0d", 0.96f), Hex("58b7a5", 0.86f));
             settingsTitleText = AddText("Settings Title", settingsPanel, "Settings", 20, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
@@ -675,29 +934,40 @@ namespace AshenHalls
             RestartTitleAnimation();
         }
 
-        private void ApplyLayout(bool saveExists)
+        private void ApplyLayout(bool saveExists, bool developerTestingVisible = false)
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
+            Vector2 canvasSize = CanvasSize();
+            float width = canvasSize.x;
+            float height = canvasSize.y;
+            lastWidth = width;
+            lastHeight = height;
             lastSaveExists = saveExists;
-            TavernScreenGeometry geometry = TavernScreenLayout.Calculate(Screen.width, Screen.height, saveExists);
+            lastDeveloperTestingVisible = developerTestingVisible;
+            lastPhysicalScreenWidth = Screen.width;
+            lastPhysicalScreenHeight = Screen.height;
+            float artWidth = bindings?.BackdropArt == null ? 16f : bindings.BackdropArt.width;
+            float artHeight = bindings?.BackdropArt == null ? 9f : bindings.BackdropArt.height;
+            TavernScreenGeometry geometry = TavernScreenLayout.Calculate(
+                width,
+                height,
+                saveExists,
+                developerTestingVisible,
+                artWidth,
+                artHeight);
             SetScreenRect(titlePanel, geometry.Title);
             SetScreenRect(menuPanel, geometry.Menu);
             menuRestPosition = menuPanel.anchoredPosition;
             SetScreenRect(settingsPanel, geometry.Settings);
             SetScreenRect(testingPanel, geometry.Testing);
-            SetScreenRect(chroniclePanel, geometry.Chronicle);
-            SetScreenRect(versionText.rectTransform, new Rect(Screen.width - 476f, Screen.height - 42f, 430f, 20f));
-            float artWidth = bindings?.BackdropArt == null ? 16f : bindings.BackdropArt.width;
-            float artHeight = bindings?.BackdropArt == null ? 9f : bindings.BackdropArt.height;
+            SetScreenRect(versionText.rectTransform, new Rect(width - 374f, height - 36f, 350f, 18f));
             TitleBackdropProjection backdropProjection = TitleScreenPresentationRules.ProjectBackdrop(
-                Screen.width,
-                Screen.height,
+                width,
+                height,
                 artWidth,
                 artHeight);
             SetScreenRect(backdropRect, backdropProjection.CoverRect);
-            SetScreenRect(atmosphereLayer, new Rect(0f, 0f, Screen.width, Screen.height));
-            SetScreenRect(stormLayer, new Rect(0f, 0f, Screen.width, Screen.height));
+            SetScreenRect(atmosphereLayer, new Rect(0f, 0f, width, height));
+            SetScreenRect(stormLayer, new Rect(0f, 0f, width, height));
             SetLocalRect(
                 hearthGlow.rectTransform,
                 backdropProjection.ProjectNormalized(new Rect(-0.055f, 0.26f, 0.46f, 0.76f)));
@@ -705,8 +975,8 @@ namespace AshenHalls
                 gateGlow.rectTransform,
                 backdropProjection.ProjectNormalized(new Rect(0.49f, 0.08f, 0.37f, 0.82f)));
             IReadOnlyList<Rect> windowRects = TavernScreenLayout.StormWindowRects(
-                Screen.width,
-                Screen.height,
+                width,
+                height,
                 artWidth,
                 artHeight);
             for (int i = 0; i < stormWindows.Count && i < windowRects.Count; i++)
@@ -734,20 +1004,55 @@ namespace AshenHalls
                 new Rect(titleArea.x + 3f, titleArea.y + 3f, titleArea.width, titleArea.height));
             SetLocalRect(titleGlowText.rectTransform, titleArea);
             SetLocalRect(titleText.rectTransform, titleArea);
+            TavernMenuScrollGeometry scroll = TavernScreenLayout.ScrollGeometry(
+                geometry.Menu.width,
+                geometry.Menu.height);
             SetLocalRect(
-                subtitleText.rectTransform,
-                new Rect(
-                    geometry.Title.width * 0.15f,
-                    geometry.Title.height * 0.72f,
-                    geometry.Title.width * 0.70f,
-                    geometry.Title.height * 0.12f));
-            SetLocalRect(menuEyebrowText.rectTransform, new Rect(24f, 14f, geometry.Menu.width - 48f, 16f));
-            SetLocalRect(menuTitleText.rectTransform, new Rect(24f, 29f, geometry.Menu.width - 48f, 32f));
-            SetLocalRect(menuRuleGlow, new Rect(24f, 65f, geometry.Menu.width - 48f, 5f));
-            SetLocalRect(menuRuleCore, new Rect(24f, 67f, geometry.Menu.width - 48f, 1f));
-            SetLocalRect(menuHintText.rectTransform, new Rect(30f, 76f, geometry.Menu.width - 60f, 38f));
-            SetLocalRect(chronicleEyebrowText.rectTransform, new Rect(18f, 9f, geometry.Chronicle.width - 36f, 18f));
-            SetLocalRect(chronicleBodyText.rectTransform, new Rect(18f, 28f, geometry.Chronicle.width - 36f, 42f));
+                menuAuthoredScrollShadow,
+                new Rect(3f, 5f, Mathf.Max(1f, scroll.Bounds.width - 3f), scroll.Bounds.height - 5f));
+            SetLocalRect(menuAuthoredScrollFrame, scroll.Bounds);
+            SetLocalRect(
+                menuScrollShadow,
+                new Rect(3f, 5f, Mathf.Max(1f, scroll.Bounds.width - 3f), scroll.Bounds.height - 5f));
+            SetLocalRect(menuScrollSheet, scroll.Sheet);
+            SetLocalRect(menuScrollTopRoll, scroll.TopRoll);
+            SetLocalRect(menuScrollBottomRoll, scroll.BottomRoll);
+            SetLocalRect(
+                menuScrollLeftShade,
+                new Rect(scroll.Sheet.x + 1f, scroll.Sheet.y + 3f, 4f, scroll.Sheet.height - 6f));
+            SetLocalRect(
+                menuScrollRightShade,
+                new Rect(scroll.Sheet.xMax - 5f, scroll.Sheet.y + 3f, 4f, scroll.Sheet.height - 6f));
+            SetLocalRect(
+                menuScrollTopHighlight,
+                new Rect(scroll.TopRoll.x + 8f, scroll.TopRoll.y + 3f, scroll.TopRoll.width - 16f, 2f));
+            SetLocalRect(
+                menuScrollTopShade,
+                new Rect(scroll.TopRoll.x + 4f, scroll.TopRoll.yMax - 4f, scroll.TopRoll.width - 8f, 3f));
+            SetLocalRect(
+                menuScrollBottomHighlight,
+                new Rect(scroll.BottomRoll.x + 8f, scroll.BottomRoll.y + 4f, scroll.BottomRoll.width - 16f, 2f));
+            SetLocalRect(
+                menuScrollBottomShade,
+                new Rect(scroll.BottomRoll.x + 4f, scroll.BottomRoll.yMax - 4f, scroll.BottomRoll.width - 8f, 3f));
+            float endCapWidth = Mathf.Clamp(scroll.TopRoll.height * 0.24f, 4f, 7f);
+            SetLocalRect(
+                menuScrollEndCaps[0],
+                new Rect(scroll.TopRoll.x + 2f, scroll.TopRoll.y + 2f, endCapWidth, scroll.TopRoll.height - 4f));
+            SetLocalRect(
+                menuScrollEndCaps[1],
+                new Rect(scroll.TopRoll.xMax - endCapWidth - 2f, scroll.TopRoll.y + 2f, endCapWidth, scroll.TopRoll.height - 4f));
+            SetLocalRect(
+                menuScrollEndCaps[2],
+                new Rect(scroll.BottomRoll.x + 2f, scroll.BottomRoll.y + 2f, endCapWidth, scroll.BottomRoll.height - 4f));
+            SetLocalRect(
+                menuScrollEndCaps[3],
+                new Rect(scroll.BottomRoll.xMax - endCapWidth - 2f, scroll.BottomRoll.y + 2f, endCapWidth, scroll.BottomRoll.height - 4f));
+            SetLocalRect(menuTitleText.rectTransform, scroll.Header);
+            SetLocalRect(
+                menuRuleGlow,
+                new Rect(scroll.Rule.x, scroll.Rule.y - 1f, scroll.Rule.width, 4f));
+            SetLocalRect(menuRuleCore, scroll.Rule);
 
             IReadOnlyList<Rect> buttons = TavernScreenLayout.ButtonRects(saveExists, geometry.Menu.width);
             int buttonIndex = 0;
@@ -755,7 +1060,31 @@ namespace AshenHalls
             SetLocalRect(newGameButton.GetComponent<RectTransform>(), buttons[buttonIndex++]);
             SetLocalRect(settingsButton.GetComponent<RectTransform>(), buttons[buttonIndex++]);
             SetLocalRect(quitButton.GetComponent<RectTransform>(), buttons[buttonIndex]);
-            SetLocalRect(testingButton.GetComponent<RectTransform>(), TavernScreenLayout.TestingButtonRect(geometry.Menu.width, geometry.Menu.height));
+            SetLocalRect(
+                testingButton.GetComponent<RectTransform>(),
+                TavernScreenLayout.TestingButtonRect(
+                    saveExists,
+                    geometry.Menu.width,
+                    developerTestingVisible));
+            bool compactMenu = TavernScreenLayout.IsCompactMenu(geometry.Menu.width);
+            menuTitleText.text = "Main Menu";
+            menuTitleText.resizeTextForBestFit = compactMenu;
+            menuTitleText.resizeTextMinSize = 15;
+            menuTitleText.resizeTextMaxSize = compactMenu ? 18 : 22;
+            foreach (TitleChoiceVisual choice in titleChoices)
+            {
+                choice.IconFrame.gameObject.SetActive(!compactMenu);
+                choice.Icon.gameObject.SetActive(!compactMenu);
+                choice.Label.rectTransform.offsetMin = new Vector2(compactMenu ? 18f : 72f, 4f);
+                choice.Label.rectTransform.offsetMax = new Vector2(compactMenu ? -6f : -14f, -4f);
+                SetLocalRect(
+                    choice.Cursor.rectTransform,
+                    compactMenu ? new Rect(2f, 7f, 13f, 38f) : new Rect(5f, 7f, 16f, 38f));
+                choice.Label.fontSize = compactMenu ? 16 : choice.Hero ? 18 : 17;
+                choice.Label.resizeTextForBestFit = compactMenu;
+                choice.Label.resizeTextMinSize = 14;
+                choice.Label.resizeTextMaxSize = 16;
+            }
 
             SetLocalRect(settingsTitleText.rectTransform, new Rect(18f, 14f, geometry.Settings.width - 36f, 26f));
             SetLocalRect(settingsHintText.rectTransform, new Rect(18f, 48f, geometry.Settings.width - 36f, 22f));
@@ -776,6 +1105,36 @@ namespace AshenHalls
             SetLocalRect(betaLabButton.GetComponent<RectTransform>(), new Rect(18f, geometry.Testing.height - 54f, testerW, 38f));
             SetLocalRect(martialLabButton.GetComponent<RectTransform>(), new Rect(26f + testerW, geometry.Testing.height - 54f, testerW, 38f));
             SetLocalRect(koboldLabButton.GetComponent<RectTransform>(), new Rect(34f + testerW * 2f, geometry.Testing.height - 54f, testerW, 38f));
+        }
+
+        private void EnsureLayoutCurrent()
+        {
+            if (canvas == null || !canvas.gameObject.activeInHierarchy || bindings == null) return;
+            Vector2 canvasSize = CanvasSize();
+            bool saveExists = bindings.HasSavedGame != null && bindings.HasSavedGame();
+            bool developerTestingVisible = bindings.DeveloperTestingVisible != null && bindings.DeveloperTestingVisible();
+            bool physicalSizeChanged = lastPhysicalScreenWidth != Screen.width || lastPhysicalScreenHeight != Screen.height;
+            if (Mathf.Approximately(lastWidth, canvasSize.x)
+                && Mathf.Approximately(lastHeight, canvasSize.y)
+                && lastSaveExists == saveExists
+                && lastDeveloperTestingVisible == developerTestingVisible
+                && !physicalSizeChanged)
+            {
+                return;
+            }
+
+            ApplyLayout(saveExists, developerTestingVisible);
+            Refresh();
+        }
+
+        private Vector2 CanvasSize()
+        {
+            RectTransform root = canvas == null ? null : canvas.GetComponent<RectTransform>();
+            if (root == null || root.rect.width <= 0f || root.rect.height <= 0f)
+            {
+                return new Vector2(Mathf.Max(1f, Screen.width), Mathf.Max(1f, Screen.height));
+            }
+            return root.rect.size;
         }
 
         private void ConfigureTitleLayer(Text text, int minSize, int maxSize)
@@ -878,7 +1237,6 @@ namespace AshenHalls
             titleText.color = faceColor;
             titleShadowText.color = Hex("090403", frame.ShadowAlpha);
             titleGlowText.color = Hex("ef6328", frame.GlowAlpha);
-            subtitleText.color = Hex("d7a84e", frame.SubtitleAlpha);
             ashText.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.035f, 1f, ashAlpha);
             ashShadowText.rectTransform.localScale = ashText.rectTransform.localScale;
             ashGlowText.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.052f, 1.012f, ashAlpha);
@@ -979,14 +1337,9 @@ namespace AshenHalls
                 menuCanvasGroup.blocksRaycasts = menuInteractive;
                 menuPanel.anchoredPosition = menuRestPosition + new Vector2(0f, -frame.MenuRise);
             }
-            if (chronicleCanvasGroup != null)
-            {
-                chronicleCanvasGroup.alpha = frame.ChronicleAlpha
-                    * TitleScreenPresentationRules.ChronicleCycleAlpha(elapsed, reduced);
-            }
             if (colorGrade != null)
             {
-                colorGrade.color = Hex("030405", frame.VignetteAlpha * 0.27f);
+                colorGrade.color = Hex("030405", frame.VignetteAlpha * 0.14f);
             }
             if (hearthGlow != null)
             {
@@ -998,16 +1351,6 @@ namespace AshenHalls
                 gateGlow.color = Hex("6ba9d3", Mathf.Max(0.012f, gateBreath));
             }
 
-            int chronicleIndex = TitleScreenPresentationRules.ChronicleIndex(elapsed, reduced);
-            IReadOnlyList<string> lines = TitleScreenPresentationRules.ChronicleLines;
-            if (chronicleBodyText != null && chronicleIndex >= 0 && chronicleIndex < lines.Count)
-            {
-                string nextLine = lines[chronicleIndex];
-                if (!string.Equals(chronicleBodyText.text, nextLine, StringComparison.Ordinal))
-                {
-                    chronicleBodyText.text = nextLine;
-                }
-            }
         }
 
         private void UpdateAtmosphereMotion()
@@ -1015,6 +1358,7 @@ namespace AshenHalls
             if (atmosphereLayer == null || canvas == null || !canvas.gameObject.activeInHierarchy) return;
             bool reduced = bindings?.ReducedMotion != null && bindings.ReducedMotion();
             float now = Time.unscaledTime;
+            Vector2 canvasSize = CanvasSize();
             for (int i = 0; i < atmosphereEmbers.Count; i++)
             {
                 Image ember = atmosphereEmbers[i];
@@ -1025,9 +1369,9 @@ namespace AshenHalls
 
                 float phase = Mathf.Repeat(now * (0.038f + (i % 5) * 0.006f) + i * 0.137f, 1f);
                 float lane = Mathf.Repeat(i * 0.283f, 1f);
-                float x = Screen.width * (0.025f + lane * 0.43f)
-                    + Mathf.Sin(now * 0.61f + i * 1.73f) * Screen.width * 0.006f;
-                float y = Screen.height * (0.84f - phase * 0.66f);
+                float x = canvasSize.x * (0.025f + lane * 0.43f)
+                    + Mathf.Sin(now * 0.61f + i * 1.73f) * canvasSize.x * 0.006f;
+                float y = canvasSize.y * (0.84f - phase * 0.66f);
                 float size = 1.5f + (i % 4) * 0.75f;
                 SetLocalRect(ember.rectTransform, new Rect(x, y, size, size));
                 float life = Mathf.Sin(phase * Mathf.PI);
@@ -1041,29 +1385,41 @@ namespace AshenHalls
         private void UpdateMenuFocusPresentation()
         {
             if (titleChoices.Count == 0 || canvas == null || !canvas.gameObject.activeInHierarchy) return;
+            TitleMenuScrollStyle scrollStyle = TitleScreenPresentationRules.MenuScrollStyle;
             float pulse = 0.78f + Mathf.Sin(Time.unscaledTime * 4.1f) * 0.18f;
             for (int i = 0; i < titleChoices.Count; i++)
             {
                 TitleChoiceVisual visual = titleChoices[i];
                 if (visual?.Button == null) continue;
                 bool selected = visual.Button.gameObject.activeInHierarchy && i == focusedMenuChoice;
+                if (visual.FocusPlaque != null)
+                {
+                    visual.FocusPlaque.color = selected ? Color.white : Color.clear;
+                }
                 if (visual.Cursor != null)
                 {
-                    visual.Cursor.color = Hex("ffd06a", selected ? pulse : 0f);
+                    visual.Cursor.color = Alpha(scrollStyle.SelectionInk, selected ? pulse : 0f);
                     visual.Cursor.rectTransform.localScale = Vector3.one * (selected ? 0.94f + pulse * 0.08f : 0.9f);
                 }
                 if (visual.Icon != null)
                 {
-                    visual.Icon.color = selected ? Color.white : Hex("c7b692", 0.72f);
+                    visual.Icon.color = selected
+                        ? scrollStyle.SelectionInk
+                        : Alpha(scrollStyle.Ink, 0.74f);
                 }
                 if (visual.FocusRule != null)
                 {
                     Image ruleImage = visual.FocusRule.GetComponent<Image>();
-                    if (ruleImage != null) ruleImage.color = Hex("d7a84e", selected ? 0.72f : 0.14f);
+                    if (ruleImage != null)
+                    {
+                        ruleImage.color = selected
+                            ? Alpha(scrollStyle.SelectionInk, 0.72f)
+                            : Alpha(scrollStyle.Accent, 0.18f);
+                    }
                 }
                 if (visual.Label != null)
                 {
-                    visual.Label.color = selected ? Hex("fff0d0", 1f) : Hex("e4dac7", 0.92f);
+                    visual.Label.color = selected ? scrollStyle.SelectionInk : scrollStyle.Ink;
                 }
             }
         }
@@ -1147,38 +1503,57 @@ namespace AshenHalls
             Action action,
             bool hero)
         {
+            TitleMenuScrollStyle scrollStyle = TitleScreenPresentationRules.MenuScrollStyle;
+            bool useAuthoredRows = authoredMenuScrollSprite != null && authoredMenuFocusSprite != null;
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             go.transform.SetParent(menuPanel, false);
             Image background = go.GetComponent<Image>();
-            background.color = hero ? Hex("20140f", 0.96f) : Hex("101312", 0.94f);
+            background.color = useAuthoredRows ? Color.clear : Color.white;
             Outline outline = go.AddComponent<Outline>();
-            outline.effectColor = hero ? Hex("c69248", 0.46f) : Hex("7a6952", 0.24f);
+            outline.effectColor = Alpha(scrollStyle.Edge, hero ? 0.34f : 0.20f);
             outline.effectDistance = new Vector2(1f, -1f);
+            outline.useGraphicAlpha = false;
+            outline.enabled = !useAuthoredRows;
 
             Button button = go.GetComponent<Button>();
             button.targetGraphic = background;
             ColorBlock colors = button.colors;
-            colors.normalColor = background.color;
-            colors.highlightedColor = hero ? Hex("3c2518", 1f) : Hex("232a27", 1f);
+            colors.normalColor = useAuthoredRows ? Color.clear : Alpha(scrollStyle.Ink, hero ? 0.10f : 0.045f);
+            colors.highlightedColor = useAuthoredRows ? Color.clear : Alpha(scrollStyle.Selection, 0.96f);
             colors.selectedColor = colors.highlightedColor;
-            colors.pressedColor = Hex("080a09", 1f);
+            colors.pressedColor = useAuthoredRows ? Alpha(scrollStyle.Selection, 0.24f) : scrollStyle.Edge;
+            colors.disabledColor = useAuthoredRows ? Alpha(scrollStyle.Ink, 0.025f) : colors.disabledColor;
             colors.fadeDuration = 0.10f;
             button.colors = colors;
             if (action != null) button.onClick.AddListener(() => action());
 
-            Text cursor = AddText("Forge Cursor", go.transform, "\u25C6", 17, Hex("ffd06a", 0f), TextAnchor.MiddleCenter);
+            Image focusPlaque = AddImage("Focused Charter Ribbon", go.transform, Color.clear);
+            focusPlaque.raycastTarget = false;
+            focusPlaque.sprite = authoredMenuFocusSprite;
+            focusPlaque.type = useAuthoredRows ? Image.Type.Sliced : Image.Type.Simple;
+            focusPlaque.fillCenter = true;
+            focusPlaque.preserveAspect = false;
+            focusPlaque.gameObject.SetActive(useAuthoredRows);
+            Stretch(focusPlaque.rectTransform, -4f, -2f);
+
+            Text cursor = AddText("Forge Cursor", go.transform, "\u25C6", 17, Alpha(scrollStyle.SelectionInk, 0f), TextAnchor.MiddleCenter);
             cursor.font = UiRuntime.TitleFont ?? font;
             cursor.raycastTarget = false;
-            SetLocalRect(cursor.rectTransform, new Rect(7f, 7f, 18f, 38f));
+            DisableTextShadow(cursor);
+            SetLocalRect(cursor.rectTransform, new Rect(5f, 7f, 16f, 38f));
 
-            Image iconFrame = AddImage("Relic Icon Backplate", go.transform, Hex("060707", 0.72f));
+            Image iconFrame = AddImage(
+                "Relic Icon Backplate",
+                go.transform,
+                useAuthoredRows ? Color.clear : Alpha(scrollStyle.Roll, 0.82f));
             iconFrame.raycastTarget = false;
-            SetLocalRect(iconFrame.rectTransform, new Rect(30f, 6f, 44f, 40f));
+            SetLocalRect(iconFrame.rectTransform, new Rect(24f, 6f, 40f, 40f));
             Outline iconOutline = iconFrame.gameObject.AddComponent<Outline>();
-            iconOutline.effectColor = Hex("8e6a34", 0.34f);
+            iconOutline.effectColor = Alpha(scrollStyle.Edge, 0.58f);
             iconOutline.effectDistance = new Vector2(1f, -1f);
+            iconOutline.enabled = !useAuthoredRows;
 
-            Image icon = AddImage("Relic Icon", go.transform, Hex("c7b692", 0.72f));
+            Image icon = AddImage("Relic Icon", go.transform, Alpha(scrollStyle.Ink, 0.74f));
             icon.raycastTarget = false;
             int iconIndex = TitleScreenPresentationRules.MenuIconIndex(kind);
             if (bindings?.MenuIconAtlas != null && iconIndex >= 0)
@@ -1192,18 +1567,19 @@ namespace AshenHalls
                     new Rect(column * cellWidth, row * cellHeight, cellWidth, cellHeight));
                 icon.preserveAspect = true;
             }
-            SetLocalRect(icon.rectTransform, new Rect(33f, 8f, 38f, 36f));
+            SetLocalRect(icon.rectTransform, new Rect(27f, 7f, 36f, 38f));
 
-            Text text = AddText("Label", go.transform, label, hero ? 15 : 14, Hex("e4dac7", 0.92f), TextAnchor.MiddleLeft);
+            Text text = AddText("Label", go.transform, label, hero ? 18 : 17, scrollStyle.Ink, TextAnchor.MiddleLeft);
             text.font = UiRuntime.DialogueEmphasisFont ?? font;
             text.fontStyle = FontStyle.Normal;
             text.raycastTarget = false;
+            DisableTextShadow(text);
             text.rectTransform.anchorMin = Vector2.zero;
             text.rectTransform.anchorMax = Vector2.one;
-            text.rectTransform.offsetMin = new Vector2(86f, 4f);
+            text.rectTransform.offsetMin = new Vector2(72f, 4f);
             text.rectTransform.offsetMax = new Vector2(-14f, -4f);
 
-            Image focusRule = AddImage("Focused Forge Rule", go.transform, Hex("d7a84e", 0.14f));
+            Image focusRule = AddImage("Focused Forge Rule", go.transform, Alpha(scrollStyle.Accent, 0.18f));
             focusRule.raycastTarget = false;
             RectTransform focusRuleRect = focusRule.rectTransform;
             focusRuleRect.anchorMin = new Vector2(0f, 0f);
@@ -1219,13 +1595,92 @@ namespace AshenHalls
             titleChoices.Add(new TitleChoiceVisual
             {
                 Kind = kind,
+                Hero = hero,
                 Button = button,
+                FocusPlaque = focusPlaque,
+                IconFrame = iconFrame,
                 Icon = icon,
                 Cursor = cursor,
                 FocusRule = focusRuleRect,
                 Label = text
             });
             return button;
+        }
+
+        private void StyleScrollUtilityButton(Button button, Text label)
+        {
+            if (button == null) return;
+            TitleMenuScrollStyle scrollStyle = TitleScreenPresentationRules.MenuScrollStyle;
+            Image background = button.GetComponent<Image>();
+            if (background != null) background.color = Color.white;
+            Outline outline = button.GetComponent<Outline>();
+            if (outline != null) outline.effectColor = Alpha(scrollStyle.Edge, 0.28f);
+            ColorBlock colors = button.colors;
+            colors.normalColor = Alpha(scrollStyle.Ink, 0.07f);
+            colors.highlightedColor = scrollStyle.Roll;
+            colors.selectedColor = colors.highlightedColor;
+            colors.pressedColor = Alpha(scrollStyle.Edge, 0.72f);
+            button.colors = colors;
+            if (label != null)
+            {
+                label.color = scrollStyle.Ink;
+                label.font = UiRuntime.DialogueEmphasisFont ?? font;
+                label.fontStyle = FontStyle.Normal;
+                DisableTextShadow(label);
+            }
+        }
+
+        private void SetProceduralMenuGraphicsActive(bool active)
+        {
+            SetActive(menuScrollShadow, active);
+            SetActive(menuScrollSheet, active);
+            SetActive(menuScrollTopRoll, active);
+            SetActive(menuScrollBottomRoll, active);
+            SetActive(menuScrollTopHighlight, active);
+            SetActive(menuScrollTopShade, active);
+            SetActive(menuScrollBottomHighlight, active);
+            SetActive(menuScrollBottomShade, active);
+            SetActive(menuScrollLeftShade, active);
+            SetActive(menuScrollRightShade, active);
+            foreach (RectTransform endCap in menuScrollEndCaps) SetActive(endCap, active);
+        }
+
+        private static void SetActive(RectTransform rect, bool active)
+        {
+            if (rect != null) rect.gameObject.SetActive(active);
+        }
+
+        private static Sprite CreateExternalSlicedSprite(
+            Texture2D texture,
+            Rect sourceRect,
+            Vector4 border,
+            float pixelsPerUnit,
+            string spriteName)
+        {
+            if (texture == null
+                || sourceRect.width <= border.x + border.z
+                || sourceRect.height <= border.y + border.w
+                || sourceRect.xMin < 0f
+                || sourceRect.yMin < 0f
+                || sourceRect.xMax > texture.width
+                || sourceRect.yMax > texture.height)
+            {
+                return null;
+            }
+
+            texture.filterMode = FilterMode.Bilinear;
+            texture.wrapMode = TextureWrapMode.Clamp;
+            Sprite sprite = Sprite.Create(
+                texture,
+                sourceRect,
+                new Vector2(0.5f, 0.5f),
+                Mathf.Max(1f, pixelsPerUnit),
+                0,
+                SpriteMeshType.FullRect,
+                border);
+            sprite.name = spriteName;
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
         }
 
         private static Sprite CreateSoftGlowSprite()
@@ -1256,6 +1711,63 @@ namespace AshenHalls
             sprite.name = "Grand Hearth Soft Glow";
             sprite.hideFlags = HideFlags.HideAndDontSave;
             return sprite;
+        }
+
+        private static Sprite CreateParchmentSprite()
+        {
+            const int size = 192;
+            Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Title Menu Parchment Grain",
+                filterMode = FilterMode.Bilinear,
+                wrapMode = TextureWrapMode.Clamp,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            Color[] pixels = new Color[size * size];
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float broad = Mathf.PerlinNoise((x + 17f) * 0.071f, (y + 29f) * 0.071f);
+                    float grain = Mathf.PerlinNoise((x + 43f) * 0.29f, (y + 7f) * 0.31f);
+                    float fiber = Mathf.Sin(y * 0.83f + Mathf.Sin(x * 0.17f) * 1.9f) * 0.012f;
+                    float brightness = Mathf.Clamp(0.83f + broad * 0.13f + grain * 0.045f + fiber, 0.78f, 1f);
+                    pixels[y * size + x] = new Color(
+                        brightness,
+                        brightness * 0.985f,
+                        brightness * 0.925f,
+                        1f);
+                }
+            }
+            texture.SetPixels(pixels);
+            texture.Apply(false, true);
+            Sprite sprite = Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+            sprite.name = "Title Menu Parchment Grain";
+            sprite.hideFlags = HideFlags.HideAndDontSave;
+            return sprite;
+        }
+
+        private void DestroyRuntimeSprite(Sprite sprite)
+        {
+            if (sprite == null) return;
+            Texture2D texture = sprite.texture;
+            if (Application.isPlaying)
+            {
+                Destroy(sprite);
+                if (texture != null) Destroy(texture);
+            }
+            else
+            {
+                DestroyImmediate(sprite);
+                if (texture != null) DestroyImmediate(texture);
+            }
+        }
+
+        private void DestroyExternalSprite(Sprite sprite)
+        {
+            if (sprite == null) return;
+            if (Application.isPlaying) Destroy(sprite);
+            else DestroyImmediate(sprite);
         }
 
         private Button AddButton(string name, Transform parent, string label, Action action, bool hero)
@@ -1368,6 +1880,12 @@ namespace AshenHalls
             byte g = Convert.ToByte(hex.Substring(2, 2), 16);
             byte b = Convert.ToByte(hex.Substring(4, 2), 16);
             return new Color32(r, g, b, (byte)Mathf.RoundToInt(Mathf.Clamp01(alpha) * 255f));
+        }
+
+        private static Color Alpha(Color color, float alpha)
+        {
+            color.a = Mathf.Clamp01(alpha);
+            return color;
         }
 
         private static void EnsureEventSystem()

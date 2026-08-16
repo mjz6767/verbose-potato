@@ -7,6 +7,7 @@ namespace AshenHalls
         public const string Title = "tavern";
         public const string Tavern = Title;
         public const string GrandHearth = "grand-hearth";
+        public const string WorldMapOverview = "world-map-overview";
         public const string Muster = "muster";
         public const string Victory = "victory";
         public const string Defeat = "defeat";
