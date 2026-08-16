@@ -493,7 +493,7 @@ namespace AshenHalls
     {
         public Action Enter;
         public Action Exit;
-        public Action Select;
+        public Action<BaseEventData> Select;
         public Action Deselect;
 
         public void OnPointerEnter(PointerEventData eventData)
@@ -508,7 +508,7 @@ namespace AshenHalls
 
         public void OnSelect(BaseEventData eventData)
         {
-            Select?.Invoke();
+            Select?.Invoke(eventData);
         }
 
         public void OnDeselect(BaseEventData eventData)
@@ -739,6 +739,22 @@ namespace AshenHalls
             row.Button.onClick.Invoke();
         }
 
+        public void InvokePointerCommandForTest(ActionMode mode)
+        {
+            CommandRow row = commandRows.Find(candidate => candidate != null && candidate.Mode == mode);
+            if (row == null || !row.Button.interactable) throw new InvalidOperationException($"Combat command {mode} is not ready.");
+            EventSystem eventSystem = EventSystem.current
+                ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
+            if (eventSystem == null) throw new InvalidOperationException("Combat pointer command needs an EventSystem.");
+            PointerEventData pointer = new PointerEventData(eventSystem) { button = PointerEventData.InputButton.Left };
+            CombatHudCommandHoverRelay relay = row.Button.GetComponent<CombatHudCommandHoverRelay>();
+            if (relay == null) throw new InvalidOperationException($"Combat command {mode} is missing its pointer relay.");
+            eventSystem.SetSelectedGameObject(null, pointer);
+            relay.OnPointerEnter(pointer);
+            eventSystem.SetSelectedGameObject(row.Button.gameObject, pointer);
+            row.Button.onClick.Invoke();
+        }
+
         public void HoverCommandForTest(ActionMode mode)
         {
             int index = commandRows.FindIndex(candidate => candidate != null
@@ -862,6 +878,12 @@ namespace AshenHalls
 
         public ActionMode? HoveredCommandForTest => VisibleCommandModeForIndex(hoveredCommandIndex);
         public ActionMode? ContextCommandForTest => VisibleCommandModeForIndex(ContextualCommandIndex());
+        public bool PointerOwnsCommandContext => pointerOwnsCommandContext;
+
+        public bool HasFocusedCommand(ActionMode mode)
+        {
+            return FocusedCommandForTest == mode;
+        }
 
         public void FocusCommand(ActionMode mode)
         {
@@ -1465,7 +1487,7 @@ namespace AshenHalls
             CombatHudCommandHoverRelay relay = button.gameObject.AddComponent<CombatHudCommandHoverRelay>();
             relay.Enter = () => SetHoveredCommand(index);
             relay.Exit = () => ClearHoveredCommand(index);
-            relay.Select = () => SetFocusedCommand(index);
+            relay.Select = eventData => SetFocusedCommand(index, eventData is PointerEventData);
             relay.Deselect = () => ClearFocusedCommand(index);
             return new CommandRow(button.GetComponent<RectTransform>(), button, outline, label, hotkey, sub, iconWell, iconOutline, icon, iconFallback, hotkeyBackground, statePip, stateTagPanel, stateTag, accentRail);
         }
@@ -1838,10 +1860,18 @@ namespace AshenHalls
             if (view != null) RefreshCommandPrompt(view);
         }
 
-        private void SetFocusedCommand(int index)
+        private void SetFocusedCommand(int index, bool pointerSelection = false)
         {
-            hoveredCommandIndex = -1;
-            pointerOwnsCommandContext = false;
+            if (pointerSelection)
+            {
+                hoveredCommandIndex = index;
+                pointerOwnsCommandContext = true;
+            }
+            else
+            {
+                hoveredCommandIndex = -1;
+                pointerOwnsCommandContext = false;
+            }
             focusedCommandIndex = index;
             Refresh();
         }

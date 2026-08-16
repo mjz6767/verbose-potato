@@ -684,9 +684,9 @@ namespace AshenHalls
                 new[] { 220f, 261.6f, 293.7f, 329.6f, 293.7f, 261.6f, 246.9f, 220f, 196f, 246.9f, 293.7f, 349.2f, 329.6f, 293.7f, 261.6f, 220f },
                 new[] { 55f, 73.4f, 65.4f, 82.4f, 55f, 87.3f, 73.4f, 49f }, 0.45f, "stone"));
             RegisterAdaptiveMusic(MusicDirectorRules.GloamDeepCrypt, () => MakePatternMusic(
-                "the_crypt_keeps_its_names_loop", 26f, 0.76f,
-                new[] { 246.9f, 220f, 196f, 174.6f, 164.8f, 146.8f, 130.8f, 123.5f, 196f, 174.6f, 146.8f, 130.8f, 123.5f, 110f, 98f, 82.4f },
-                new[] { 61.7f, 55f, 49f, 41.2f, 46.2f, 36.7f, 41.2f, 30.9f }, 0.25f, "ruins"));
+                "the_crypt_keeps_its_names_loop", 28f, 0.88f,
+                new[] { 246.9f, 261.6f, 392f, 246.9f, 349.2f, 261.6f, 440f, 246.9f, 196f, 207.7f, 329.6f, 196f, 293.7f, 207.7f, 369.9f, 196f },
+                new[] { 61.7f, 65.4f, 98f, 61.7f, 87.3f, 65.4f, 110f, 61.7f }, 0.25f, "ruins"));
             RegisterAdaptiveMusic(MusicDirectorRules.GlassLoreLibrary, () => MakePatternMusic(
                 "starlight_in_the_glass_index_loop", 24f, 0.52f,
                 new[] { 493.9f, 587.3f, 698.5f, 784f, 698.5f, 659.3f, 587.3f, 523.3f, 587.3f, 698.5f, 880f, 784f, 698.5f, 659.3f, 587.3f, 493.9f },
@@ -696,17 +696,17 @@ namespace AshenHalls
                 new[] { 293.7f, 311.1f, 349.2f, 392f, 349.2f, 329.6f, 311.1f, 293.7f, 277.2f, 329.6f, 369.9f, 440f, 392f, 349.2f, 311.1f, 277.2f },
                 new[] { 73.4f, 77.8f, 98f, 82.4f, 69.3f, 92.5f, 77.8f, 65.4f }, 0.60f, "stealth"));
             RegisterAdaptiveMusic(MusicDirectorRules.RedGateSeal, () => MakePatternMusic(
-                "embers_at_the_broken_seal_loop", 24f, 0.46f,
-                new[] { 220f, 261.6f, 329.6f, 392f, 349.2f, 329.6f, 293.7f, 261.6f, 246.9f, 293.7f, 369.9f, 440f, 392f, 349.2f, 329.6f, 293.7f },
-                new[] { 55f, 65.4f, 82.4f, 61.7f, 55f, 73.4f, 65.4f, 49f }, 0.62f, "omen"));
+                "embers_at_the_broken_seal_loop", 24f, 0.50f,
+                new[] { 220f, 329.6f, 246.9f, 415.3f, 220f, 349.2f, 293.7f, 246.9f, 440f, 659.3f, 493.9f, 830.6f, 440f, 698.5f, 587.3f, 493.9f },
+                new[] { 55f, 82.4f, 61.7f, 103.8f, 55f, 87.3f, 73.4f, 61.7f }, 0.62f, "omen"));
             RegisterAdaptiveMusic(MusicDirectorRules.SaltCisternGate, () => MakePatternMusic(
                 "chains_below_bellstone_loop", 26f, 0.68f,
                 new[] { 164.8f, 196f, 174.6f, 146.8f, 130.8f, 146.8f, 123.5f, 110f, 146.8f, 174.6f, 164.8f, 130.8f, 123.5f, 110f, 98f, 82.4f },
                 new[] { 41.2f, 49f, 46.2f, 36.7f, 41.2f, 32.7f, 36.7f, 30.9f }, 0.34f, "threshold"));
             RegisterAdaptiveMusic(MusicDirectorRules.AshFenAncientGrove, () => MakePatternMusic(
-                "old_sap_under_ash_loop", 26f, 0.72f,
-                new[] { 293.7f, 392f, 440f, 523.3f, 440f, 392f, 349.2f, 293.7f, 329.6f, 440f, 493.9f, 587.3f, 493.9f, 440f, 392f, 329.6f },
-                new[] { 73.4f, 98f, 110f, 82.4f, 73.4f, 110f, 98f, 65.4f }, 0.29f, "grove"));
+                "old_sap_under_ash_loop", 28f, 0.76f,
+                new[] { 329.6f, 554.4f, 440f, 587.3f, 329.6f, 493.9f, 392f, 554.4f, 261.6f, 440f, 349.2f, 493.9f, 261.6f, 392f, 311.1f, 440f },
+                new[] { 82.4f, 138.6f, 110f, 146.8f, 82.4f, 123.5f, 98f, 138.6f }, 0.29f, "grove"));
 
             RegisterAdaptiveMusic(MusicDirectorRules.MidgaardTemple, () => MakePatternMusic(
                 "bells_over_temple_square_loop", 24f, 0.68f,
@@ -780,8 +780,8 @@ namespace AshenHalls
                 new[] { 98f, 123.5f, 146.8f, 110f, 130.8f, 164.8f, 123.5f, 98f }, 0.72f, "duel"));
             RegisterAdaptiveMusic(MusicDirectorRules.CombatElite, () => MakePatternMusic(
                 "steel_against_the_chosen_loop", 19.2f, 0.30f,
-                new[] { 220f, 261.6f, 329.6f, 392f, 349.2f, 329.6f, 293.7f, 261.6f, 246.9f, 293.7f, 369.9f, 440f, 392f, 349.2f, 329.6f, 293.7f },
-                new[] { 55f, 73.4f, 65.4f, 82.4f, 55f, 87.3f, 73.4f, 49f }, 0.82f, "elitecombat"));
+                new[] { 220f, 329.6f, 415.3f, 293.7f, 220f, 349.2f, 261.6f, 415.3f, 440f, 659.3f, 830.6f, 587.3f, 440f, 698.5f, 523.3f, 830.6f },
+                new[] { 55f, 82.4f, 103.8f, 73.4f, 55f, 87.3f, 65.4f, 103.8f }, 0.82f, "elitecombat"));
             RegisterAdaptiveMusic(MusicDirectorRules.CombatLastStand, () => MakePatternMusic(
                 "one_more_turn_last_stand_loop", 18f, 0.28f,
                 new[] { 196f, 220f, 261.6f, 293.7f, 329.6f, 349.2f, 392f, 440f, 220f, 261.6f, 293.7f, 349.2f, 392f, 440f, 493.9f, 523.3f },

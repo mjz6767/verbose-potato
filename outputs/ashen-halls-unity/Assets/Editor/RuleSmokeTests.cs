@@ -1514,6 +1514,82 @@ namespace AshenHalls.Editor
                     }
                 }
             }
+            RegionMapNavigationRulesKeepBrowsingBounded();
+        }
+
+        private static void RegionMapNavigationRulesKeepBrowsingBounded()
+        {
+            const int mapWidth = 58;
+            const int mapHeight = 46;
+            const int viewWidth = 17;
+            const int viewHeight = 9;
+
+            Point center = RegionMapNavigationRules.ClampFocus(29, 24, mapWidth, mapHeight);
+            AssertEqual(29, center.X, "Region Map keeps an in-bounds horizontal focus");
+            AssertEqual(24, center.Y, "Region Map keeps an in-bounds vertical focus");
+            Point clamped = RegionMapNavigationRules.ClampFocus(-12, 99, mapWidth, mapHeight);
+            AssertEqual(0, clamped.X, "Region Map focus clamps at the west edge");
+            AssertEqual(mapHeight - 1, clamped.Y, "Region Map focus clamps at the south edge");
+
+            Point centeredOrigin = RegionMapNavigationRules.ViewportOrigin(
+                center.X,
+                center.Y,
+                viewWidth,
+                viewHeight,
+                mapWidth,
+                mapHeight);
+            AssertEqual(21, centeredOrigin.X, "Region Map viewport centers horizontally on browse focus");
+            AssertEqual(20, centeredOrigin.Y, "Region Map viewport centers vertically on browse focus");
+            Point northwestOrigin = RegionMapNavigationRules.ViewportOrigin(0, 0, viewWidth, viewHeight, mapWidth, mapHeight);
+            Point southeastOrigin = RegionMapNavigationRules.ViewportOrigin(99, 99, viewWidth, viewHeight, mapWidth, mapHeight);
+            AssertEqual(0, northwestOrigin.X, "Region Map viewport stops at the west edge");
+            AssertEqual(0, northwestOrigin.Y, "Region Map viewport stops at the north edge");
+            AssertEqual(mapWidth - viewWidth, southeastOrigin.X, "Region Map viewport stops at the east edge");
+            AssertEqual(mapHeight - viewHeight, southeastOrigin.Y, "Region Map viewport stops at the south edge");
+
+            RegionMapNavigationStep initial = RegionMapNavigationRules.ResolveAxes(1f, 1f, 0, 0, 0f, 10f);
+            AssertEqual(1, initial.DeltaX, "rightward left-stick axis intent pans Region Map east once");
+            AssertEqual(-1, initial.DeltaY, "up stick-axis intent pans Region Map north once");
+            AssertEqual(true, Mathf.Approximately(10f + RegionMapNavigationRules.InitialRepeatDelay, initial.NextRepeatAt), "Region Map initial axis repeat delay is deterministic");
+            RegionMapNavigationStep held = RegionMapNavigationRules.ResolveAxes(
+                1f,
+                1f,
+                initial.HeldX,
+                initial.HeldY,
+                initial.NextRepeatAt,
+                initial.NextRepeatAt - 0.01f);
+            AssertEqual(false, held.Moved, "held Region Map axis waits through its initial repeat delay");
+            RegionMapNavigationStep repeated = RegionMapNavigationRules.ResolveAxes(
+                1f,
+                1f,
+                held.HeldX,
+                held.HeldY,
+                held.NextRepeatAt,
+                held.NextRepeatAt);
+            AssertEqual(true, repeated.Moved, "held Region Map axis repeats after its deterministic delay");
+            AssertEqual(true, Mathf.Approximately(held.NextRepeatAt + RegionMapNavigationRules.RepeatInterval, repeated.NextRepeatAt), "Region Map repeat cadence stays deterministic");
+            RegionMapNavigationStep released = RegionMapNavigationRules.ResolveAxes(0f, 0f, repeated.HeldX, repeated.HeldY, repeated.NextRepeatAt, 11f);
+            AssertEqual(0, released.HeldX, "released horizontal Region Map axis clears held state");
+            AssertEqual(0, released.HeldY, "released vertical Region Map axis clears held state");
+
+            RegionMapPointerPanStep drag = RegionMapNavigationRules.ResolvePointerDrag(-40f, 20f, 20f, 0f, 0f);
+            AssertEqual(2, drag.DeltaX, "dragging the Region Map left pans focus two cells east under grab-map semantics");
+            AssertEqual(-1, drag.DeltaY, "dragging the Region Map down pans focus one cell north under grab-map semantics");
+            RegionMapPointerPanStep partialDrag = RegionMapNavigationRules.ResolvePointerDrag(-7f, 5f, 20f, 0f, 0f);
+            AssertEqual(0, partialDrag.DeltaX, "sub-cell pointer drag waits instead of jittering the Region Map");
+            AssertEqual(0, partialDrag.DeltaY, "sub-cell vertical pointer drag waits instead of jittering the Region Map");
+            RegionMapPointerPanStep completedDrag = RegionMapNavigationRules.ResolvePointerDrag(-13f, 15f, 20f, partialDrag.RemainderX, partialDrag.RemainderY);
+            AssertEqual(1, completedDrag.DeltaX, "accumulated pointer drag advances exactly one horizontal cell");
+            AssertEqual(-1, completedDrag.DeltaY, "accumulated pointer drag advances exactly one vertical cell");
+            Point verticalWheel = RegionMapNavigationRules.ScrollDelta(1f, false);
+            Point horizontalWheel = RegionMapNavigationRules.ScrollDelta(-1f, true);
+            AssertEqual(1, verticalWheel.Y, "wheel down pans Region Map south");
+            AssertEqual(-1, horizontalWheel.X, "Shift-wheel up pans Region Map west");
+
+            HelpOverlayView help = HelpOverlayContent.Build(GameMode.Explore, false, 6, "Midgaard");
+            AssertEqual(true, help.Lines.Any(line => line.IndexOf("left stick", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help names the configured Region Map controller axis");
+            AssertEqual(true, help.Lines.Any(line => line.IndexOf("drag", StringComparison.OrdinalIgnoreCase) >= 0 && line.IndexOf("wheel", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help names Region Map pointer panning");
+            AssertEqual(true, help.Lines.Any(line => line.IndexOf("Home", StringComparison.OrdinalIgnoreCase) >= 0 && line.IndexOf("gamepad X", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help names both Region Map recenter controls");
         }
 
         private static void ExplorationGuidanceRulesKeepTheGoldenThreadActionable()
@@ -2972,7 +3048,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.15.0", VersionInfo.PackageVersion, "package version matches the integrated v2.15 candidate");
+            AssertEqual("v2.16.0", VersionInfo.PackageVersion, "package version matches the integrated v2.16 candidate");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -8717,6 +8793,107 @@ namespace AshenHalls.Editor
                 true,
                 CombatInputRoutingRules.ShouldRouteToWorld(false, CombatHotkeyKind.Submit),
                 "unfocused combat HUD leaves the End Turn shortcut available");
+            CombatBoardNavigationRulesKeepTargetingDeterministic();
+        }
+
+        private static void CombatBoardNavigationRulesKeepTargetingDeterministic()
+        {
+            Vector2Int northwest = CombatBoardNavigationRules.Step(
+                new Vector2Int(0, 0),
+                -1,
+                -1,
+                12,
+                8);
+            AssertEqual(new Vector2Int(0, 0), northwest, "combat board cursor clamps at the northwest edge");
+            Vector2Int southeast = CombatBoardNavigationRules.Step(
+                new Vector2Int(11, 7),
+                4,
+                9,
+                12,
+                8);
+            AssertEqual(new Vector2Int(11, 7), southeast, "combat board cursor clamps at the southeast edge");
+            AssertEqual(
+                new Vector2Int(4, 2),
+                CombatBoardNavigationRules.Step(new Vector2Int(3, 3), 6, -8, 12, 8),
+                "combat board cursor advances one deterministic cell per navigation step");
+
+            Vector2Int origin = new Vector2Int(2, 2);
+            Vector2Int[] unordered =
+            {
+                new Vector2Int(4, 2),
+                new Vector2Int(2, 3),
+                new Vector2Int(1, 2),
+                new Vector2Int(2, 1),
+                new Vector2Int(2, 1),
+                new Vector2Int(-1, 2)
+            };
+            List<Vector2Int> ordered = CombatBoardNavigationRules.OrderCandidates(origin, unordered, 12, 8);
+            AssertEqual(4, ordered.Count, "combat target cycle removes duplicates and out-of-board cells");
+            AssertEqual(new Vector2Int(2, 1), ordered[0], "combat target cycle sorts nearest candidates in stable row order");
+            AssertEqual(new Vector2Int(1, 2), ordered[1], "combat target cycle resolves same-distance candidates by row then column");
+            AssertEqual(new Vector2Int(2, 3), ordered[2], "combat target cycle keeps the final nearest candidate stable");
+            AssertEqual(new Vector2Int(4, 2), ordered[3], "combat target cycle places farther candidates after nearer ones");
+
+            AssertEqual(
+                ordered[0],
+                CombatBoardNavigationRules.Cycle(origin, origin, unordered, 1, 12, 8),
+                "forward target cycle enters at the first legal target when the cursor is elsewhere");
+            AssertEqual(
+                ordered[ordered.Count - 1],
+                CombatBoardNavigationRules.Cycle(origin, origin, unordered, -1, 12, 8),
+                "reverse target cycle enters at the last legal target when the cursor is elsewhere");
+            AssertEqual(
+                ordered[0],
+                CombatBoardNavigationRules.Cycle(origin, ordered[ordered.Count - 1], unordered, 1, 12, 8),
+                "forward target cycle wraps deterministically");
+            AssertEqual(
+                ordered[ordered.Count - 1],
+                CombatBoardNavigationRules.Cycle(origin, ordered[0], unordered, -1, 12, 8),
+                "reverse target cycle wraps deterministically");
+
+            AssertEqual(
+                false,
+                CombatBoardNavigationRules.PointerMovementOwnsInspection(Vector2.zero, new Vector2(1f, 1f)),
+                "stationary pointer jitter never clears controller board focus");
+            AssertEqual(
+                true,
+                CombatBoardNavigationRules.PointerMovementOwnsInspection(Vector2.zero, new Vector2(3f, 0f)),
+                "deliberate pointer movement restores pointer inspection");
+            AssertEqual(
+                false,
+                CombatBoardNavigationRules.NavigationIsNeutral(0.55f, 0f, false),
+                "held stick at the routing threshold is not neutral after pointer takeover");
+            AssertEqual(
+                false,
+                CombatBoardNavigationRules.NavigationIsNeutral(0f, 0f, true),
+                "held digital navigation is not neutral after pointer takeover");
+            AssertEqual(
+                true,
+                CombatBoardNavigationRules.NavigationIsNeutral(0.54f, -0.54f, false),
+                "released navigation inside the configured dead zone clears pointer-takeover suppression");
+            string combatInputSource = File.ReadAllText(Path.Combine(
+                Application.dataPath,
+                "Scripts",
+                "Legacy",
+                "AshenHallsGame.Combat.cs"));
+            AssertEqual(
+                true,
+                combatInputSource.Contains("if (TrackCombatBoardPointerOwnership() || ConsumeCombatBoardNavigationAfterPointerTakeover()) return;"),
+                "production HandleCombatHotkeys short-circuits both pointer takeover and held navigation suppression");
+
+            HelpOverlayView help = HelpOverlayContent.Build(GameMode.Combat, false, 6, "Midgaard");
+            AssertEqual(
+                true,
+                help.Lines.Any(line => line.IndexOf("left stick", StringComparison.OrdinalIgnoreCase) >= 0),
+                "combat help names the configured left-stick board cursor");
+            AssertEqual(
+                true,
+                help.Lines.Any(line => line.IndexOf("bumper", StringComparison.OrdinalIgnoreCase) >= 0),
+                "combat help names deterministic controller target cycling");
+            AssertEqual(
+                true,
+                help.Lines.Any(line => line.IndexOf("Submit", StringComparison.OrdinalIgnoreCase) >= 0),
+                "combat help names controller cursor confirmation");
         }
 
         private static void CombatTargetingCancellationIsExplicitAndSafe()

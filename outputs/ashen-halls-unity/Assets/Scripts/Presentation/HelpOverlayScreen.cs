@@ -79,11 +79,12 @@ namespace AshenHalls
                     Subtitle = "Turn tactics, abilities, and spell targeting",
                     Lines = new[]
                     {
-                        "WASD / arrows: spend move points on highlighted tiles.",
+                        "WASD / arrows quick-step while the board cursor is closed; with it open, WASD / arrows / left stick move the cursor.",
                         "U / Backspace: undo this turn's movement before committing an action.",
-                        "F: Attack or Shoot. Rangers shoot by default unless engaged.",
+                        "1 / Z: Move cursor. F: Attack or Shoot cursor. Rangers shoot by default unless engaged.",
                         "C: Ability. Casters open the Spellbook; martial classes open skills. Esc or right-click cancels an armed target without spending the action.",
-                        "Space: End Turn. It becomes the right answer when movement or action is spent.",
+                        "Tab / E / right bumper: next legal target. Q / left bumper: previous. The top face button returns to combat commands.",
+                        "Enter / Space / controller Submit confirms an open cursor; with no cursor, Space remains End Turn.",
                         "G: Guard. H: Elixir. I: Armory; Growth is review-only until combat ends. Esc: Menu. Campaign fights can retreat for one supply.",
                         "Standing still focuses casting: lower MP, longer reach, and harder hits.",
                         "Tree Cover lasts " + Math.Max(1, summonedTreeDuration) + " rounds. It blocks arrows/direct bolts, but arcing spells can pass over it.",
@@ -100,9 +101,9 @@ namespace AshenHalls
                     Subtitle = homeTownName + ", the Old Road, and contextual use",
                     Lines = new[]
                     {
-                        "WASD / arrows: move one tile. Click adjacent tiles to walk.",
+                        "Local Map: WASD / arrows move one tile. Click adjacent tiles to walk.",
                         "Space / E: use the highlighted nearby target: talk, loot, enter, recall, or descend.",
-                        "Q: Location Details. Tab: toggle Local/Region Map.",
+                        "Q: Details. Tab / gamepad Y: Local/Region. Region Map: WASD/arrows/left stick, drag, or wheel pan; Home/gamepad X finds the party.",
                         "I: Armory. Its Growth tab previews and spends earned points. J: Journal. C: spell reference.",
                         "P or Esc: Menu for save, load, settings, return, or new game.",
                         "You begin among the patrons in Town Hall's Grand Hearth: follow NEXT to leave through its storm doors and begin the journey.",

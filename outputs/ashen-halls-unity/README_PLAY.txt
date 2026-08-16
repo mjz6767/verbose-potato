@@ -1,8 +1,14 @@
-Ash & Brimstone v2.15.0 - Maps, Magic, and Music
+Ash & Brimstone v2.16.0 - Compass and Command
 
-Current release update: v2.15.0. Save schema: v25.
+Current release update: v2.16.0. Save schema: v25.
 
-The integrated presentation update remasters the title overture and responsive menu, gives the wide World Map its own `Ashen Atlas` score, and makes music transitions fuller and steadier. Crossfades use equal-power gains, muted music keeps its place, and calm exploration routes wait for a stable change instead of rapidly restarting or switching themes.
+The Region Map can now be browsed independently of the party. Use WASD, arrows, or the configured left stick to pan; Home or the controller's left face button returns to the party; click, drag, or use the wheel to inspect other cells. A selected-cell reticle, coordinates, chart/fog context, and edge cues make the current focus clear, while browsing cannot move the party or alter campaign state.
+
+Combat now supports an intentional keyboard/controller board cursor. Select Move or Attack, move the cursor with directional input, cycle legal targets with Tab/E/right bumper or Q/left bumper, confirm with Submit, and use the top face button to return to the command deck. Deliberate mouse movement restores pointer ownership, and Reduced Motion keeps the cursor static.
+
+Four score routes—the Gloam Deep crypt, Red Gate seal, Ash Fen ancient grove, and elite combat—now have distinct musical designs in both imported masters and procedural fallbacks. The 20-second World Map QA mix follows the real local-road to `Ashen Atlas` to pursuit route, and the audio builder now rejects duplicate blueprints and validates runtime gains, fades, headroom, and audibility. The bank remains 54 original music masters and 161 authored SFX.
+
+The v2.15 presentation foundation remasters the title overture and responsive menu, gives the wide World Map its own `Ashen Atlas` score, and makes music transitions fuller and steadier. Crossfades use equal-power gains, muted music keeps its place, and calm exploration routes wait for a stable change instead of rapidly restarting or switching themes.
 
 The exploration HUD now has one persistent command deck for context, map view, Journal, Party, and Menu. Combat keeps the objective, acting or idle state, target context, blocked reasons, and Menu access visible. Loot review distinguishes gear from resource-only spoils, adds an Upgrades filter, and supports explicit equipment swaps that keep both adventurers fully equipped.
 
@@ -10,13 +16,15 @@ Mage/warlock, support/hex, class-skill, and travel art now stage authored antici
 
 Six accepted runtime-art pins from the v2.12.1, v2.13, v2.14, and v2.15 presentation slices bring the exact manifest to 54 pins and the packaged art inventory to 89 PNGs. Their historical provenance labels remain unchanged.
 
-The Red Gate v2.12.0 campaign remains the production story baseline inside v2.15. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
+The Red Gate v2.12.0 campaign remains the production story baseline inside v2.16. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
 
 Chapter V crosses three authored sites in order. Break the Red Gate Vanguard at the inner seal, carry its tally north to Gloam Deep Crypt for the Ossuary Road Seal, then take that seal south to Salt Cistern Gate and defeat the named Crownroad Marshal. Three matching patrol bands occupy the road. The later encounters remain locked until their required tally or seal has been recovered.
 
 Marshal victory grants exactly one +6 crownward emberglass warblade and two supplies. Inspect Salt Cistern Gate again to chart the sealed Meteor Crown threshold and complete the chapter. Recall, retry, save/load repair, and depth-five re-entry preserve progress without duplicating rewards or arrival progression. Production exposes no generic depth-six stair or final-boss trigger.
 
-v2.15 validation status: RuleSmoke, full RuntimeBoot, focused sprite-art and combat-UI checks, deterministic 54-music/106-original-SFX bank validation, the clean Windows build/package, and clean-extracted packaged boot pass from source commit `43b9c9c985d59a273f39bdf14ea39f9d3f57e376`. `AshAndBrimstone-Windows-v2.15.0.zip` is 226,844,217 bytes with SHA-256 `d782e88eaee3e4684418f4d5923d2a94af50e68026169e15cae294dd007c46d1`; it contains 89 approved PNGs. Four final-player title, Region Map, minimum-size combat, and Fireball captures pass deterministic and manual visual review with capture-set SHA-256 `afe86e29f1b503b8001b68abd45a4a50ef87e0b4f34bab86e46b25c2facc7e15`. Subjective speaker/headphone listening, physical-controller review, the live Reduced Motion showcase comparison, and a complete human Chapter I-V playthrough remain manual checks. These evidence lines were committed after packaging: the immutable ZIP retains the pre-verification documentation snapshot from its source commit so its recorded hash remains reproducible, while the repository notes record the completed post-package gates.
+v2.16 validation status: the 54-music/106-original-SFX rebuild, deterministic audio check, six focused audio contracts, Unity RuleSmoke, and full RuntimeBoot pass. The clean Windows build/package, clean-extracted packaged boot, and final-player Region Map/combat-cursor visual packet remain candidate gates. Physical-controller feel, subjective speaker/headphone listening at several volumes, drag/wheel feel, and a complete human Chapter I-V playthrough remain manual checks.
+
+v2.15 release history: RuleSmoke, full RuntimeBoot, focused sprite-art and combat-UI checks, deterministic audio-bank validation, the clean Windows build/package, clean-extracted packaged boot, and four-capture final-player visual review pass from source commit `43b9c9c985d59a273f39bdf14ea39f9d3f57e376`. The verified ZIP and hashes remain preserved as rollback evidence.
 
 Glass and Ash v2.11.0 release history:
 

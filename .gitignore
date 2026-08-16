@@ -65,6 +65,8 @@ source-packages/
 beta-test/
 
 # OS/editor noise
+__pycache__/
+*.py[cod]
 Thumbs.db
 ehthumbs.db
 Desktop.ini

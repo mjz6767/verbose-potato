@@ -822,6 +822,8 @@ namespace AshenHalls
             hash = unchecked(hash * 31 + state.Elixirs);
             hash = unchecked(hash * 31 + (exploreHudCollapsed ? 1 : 0));
             hash = unchecked(hash * 31 + (exploreWideView ? 1 : 0));
+            hash = unchecked(hash * 31 + exploreRegionFocusX);
+            hash = unchecked(hash * 31 + exploreRegionFocusY);
             hash = unchecked(hash * 31 + (exploreHoverLookLine ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (state.ActiveStory ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (state.ActiveRouteWaypointKey ?? "").GetHashCode());
@@ -863,18 +865,25 @@ namespace AshenHalls
             }
 
             ExplorationInteraction interaction = CurrentExploreInteraction();
-            WorldZone zone = state?.Map == null ? null : ZoneAt(state.PlayerX, state.PlayerY);
-            MapObject obj = state?.Map == null ? null : ObjectAt(state.Map, state.PlayerX, state.PlayerY);
-            bool hasRegionalSite = TryRegionalSiteAt(
-                state?.Map,
-                state.PlayerX,
-                state.PlayerY,
-                out WorldMapSite regionalSite);
+            Point focus = exploreWideView ? EnsureRegionMapFocus() : new Point(state.PlayerX, state.PlayerY);
+            bool focusCharted = state.Map != null && (!exploreWideView || IsExploreCellCharted(focus.X, focus.Y));
+            WorldZone zone = state.Map == null ? null : ZoneAt(focus.X, focus.Y);
+            MapObject obj = focusCharted ? ObjectAt(state.Map, focus.X, focus.Y) : null;
+            WorldMapSite regionalSite = default;
+            bool hasRegionalSite = focusCharted && TryRegionalSiteAt(
+                state.Map,
+                focus.X,
+                focus.Y,
+                out regionalSite);
             string nearbyAction = ExploreNearbyActionLine();
             string lookLine;
             if (!string.IsNullOrEmpty(exploreHoverLookLine))
             {
                 lookLine = "Look: " + exploreHoverLookLine.Replace("\n", " / ");
+            }
+            else if (exploreWideView && state.Map != null)
+            {
+                lookLine = "Focus: " + ExploreLookLine(focus.X, focus.Y).Replace("\n", " / ");
             }
             else if (!string.IsNullOrEmpty(nearbyAction))
             {
@@ -897,16 +906,18 @@ namespace AshenHalls
             {
                 Title = ExploreViewLabel(),
                 RouteLine = $"{StoryChapterTitle()} / D{state.Depth}",
-                FocusHint = ExploreChartProgressLabel(),
+                FocusHint = RegionMapFocusLabel(),
                 Gold = state.Gold.ToString(),
                 Supplies = state.Supplies.ToString(),
                 Elixirs = state.Elixirs.ToString(),
                 DetailsOpen = !exploreHudCollapsed,
                 ViewLabel = ExploreViewLabel(),
-                ZoneName = hasRegionalSite ? regionalSite.Name : zone?.Name ?? HomeTownName,
-                ZoneDetail = ExploreLocationDetail(zone, hasRegionalSite),
-                DangerLabel = zone == null ? "" : TravelDangerLabel(zone),
-                DangerColorHex = zone == null ? "66c9b6" : ColorHtml(ZoneDangerColor(zone)),
+                ZoneName = !focusCharted ? "Uncharted" : hasRegionalSite ? regionalSite.Name : zone?.Name ?? HomeTownName,
+                ZoneDetail = !focusCharted
+                    ? $"BROWSE FOCUS {focus.X},{focus.Y} / travel closer to reveal"
+                    : ExploreLocationDetailAt(zone, focus.X, focus.Y, hasRegionalSite),
+                DangerLabel = zone == null ? "" : focusCharted ? TravelDangerLabel(zone) : "UNKNOWN",
+                DangerColorHex = zone == null || !focusCharted ? "8da6b2" : ColorHtml(ZoneDangerColor(zone)),
                 LookLine = lookLine,
                 ObjectiveLine = string.IsNullOrEmpty(state.ActiveStory) ? "Follow the road and mark what the party learns." : state.ActiveStory,
                 ObjectiveSummary = ExploreObjectiveSummaryLine(),
@@ -925,20 +936,29 @@ namespace AshenHalls
             WorldZone zone,
             bool hasRegionalSite = false)
         {
+            return ExploreLocationDetailAt(zone, state?.PlayerX ?? 0, state?.PlayerY ?? 0, hasRegionalSite);
+        }
+
+        private string ExploreLocationDetailAt(
+            WorldZone zone,
+            int x,
+            int y,
+            bool hasRegionalSite = false)
+        {
             if (zone == null || state?.Map == null) return "";
-            if (state.Depth == 1 && IsMidgaardCityCell(state.PlayerX, state.PlayerY, state.Map, state.Depth))
+            if (state.Depth == 1 && IsMidgaardCityCell(x, y, state.Map, state.Depth))
             {
                 string district = MidgaardDistrictRules.DistrictAtOffset(
-                    state.PlayerX - state.Map.StartX,
-                    state.PlayerY - state.Map.StartY);
-                return $"{district} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
+                    x - state.Map.StartX,
+                    y - state.Map.StartY);
+                return $"{district} / {ExploreGroundName(x, y)}";
             }
             if (hasRegionalSite)
             {
                 if (TryRegionalSiteAt(
                         state.Map,
-                        state.PlayerX,
-                        state.PlayerY,
+                        x,
+                        y,
                         out WorldMapSite site)
                     && WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
                 {
@@ -947,11 +967,11 @@ namespace AshenHalls
                         state.Depth,
                         site.Id);
                     string status = rewardClaimed ? "SERVICE" : "REWARD READY";
-                    return $"{status} / {interaction.ServiceName} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
+                    return $"{status} / {interaction.ServiceName} / {ExploreGroundName(x, y)}";
                 }
-                return $"{zone.Title} landmark / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
+                return $"{zone.Title} landmark / {ExploreGroundName(x, y)}";
             }
-            return $"{zone.Title} / {ExploreGroundName(state.PlayerX, state.PlayerY)}";
+            return $"{zone.Title} / {ExploreGroundName(x, y)}";
         }
 
         private string ExploreObjectiveSummaryLine()

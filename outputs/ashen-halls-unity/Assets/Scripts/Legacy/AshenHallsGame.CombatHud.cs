@@ -46,6 +46,13 @@ namespace AshenHalls
             combatHudScreen.SetSuppressedByImguiFallback(false);
             combatHudScreen.SetUnderlay(visible && CurrentUiOverlay() != UiOverlay.None);
             if (visible && (activated || ShouldRefreshPresentation(ref lastCombatHudRefreshKey, CombatHudRefreshKey()))) combatHudScreen.Refresh();
+            if (activated
+                && !combatBoardCursorActive
+                && CurrentUnit() is CombatUnit active
+                && active.Side == UnitSide.Party)
+            {
+                combatHudScreen.FocusCommand(selectedAction);
+            }
         }
 
         private string CombatHudRefreshKey()
@@ -66,6 +73,9 @@ namespace AshenHalls
             hash = unchecked(hash * 31 + (combatTimelineExpanded ? 1 : 0));
             hash = unchecked(hash * 31 + (pendingFormulaCode ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (pendingAbilityId ?? "").GetHashCode());
+            hash = unchecked(hash * 31 + (combatBoardCursorActive ? 1 : 0));
+            hash = unchecked(hash * 31 + (combatBoardCursorCell?.x ?? -1));
+            hash = unchecked(hash * 31 + (combatBoardCursorCell?.y ?? -1));
             hash = unchecked(hash * 31 + (active?.Id ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (hovered?.Id ?? "").GetHashCode());
             hash = unchecked(hash * 31 + (focus?.Id ?? "").GetHashCode());
@@ -312,6 +322,11 @@ namespace AshenHalls
         {
             if (active == null) return "Initiative is forming...";
             if (!playerTurn) return EnemyIntentLine(active);
+            if (combatBoardCursorActive && combatBoardCursorCell.HasValue)
+            {
+                Vector2Int cursor = combatBoardCursorCell.Value;
+                return $"CURSOR {cursor.x + 1},{cursor.y + 1}  |  Arrows / left stick move  ·  Tab / bumpers cycle  ·  Submit confirms";
+            }
             return $"{CombatFocusStateLine(active, true)}  |  {ActiveCommandPrompt(active)}";
         }
 
@@ -694,7 +709,10 @@ namespace AshenHalls
         {
             if (target == null) return "NONE";
             CombatUnit hovered = CombatHudHoveredUnit();
-            if (hovered != null && hovered.Id == target.Id) return "HOVER";
+            if (hovered != null && hovered.Id == target.Id)
+            {
+                return combatBoardCursorActive ? "CURSOR" : "HOVER";
+            }
             if (active != null && active.Side == UnitSide.Enemy) return "INTENT";
             if (!string.IsNullOrEmpty(pendingFormulaCode) || !string.IsNullOrEmpty(pendingAbilityId)) return "SUGGESTED";
             return target.Side == UnitSide.Enemy ? "NEAREST" : "ALLY";
@@ -763,6 +781,10 @@ namespace AshenHalls
                     visualSmokeCombatHoverCell.Value.x,
                     visualSmokeCombatHoverCell.Value.y);
             }
+            if (combatBoardCursorActive && combatBoardCursorCell.HasValue)
+            {
+                return UnitAt(combatBoardCursorCell.Value.x, combatBoardCursorCell.Value.y);
+            }
             if (boardRect.width <= 0f || boardRect.height <= 0f) return null;
             Rect grid = CombatBoardInnerRect(boardRect);
             float cell = Mathf.Min(grid.width / CombatW, grid.height / CombatH);
@@ -805,7 +827,14 @@ namespace AshenHalls
                 PlaySfx("blocked", 0.55f);
                 return;
             }
+            bool controllerFocused = combatHudScreen != null
+                && combatHudScreen.HasFocusedCommand(mode)
+                && !combatHudScreen.PointerOwnsCommandContext;
             SelectOrRunAction(mode, active);
+            if (controllerFocused && (mode == ActionMode.Move || mode == ActionMode.Attack))
+            {
+                ActivateCombatBoardCursor(active, mode == ActionMode.Attack, true);
+            }
         }
 
         private void RunCombatHudUndoMove()

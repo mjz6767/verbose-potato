@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.16.0 - Compass and Command
+
+- Made the wide Region Map fully browsable without moving the party. Keyboard, arrows, and the configured left stick pan a persistent focus; Home or the controller's left face button recenters; pointer click, grab-drag, and wheel input browse the chart. A focus reticle, coordinates, chart/fog context, and edge cues keep the selected cell and available pan directions visible.
+- Added a transient combat board cursor for keyboard and controller play. Move and Attack hand off cleanly from the command deck, directional input moves the cursor, Tab/E/right bumper and Q/left bumper cycle forward or backward through legal targets, Submit resolves through the existing action paths, and the top face button returns to the command palette. Deliberate pointer movement restores mouse ownership, and Reduced Motion keeps the cursor static.
+- Gave the Gloam Deep crypt, Red Gate seal, Ash Fen ancient grove, and elite combat routes distinct musical blueprints in both imported masters and procedural fallbacks. The exact World Map preview now exercises local road to `Ashen Atlas` to pursuit through the runtime fade timings instead of holding a static overview bed.
+- Hardened the original-audio pipeline with duplicate-blueprint rejection and source-aligned route, gain, fade-duration, peak, RMS, and headroom contracts. The inventory remains 54 original music masters and 161 authored SFX; art pins, campaign content, and save schema v25 are unchanged.
+- Added deterministic rule and runtime coverage for bounded map browsing, input ownership, mutation-free chart inspection, legal combat cursor ordering/cycling, HUD-to-board focus transfer, confirmation, undo, pointer recovery, Reduced Motion, visual-smoke staging, and the new audio contracts. The deterministic audio checks, RuleSmoke, and full RuntimeBoot pass in Unity 6000.3.18f1; clean package and final-player visual gates remain pending, while subjective listening and physical-controller review remain manual.
+
 ## v2.15.0 - Maps, Magic, and Music
 
 - Remastered the exact 60-second `Ash & Brimstone` title overture with a stronger, wider opening and a first motif that clears the reveal response. Six pitch-locked title cues now own forge, reveal, focus, confirm, open, and close feedback, while the responsive Ashen Road scroll and focus-ribbon art keeps the menu readable from compact 4:3 through ultrawide layouts.

@@ -1,5 +1,5 @@
 {
-  "release": "v2.15.0",
+  "release": "v2.16.0",
   "generator": "Tools/Audio/BuildOriginalAudio.py",
   "deterministic": true,
   "external_samples": false,
@@ -7,18 +7,69 @@
   "sfx_count": 106,
   "music_sample_rate": 32000,
   "sfx_sample_rate": 48000,
-  "preview": "QA/ash-and-brimstone-v2.15.0-music-preview.wav",
-  "title_preview": "QA/ash-and-brimstone-v2.15.0-title-preview.wav",
-  "title_runtime_preview": "QA/ash-and-brimstone-v2.15.0-title-runtime-preview.wav",
-  "world_map_runtime_preview": "QA/ash-and-brimstone-v2.15.0-world-map-runtime-preview.wav",
-  "combat_runtime_preview": "QA/ash-and-brimstone-v2.15.0-combat-runtime-preview.wav",
+  "preview": "QA/ash-and-brimstone-v2.16.0-music-preview.wav",
+  "title_preview": "QA/ash-and-brimstone-v2.16.0-title-preview.wav",
+  "title_runtime_preview": "QA/ash-and-brimstone-v2.16.0-title-runtime-preview.wav",
+  "world_map_runtime_preview": "QA/ash-and-brimstone-v2.16.0-world-map-runtime-preview.wav",
+  "combat_runtime_preview": "QA/ash-and-brimstone-v2.16.0-combat-runtime-preview.wav",
   "preview_sha256": {
-    "preview": "657250ba84b6eadadeecc5628967d7757677e76d0c0e66bcfc30835971a21d16",
+    "preview": "c94de4fce3c5a936f0ba645c782e3cabe41662bcbf22ff47d927f1b7e97fcb0b",
     "title_preview": "b2fbcbea86c613f97fe8eef6ae5aefada7c088a09b4ae1211e5fe22ba7723a94",
     "title_runtime_preview": "8c31c4afb32a253004ebb2db68ad8105ad69c141f07857fd1c807ecb9c1bea3c",
-    "world_map_runtime_preview": "48431e0023795631364eb5b342b472f31b958947b1b9e108c0f4293e7ab7bf8a",
+    "world_map_runtime_preview": "0d4369768b2ef2830033731f76a5c01adbc9ae0f0719a9fbb9917a03acca8966",
     "combat_runtime_preview": "a03861665cc2755ac65b42700602c48e343c84b1c9562be8de45b126538f89cc"
   },
+  "runtime_preview_contract": {
+    "default_music_volume_percent": 65,
+    "sfx_source_gain": 0.78,
+    "music_source_gains": {
+      "title": 0.29,
+      "muster": 0.23,
+      "combat": 0.22,
+      "world_map": 0.18,
+      "standard": 0.2
+    },
+    "maximum_peak_dbfs": -3.0,
+    "minimum_rms_dbfs": -42.0,
+    "maximum_rms_dbfs": -18.0
+  },
+  "runtime_preview_metrics": {
+    "title_runtime_preview": {
+      "peak_dbfs": -16.18,
+      "rms_dbfs": -33.23,
+      "headroom_db": 16.18
+    },
+    "world_map_runtime_preview": {
+      "peak_dbfs": -12.45,
+      "rms_dbfs": -34.24,
+      "headroom_db": 12.45
+    },
+    "combat_runtime_preview": {
+      "peak_dbfs": -5.75,
+      "rms_dbfs": -30.65,
+      "headroom_db": 5.75
+    }
+  },
+  "world_map_runtime_preview_routes": [
+    {
+      "context": "local-road",
+      "cue": "old_road_walk_loop",
+      "start_seconds": 0.0,
+      "crossfade_seconds": 0.0
+    },
+    {
+      "context": "world-map-overview",
+      "cue": "ashen_atlas_overview_loop",
+      "start_seconds": 4.5,
+      "crossfade_seconds": 1.1
+    },
+    {
+      "context": "hunted-road",
+      "cue": "footsteps_behind_loop",
+      "start_seconds": 12.0,
+      "crossfade_seconds": 0.85
+    }
+  ],
   "assets": [
     {
       "cue": "tavern_storm_hearth_ensemble_loop",
@@ -110,10 +161,10 @@
       "channels": 2,
       "frames": 960000,
       "duration_seconds": 30.0,
-      "peak_dbfs": -9.04,
+      "peak_dbfs": -8.88,
       "rms_dbfs": -21.5,
-      "seam_delta_dbfs": "-75.85",
-      "sha256": "43d06409e575dd76bc78c1a9346062ea678605f8085eaa8b7049a86b6984b813",
+      "seam_delta_dbfs": "-75.43",
+      "sha256": "9320ff79e22461200769ba8546bab43834b3997b38dac165a64288f9ef9cb116",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -156,12 +207,12 @@
       "direction": "A restrained bowed warning, slow war pulse, and unstable rising plucked intervals at the Red Gate seal.",
       "sample_rate": 32000,
       "channels": 2,
-      "frames": 682667,
-      "duration_seconds": 21.3333,
-      "peak_dbfs": -7.26,
+      "frames": 749268,
+      "duration_seconds": 23.4146,
+      "peak_dbfs": -6.72,
       "rms_dbfs": -19.94,
-      "seam_delta_dbfs": "-82.18",
-      "sha256": "6912007ce99caa61de0ceeaf938909a606447ab0a89e91c7243ed063943acd7f",
+      "seam_delta_dbfs": "-77.36",
+      "sha256": "59e9038d18ff5118551a84f9fb7b0462d1002210814b83a146d3250c77c1edd7",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -188,12 +239,12 @@
       "direction": "Patient bowed resonance, a leaflike reed, and a remembered road phrase in the Ash Fen ancient grove.",
       "sample_rate": 32000,
       "channels": 2,
-      "frames": 877714,
-      "duration_seconds": 27.4286,
-      "peak_dbfs": -9.12,
+      "frames": 930909,
+      "duration_seconds": 29.0909,
+      "peak_dbfs": -8.84,
       "rms_dbfs": -21.3,
-      "seam_delta_dbfs": "-91.89",
-      "sha256": "f8a289e4336cc6552404466d94b2971d745cb69ed6c62367fa40039776e7e946",
+      "seam_delta_dbfs": "-84.83",
+      "sha256": "3b94448e675a9c79912f46d156f87b752c99900b92bc79afcd782fd63f74e568",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -844,12 +895,12 @@
       "direction": "Hard frame drum and broad strings for an elite foe without boss fanfare.",
       "sample_rate": 32000,
       "channels": 2,
-      "frames": 548571,
-      "duration_seconds": 17.1428,
-      "peak_dbfs": -4.77,
+      "frames": 520678,
+      "duration_seconds": 16.2712,
+      "peak_dbfs": -4.8,
       "rms_dbfs": -19.14,
-      "seam_delta_dbfs": "-91.21",
-      "sha256": "1db7156537dd9f352dceeeb404b560ef6642a50642f5ec7508104a8a96f0889d",
+      "seam_delta_dbfs": "-82.12",
+      "sha256": "62b27eb3435cd80bf0cea3ccf7e50e18d169f2447d60c161cd149215e5d0829b",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {

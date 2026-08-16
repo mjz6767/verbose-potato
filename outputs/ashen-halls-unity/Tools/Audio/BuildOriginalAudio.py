@@ -13,6 +13,7 @@ import csv
 import hashlib
 import json
 import math
+import re
 import shutil
 import wave
 from dataclasses import asdict, dataclass
@@ -25,13 +26,47 @@ import numpy as np
 MUSIC_SAMPLE_RATE = 32_000
 SFX_SAMPLE_RATE = 48_000
 MUSIC_BEATS = 32
-AUDIO_RELEASE = "v2.15.0"
-AUDIO_RELEASE_SLUG = "v2.15.0"
+AUDIO_RELEASE = "v2.16.0"
+AUDIO_RELEASE_SLUG = "v2.16.0"
 STAGE_ROOT = Path(__file__).resolve().parents[2]
 MUSIC_DIR = STAGE_ROOT / "Assets" / "Resources" / "Audio" / "Music"
 SFX_DIR = STAGE_ROOT / "Assets" / "Resources" / "Audio" / "Sfx"
 DOCS_DIR = STAGE_ROOT / "Docs"
 QA_DIR = STAGE_ROOT / "QA"
+
+DEFAULT_MUSIC_VOLUME_FRACTION = 0.65
+RUNTIME_SFX_SOURCE_GAIN = 0.78
+RUNTIME_MUSIC_GAIN_CONTRACT = {
+    "title": ("TitleMusicSourceGain", 0.29),
+    "muster": ("MusterMusicSourceGain", 0.23),
+    "combat": ("CombatMusicSourceGain", 0.22),
+    "world_map": ("WorldMapMusicSourceGain", 0.18),
+    "standard": ("StandardMusicSourceGain", 0.20),
+}
+RUNTIME_PREVIEW_MAX_PEAK = 10.0 ** (-3.0 / 20.0)
+RUNTIME_PREVIEW_MIN_RMS = 10.0 ** (-42.0 / 20.0)
+RUNTIME_PREVIEW_MAX_RMS = 10.0 ** (-18.0 / 20.0)
+MIN_MUSIC_DURATION_SECONDS = 15.0
+MAX_MUSIC_DURATION_SECONDS = 30.1
+TITLE_MAX_MUSIC_DURATION_SECONDS = 60.1
+TITLE_MUSIC_CUE = "tavern_storm_hearth_ensemble_loop"
+
+WORLD_MAP_PREVIEW_ROUTES = (
+    ("local-road", "old_road_walk_loop", 0.0, 0.0),
+    ("world-map-overview", "ashen_atlas_overview_loop", 4.5, 1.10),
+    ("hunted-road", "footsteps_behind_loop", 12.0, 0.85),
+)
+
+RUNTIME_IMPORTED_ROUTE_BINDINGS = (
+    ("WorldMapOverview", "ashen_atlas_overview_loop"),
+    ("GloamDeepCrypt", "the_crypt_keeps_its_names_loop"),
+    ("RedGateSeal", "embers_at_the_broken_seal_loop"),
+    ("AshFenAncientGrove", "old_sap_under_ash_loop"),
+    ("ForgottenRuins", "names_worn_away_loop"),
+    ("HuntedRoad", "footsteps_behind_loop"),
+    ("AncientGrove", "roots_remember_loop"),
+    ("CombatElite", "steel_against_the_chosen_loop"),
+)
 
 
 @dataclass(frozen=True)
@@ -141,9 +176,9 @@ TRACKS: tuple[TrackSpec, ...] = (
         "The Crypt Keeps Its Names",
         64,
         47,
-        AEOLIAN,
-        (0, 5, 3, 0, 6, 4, 1, 0),
-        "defeat",
+        PHRYGIAN,
+        (0, 1, 5, 0, 4, 1, 6, 0),
+        "crypt",
         0.25,
         "Hollow low strings and isolated weathered bells pace a restrained memorial theme for the Gloam deep crypt.",
     ),
@@ -172,11 +207,11 @@ TRACKS: tuple[TrackSpec, ...] = (
     TrackSpec(
         "embers_at_the_broken_seal_loop",
         "Embers at the Broken Seal",
-        90,
+        82,
         45,
         HARMONIC_MINOR,
-        (0, 5, 4, 0, 6, 3, 5, 0),
-        "boss",
+        (0, 4, 1, 6, 0, 5, 3, 1),
+        "seal",
         0.64,
         "A restrained bowed warning, slow war pulse, and unstable rising plucked intervals at the Red Gate seal.",
     ),
@@ -194,11 +229,11 @@ TRACKS: tuple[TrackSpec, ...] = (
     TrackSpec(
         "old_sap_under_ash_loop",
         "Old Sap under Ash",
-        70,
+        66,
         52,
         DORIAN,
-        (0, 3, 5, 0, 4, 6, 3, 0),
-        "road",
+        (0, 5, 3, 6, 0, 4, 2, 5),
+        "grove",
         0.30,
         "Patient bowed resonance, a leaflike reed, and a remembered road phrase in the Ash Fen ancient grove.",
     ),
@@ -645,11 +680,11 @@ TRACKS: tuple[TrackSpec, ...] = (
     TrackSpec(
         "steel_against_the_chosen_loop",
         "Steel against the Chosen",
-        112,
-        50,
-        AEOLIAN,
-        (0, 5, 6, 4, 0, 3, 6, 5),
-        "combat",
+        118,
+        45,
+        HARMONIC_MINOR,
+        (0, 4, 6, 3, 0, 5, 2, 6),
+        "elitecombat",
         0.84,
         "Hard frame drum and broad strings for an elite foe without boss fanfare.",
     ),
@@ -1358,13 +1393,19 @@ def compose_track(spec: TrackSpec) -> np.ndarray:
         "king": (0, 3, 5, 7, 6, 4, 2, 5, 0, 4, 6, 8, 7, 5, 3, 1),
         "victory": (0, 2, 4, 5, 4, 3, 2, 0, 3, 5, 7, 6, 5, 4, 2, 0),
         "defeat": (5, -1, 4, -1, 3, -1, 2, -1, 4, -1, 3, -1, 1, -1, 0, -1),
+        "crypt": (0, -1, 1, -1, 5, -1, 0, -1, 4, -1, 1, -1, 6, -1, 0, -1),
+        "seal": (0, 4, 1, 6, 0, -1, 5, 3, 0, 6, 4, 1, 5, -1, 3, 1),
+        "grove": (0, -1, 5, 3, -1, 6, 4, 2, 0, 3, -1, 5, 2, 4, -1, 0),
+        "elitecombat": (0, 4, 6, 3, 5, 2, 6, 4, 0, 5, 3, 7, 6, 2, 4, 1),
     }
     pattern = melody_patterns[spec.palette]
     step = 0.5 if spec.energy >= 0.72 else 1.0
     repetitions = int(MUSIC_BEATS / (len(pattern) * step)) + 1
-    lead_instrument = "reed" if spec.palette in {"road", "muster", "victory", "dusk"} else "pluck"
-    if spec.palette in {"city", "sewer", "cave", "defeat", "throne"}:
+    lead_instrument = "reed" if spec.palette in {"road", "muster", "victory", "dusk", "grove"} else "pluck"
+    if spec.palette in {"city", "sewer", "cave", "defeat", "throne", "crypt"}:
         lead_instrument = "bell"
+    elif spec.palette == "elitecombat":
+        lead_instrument = "bowed"
     for index, degree in enumerate(pattern * repetitions):
         start_beat = index * step
         if start_beat >= MUSIC_BEATS or degree < 0:
@@ -1399,7 +1440,16 @@ def compose_track(spec: TrackSpec) -> np.ndarray:
                 (0.105 if downbeat else 0.064) * (0.55 + spec.energy),
                 -0.08 if downbeat else 0.16,
             )
-        if spec.palette in {"kobold", "king", "combat", "sewercombat", "ratfolk", "dusk"}:
+        if spec.palette in {
+            "kobold",
+            "king",
+            "combat",
+            "sewercombat",
+            "ratfolk",
+            "dusk",
+            "seal",
+            "elitecombat",
+        }:
             for offset in (0.5, 1.5):
                 if beat_index + offset >= MUSIC_BEATS:
                     continue
@@ -1434,7 +1484,31 @@ def compose_track(spec: TrackSpec) -> np.ndarray:
             note = scale_note(spec.root_midi, spec.mode, spec.progression[bar] + 4, 0)
             add_music_note(mix, "bowed", note, bar * 4 + 3.0, 1.2, beat_seconds, 0.072, 0.34, rng)
 
-    wet = 0.23 if spec.palette in {"sewer", "sewercombat", "boss", "defeat"} else 0.16
+    if spec.palette == "crypt":
+        crypt_air = lowpass(colored_noise(frames, rng, 1.55), 31) * 0.009
+        mix += np.vstack((crypt_air, np.roll(crypt_air, 397)))
+        for event_beat in (2.75, 10.5, 18.25, 27.0):
+            note = scale_note(spec.root_midi, spec.mode, 1 + int(event_beat) % 6, 1)
+            add_music_note(mix, "bell", note, event_beat, 1.8, beat_seconds, 0.032, 0.54, rng)
+    elif spec.palette == "seal":
+        for bar in range(8):
+            degree = spec.progression[bar]
+            note = scale_note(spec.root_midi, spec.mode, degree + (1 if bar % 2 == 0 else 6), -1)
+            add_music_note(mix, "brass", note, bar * 4 + 2.5, 1.15, beat_seconds, 0.048, 0.26, rng)
+    elif spec.palette == "grove":
+        leaf_air = lowpass(colored_noise(frames, rng, 1.72), 43) * 0.007
+        grove_breath = np.sin(np.linspace(0.0, math.pi * 10.0, frames)) * 0.003
+        mix += np.vstack((leaf_air + grove_breath, np.roll(leaf_air, 613) - grove_breath))
+        for event_beat in (5.0, 13.0, 21.0, 29.0):
+            note = scale_note(spec.root_midi, spec.mode, 5, 1)
+            add_music_note(mix, "reed", note, event_beat, 2.4, beat_seconds, 0.034, -0.38, rng)
+    elif spec.palette == "elitecombat":
+        for bar in range(8):
+            degree = spec.progression[bar]
+            note = scale_note(spec.root_midi, spec.mode, degree + 2, 0)
+            add_music_note(mix, "pluck", note, bar * 4 + 1.5, 0.42, beat_seconds, 0.064, 0.42, rng)
+
+    wet = 0.23 if spec.palette in {"sewer", "sewercombat", "boss", "defeat", "crypt", "seal"} else 0.16
     mix = circular_reverb(mix, MUSIC_SAMPLE_RATE, wet, 0.9)
     mix = rotate_to_quiet_seam(mix, MUSIC_SAMPLE_RATE)
     mix = bridge_loop_seam(mix, MUSIC_SAMPLE_RATE)
@@ -2188,6 +2262,59 @@ def loop_to_frames(audio: np.ndarray, frame_count: int) -> np.ndarray:
     return np.tile(audio, (1, repeats))[:, :safe_frames].copy()
 
 
+def runtime_music_gain(context: str) -> float:
+    """Return the default runtime source gain represented by the QA mixes."""
+    try:
+        _, source_gain = RUNTIME_MUSIC_GAIN_CONTRACT[context]
+    except KeyError as exc:
+        raise ValueError(f"unknown runtime music context: {context}") from exc
+    return source_gain * DEFAULT_MUSIC_VOLUME_FRACTION
+
+
+def equal_power_crossfade(progress: np.ndarray | float) -> tuple[np.ndarray, np.ndarray]:
+    """Mirror MusicTransitionRules.EqualPowerCrossfade for deterministic previews."""
+    safe_progress = np.clip(np.asarray(progress, dtype=np.float64), 0.0, 1.0)
+    angle = safe_progress * math.pi * 0.5
+    return np.cos(angle), np.sin(angle)
+
+
+def runtime_preview_levels(audio: np.ndarray) -> tuple[float, float]:
+    if audio.ndim != 2 or audio.shape[0] != 2 or audio.shape[1] <= 0:
+        raise ValueError("runtime preview must contain non-empty stereo audio")
+    if not np.all(np.isfinite(audio)):
+        raise ValueError("runtime preview contains non-finite samples")
+    peak = float(np.max(np.abs(audio)))
+    rms = float(np.sqrt(np.mean(audio * audio)))
+    return peak, rms
+
+
+def enforce_runtime_preview_mix_contract(label: str, audio: np.ndarray) -> None:
+    """Reject clipped, effectively silent, or implausibly loud representative mixes."""
+    peak, rms = runtime_preview_levels(audio)
+    if peak > RUNTIME_PREVIEW_MAX_PEAK:
+        raise ValueError(
+            f"{label} runtime preview peak {db(peak):.2f} dBFS exceeds "
+            f"the {db(RUNTIME_PREVIEW_MAX_PEAK):.2f} dBFS headroom contract"
+        )
+    if rms < RUNTIME_PREVIEW_MIN_RMS:
+        raise ValueError(
+            f"{label} runtime preview RMS {db(rms):.2f} dBFS falls below "
+            f"the {db(RUNTIME_PREVIEW_MIN_RMS):.2f} dBFS audibility contract"
+        )
+    if rms > RUNTIME_PREVIEW_MAX_RMS:
+        raise ValueError(
+            f"{label} runtime preview RMS {db(rms):.2f} dBFS exceeds "
+            f"the {db(RUNTIME_PREVIEW_MAX_RMS):.2f} dBFS density contract"
+        )
+
+
+def read_runtime_music(cue: str) -> np.ndarray:
+    music, sample_rate = read_pcm16(MUSIC_DIR / f"{cue}.wav")
+    if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
+        raise ValueError(f"{cue}: runtime preview requires a 32 kHz stereo music master")
+    return music
+
+
 def build_title_runtime_preview() -> Path:
     """Render the opening twenty seconds at the default in-game bus gains."""
     preview_seconds = 20.0
@@ -2195,7 +2322,7 @@ def build_title_runtime_preview() -> Path:
     music, sample_rate = read_pcm16(MUSIC_DIR / "tavern_storm_hearth_ensemble_loop.wav")
     if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
         raise ValueError("title runtime preview requires the 32 kHz stereo title master")
-    mix = loop_to_frames(music, preview_frames) * (0.29 * 0.65)
+    mix = loop_to_frames(music, preview_frames) * runtime_music_gain("title")
 
     def add_runtime_cue(cue: str, at_seconds: float, cue_gain: float, pan: float = 0.0) -> None:
         mono, cue_rate = read_pcm16(SFX_DIR / f"{cue}.wav")
@@ -2210,7 +2337,7 @@ def build_title_runtime_preview() -> Path:
         count = min(mono.size, preview_frames - start)
         if count <= 0:
             return
-        runtime_gain = 0.78 * cue_gain
+        runtime_gain = RUNTIME_SFX_SOURCE_GAIN * cue_gain
         left_gain = runtime_gain * (1.0 - max(0.0, pan))
         right_gain = runtime_gain * (1.0 + min(0.0, pan))
         mix[0, start : start + count] += mono[:count] * left_gain
@@ -2224,22 +2351,56 @@ def build_title_runtime_preview() -> Path:
     add_runtime_cue("titleclose", 6.35, 0.25)
     add_runtime_cue("titleconfirm", 7.25, 0.30)
     add_runtime_cue("ambtavern", 9.20, 0.075, -0.10)
-    peak = float(np.max(np.abs(mix)))
-    if peak > 0.80:
-        raise ValueError(f"title runtime preview peak {db(peak):.2f} dBFS exceeds the representative mix budget")
+    enforce_runtime_preview_mix_contract("title", mix)
     path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-title-runtime-preview.wav"
     write_pcm16(path, mix, MUSIC_SAMPLE_RATE)
     return path
 
 
 def build_world_map_runtime_preview() -> Path:
-    """Render twenty seconds of the dedicated World Map score with restrained UI and ambience."""
+    """Render local road -> World Map overview -> pursuit routing with live crossfades."""
     preview_seconds = 20.0
     preview_frames = int(preview_seconds * MUSIC_SAMPLE_RATE)
-    music, sample_rate = read_pcm16(MUSIC_DIR / "ashen_atlas_overview_loop.wav")
-    if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
-        raise ValueError("world-map runtime preview requires the 32 kHz stereo overview master")
-    mix = loop_to_frames(music, preview_frames) * (0.18 * 0.65)
+    local_route = loop_to_frames(read_runtime_music(WORLD_MAP_PREVIEW_ROUTES[0][1]), preview_frames)
+    overview_start = int(round(WORLD_MAP_PREVIEW_ROUTES[1][2] * MUSIC_SAMPLE_RATE))
+    overview_transition = int(round(WORLD_MAP_PREVIEW_ROUTES[1][3] * MUSIC_SAMPLE_RATE))
+    pursuit_start = int(round(WORLD_MAP_PREVIEW_ROUTES[2][2] * MUSIC_SAMPLE_RATE))
+    pursuit_transition = int(round(WORLD_MAP_PREVIEW_ROUTES[2][3] * MUSIC_SAMPLE_RATE))
+    overview_route = loop_to_frames(
+        read_runtime_music(WORLD_MAP_PREVIEW_ROUTES[1][1]),
+        preview_frames - overview_start,
+    )
+    pursuit_route = loop_to_frames(
+        read_runtime_music(WORLD_MAP_PREVIEW_ROUTES[2][1]),
+        preview_frames - pursuit_start,
+    )
+    mix = np.zeros((2, preview_frames), dtype=np.float64)
+
+    # Unity applies the destination context's source gain to both voices during a transition.
+    mix[:, :overview_start] = local_route[:, :overview_start] * runtime_music_gain("standard")
+    overview_end = overview_start + overview_transition
+    progress = np.arange(overview_transition, dtype=np.float64) / max(1, overview_transition)
+    outgoing, incoming = equal_power_crossfade(progress)
+    mix[:, overview_start:overview_end] = (
+        local_route[:, overview_start:overview_end] * outgoing[np.newaxis, :]
+        + overview_route[:, :overview_transition] * incoming[np.newaxis, :]
+    ) * runtime_music_gain("world_map")
+    overview_elapsed = pursuit_start - overview_start
+    mix[:, overview_end:pursuit_start] = (
+        overview_route[:, overview_transition:overview_elapsed] * runtime_music_gain("world_map")
+    )
+
+    pursuit_end = pursuit_start + pursuit_transition
+    progress = np.arange(pursuit_transition, dtype=np.float64) / max(1, pursuit_transition)
+    outgoing, incoming = equal_power_crossfade(progress)
+    mix[:, pursuit_start:pursuit_end] = (
+        overview_route[:, overview_elapsed : overview_elapsed + pursuit_transition]
+        * outgoing[np.newaxis, :]
+        + pursuit_route[:, :pursuit_transition] * incoming[np.newaxis, :]
+    ) * runtime_music_gain("standard")
+    mix[:, pursuit_end:] = (
+        pursuit_route[:, pursuit_transition:] * runtime_music_gain("standard")
+    )
 
     def add_runtime_cue(cue: str, at_seconds: float, cue_gain: float, pan: float = 0.0) -> None:
         mono, cue_rate = read_pcm16(SFX_DIR / f"{cue}.wav")
@@ -2254,7 +2415,7 @@ def build_world_map_runtime_preview() -> Path:
         count = min(mono.size, preview_frames - start)
         if count <= 0:
             return
-        runtime_gain = 0.78 * cue_gain
+        runtime_gain = RUNTIME_SFX_SOURCE_GAIN * cue_gain
         left_gain = runtime_gain * (1.0 - max(0.0, pan))
         right_gain = runtime_gain * (1.0 + min(0.0, pan))
         mix[0, start : start + count] += mono[:count] * left_gain
@@ -2263,10 +2424,9 @@ def build_world_map_runtime_preview() -> Path:
     add_runtime_cue("uitab", 0.70, 0.42)
     add_runtime_cue("wayfind", 5.20, 0.48, 0.18)
     add_runtime_cue("ambwind", 10.80, 0.085, -0.36)
+    add_runtime_cue("encounter", 12.05, 0.48, 0.12)
     add_runtime_cue("uitab", 18.20, 0.36)
-    peak = float(np.max(np.abs(mix)))
-    if peak > 0.80:
-        raise ValueError(f"world-map runtime preview peak {db(peak):.2f} dBFS exceeds the representative mix budget")
+    enforce_runtime_preview_mix_contract("world-map", mix)
     path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-world-map-runtime-preview.wav"
     write_pcm16(path, mix, MUSIC_SAMPLE_RATE)
     return path
@@ -2279,7 +2439,7 @@ def build_combat_runtime_preview() -> Path:
     music, sample_rate = read_pcm16(MUSIC_DIR / "combat_battle_pulse_loop.wav")
     if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
         raise ValueError("combat runtime preview requires the 32 kHz stereo generic combat master")
-    mix = loop_to_frames(music, preview_frames) * (0.22 * 0.65)
+    mix = loop_to_frames(music, preview_frames) * runtime_music_gain("combat")
 
     def duck_music(at_seconds: float, depth: float, duration: float) -> None:
         start = max(0, int(round((at_seconds - 0.05) * MUSIC_SAMPLE_RATE)))
@@ -2306,7 +2466,7 @@ def build_combat_runtime_preview() -> Path:
         count = min(mono.size, preview_frames - start)
         if count <= 0:
             return
-        runtime_gain = 0.78 * cue_gain
+        runtime_gain = RUNTIME_SFX_SOURCE_GAIN * cue_gain
         left_gain = runtime_gain * (1.0 - max(0.0, pan))
         right_gain = runtime_gain * (1.0 + min(0.0, pan))
         mix[0, start : start + count] += mono[:count] * left_gain
@@ -2332,9 +2492,7 @@ def build_combat_runtime_preview() -> Path:
     duck_music(11.72, 0.48, 0.70)
     add_runtime_cue("combatambsteel", 15.20, 0.085, -0.36)
 
-    peak = float(np.max(np.abs(mix)))
-    if peak > 0.80:
-        raise ValueError(f"combat runtime preview peak {db(peak):.2f} dBFS exceeds the representative mix budget")
+    enforce_runtime_preview_mix_contract("combat", mix)
     path = QA_DIR / f"ash-and-brimstone-{AUDIO_RELEASE_SLUG}-combat-runtime-preview.wav"
     write_pcm16(path, mix, MUSIC_SAMPLE_RATE)
     return path
@@ -2378,6 +2536,15 @@ def write_manifests(
             "world_map_runtime_preview": sha256(world_map_runtime_preview_path),
             "combat_runtime_preview": sha256(combat_runtime_preview_path),
         },
+        "runtime_preview_contract": runtime_preview_contract_payload(),
+        "runtime_preview_metrics": preview_metrics_payload(
+            {
+                "title_runtime_preview": title_runtime_preview_path,
+                "world_map_runtime_preview": world_map_runtime_preview_path,
+                "combat_runtime_preview": combat_runtime_preview_path,
+            }
+        ),
+        "world_map_runtime_preview_routes": world_map_preview_route_payload(),
         "assets": [asdict(item) for item in metrics],
     }
     (DOCS_DIR / "ORIGINAL_AUDIO_VALIDATION.json").write_text(
@@ -2400,6 +2567,221 @@ def read_pcm16(path: Path) -> tuple[np.ndarray, int]:
     return data, sample_rate
 
 
+def track_blueprint_collisions(
+    tracks: Sequence[TrackSpec] = TRACKS,
+) -> list[tuple[tuple[object, ...], tuple[str, ...]]]:
+    """Find cues that only change seed/energy while reusing one composition blueprint."""
+    grouped: dict[tuple[object, ...], list[str]] = {}
+    for spec in tracks:
+        signature = (
+            round(float(spec.bpm), 4),
+            spec.root_midi,
+            tuple(spec.mode),
+            tuple(spec.progression),
+            spec.palette,
+        )
+        grouped.setdefault(signature, []).append(spec.cue)
+    return [
+        (signature, tuple(cues))
+        for signature, cues in grouped.items()
+        if len(cues) > 1
+    ]
+
+
+def music_duration_bounds(cue: str) -> tuple[float, float]:
+    maximum = (
+        TITLE_MAX_MUSIC_DURATION_SECONDS
+        if cue == TITLE_MUSIC_CUE
+        else MAX_MUSIC_DURATION_SECONDS
+    )
+    return MIN_MUSIC_DURATION_SECONDS, maximum
+
+
+def expected_track_duration_seconds(spec: TrackSpec) -> float:
+    beats = 96 if spec.cue == TITLE_MUSIC_CUE else MUSIC_BEATS
+    return beats * 60.0 / spec.bpm
+
+
+def track_spec_duration_violations(
+    tracks: Sequence[TrackSpec] = TRACKS,
+) -> list[tuple[str, float, float, float]]:
+    violations: list[tuple[str, float, float, float]] = []
+    for spec in tracks:
+        duration = expected_track_duration_seconds(spec)
+        minimum, maximum = music_duration_bounds(spec.cue)
+        if duration < minimum or duration > maximum:
+            violations.append((spec.cue, duration, minimum, maximum))
+    return violations
+
+
+def runtime_preview_contract_payload() -> dict[str, object]:
+    return {
+        "default_music_volume_percent": int(round(DEFAULT_MUSIC_VOLUME_FRACTION * 100.0)),
+        "sfx_source_gain": RUNTIME_SFX_SOURCE_GAIN,
+        "music_source_gains": {
+            context: source_gain
+            for context, (_, source_gain) in RUNTIME_MUSIC_GAIN_CONTRACT.items()
+        },
+        "maximum_peak_dbfs": round(db(RUNTIME_PREVIEW_MAX_PEAK), 2),
+        "minimum_rms_dbfs": round(db(RUNTIME_PREVIEW_MIN_RMS), 2),
+        "maximum_rms_dbfs": round(db(RUNTIME_PREVIEW_MAX_RMS), 2),
+    }
+
+
+def world_map_preview_route_payload() -> list[dict[str, object]]:
+    return [
+        {
+            "context": context,
+            "cue": cue,
+            "start_seconds": start_seconds,
+            "crossfade_seconds": crossfade_seconds,
+        }
+        for context, cue, start_seconds, crossfade_seconds in WORLD_MAP_PREVIEW_ROUTES
+    ]
+
+
+def preview_metrics_payload(paths: dict[str, Path]) -> dict[str, dict[str, float]]:
+    payload: dict[str, dict[str, float]] = {}
+    for key, path in paths.items():
+        audio, _ = read_pcm16(path)
+        peak, rms = runtime_preview_levels(audio)
+        payload[key] = {
+            "peak_dbfs": round(db(peak), 2),
+            "rms_dbfs": round(db(rms), 2),
+            "headroom_db": round(-db(peak), 2),
+        }
+    return payload
+
+
+def validate_runtime_source_contracts() -> list[str]:
+    """Keep the offline previews aligned with Unity routing, gain, and fade constants."""
+    errors: list[str] = []
+    title_rules_path = STAGE_ROOT / "Assets" / "Scripts" / "Presentation" / "TitleAudioRules.cs"
+    transition_rules_path = STAGE_ROOT / "Assets" / "Scripts" / "Presentation" / "MusicTransitionRules.cs"
+    runtime_models_path = STAGE_ROOT / "Assets" / "Scripts" / "Domain" / "RuntimeModels.cs"
+    art_audio_path = STAGE_ROOT / "Assets" / "Scripts" / "Legacy" / "AshenHallsGame.ArtAudio.cs"
+    rule_smoke_path = STAGE_ROOT / "Assets" / "Editor" / "RuleSmokeTests.cs"
+    runtime_smoke_path = STAGE_ROOT / "Assets" / "Editor" / "RuntimeBootSmoke.cs"
+    try:
+        title_rules = title_rules_path.read_text(encoding="utf-8")
+        transition_rules = transition_rules_path.read_text(encoding="utf-8")
+        runtime_models = runtime_models_path.read_text(encoding="utf-8")
+        art_audio = art_audio_path.read_text(encoding="utf-8")
+        rule_smoke = rule_smoke_path.read_text(encoding="utf-8")
+        runtime_smoke = runtime_smoke_path.read_text(encoding="utf-8")
+    except Exception as exc:
+        return [f"runtime audio source contract is unreadable ({exc})"]
+
+    def require_float(source: str, field_name: str, expected: float, owner: Path) -> None:
+        match = re.search(
+            rf"\b{re.escape(field_name)}\s*=\s*([0-9]+(?:\.[0-9]+)?)f\s*;",
+            source,
+        )
+        if match is None:
+            errors.append(f"{owner}: missing numeric audio contract {field_name}")
+            return
+        actual = float(match.group(1))
+        if not math.isclose(actual, expected, rel_tol=0.0, abs_tol=1e-6):
+            errors.append(
+                f"{owner}: {field_name} is {actual:.4f}, preview expects {expected:.4f}"
+            )
+
+    for _, (field_name, expected) in RUNTIME_MUSIC_GAIN_CONTRACT.items():
+        require_float(title_rules, field_name, expected, title_rules_path)
+    require_float(
+        transition_rules,
+        "WorldMapExploreTransitionDuration",
+        WORLD_MAP_PREVIEW_ROUTES[1][3],
+        transition_rules_path,
+    )
+    require_float(
+        transition_rules,
+        "ExploreTransitionDuration",
+        WORLD_MAP_PREVIEW_ROUTES[2][3],
+        transition_rules_path,
+    )
+
+    default_music_match = re.search(
+        r"\bMusicVolumePercent\s*=\s*([0-9]+)\s*;",
+        runtime_models,
+    )
+    expected_music_percent = int(round(DEFAULT_MUSIC_VOLUME_FRACTION * 100.0))
+    if default_music_match is None:
+        errors.append(f"{runtime_models_path}: missing default MusicVolumePercent")
+    elif int(default_music_match.group(1)) != expected_music_percent:
+        errors.append(
+            f"{runtime_models_path}: default MusicVolumePercent is "
+            f"{default_music_match.group(1)}, preview expects {expected_music_percent}"
+        )
+
+    sfx_gain_match = re.search(
+        r"float\s+sfxVolume\s*=\s*muted\s*\?\s*0f\s*:\s*([0-9]+(?:\.[0-9]+)?)f",
+        art_audio,
+        re.DOTALL,
+    )
+    if sfx_gain_match is None:
+        errors.append(f"{art_audio_path}: missing runtime SFX source gain")
+    elif not math.isclose(
+        float(sfx_gain_match.group(1)),
+        RUNTIME_SFX_SOURCE_GAIN,
+        rel_tol=0.0,
+        abs_tol=1e-6,
+    ):
+        errors.append(
+            f"{art_audio_path}: runtime SFX source gain is {sfx_gain_match.group(1)}, "
+            f"preview expects {RUNTIME_SFX_SOURCE_GAIN:.2f}"
+        )
+
+    for route_field, cue in RUNTIME_IMPORTED_ROUTE_BINDINGS:
+        binding = re.compile(
+            rf"RegisterImportedMusicRoute\s*\(\s*MusicDirectorRules\.{re.escape(route_field)}\s*,\s*"
+            rf'"{re.escape(cue)}"\s*\)\s*;'
+        )
+        if binding.search(art_audio) is None:
+            errors.append(
+                f"{art_audio_path}: preview expects {route_field} to import {cue}"
+            )
+
+    for owner, source in ((rule_smoke_path, rule_smoke), (runtime_smoke_path, runtime_smoke)):
+        maximum_match = re.search(
+            r"maximumDuration\s*=.*?\?\s*([0-9]+(?:\.[0-9]+)?)f\s*"
+            r":\s*([0-9]+(?:\.[0-9]+)?)f\s*;",
+            source,
+            re.DOTALL,
+        )
+        minimum_match = re.search(
+            r"clip\.length\s*>=\s*([0-9]+(?:\.[0-9]+)?)f\s*"
+            r"&&\s*clip\.length\s*<=\s*maximumDuration",
+            source,
+        )
+        if maximum_match is None or minimum_match is None:
+            errors.append(f"{owner}: missing authored music duration contract")
+            continue
+        actual_title_maximum = float(maximum_match.group(1))
+        actual_standard_maximum = float(maximum_match.group(2))
+        actual_minimum = float(minimum_match.group(1))
+        if not math.isclose(actual_minimum, MIN_MUSIC_DURATION_SECONDS, abs_tol=1e-6):
+            errors.append(
+                f"{owner}: minimum music duration is {actual_minimum:.3f}s, "
+                f"generator expects {MIN_MUSIC_DURATION_SECONDS:.3f}s"
+            )
+        if not math.isclose(actual_standard_maximum, MAX_MUSIC_DURATION_SECONDS, abs_tol=1e-6):
+            errors.append(
+                f"{owner}: standard music maximum is {actual_standard_maximum:.3f}s, "
+                f"generator expects {MAX_MUSIC_DURATION_SECONDS:.3f}s"
+            )
+        if not math.isclose(
+            actual_title_maximum,
+            TITLE_MAX_MUSIC_DURATION_SECONDS,
+            abs_tol=1e-6,
+        ):
+            errors.append(
+                f"{owner}: title music maximum is {actual_title_maximum:.3f}s, "
+                f"generator expects {TITLE_MAX_MUSIC_DURATION_SECONDS:.3f}s"
+            )
+    return errors
+
+
 def validate_outputs() -> list[str]:
     errors: list[str] = []
     track_cues = [spec.cue for spec in TRACKS]
@@ -2408,6 +2790,17 @@ def validate_outputs() -> list[str]:
         errors.append("duplicate music cue IDs exist in TRACKS")
     if len(sfx_cues) != len(set(sfx_cues)):
         errors.append("duplicate SFX cue IDs exist in SFX")
+    for _, cues in track_blueprint_collisions():
+        errors.append(
+            "music cues reuse one composition blueprint (BPM/root/mode/progression/palette): "
+            + ", ".join(cues)
+        )
+    for cue, duration, minimum, maximum in track_spec_duration_violations():
+        errors.append(
+            f"{cue}: generated duration {duration:.4f}s falls outside "
+            f"the Unity-authored range {minimum:.1f}-{maximum:.1f}s"
+        )
+    errors.extend(validate_runtime_source_contracts())
     expected_music = {spec.cue for spec in TRACKS}
     expected_sfx = {spec.cue for spec in SFX}
     actual_music = {path.stem for path in MUSIC_DIR.glob("*.wav")}
@@ -2450,6 +2843,13 @@ def validate_outputs() -> list[str]:
             errors.append(f"{path}: waveform duplicates {fingerprints[fingerprint]}")
         fingerprints[fingerprint] = path
         if path.parent == MUSIC_DIR:
+            duration_seconds = audio.shape[-1] / sample_rate
+            minimum_duration, maximum_duration = music_duration_bounds(path.stem)
+            if duration_seconds < minimum_duration or duration_seconds > maximum_duration:
+                errors.append(
+                    f"{path}: duration {duration_seconds:.4f}s falls outside "
+                    f"the Unity-authored range {minimum_duration:.1f}-{maximum_duration:.1f}s"
+                )
             seam_delta = float(np.max(np.abs(audio[:, 0] - audio[:, -1])))
             if seam_delta > 0.025:
                 errors.append(f"{path}: loop seam delta {db(seam_delta):.2f} dBFS is too large")
@@ -2479,15 +2879,45 @@ def validate_outputs() -> list[str]:
             errors.append(f"{report_path}: stale SFX count")
         if report_cues != expected_report_cues:
             errors.append(f"{report_path}: asset cue inventory is stale")
+        if report.get("runtime_preview_contract") != runtime_preview_contract_payload():
+            errors.append(f"{report_path}: runtime preview mix contract is stale")
+        if report.get("world_map_runtime_preview_routes") != world_map_preview_route_payload():
+            errors.append(f"{report_path}: World Map runtime preview route sequence is stale")
         preview_hashes = report.get("preview_sha256", {})
         preview_contracts = {
-            "preview": (len(TRACKS) * 5.5 + max(0, len(TRACKS) - 1) * 0.24, 0.98),
-            "title_preview": (60.0, 0.98),
-            "title_runtime_preview": (20.0, 0.80),
-            "world_map_runtime_preview": (20.0, 0.80),
-            "combat_runtime_preview": (20.0, 0.80),
+            "preview": (
+                len(TRACKS) * 5.5 + max(0, len(TRACKS) - 1) * 0.24,
+                0.98,
+                None,
+                None,
+            ),
+            "title_preview": (60.0, 0.98, None, None),
+            "title_runtime_preview": (
+                20.0,
+                RUNTIME_PREVIEW_MAX_PEAK,
+                RUNTIME_PREVIEW_MIN_RMS,
+                RUNTIME_PREVIEW_MAX_RMS,
+            ),
+            "world_map_runtime_preview": (
+                20.0,
+                RUNTIME_PREVIEW_MAX_PEAK,
+                RUNTIME_PREVIEW_MIN_RMS,
+                RUNTIME_PREVIEW_MAX_RMS,
+            ),
+            "combat_runtime_preview": (
+                20.0,
+                RUNTIME_PREVIEW_MAX_PEAK,
+                RUNTIME_PREVIEW_MIN_RMS,
+                RUNTIME_PREVIEW_MAX_RMS,
+            ),
         }
-        for preview_key, (expected_duration, maximum_peak) in preview_contracts.items():
+        runtime_preview_files: dict[str, Path] = {}
+        for preview_key, (
+            expected_duration,
+            maximum_peak,
+            minimum_rms,
+            maximum_rms,
+        ) in preview_contracts.items():
             relative = report.get(preview_key, "")
             if not relative:
                 errors.append(f"{report_path}: missing {preview_key} path")
@@ -2504,18 +2934,38 @@ def validate_outputs() -> list[str]:
                 preview_channels = 1 if preview_audio.ndim == 1 else preview_audio.shape[0]
                 preview_duration = preview_audio.shape[-1] / preview_rate
                 preview_peak = float(np.max(np.abs(preview_audio)))
+                preview_rms = float(np.sqrt(np.mean(preview_audio * preview_audio)))
                 if preview_rate != MUSIC_SAMPLE_RATE or preview_channels != 2:
                     errors.append(f"{preview_file}: preview must be 32 kHz stereo")
                 if expected_duration is not None and abs(preview_duration - expected_duration) > 0.01:
                     errors.append(
                         f"{preview_file}: duration {preview_duration:.3f}s, expected {expected_duration:.3f}s"
                     )
-                if not np.all(np.isfinite(preview_audio)) or preview_peak > maximum_peak:
+                if not np.all(np.isfinite(preview_audio)):
+                    errors.append(f"{preview_file}: preview contains non-finite samples")
+                if preview_peak > maximum_peak:
                     errors.append(
-                        f"{preview_file}: preview is non-finite or exceeds peak budget {maximum_peak:.2f}"
+                        f"{preview_file}: peak {db(preview_peak):.2f} dBFS exceeds "
+                        f"the {db(maximum_peak):.2f} dBFS preview budget"
                     )
+                if minimum_rms is not None and preview_rms < minimum_rms:
+                    errors.append(
+                        f"{preview_file}: RMS {db(preview_rms):.2f} dBFS falls below "
+                        f"the {db(minimum_rms):.2f} dBFS preview budget"
+                    )
+                if maximum_rms is not None and preview_rms > maximum_rms:
+                    errors.append(
+                        f"{preview_file}: RMS {db(preview_rms):.2f} dBFS exceeds "
+                        f"the {db(maximum_rms):.2f} dBFS preview budget"
+                    )
+                if preview_key.endswith("runtime_preview"):
+                    runtime_preview_files[preview_key] = preview_file
             except Exception as exc:
                 errors.append(f"{preview_file}: unreadable preview ({exc})")
+        if len(runtime_preview_files) == 3:
+            expected_metrics = preview_metrics_payload(runtime_preview_files)
+            if report.get("runtime_preview_metrics") != expected_metrics:
+                errors.append(f"{report_path}: runtime preview level metrics are stale")
         for item in report_assets:
             output = item.get("output", "")
             if not output:
@@ -2584,8 +3034,15 @@ def build_music_cue(cue: str) -> None:
     write_pcm16(path, audio, MUSIC_SAMPLE_RATE)
     written, sample_rate = read_pcm16(path)
     seam_delta = float(np.max(np.abs(written[:, 0] - written[:, -1])))
+    duration_seconds = written.shape[-1] / sample_rate
+    minimum_duration, maximum_duration = music_duration_bounds(spec.cue)
     if sample_rate != MUSIC_SAMPLE_RATE or written.ndim != 2 or written.shape[0] != 2:
         raise SystemExit(f"{path}: selective music build produced an invalid WAV contract")
+    if duration_seconds < minimum_duration or duration_seconds > maximum_duration:
+        raise SystemExit(
+            f"{path}: duration {duration_seconds:.4f}s falls outside "
+            f"the Unity-authored range {minimum_duration:.1f}-{maximum_duration:.1f}s"
+        )
     if seam_delta > 0.025:
         raise SystemExit(f"{path}: loop seam delta {db(seam_delta):.2f} dBFS is too large")
     item = metrics_for(spec.cue, spec.title, spec.direction, "music", path, audio, MUSIC_SAMPLE_RATE)

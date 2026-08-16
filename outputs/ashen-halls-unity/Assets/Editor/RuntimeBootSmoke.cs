@@ -869,9 +869,178 @@ namespace AshenHalls.Editor
             }
         }
 
+        private static void AssertRegionMapBrowsingRuntime(AshenHallsGame game, GameState state)
+        {
+            bool originalWideView = GetPrivateField<bool>(game, "exploreWideView");
+            bool originalHudCollapsed = GetPrivateField<bool>(game, "exploreHudCollapsed");
+            MapData originalFocusMap = GetPrivateField<MapData>(game, "exploreRegionFocusMap");
+            int originalFocusX = GetPrivateField<int>(game, "exploreRegionFocusX");
+            int originalFocusY = GetPrivateField<int>(game, "exploreRegionFocusY");
+            int originalHeldX = GetPrivateField<int>(game, "exploreRegionHeldAxisX");
+            int originalHeldY = GetPrivateField<int>(game, "exploreRegionHeldAxisY");
+            float originalRepeatAt = GetPrivateField<float>(game, "exploreRegionNextRepeatAt");
+            bool originalPointerDragging = GetPrivateField<bool>(game, "exploreRegionPointerDragging");
+            float originalDragRemainderX = GetPrivateField<float>(game, "exploreRegionDragRemainderX");
+            float originalDragRemainderY = GetPrivateField<float>(game, "exploreRegionDragRemainderY");
+            int playerX = state.PlayerX;
+            int playerY = state.PlayerY;
+            int explorationSteps = state.ExplorationSteps;
+            string activeWaypoint = state.ActiveRouteWaypointKey;
+            string[] storyFlags = state.StoryFlags.ToArray();
+            string[] chartEntries = state.DiscoveredZones.ToArray();
+            int objectCount = state.Map?.Objects?.Count ?? 0;
+            EventSystem selectionEventSystem = EventSystem.current
+                ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
+            GameObject selectedBefore = selectionEventSystem == null ? null : selectionEventSystem.currentSelectedGameObject;
+
+            try
+            {
+                SetPrivateField(game, "exploreWideView", true);
+                InvokePrivate(game, "ResetRegionMapFocusToParty");
+                Assert(GetPrivateField<int>(game, "exploreRegionFocusX") == playerX
+                    && GetPrivateField<int>(game, "exploreRegionFocusY") == playerY,
+                    "Region Map opens with its transient browse focus on the party");
+
+                int viewWidth = InvokePrivate<int>(game, "ExploreViewportWidth");
+                int viewHeight = InvokePrivate<int>(game, "ExploreViewportHeight");
+                Point partyOrigin = InvokePrivate<Point>(game, "ExploreViewportOrigin", viewWidth, viewHeight);
+                Assert(InvokePrivate<bool>(game, "PanRegionMapFocus", 7, -5), "Region Map browse focus pans independently of travel");
+                int pannedX = GetPrivateField<int>(game, "exploreRegionFocusX");
+                int pannedY = GetPrivateField<int>(game, "exploreRegionFocusY");
+                Point pannedOrigin = InvokePrivate<Point>(game, "ExploreViewportOrigin", viewWidth, viewHeight);
+                Assert(pannedX != playerX || pannedY != playerY, "Region Map keeps a focus distinct from the party after panning");
+                Assert(pannedOrigin.X != partyOrigin.X || pannedOrigin.Y != partyOrigin.Y, "Region Map panning moves the live viewport origin");
+                ExplorationHudView pannedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                Assert(pannedView.Title == "Region Map"
+                    && pannedView.FocusHint.IndexOf($"{pannedX},{pannedY}", StringComparison.Ordinal) >= 0,
+                    "Region Map HUD exposes the browsed coordinates without replacing the exploration HUD owner");
+
+                Assert(InvokePrivate<bool>(game, "IsExploreCellCharted", playerX, playerY), "party cell is charted for Region Map focus comparison");
+                InvokePrivate<bool>(game, "SetRegionMapFocus", playerX, playerY);
+                ExplorationHudView chartedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                Assert(!string.Equals(chartedView.ZoneName, "Uncharted", StringComparison.OrdinalIgnoreCase), "charted Region Map focus exposes its known location");
+                Point fogProbe = new[]
+                    {
+                        new Point(0, 0),
+                        new Point(state.Map.Width - 1, 0),
+                        new Point(0, state.Map.Height - 1),
+                        new Point(state.Map.Width - 1, state.Map.Height - 1)
+                    }
+                    .First(point => !InvokePrivate<bool>(game, "IsExploreCellCharted", point.X, point.Y));
+                InvokePrivate<bool>(game, "SetRegionMapFocus", fogProbe.X, fogProbe.Y);
+                ExplorationHudView foggedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                Assert(foggedView.ZoneName == "Uncharted"
+                    && foggedView.ZoneDetail.IndexOf("travel closer", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "fogged Region Map focus gives bounded unknown-terrain feedback without revealing travel state");
+
+                InvokePrivate(
+                    game,
+                    "ApplyVisualSmokeExploreView",
+                    (object)new[] { "-ashen-region-pan-smoke", "-ashen-details-smoke" });
+                int smokeFocusX = GetPrivateField<int>(game, "exploreRegionFocusX");
+                int smokeFocusY = GetPrivateField<int>(game, "exploreRegionFocusY");
+                Assert(GetPrivateField<bool>(game, "exploreWideView")
+                    && !GetPrivateField<bool>(game, "exploreHudCollapsed")
+                    && (smokeFocusX != playerX || smokeFocusY != playerY),
+                    "panned Region Map visual-smoke hook deterministically stages browse focus with Details open");
+
+                InvokePrivate(game, "MarkUiDirty");
+                InvokePrivate(game, "LateUpdate");
+                Canvas.ForceUpdateCanvases();
+                ExplorationHudScreen hud = GetPrivateField<ExplorationHudScreen>(game, "explorationHudScreen");
+                bool supportedViewport = Screen.width >= 960 && Screen.height >= 600;
+                bool hudExists = hud != null;
+                bool hudVisible = hudExists && hud.IsVisible;
+                bool hudSuppressed = hudExists && hud.IsSuppressedByImguiFallback;
+                bool eventSystemUsable = UiRuntime.HasUsableEventSystem();
+                bool hudInteractionOwner = hudExists && hud.IsInteractionOwner;
+                bool hudLaidOut = hudExists && hud.HasLaidOutHud;
+                bool hudUsable = hudExists && hud.HasUsableHud;
+                bool renderableHud = InvokePrivate<bool>(game, "HasRenderableGameplayHud", UiOverlay.None);
+                bool needsEmergencyFallback = InvokePrivate<bool>(game, "NeedsEmergencyExplorationHudFallback");
+                string hudDiagnostics = $"screen={Screen.width}x{Screen.height}, supported={supportedViewport}, "
+                    + $"exists={hudExists}, visible={hudVisible}, suppressed={hudSuppressed}, "
+                    + $"eventSystem={eventSystemUsable}, interactionOwner={hudInteractionOwner}, "
+                    + $"laidOut={hudLaidOut}, usable={hudUsable}, renderable={renderableHud}, "
+                    + $"needsEmergencyFallback={needsEmergencyFallback}";
+                Assert(hudExists
+                    && hudVisible
+                    && !hudSuppressed
+                    && eventSystemUsable
+                    && hudInteractionOwner,
+                    "synchronized Region Map browsing preserves the visible, unsuppressed, interactive one-owner exploration HUD ("
+                    + hudDiagnostics + ")");
+                if (supportedViewport)
+                {
+                    Assert(hudLaidOut
+                        && hudUsable
+                        && renderableHud
+                        && !needsEmergencyFallback,
+                        "synchronized Region Map browsing preserves usable uGUI geometry without emergency fallback at a supported viewport ("
+                        + hudDiagnostics + ")");
+                }
+                FieldInfo mapButtonField = typeof(ExplorationHudScreen).GetField(
+                    "mapButton",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Button mapButton = mapButtonField == null ? null : mapButtonField.GetValue(hud) as Button;
+                GameObject mapControl = mapButton == null ? null : mapButton.gameObject;
+                string selectionDiagnostics = $"playing={Application.isPlaying}, currentEventSystem={EventSystem.current != null}, "
+                    + $"semanticEventSystem={selectionEventSystem != null}, mapField={mapButtonField != null}, "
+                    + $"mapButton={mapButton != null}, mapActive={mapControl != null && mapControl.activeInHierarchy}, "
+                    + $"mapInteractable={mapButton != null && mapButton.interactable}";
+                Assert(mapButton != null
+                    && mapControl.activeInHierarchy
+                    && mapButton.interactable
+                    && selectionEventSystem != null,
+                    "Region Map runtime can probe the live semantic footer selection owner (" + selectionDiagnostics + ")");
+                selectionEventSystem.SetSelectedGameObject(mapControl);
+                Assert(selectionEventSystem.currentSelectedGameObject == mapControl,
+                    "pointer-selected Map footer control owns focus before panning starts ("
+                    + selectionDiagnostics + ", selected="
+                    + (selectionEventSystem.currentSelectedGameObject == null ? "<none>" : selectionEventSystem.currentSelectedGameObject.name)
+                    + ")");
+                InvokePrivate(game, "ReleaseRegionMapHudSelection");
+                Assert(selectionEventSystem.currentSelectedGameObject == null,
+                    "Region Map pan ownership releases footer focus so left stick cannot navigate both layers ("
+                    + selectionDiagnostics + ", selected="
+                    + (selectionEventSystem.currentSelectedGameObject == null ? "<none>" : selectionEventSystem.currentSelectedGameObject.name)
+                    + ")");
+
+                Assert(state.PlayerX == playerX && state.PlayerY == playerY, "Region Map focus, fog focus, and visual smoke never move the party");
+                Assert(state.ExplorationSteps == explorationSteps, "Region Map browsing never advances exploration time");
+                Assert(state.ActiveRouteWaypointKey == activeWaypoint, "Region Map browsing never changes the active waypoint");
+                Assert(state.StoryFlags.SequenceEqual(storyFlags), "Region Map browsing never changes story flags");
+                Assert(state.DiscoveredZones.SequenceEqual(chartEntries), "Region Map browsing never charts fogged terrain");
+                Assert((state.Map?.Objects?.Count ?? 0) == objectCount, "Region Map browsing never mutates world objects");
+            }
+            finally
+            {
+                SetPrivateField(game, "exploreWideView", originalWideView);
+                SetPrivateField(game, "exploreHudCollapsed", originalHudCollapsed);
+                SetPrivateField(game, "exploreRegionFocusMap", originalFocusMap);
+                SetPrivateField(game, "exploreRegionFocusX", originalFocusX);
+                SetPrivateField(game, "exploreRegionFocusY", originalFocusY);
+                SetPrivateField(game, "exploreRegionHeldAxisX", originalHeldX);
+                SetPrivateField(game, "exploreRegionHeldAxisY", originalHeldY);
+                SetPrivateField(game, "exploreRegionNextRepeatAt", originalRepeatAt);
+                SetPrivateField(game, "exploreRegionPointerDragging", originalPointerDragging);
+                SetPrivateField(game, "exploreRegionDragRemainderX", originalDragRemainderX);
+                SetPrivateField(game, "exploreRegionDragRemainderY", originalDragRemainderY);
+                InvokePrivate(game, "MarkUiDirty");
+                InvokePrivate(game, "LateUpdate");
+                Canvas.ForceUpdateCanvases();
+                if (selectionEventSystem != null)
+                {
+                    selectionEventSystem.SetSelectedGameObject(
+                        selectedBefore != null && selectedBefore.activeInHierarchy ? selectedBefore : null);
+                }
+            }
+        }
+
         private static void AssertExplorationWorldMapRuntime(AshenHallsGame game)
         {
             GameState state = GetPrivateField<GameState>(game, "state");
+            AssertRegionMapBrowsingRuntime(game, state);
             Assert(state.MusicVolumePercent == 65, "fresh games keep an independent readable music level");
             Assert(!state.MusicMuted && !state.SfxMuted, "fresh games start with independent music and SFX channels enabled");
             Dictionary<string, AudioClip> soundClips = GetPrivateField<Dictionary<string, AudioClip>>(game, "soundClips");
@@ -3606,6 +3775,154 @@ namespace AshenHalls.Editor
             }
         }
 
+        private static void AssertCombatBoardCursorControllerFlow(
+            AshenHallsGame game,
+            GameState combatState,
+            CombatUnit active,
+            CombatHudScreen hud,
+            EventSystem eventSystem)
+        {
+            ActionMode originalAction = GetPrivateField<ActionMode>(game, "selectedAction");
+            CombatPhase originalPhase = combatState.Combat.Phase;
+            bool originalMoved = combatState.Combat.Moved;
+            int originalMovePoints = combatState.Combat.MovePoints;
+            int originalX = active.X;
+            int originalY = active.Y;
+            int originalWebbed = active.Webbed;
+            int originalPointerSuppression = GetPrivateField<int>(game, "suppressBoardPointerThroughFrame");
+            Vector2Int? originalVisualHover = GetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell");
+            bool originalReducedMotion = combatState.ReducedMotion;
+            GameObject originalSelection = eventSystem?.currentSelectedGameObject;
+            try
+            {
+                InvokePrivate(game, "ClearCombatBoardCursor", false);
+                SetPrivateField(game, "visualSmokeCombatHoverCell", (Vector2Int?)null);
+                SetPrivateField(game, "suppressBoardPointerThroughFrame", Time.frameCount - 1);
+                active.Webbed = 0;
+                combatState.Combat.Moved = false;
+                combatState.Combat.Phase = CombatPhase.ChooseAction;
+                Assert(combatState.Combat.MovePoints > 0, "controller board-cursor smoke begins with movement available");
+
+                hud.Refresh();
+                hud.InvokePointerCommandForTest(ActionMode.Move);
+                Assert(hud.PointerOwnsCommandContextForTest
+                    && hud.HasFocusedCommand(ActionMode.Move)
+                    && hud.OwnsSelection(eventSystem?.currentSelectedGameObject)
+                    && GetPrivateField<ActionMode>(game, "selectedAction") == ActionMode.Move
+                    && !GetPrivateField<bool>(game, "combatBoardCursorActive")
+                    && !GetPrivateField<Vector2Int?>(game, "combatBoardCursorCell").HasValue,
+                    "pointer enter, pointer-driven uGUI selection, and Button click keep pointer ownership without activating controller board focus");
+                hud.ClearCommandHoverForTest();
+                eventSystem?.SetSelectedGameObject(null);
+                hud.ClearCommandFocusForTest();
+                combatState.Combat.Phase = CombatPhase.ChooseAction;
+
+                hud.FocusCommand(ActionMode.Move);
+                Assert(hud.HasFocusedCommand(ActionMode.Move)
+                    && hud.OwnsSelection(eventSystem?.currentSelectedGameObject),
+                    "controller board-cursor smoke begins from a semantically focused Move command");
+                InvokePrivate(game, "RunCombatHudCommand", ActionMode.Move);
+
+                Vector2Int? entryCursor = GetPrivateField<Vector2Int?>(game, "combatBoardCursorCell");
+                bool entryCursorActive = GetPrivateField<bool>(game, "combatBoardCursorActive");
+                bool hudStillOwnsSelection = eventSystem != null && hud.OwnsSelection(eventSystem.currentSelectedGameObject);
+                Assert(entryCursorActive
+                    && entryCursor == new Vector2Int(active.X, active.Y)
+                    && !hudStillOwnsSelection,
+                    "controller activation leaves the HUD palette, exposes the board cursor, and keeps the active tile as its stable entry point; "
+                    + $"active={entryCursorActive}, cursor={(entryCursor.HasValue ? entryCursor.Value.ToString() : "none")}, "
+                    + $"actor=({active.X}, {active.Y}), focused={hud.FocusedCommandForTest?.ToString() ?? "none"}, "
+                    + $"pointerOwns={hud.PointerOwnsCommandContextForTest}, selection={eventSystem?.currentSelectedGameObject?.name ?? "none"}");
+                Assert(!InvokePrivate<bool>(game, "CombatBoardCursorCanConfirmFromInput"),
+                    "the Submit press that activates controller board focus cannot also confirm it in the same frame");
+                SetPrivateField(game, "combatBoardCursorActivatedFrame", Time.frameCount - 1);
+                Assert(InvokePrivate<bool>(game, "CombatBoardCursorCanConfirmFromInput"),
+                    "board confirmation becomes eligible on the frame after controller activation");
+
+                InvokePrivate(game, "TrackCombatBoardPointerOwnership");
+                Assert(GetPrivateField<bool>(game, "combatBoardCursorActive")
+                    && GetPrivateField<Vector2Int?>(game, "combatBoardCursorCell") == entryCursor,
+                    "a stationary mouse does not steal controller board focus");
+
+                int takeoverX = active.X;
+                int takeoverY = active.Y;
+                int takeoverMovePoints = combatState.Combat.MovePoints;
+                SetPrivateField(game, "combatBoardCursorPointerSample", Vector2.zero);
+                SetPrivateField(game, "combatBoardCursorPointerSampled", true);
+                Assert(InvokePrivate<bool>(game, "TrackCombatBoardPointerOwnership", new Vector2(3f, 0f))
+                    && !GetPrivateField<bool>(game, "combatBoardCursorActive")
+                    && GetPrivateField<bool>(game, "combatBoardNavigationSuppressedUntilNeutral")
+                    && active.X == takeoverX
+                    && active.Y == takeoverY
+                    && combatState.Combat.MovePoints == takeoverMovePoints,
+                    "deliberate pointer takeover clears board focus, consumes the current hotkey pass, and spends no movement");
+                Assert(InvokePrivate<bool>(game, "ConsumeCombatBoardNavigationAfterPointerTakeover", 0.80f, 0f, false)
+                    && GetPrivateField<bool>(game, "combatBoardNavigationSuppressedUntilNeutral")
+                    && active.X == takeoverX
+                    && active.Y == takeoverY
+                    && combatState.Combat.MovePoints == takeoverMovePoints,
+                    "a still-held stick remains consumed after pointer takeover instead of falling through to quick-step movement");
+                Assert(!InvokePrivate<bool>(game, "ConsumeCombatBoardNavigationAfterPointerTakeover", 0f, 0f, false)
+                    && !GetPrivateField<bool>(game, "combatBoardNavigationSuppressedUntilNeutral"),
+                    "neutral stick input releases pointer-takeover navigation suppression");
+                Assert(InvokePrivate<bool>(game, "ActivateCombatBoardCursor", active, false, true),
+                    "controller board focus can be deliberately re-entered after pointer takeover and neutral release");
+
+                List<Vector2Int> legalMoves = InvokePrivate<List<Vector2Int>>(game, "CombatBoardCursorCandidates", active);
+                Assert(legalMoves.Count > 0
+                    && legalMoves.All(cell => InvokePrivate<bool>(game, "CombatBoardCursorCellIsLegal", active, cell.x, cell.y)),
+                    "Move target cycling publishes only currently reachable legal cells");
+                Assert(InvokePrivate<bool>(game, "CycleCombatBoardCursor", active, 1),
+                    "controller target cycling enters the first legal Move destination");
+                Vector2Int cycledCursor = GetPrivateField<Vector2Int?>(game, "combatBoardCursorCell").Value;
+                Assert(cycledCursor == legalMoves[0], "controller target cycling follows the deterministic rule ordering");
+
+                CombatHudView cursorView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+                Assert(cursorView.CommandPrompt.StartsWith("CURSOR ", StringComparison.Ordinal)
+                    && cursorView.CommandPrompt.Contains("Submit confirms"),
+                    "active board focus publishes visible cursor coordinates and an explicit confirm affordance");
+
+                combatState.ReducedMotion = true;
+                Assert(InvokePrivate<bool>(game, "CycleCombatBoardCursor", active, -1)
+                    && GetPrivateField<bool>(game, "combatBoardCursorActive"),
+                    "Reduced Motion retains deterministic board navigation without requiring animated feedback");
+                Assert(InvokePrivate<bool>(game, "CycleCombatBoardCursor", active, 1),
+                    "controller target cycling can return to the confirmable destination after wrapping");
+
+                int movePointsBeforeConfirm = combatState.Combat.MovePoints;
+                Assert(InvokePrivate<bool>(game, "ConfirmCombatBoardCursor", active),
+                    "Submit resolves the board cursor through the production Move command path");
+                Assert(active.X == cycledCursor.x
+                    && active.Y == cycledCursor.y
+                    && combatState.Combat.MovePoints < movePointsBeforeConfirm,
+                    "controller board confirmation moves the active unit and spends the exact gameplay movement resource");
+                Assert(InvokePrivate<bool>(game, "UndoActiveMovement")
+                    && active.X == originalX
+                    && active.Y == originalY
+                    && combatState.Combat.MovePoints == originalMovePoints,
+                    "controller-confirmed movement remains compatible with the existing movement undo path");
+                Assert(typeof(GameState).GetField("combatBoardCursorCell", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) == null
+                    && typeof(CombatState).GetField("combatBoardCursorCell", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic) == null,
+                    "board cursor focus remains transient presentation state and does not enter save data");
+            }
+            finally
+            {
+                InvokePrivate(game, "ClearCombatBoardCursor", false);
+                SetPrivateField(game, "visualSmokeCombatHoverCell", originalVisualHover);
+                SetPrivateField(game, "suppressBoardPointerThroughFrame", originalPointerSuppression);
+                combatState.ReducedMotion = originalReducedMotion;
+                combatState.Combat.Moved = originalMoved;
+                combatState.Combat.MovePoints = originalMovePoints;
+                combatState.Combat.Phase = originalPhase;
+                active.X = originalX;
+                active.Y = originalY;
+                active.Webbed = originalWebbed;
+                SetPrivateField(game, "selectedAction", originalAction);
+                eventSystem?.SetSelectedGameObject(originalSelection);
+                hud.Refresh();
+            }
+        }
+
         private static void AssertCombatPresentationRuntime(AshenHallsGame game)
         {
             InvokePrivate(game, "StartBetaCombatLab");
@@ -3950,6 +4267,7 @@ namespace AshenHalls.Editor
             combatUiEventSystem?.SetSelectedGameObject(null);
             hud.ClearCommandFocusForTest();
             Assert(hud.CommandPromptForTest == hudView.CommandPrompt, "clearing controller focus restores the canonical combat prompt");
+            AssertCombatBoardCursorControllerFlow(game, combatState, active, hud, combatUiEventSystem);
             bool originalMoved = combatState.Combat.Moved;
             int originalMovePointsForGuard = combatState.Combat.MovePoints;
             combatState.Combat.Moved = false;
@@ -4542,7 +4860,12 @@ namespace AshenHalls.Editor
             SetPrivateField(game, "boardRect", suggestedTargetBoardRect);
             SetPrivateField(game, "visualSmokeCombatHoverCell", suggestedTargetSmokeHover);
             Assert(targetingHudView.CanCancelTarget && targetingHudView.CancelTargetLabel == "Cancel Spell", "armed formula publishes explicit target cancellation");
-            Assert(targetingHudView.TargetSourceLabel == "SUGGESTED", "armed spell target rail labels its automatically suggested legal target");
+            Vector2Int? armedSpellCursor = GetPrivateField<Vector2Int?>(game, "combatBoardCursorCell");
+            Assert(targetingHudView.TargetSourceLabel == "CURSOR"
+                && GetPrivateField<bool>(game, "combatBoardCursorActive")
+                && armedSpellCursor.HasValue
+                && InvokePrivate<bool>(game, "CombatBoardCursorCellIsLegal", active, armedSpellCursor.Value.x, armedSpellCursor.Value.y),
+                "armed spell target rail labels its deterministic cursor-owned legal target");
             Assert(targetingHudView.Commands[2].Label == "Fireball"
                 && targetingHudView.Commands[2].SubLabel.StartsWith("ARMED", StringComparison.Ordinal)
                 && !targetingHudView.Commands[2].SubLabel.StartsWith("Choose", StringComparison.Ordinal), "armed spell command names the exact formula and publishes its current legal-target count");
@@ -5695,6 +6018,37 @@ namespace AshenHalls.Editor
                     stagedTarget.X,
                     stagedTarget.Y).StartsWith("Click", StringComparison.OrdinalIgnoreCase), "clean blocked-attack capture keeps forecast, shape state, and instruction aligned");
             Assert(stagedFarHighlight == CombatTargetHighlightState.Blocked, "target sweep marks an out-of-range enemy as blocked instead of silently omitting it");
+
+            InvokePrivate(
+                game,
+                "StageVisualSmokeCombatState",
+                (object)new[] { "-ashen-combat-smoke", "-ashen-combat-state", "cursor-cycle" });
+            stagedActive = InvokePrivate<CombatUnit>(game, "CurrentUnit");
+            Vector2Int? stagedCursor = GetPrivateField<Vector2Int?>(game, "combatBoardCursorCell");
+            List<Vector2Int> stagedCycleTargets = InvokePrivate<List<Vector2Int>>(game, "CombatBoardCursorCandidates", stagedActive);
+            CombatHudView stagedCursorView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+            Assert(GetPrivateField<bool>(game, "combatBoardCursorActive")
+                && !GetPrivateField<Vector2Int?>(game, "visualSmokeCombatHoverCell").HasValue
+                && GetPrivateField<ActionMode>(game, "selectedAction") == ActionMode.Attack
+                && stagedCycleTargets.Count >= 2
+                && stagedCursor == stagedCycleTargets[0]
+                && stagedCycleTargets.All(cell => InvokePrivate<bool>(game, "CombatBoardCursorCellIsLegal", stagedActive, cell.x, cell.y)),
+                "clean cursor-cycle capture stages a visible controller focus on the first of at least two legal weapon targets");
+            Assert(stagedCursorView.CommandPrompt.StartsWith("CURSOR ", StringComparison.Ordinal)
+                && stagedCursorView.TargetSourceLabel == "CURSOR",
+                "clean cursor-cycle capture exposes the cursor prompt and target ownership in the migrated HUD");
+            bool stagedOriginalReducedMotion = stagedCombatState.ReducedMotion;
+            try
+            {
+                stagedCombatState.ReducedMotion = true;
+                Assert(InvokePrivate<bool>(game, "CycleCombatBoardCursor", stagedActive, 1)
+                    && GetPrivateField<Vector2Int?>(game, "combatBoardCursorCell") == stagedCycleTargets[1],
+                    "cursor-cycle visual smoke advances deterministically under Reduced Motion");
+            }
+            finally
+            {
+                stagedCombatState.ReducedMotion = stagedOriginalReducedMotion;
+            }
 
             InvokePrivate(
                 game,

@@ -228,6 +228,7 @@ namespace AshenHalls
                 DrawStatusPips(cellRect, unit, cell);
             }
 
+            if (!resolvingPower) DrawCombatBoardCursor(grid, cell, active);
             DrawFloatingTextLayer(grid, cell, Time.time);
             if (!resolvingPower) DrawHoverPreview(grid, cell, active);
             HandleCombatMouse(grid, cell);
@@ -625,12 +626,67 @@ namespace AshenHalls
                 return true;
             }
 
+            if (combatBoardCursorActive && combatBoardCursorCell.HasValue)
+            {
+                Vector2Int cursor = combatBoardCursorCell.Value;
+                if (cursor.x < 0 || cursor.x >= CombatW || cursor.y < 0 || cursor.y >= CombatH) return false;
+                x = cursor.x;
+                y = cursor.y;
+                pointer = new Vector2(
+                    grid.x + (x + 0.5f) * cell,
+                    grid.y + (y + 0.5f) * cell);
+                return true;
+            }
+
             Event current = Event.current;
             if (current == null || !grid.Contains(current.mousePosition)) return false;
             pointer = current.mousePosition;
             x = Mathf.FloorToInt((pointer.x - grid.x) / cell);
             y = Mathf.FloorToInt((pointer.y - grid.y) / cell);
             return x >= 0 && x < CombatW && y >= 0 && y < CombatH;
+        }
+
+        private void DrawCombatBoardCursor(Rect grid, float cell, CombatUnit active)
+        {
+            if (!combatBoardCursorActive
+                || !combatBoardCursorCell.HasValue
+                || active == null
+                || active.Side != UnitSide.Party)
+            {
+                return;
+            }
+
+            Vector2Int cursor = combatBoardCursorCell.Value;
+            if (cursor.x < 0 || cursor.x >= CombatW || cursor.y < 0 || cursor.y >= CombatH) return;
+            bool legal = CombatBoardCursorCellIsLegal(active, cursor.x, cursor.y);
+            Color accent = legal
+                ? selectedAction == ActionMode.Move ? teal : gold
+                : blood;
+            Rect tile = new Rect(
+                grid.x + cursor.x * cell,
+                grid.y + cursor.y * cell,
+                cell,
+                cell);
+            Rect frame = Pad(tile, Mathf.Max(3f, cell * 0.055f));
+            DrawRect(frame, accent.WithAlpha(0.08f));
+            DrawBorder(frame, Hex("050708", 0.92f), 4);
+            DrawBorder(frame, accent.WithAlpha(0.98f), 2);
+
+            float arm = Mathf.Clamp(cell * 0.24f, 10f, 20f);
+            float width = Mathf.Clamp(cell * 0.045f, 2f, 4f);
+            DrawRect(new Rect(frame.x, frame.y, arm, width), accent);
+            DrawRect(new Rect(frame.x, frame.y, width, arm), accent);
+            DrawRect(new Rect(frame.xMax - arm, frame.y, arm, width), accent);
+            DrawRect(new Rect(frame.xMax - width, frame.y, width, arm), accent);
+            DrawRect(new Rect(frame.x, frame.yMax - width, arm, width), accent);
+            DrawRect(new Rect(frame.x, frame.yMax - arm, width, arm), accent);
+            DrawRect(new Rect(frame.xMax - arm, frame.yMax - width, arm, width), accent);
+            DrawRect(new Rect(frame.xMax - width, frame.yMax - arm, width, arm), accent);
+
+            float pip = Mathf.Clamp(cell * 0.11f, 6f, 10f);
+            Rect confirmPip = new Rect(frame.xMax - pip * 1.30f, frame.y + pip * 0.30f, pip, pip);
+            DrawRect(confirmPip, accent.WithAlpha(legal ? 0.96f : 0.46f));
+            DrawBorder(confirmPip, Hex("050708", 0.96f), 1);
         }
 
         private void DrawHoverPreview(Rect grid, float cell, CombatUnit active)
@@ -2761,6 +2817,7 @@ namespace AshenHalls
         {
             Event e = Event.current;
             if (e == null || e.type != EventType.MouseDown) return;
+            if (grid.Contains(e.mousePosition)) ClearCombatBoardCursor(false);
             if (IsBoardPointerSuppressed()) return;
             if (IsCombatResolutionPending()) return;
             if (!ScreenInputRules.ShouldRouteBoardPointer(
@@ -7093,6 +7150,7 @@ namespace AshenHalls
         private void SelectOrRunAction(ActionMode mode, CombatUnit active)
         {
             if (IsCombatResolutionPending()) return;
+            ClearCombatBoardCursor(false);
             bool changedMode = selectedAction != mode;
             selectedAction = mode;
             if (mode == ActionMode.Cast)
@@ -12367,26 +12425,61 @@ namespace AshenHalls
             if (active == null || active.Side != UnitSide.Party) return;
 
             NormalizeCombatSelection(active);
+            if (TrackCombatBoardPointerOwnership() || ConsumeCombatBoardNavigationAfterPointerTakeover()) return;
             bool combatHudOwnsSelection = CombatHudOwnsCurrentSelection();
+            if (combatBoardCursorActive && Input.GetKeyDown(KeyCode.JoystickButton3))
+            {
+                FocusCombatCommandPalette();
+                return;
+            }
             if (Input.GetKeyDown(KeyCode.U) || Input.GetKeyDown(KeyCode.Backspace))
             {
                 UndoActiveMovement();
                 return;
             }
+            // Cycle inputs explicitly enter board targeting even when the command
+            // palette currently owns controller focus.
+            if (TryCombatTargetCycleHotkey(active)) return;
             if (CombatInputRoutingRules.ShouldRouteToWorld(combatHudOwnsSelection, CombatHotkeyKind.Navigation)
                 && TryCombatDirectionalHotkey(active)) return;
-            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1) || Input.GetKeyDown(KeyCode.Z)) TryHotkeyAction(ActionMode.Move, active);
-            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2) || Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.F)) TryHotkeyAction(ActionMode.Attack, active);
-            if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3) || Input.GetKeyDown(KeyCode.C)) TryHotkeyAction(PreferredThirdAction(active), active);
-            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)) TryHotkeyAction(ActionMode.Wait, active);
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1) || Input.GetKeyDown(KeyCode.Z))
+            {
+                TryHotkeyAction(ActionMode.Move, active);
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2) || Input.GetKeyDown(KeyCode.X) || Input.GetKeyDown(KeyCode.F))
+            {
+                TryHotkeyAction(ActionMode.Attack, active);
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3) || Input.GetKeyDown(KeyCode.C))
+            {
+                TryHotkeyAction(PreferredThirdAction(active), active);
+                return;
+            }
+            if (Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4))
+            {
+                TryHotkeyAction(ActionMode.Wait, active);
+                return;
+            }
             if (CombatInputRoutingRules.ShouldRouteToWorld(combatHudOwnsSelection, CombatHotkeyKind.Submit)
                 && (Input.GetKeyDown(KeyCode.Space)
                     || Input.GetKeyDown(KeyCode.Return)
-                    || Input.GetKeyDown(KeyCode.KeypadEnter)))
+                    || Input.GetKeyDown(KeyCode.KeypadEnter)
+                    || Input.GetButtonDown("Submit")))
             {
-                TryHotkeyAction(ActionMode.Wait, active);
+                if (combatBoardCursorActive)
+                {
+                    if (CombatBoardCursorCanConfirmFromInput()) ConfirmCombatBoardCursor(active);
+                }
+                else TryHotkeyAction(ActionMode.Wait, active);
+                return;
             }
-            if (Input.GetKeyDown(KeyCode.G)) TryHotkeyAction(ActionMode.Guard, active);
+            if (Input.GetKeyDown(KeyCode.G))
+            {
+                TryHotkeyAction(ActionMode.Guard, active);
+                return;
+            }
             if (Input.GetKeyDown(KeyCode.H)) TryHotkeyAction(ActionMode.Elixir, active);
         }
 
@@ -12400,11 +12493,364 @@ namespace AshenHalls
 
         private bool TryCombatDirectionalHotkey(CombatUnit active)
         {
-            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) return TryCombatStep(active, 0, -1);
-            if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) return TryCombatStep(active, 0, 1);
-            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) return TryCombatStep(active, -1, 0);
-            if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) return TryCombatStep(active, 1, 0);
+            if (!TryReadCombatNavigationDirection(out int deltaX, out int deltaY)) return false;
+            return combatBoardCursorActive
+                ? NudgeCombatBoardCursor(active, deltaX, deltaY)
+                : TryCombatStep(active, deltaX, deltaY);
+        }
+
+        private bool TryReadCombatNavigationDirection(out int deltaX, out int deltaY)
+        {
+            deltaX = 0;
+            deltaY = 0;
+            if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) deltaY = -1;
+            else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) deltaY = 1;
+            else if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) deltaX = -1;
+            else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) deltaX = 1;
+            if (deltaX != 0 || deltaY != 0)
+            {
+                combatBoardNavigationAxisX = deltaX;
+                combatBoardNavigationAxisY = deltaY;
+                combatBoardNavigationRepeatAt = Time.unscaledTime + 0.30f;
+                return true;
+            }
+
+            float horizontal = Input.GetAxisRaw("Horizontal");
+            float vertical = Input.GetAxisRaw("Vertical");
+            int axisX = Mathf.Abs(horizontal) >= 0.55f ? Math.Sign(horizontal) : 0;
+            int axisY = Mathf.Abs(vertical) >= 0.55f ? -Math.Sign(vertical) : 0;
+            if (axisX == 0 && axisY == 0)
+            {
+                combatBoardNavigationAxisX = 0;
+                combatBoardNavigationAxisY = 0;
+                combatBoardNavigationRepeatAt = 0f;
+                return false;
+            }
+            if (axisX != 0 && axisY != 0)
+            {
+                if (Mathf.Abs(horizontal) >= Mathf.Abs(vertical)) axisY = 0;
+                else axisX = 0;
+            }
+
+            bool changedDirection = axisX != combatBoardNavigationAxisX || axisY != combatBoardNavigationAxisY;
+            if (!changedDirection && Time.unscaledTime < combatBoardNavigationRepeatAt) return false;
+            combatBoardNavigationAxisX = axisX;
+            combatBoardNavigationAxisY = axisY;
+            combatBoardNavigationRepeatAt = Time.unscaledTime + (changedDirection ? 0.30f : 0.12f);
+            deltaX = axisX;
+            deltaY = axisY;
+            return true;
+        }
+
+        private bool TryCombatTargetCycleHotkey(CombatUnit active)
+        {
+            int direction = 0;
+            if (Input.GetKeyDown(KeyCode.Q) || Input.GetKeyDown(KeyCode.JoystickButton4)) direction = -1;
+            else if (Input.GetKeyDown(KeyCode.Tab)
+                || Input.GetKeyDown(KeyCode.E)
+                || Input.GetKeyDown(KeyCode.JoystickButton5))
+            {
+                direction = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift) ? -1 : 1;
+            }
+            if (direction == 0) return false;
+
+            List<Vector2Int> legalTargets = CombatBoardCursorCandidates(active);
+            if (legalTargets.Count == 0)
+            {
+                ClearCombatBoardCursor(false);
+                PushLog("No legal target is available for the armed combat command.", Tone.Warn);
+                PlaySfx("blocked", 0.50f);
+                return true;
+            }
+            if (!combatBoardCursorActive && !ActivateCombatBoardCursor(active, false, true)) return true;
+            CycleCombatBoardCursor(active, direction);
+            return true;
+        }
+
+        private bool ActivateCombatBoardCursor(CombatUnit active, bool preferLegalTarget, bool releaseHudFocus)
+        {
+            if (active == null || active.Side != UnitSide.Party || state?.Combat == null) return false;
+            Vector2Int origin = new Vector2Int(active.X, active.Y);
+            Vector2Int cursor = combatBoardCursorCell ?? origin;
+            cursor = CombatBoardNavigationRules.Step(cursor, 0, 0, CombatW, CombatH);
+            List<Vector2Int> legalTargets = CombatBoardCursorCandidates(active);
+            if (preferLegalTarget && legalTargets.Count > 0 && !legalTargets.Contains(cursor))
+            {
+                cursor = legalTargets[0];
+            }
+
+            combatBoardCursorCell = cursor;
+            combatBoardCursorActive = true;
+            combatBoardCursorActivatedFrame = Time.frameCount;
+            combatBoardCursorPointerSample = Input.mousePosition;
+            combatBoardCursorPointerSampled = true;
+            if (releaseHudFocus)
+            {
+                UnityEngine.EventSystems.EventSystem eventSystem = UnityEngine.EventSystems.EventSystem.current
+                    ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
+                if (eventSystem != null
+                    && combatHudScreen != null
+                    && combatHudScreen.OwnsSelection(eventSystem.currentSelectedGameObject))
+                {
+                    eventSystem.SetSelectedGameObject(null);
+                }
+            }
+            MarkUiDirty();
+            return true;
+        }
+
+        private bool NudgeCombatBoardCursor(CombatUnit active, int deltaX, int deltaY)
+        {
+            if (!combatBoardCursorActive && !ActivateCombatBoardCursor(active, false, true)) return false;
+            Vector2Int current = combatBoardCursorCell ?? new Vector2Int(active.X, active.Y);
+            Vector2Int next = CombatBoardNavigationRules.Step(current, deltaX, deltaY, CombatW, CombatH);
+            if (next == current) return true;
+            combatBoardCursorCell = next;
+            PlaySfx("uitab", 0.20f);
+            MarkUiDirty();
+            return true;
+        }
+
+        private bool CycleCombatBoardCursor(CombatUnit active, int direction)
+        {
+            List<Vector2Int> legalTargets = CombatBoardCursorCandidates(active);
+            if (legalTargets.Count == 0)
+            {
+                PushLog("No legal target is available for the armed combat command.", Tone.Warn);
+                PlaySfx("blocked", 0.50f);
+                return false;
+            }
+            Vector2Int origin = new Vector2Int(active.X, active.Y);
+            Vector2Int current = combatBoardCursorCell ?? origin;
+            combatBoardCursorCell = CombatBoardNavigationRules.Cycle(
+                origin,
+                current,
+                legalTargets,
+                direction,
+                CombatW,
+                CombatH);
+            combatBoardCursorActive = true;
+            PlaySfx("uitab", 0.28f);
+            MarkUiDirty();
+            return true;
+        }
+
+        private List<Vector2Int> CombatBoardCursorCandidates(CombatUnit active)
+        {
+            List<Vector2Int> candidates = new List<Vector2Int>();
+            if (active == null || state?.Combat == null) return candidates;
+            for (int y = 0; y < CombatH; y++)
+            for (int x = 0; x < CombatW; x++)
+            {
+                if (CombatBoardCursorCellIsLegal(active, x, y)) candidates.Add(new Vector2Int(x, y));
+            }
+            return CombatBoardNavigationRules.OrderCandidates(
+                new Vector2Int(active.X, active.Y),
+                candidates,
+                CombatW,
+                CombatH);
+        }
+
+        private bool CombatBoardCursorCellIsLegal(CombatUnit active, int x, int y)
+        {
+            if (active == null
+                || state?.Combat == null
+                || x < 0
+                || x >= CombatW
+                || y < 0
+                || y >= CombatH)
+            {
+                return false;
+            }
+            if (selectedAction == ActionMode.Move)
+            {
+                int moveCost = MoveCostTo(active, x, y);
+                return (x != active.X || y != active.Y)
+                    && state.Combat.MovePoints > 0
+                    && active.Webbed <= 0
+                    && CanStandAt(x, y)
+                    && moveCost < UnreachableMoveCost
+                    && moveCost <= state.Combat.MovePoints;
+            }
+            if (!state.Combat.ActionAvailable) return false;
+            CombatUnit target = UnitAt(x, y);
+            if (selectedAction == ActionMode.Attack)
+            {
+                if (target != null && target.Side == UnitSide.Enemy && target.Hp > 0)
+                {
+                    return AttackForecast(active, target).Legal;
+                }
+                Point obstacle = ObstacleAt(x, y);
+                return obstacle != null
+                    && (IsDisruptableRitual(obstacle) || IsBreakableCover(obstacle))
+                    && CanAttackCombatObstacle(active, obstacle);
+            }
+            if (selectedAction == ActionMode.Cast)
+            {
+                FormulaDef formula = GetFormula(pendingFormulaCode);
+                return formula != null && IsFormulaActionable(formula, active, target, x, y);
+            }
+            if (selectedAction == ActionMode.Ability)
+            {
+                MartialAbility ability = AbilityDef(pendingAbilityId);
+                return ability != null && CanTargetAbility(active, ability, target, x, y, out _);
+            }
             return false;
+        }
+
+        private bool ConfirmCombatBoardCursor(CombatUnit active)
+        {
+            if (!combatBoardCursorActive || !combatBoardCursorCell.HasValue || active == null) return false;
+            Vector2Int cursor = combatBoardCursorCell.Value;
+            if (!CombatBoardCursorCellIsLegal(active, cursor.x, cursor.y))
+            {
+                PushLog($"The cursor is not on a legal {ActionName(selectedAction, active).ToLowerInvariant()} target.", Tone.Warn);
+                PlaySfx("blocked", 0.60f);
+                return true;
+            }
+
+            CombatUnit target = UnitAt(cursor.x, cursor.y);
+            if (selectedAction == ActionMode.Move)
+            {
+                MoveActiveTo(active, cursor.x, cursor.y);
+                combatBoardCursorCell = new Vector2Int(active.X, active.Y);
+                combatBoardCursorPointerSample = Input.mousePosition;
+                return true;
+            }
+            if (selectedAction == ActionMode.Attack)
+            {
+                CombatCommandResult result;
+                if (target != null)
+                {
+                    result = CombatLifecycle().TryAttack(active, target, Attack);
+                }
+                else
+                {
+                    Point obstacle = ObstacleAt(cursor.x, cursor.y);
+                    result = CombatLifecycle().TryResolveAction(
+                        active,
+                        () => IsDisruptableRitual(obstacle)
+                            ? AttackRitual(active, obstacle)
+                            : AttackCover(active, obstacle));
+                }
+                if (result.Success) AfterCombatAction(active);
+                return true;
+            }
+            if (selectedAction == ActionMode.Cast)
+            {
+                FormulaDef formula = GetFormula(pendingFormulaCode);
+                CombatPowerOutcomeSnapshot outcomeBefore = CombatPowerOutcomeRules.Capture(state.Combat);
+                CombatCommandResult result = CombatLifecycle().TryResolveAction(
+                    active,
+                    () => CastFormula(active, pendingFormulaCode, target, cursor.x, cursor.y));
+                if (result.Success)
+                {
+                    SetCombatPowerOutcome(outcomeBefore);
+                    FinishResolvedPlayerFormulaAction(active, formula);
+                }
+                return true;
+            }
+            if (selectedAction == ActionMode.Ability)
+            {
+                MartialAbility ability = AbilityDef(pendingAbilityId);
+                CombatPowerOutcomeSnapshot outcomeBefore = CombatPowerOutcomeRules.Capture(state.Combat);
+                CombatCommandResult result = CombatLifecycle().TryResolveAction(
+                    active,
+                    () => UseTargetedAbility(active, pendingAbilityId, target, cursor.x, cursor.y));
+                if (result.Success)
+                {
+                    SetCombatPowerOutcome(outcomeBefore);
+                    FinishResolvedPlayerAbilityAction(active, ability);
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private bool CombatBoardCursorCanConfirmFromInput()
+        {
+            return combatBoardCursorActive && combatBoardCursorActivatedFrame < Time.frameCount;
+        }
+
+        private bool TrackCombatBoardPointerOwnership()
+        {
+            return TrackCombatBoardPointerOwnership(Input.mousePosition);
+        }
+
+        private bool TrackCombatBoardPointerOwnership(Vector2 current)
+        {
+            if (!combatBoardCursorPointerSampled)
+            {
+                combatBoardCursorPointerSample = current;
+                combatBoardCursorPointerSampled = true;
+                return false;
+            }
+            if (combatBoardCursorActive
+                && CombatBoardNavigationRules.PointerMovementOwnsInspection(
+                    combatBoardCursorPointerSample,
+                    current))
+            {
+                ClearCombatBoardCursor(true);
+                combatBoardNavigationSuppressedUntilNeutral = true;
+                combatBoardCursorPointerSample = current;
+                return true;
+            }
+            combatBoardCursorPointerSample = current;
+            return false;
+        }
+
+        private bool ConsumeCombatBoardNavigationAfterPointerTakeover()
+        {
+            bool digitalDirectionHeld = Input.GetKey(KeyCode.W)
+                || Input.GetKey(KeyCode.A)
+                || Input.GetKey(KeyCode.S)
+                || Input.GetKey(KeyCode.D)
+                || Input.GetKey(KeyCode.UpArrow)
+                || Input.GetKey(KeyCode.DownArrow)
+                || Input.GetKey(KeyCode.LeftArrow)
+                || Input.GetKey(KeyCode.RightArrow);
+            return ConsumeCombatBoardNavigationAfterPointerTakeover(
+                Input.GetAxisRaw("Horizontal"),
+                Input.GetAxisRaw("Vertical"),
+                digitalDirectionHeld);
+        }
+
+        private bool ConsumeCombatBoardNavigationAfterPointerTakeover(
+            float horizontal,
+            float vertical,
+            bool digitalDirectionHeld)
+        {
+            if (!combatBoardNavigationSuppressedUntilNeutral) return false;
+            if (CombatBoardNavigationRules.NavigationIsNeutral(horizontal, vertical, digitalDirectionHeld))
+            {
+                combatBoardNavigationSuppressedUntilNeutral = false;
+                return false;
+            }
+            combatBoardNavigationAxisX = 0;
+            combatBoardNavigationAxisY = 0;
+            combatBoardNavigationRepeatAt = 0f;
+            return true;
+        }
+
+        private void ClearCombatBoardCursor(bool markUiDirty = true)
+        {
+            bool changed = combatBoardCursorActive || combatBoardCursorCell.HasValue;
+            combatBoardCursorActive = false;
+            combatBoardCursorCell = null;
+            combatBoardCursorActivatedFrame = -1;
+            combatBoardNavigationAxisX = 0;
+            combatBoardNavigationAxisY = 0;
+            combatBoardNavigationRepeatAt = 0f;
+            combatBoardNavigationSuppressedUntilNeutral = false;
+            if (changed && markUiDirty) MarkUiDirty();
+        }
+
+        private void FocusCombatCommandPalette()
+        {
+            ClearCombatBoardCursor(false);
+            combatHudScreen?.FocusCommand(selectedAction);
+            PlaySfx("uitab", 0.28f);
+            MarkUiDirty();
         }
 
         private bool TryCombatStep(CombatUnit active, int dx, int dy)
@@ -12465,6 +12911,10 @@ namespace AshenHalls
             }
 
             SelectOrRunAction(mode, active);
+            if (mode == ActionMode.Move || mode == ActionMode.Attack)
+            {
+                ActivateCombatBoardCursor(active, mode == ActionMode.Attack, true);
+            }
         }
 
         private bool PrepareFormulaCode(CombatUnit active, string code)
@@ -12493,6 +12943,7 @@ namespace AshenHalls
             showSpellbook = false;
             SuppressBoardPointer();
             if (state?.Combat != null) state.Combat.Phase = CombatPhase.ChooseTarget;
+            ActivateCombatBoardCursor(active, true, true);
             PushLog($"{active.Name} readies {formula.Name}. Choose the target.", Tone.Good);
             ShowBanner(formula.Name);
             PlaySfx("formula", 0.95f);
@@ -12525,6 +12976,7 @@ namespace AshenHalls
             showSpellbook = false;
             SuppressBoardPointer();
             if (state?.Combat != null) state.Combat.Phase = CombatPhase.ChooseTarget;
+            ActivateCombatBoardCursor(active, true, true);
             PushLog($"{active.Name} readies {ability.Name}. Choose the target.", Tone.Good);
             ShowBanner(ability.Name);
             PlaySfx("ui", 0.62f);
@@ -12559,6 +13011,7 @@ namespace AshenHalls
                 : AbilityDef(pendingAbilityId)?.Name;
             ClearFormulaEntry();
             ClearAbilityEntry();
+            ClearCombatBoardCursor(false);
             showSpellbook = false;
             showAbilityPanel = false;
             ApplyDefaultCombatSelection(CurrentUnit());
@@ -12574,6 +13027,7 @@ namespace AshenHalls
         {
             CancelCombatResolutionBeat(false);
             if (state.Combat == null) return;
+            ClearCombatBoardCursor(false);
             aiActAt = -1f;
             ClearFormulaEntry();
             ClearAbilityEntry();
@@ -12646,6 +13100,7 @@ namespace AshenHalls
             if (active.Side == UnitSide.Party)
             {
                 ApplyDefaultCombatSelection(active);
+                combatHudScreen?.FocusCommand(selectedAction);
                 PlaySfx("turn", 0.48f);
             }
             if (active.Side == UnitSide.Enemy)
@@ -14320,6 +14775,7 @@ namespace AshenHalls
         private void AfterCombatAction(CombatUnit active, float resolutionDelay = 0f, string resolutionLabel = "")
         {
             if (state?.Combat == null) return;
+            ClearCombatBoardCursor(false);
             showAbilityPanel = false;
             showSpellbook = false;
             ClearAbilityEntry();

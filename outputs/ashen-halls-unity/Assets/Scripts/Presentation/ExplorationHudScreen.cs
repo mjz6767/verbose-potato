@@ -394,8 +394,8 @@ namespace AshenHalls
             actionButton.interactable = view.HasAction;
             detailsButtonText.text = view.DetailsOpen ? "Close" : "Details";
             mapButtonText.text = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase)
-                ? "Local\nTab"
-                : "Region\nTab";
+                ? "Local\nTab / Y"
+                : "Region\nTab / Y";
             journalButtonText.text = "Journal\nJ";
             partyButtonText.text = "Party\nF";
             menuButtonText.text = "Menu\nEsc";

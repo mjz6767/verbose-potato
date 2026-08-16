@@ -293,6 +293,24 @@ namespace AshenHalls
 
         private Vector2Int? visualSmokeCombatHoverCell;
 
+        private Vector2Int? combatBoardCursorCell;
+
+        private bool combatBoardCursorActive;
+
+        private int combatBoardCursorActivatedFrame = -1;
+
+        private Vector2 combatBoardCursorPointerSample;
+
+        private bool combatBoardCursorPointerSampled;
+
+        private int combatBoardNavigationAxisX;
+
+        private int combatBoardNavigationAxisY;
+
+        private float combatBoardNavigationRepeatAt;
+
+        private bool combatBoardNavigationSuppressedUntilNeutral;
+
         private string activeContentSet = ContentSetCatalog.SewerSlice;
 
         private int uiRevision = 1;
@@ -399,6 +417,7 @@ namespace AshenHalls
             combatController = null;
             combatControllerState = null;
             combatControllerCombat = null;
+            ClearCombatBoardCursor(false);
         }
 
         private void Awake()
@@ -708,6 +727,7 @@ namespace AshenHalls
 
             visualSmokeHideCombatDebug = true;
             visualSmokeCombatHoverCell = null;
+            ClearCombatBoardCursor(false);
             showSpellbook = false;
             showAbilityPanel = false;
             ClearFormulaEntry();
@@ -772,7 +792,7 @@ namespace AshenHalls
                         $"Combat move-path smoke staged an illegal destination: cost={moveCost}, move={state.Combat.MovePoints}.");
                 }
             }
-            else if (requested == "attack-legal" || requested == "attack-blocked")
+            else if (requested == "attack-legal" || requested == "attack-blocked" || requested == "cursor-cycle")
             {
                 active.ClassKey = "ranger";
                 active.Role = "bow";
@@ -787,12 +807,38 @@ namespace AshenHalls
                 {
                     state.Combat.Obstacles.Add(new Point(3, 4, "stone", 3));
                 }
-                visualSmokeCombatHoverCell = new Vector2Int(target.X, target.Y);
+                visualSmokeCombatHoverCell = requested == "cursor-cycle"
+                    ? (Vector2Int?)null
+                    : new Vector2Int(target.X, target.Y);
                 CombatAttackForecast forecast = AttackForecast(active, target);
-                if (forecast.Legal != (requested == "attack-legal"))
+                bool expectedLegal = requested != "attack-blocked";
+                if (forecast.Legal != expectedLegal)
                 {
                     throw new InvalidOperationException(
                         $"Combat {requested} smoke legality mismatch: legal={forecast.Legal}, reason={forecast.BlockReason}.");
+                }
+                if (requested == "cursor-cycle")
+                {
+                    CombatUnit alternate = state.Combat.Units
+                        .FirstOrDefault(unit => unit != null
+                            && unit.Side == UnitSide.Enemy
+                            && unit.Hp > 0
+                            && unit.Id != target.Id);
+                    if (alternate == null)
+                    {
+                        throw new InvalidOperationException("Combat cursor-cycle smoke needs two living enemies.");
+                    }
+                    alternate.X = 5;
+                    alternate.Y = 2;
+                    List<Vector2Int> cycleTargets = CombatBoardCursorCandidates(active);
+                    if (cycleTargets.Count < 2)
+                    {
+                        throw new InvalidOperationException(
+                            $"Combat cursor-cycle smoke needs two legal attack targets; staged {cycleTargets.Count}.");
+                    }
+                    combatBoardCursorActive = true;
+                    combatBoardCursorCell = cycleTargets[0];
+                    combatBoardCursorPointerSampled = false;
                 }
             }
             else if (requested == "spell-aoe")
@@ -823,9 +869,12 @@ namespace AshenHalls
             string hover = visualSmokeCombatHoverCell.HasValue
                 ? $"{visualSmokeCombatHoverCell.Value.x},{visualSmokeCombatHoverCell.Value.y}"
                 : "none";
+            string cursor = combatBoardCursorActive && combatBoardCursorCell.HasValue
+                ? $"{combatBoardCursorCell.Value.x},{combatBoardCursorCell.Value.y}"
+                : "none";
             Debug.Log(
                 $"{VersionInfo.ProductName} combat smoke staged: state={requested}, "
-                + $"actor={active.Name}@{active.X},{active.Y}, action={selectedAction}, hover={hover}, "
+                + $"actor={active.Name}@{active.X},{active.Y}, action={selectedAction}, hover={hover}, cursor={cursor}, "
                 + $"round={state.Combat.Round}, move={state.Combat.MovePoints}, actionReady={state.Combat.ActionAvailable}.");
         }
 
@@ -1147,13 +1196,33 @@ namespace AshenHalls
 
         private void ApplyVisualSmokeExploreView(string[] args)
         {
-            exploreWideView = args != null && args.Any(arg => string.Equals(arg, "-ashen-region-smoke", StringComparison.OrdinalIgnoreCase));
+            bool pannedRegionSmoke = args != null
+                && args.Any(arg => string.Equals(arg, "-ashen-region-pan-smoke", StringComparison.OrdinalIgnoreCase));
+            exploreWideView = args != null
+                && (pannedRegionSmoke
+                    || args.Any(arg => string.Equals(arg, "-ashen-region-smoke", StringComparison.OrdinalIgnoreCase)));
             exploreHudCollapsed = args == null
                 || !args.Any(arg => string.Equals(arg, "-ashen-details-smoke", StringComparison.OrdinalIgnoreCase));
+            if (exploreWideView)
+            {
+                ResetRegionMapFocusToParty();
+                if (pannedRegionSmoke)
+                {
+                    PanRegionMapFocus(
+                        Mathf.Max(3, ExploreViewportWidth() / 2 + 2),
+                        -Mathf.Max(3, ExploreViewportHeight() / 2 + 2));
+                }
+            }
+            else
+            {
+                ResetRegionMapNavigationInput();
+            }
+            Point browseFocus = exploreWideView ? EnsureRegionMapFocus() : new Point(state.PlayerX, state.PlayerY);
             Debug.Log(
                 VersionInfo.ProductName
                 + " visual smoke exploration view: "
                 + (exploreWideView ? "Region Map" : "Local Map")
+                + (pannedRegionSmoke ? $" panned to {browseFocus.X},{browseFocus.Y}" : "")
                 + ", Details "
                 + (exploreHudCollapsed ? "closed" : "open")
                 + ", target "
