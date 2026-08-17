@@ -33,6 +33,8 @@ namespace AshenHalls
 
         private readonly List<PowerAftermathVfx> powerAftermathVfx = new List<PowerAftermathVfx>();
 
+        private readonly List<PowerActorPoseBeat> powerActorPoseBeats = new List<PowerActorPoseBeat>();
+
         private readonly List<CombatUnitPresentationBeat> combatUnitPresentationBeats = new List<CombatUnitPresentationBeat>();
 
         private readonly List<Rect> combatTooltipBlockers = new List<Rect>(32);
@@ -72,6 +74,8 @@ namespace AshenHalls
             public CombatImpactProfile Profile;
             public CombatPowerOutcomeSnapshot Before;
             public float PreviousVfxDelay;
+            public string ExactPowerKey;
+            public PowerActorPoseBeat ActorPose;
             public int ImpactX;
             public int ImpactY;
             public Color Color;
@@ -164,16 +168,29 @@ namespace AshenHalls
                     out CombatUnitPresentationBeat beat);
                 if (!CombatUnitPresentationRules.ShouldRenderActor(unit.Hp > 0, beat, presentationNow)) continue;
 
-                Vector2 pos = UnitDrawPos(unit);
+                Vector2 pos = UnitDrawPos(unit, presentationNow, out CombatPowerActorPoseFrame actorFrame);
+                bool hasActorPose = actorFrame.HasPose;
+                if (hasActorPose && !actorFrame.IsVisible) continue;
                 Rect cellRect = new Rect(grid.x + pos.x * cell, grid.y + pos.y * cell, cell, cell);
                 bool isActive = active != null && active.Id == unit.Id;
-                CombatUnitPresentationPose pose = CombatUnitPresentationRules.PoseFor(
+                CombatUnitPresentationPose impactPose = CombatUnitPresentationRules.PoseFor(
                     beat,
                     presentationNow,
                     state.ReducedMotion);
+                CombatUnitPresentationPose pose = hasActorPose
+                    ? new CombatUnitPresentationPose(
+                        impactPose.OffsetX + actorFrame.OffsetX,
+                        impactPose.OffsetY + actorFrame.OffsetY,
+                        impactPose.Scale * actorFrame.Scale,
+                        impactPose.Alpha * actorFrame.Opacity)
+                    : impactPose;
+                bool allowDemonFormArt = !hasActorPose
+                    || !string.Equals(actorFrame.PowerKey, "dfa", StringComparison.OrdinalIgnoreCase)
+                    || actorFrame.Phase == CombatPowerActorPosePhase.MorphIn
+                    || actorFrame.Phase == CombatPowerActorPosePhase.Recovery;
                 Rect anchoredRect = Pad(cellRect, cell * 0.01f);
                 Rect spriteRect = CombatUnitPresentationRules.ApplyPose(anchoredRect, pose);
-                DrawCombatUnitSprite(spriteRect, anchoredRect, unit, isActive, pose.Alpha);
+                DrawCombatUnitSprite(spriteRect, anchoredRect, unit, isActive, pose.Alpha, allowDemonFormArt);
             }
 
             // Foreground action art may cross unit cells, but never the tactical readout.
@@ -210,7 +227,8 @@ namespace AshenHalls
                     continue;
                 }
 
-                Vector2 pos = UnitDrawPos(unit);
+                Vector2 pos = UnitDrawPos(unit, presentationNow, out CombatPowerActorPoseFrame actorFrame);
+                if (actorFrame.HasPose && !actorFrame.IsVisible) continue;
                 Rect cellRect = new Rect(grid.x + pos.x * cell, grid.y + pos.y * cell, cell, cell);
                 bool isActive = active != null && active.Id == unit.Id;
                 DrawCombatStatusFrame(cellRect, unit, isActive, cell);
@@ -6037,6 +6055,7 @@ namespace AshenHalls
                 .OrderBy(unit => Distance(source.X, source.Y, unit.X, unit.Y))
                 .FirstOrDefault();
             Point impact = BetaVfxShowcaseImpactCell(entry, source, target);
+            Point actorLanding = BetaVfxShowcaseActorLanding(entry, source, impact);
             CombatImpactProfile profile;
             Color color;
             if (entry.Kind == CombatVfxShowcasePowerKind.Formula)
@@ -6066,7 +6085,7 @@ namespace AshenHalls
 
             ClearBetaVfxShowcasePresentation();
             BeginCombatPowerReactionCapture();
-            StageCombatPowerCast(
+            PowerCastAura stagedAura = StageCombatPowerCast(
                 profile,
                 source.X,
                 source.Y,
@@ -6076,7 +6095,17 @@ namespace AshenHalls
                 false,
                 entry.Id,
                 entry.StableSeed);
-            StageBetaVfxShowcaseTravel(entry, source, impact, color, profile);
+            StageCombatPowerActorPose(
+                source,
+                entry.Id,
+                source.X,
+                source.Y,
+                actorLanding.X,
+                actorLanding.Y,
+                CombatImpactRules.VisualIntensity(profile),
+                stagedAura?.StableSeed ?? entry.StableSeed,
+                startAt: stagedAura?.Start ?? Time.time);
+            StageBetaVfxShowcaseTravel(entry, source, actorLanding, impact, color, profile);
             ApplyCombatImpactFeedback(
                 profile,
                 impact.X,
@@ -6091,6 +6120,7 @@ namespace AshenHalls
         private void StageBetaVfxShowcaseTravel(
             CombatVfxShowcaseEntry entry,
             CombatUnit source,
+            Point delivery,
             Point impact,
             Color color,
             CombatImpactProfile profile)
@@ -6106,8 +6136,8 @@ namespace AshenHalls
                     entry.Id,
                     source.X,
                     source.Y,
-                    impact.X,
-                    impact.Y,
+                    delivery.X,
+                    delivery.Y,
                     color,
                     CombatImpactRules.VisualIntensity(profile),
                     arrivalDelay,
@@ -6163,6 +6193,40 @@ namespace AshenHalls
             }
         }
 
+        private Point BetaVfxShowcaseActorLanding(
+            CombatVfxShowcaseEntry entry,
+            CombatUnit source,
+            Point impact)
+        {
+            if (source == null || impact == null) return impact ?? new Point(source?.X ?? 0, source?.Y ?? 0);
+            bool movement = entry.Scenario == CombatVfxShowcaseScenario.TeleportStrike
+                || string.Equals(entry.Id, "charge", StringComparison.OrdinalIgnoreCase);
+            if (!movement) return impact;
+            if (string.Equals(entry.Id, "VST", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(entry.Id, "VRS", StringComparison.OrdinalIgnoreCase))
+            {
+                Point openDestination = BetaVfxAdjacentCells(impact.X, impact.Y)
+                    .Where(cell => CanStandAt(cell.X, cell.Y))
+                    .OrderBy(cell => Distance(source.X, source.Y, cell.X, cell.Y))
+                    .FirstOrDefault();
+                return openDestination ?? new Point(source.X, source.Y);
+            }
+
+            Point adjacentLanding = BetaVfxAdjacentCells(impact.X, impact.Y)
+                .Where(cell => CanStandAt(cell.X, cell.Y))
+                .OrderBy(cell => Distance(source.X, source.Y, cell.X, cell.Y))
+                .FirstOrDefault();
+            return adjacentLanding ?? new Point(source.X, source.Y);
+        }
+
+        private static IEnumerable<Point> BetaVfxAdjacentCells(int x, int y)
+        {
+            yield return new Point(x - 1, y);
+            yield return new Point(x + 1, y);
+            yield return new Point(x, y - 1);
+            yield return new Point(x, y + 1);
+        }
+
         private void CueBetaVfxShowcaseAudio()
         {
             if (!betaLabMode || state?.Combat == null) return;
@@ -6196,6 +6260,7 @@ namespace AshenHalls
             powerImpactEchoes.Clear();
             powerTravelVfx.Clear();
             powerAftermathVfx.Clear();
+            powerActorPoseBeats.Clear();
             particles.Clear();
             beams.Clear();
             flashes.Clear();
@@ -6223,6 +6288,7 @@ namespace AshenHalls
             powerImpactEchoes.Clear();
             powerTravelVfx.Clear();
             powerAftermathVfx.Clear();
+            powerActorPoseBeats.Clear();
             combatUnitPresentationBeats.Clear();
             combatTooltipBlockers.Clear();
             combatPowerReactions.Clear();
@@ -13236,6 +13302,7 @@ namespace AshenHalls
                 SyncPartyFromCombat();
                 state.Mode = GameMode.Defeat;
                 combatUnitPresentationBeats.Clear();
+                powerActorPoseBeats.Clear();
                 state.Combat = null;
                 InvalidateCombatController();
                 betaLabMode = false;
@@ -13334,6 +13401,7 @@ namespace AshenHalls
         private void FinishCombat()
         {
             combatUnitPresentationBeats.Clear();
+            powerActorPoseBeats.Clear();
             string encounterStyle = state.Combat?.EncounterStyle ?? "";
             string roamingThreatId = state.Combat?.RoamingThreatId ?? "";
             bool finalBattle = IsFinalBossCombat();
@@ -14395,7 +14463,7 @@ namespace AshenHalls
                     int heal = 7 + state.Depth + EnemyRankBonus(enemy) * 3;
                     ally.Hp = Mathf.Min(ally.MaxHp, ally.Hp + heal);
                     ally.Shielded = Mathf.Max(ally.Shielded, 2);
-                    AddBeam(enemy.X, enemy.Y, ally.X, ally.Y, teal, "heal");
+                    AddLegacyPrimaryPowerBeam(beat.ExactPowerKey, enemy.X, enemy.Y, ally.X, ally.Y, teal, "heal");
                     AddFloat(ally.X, ally.Y, "+" + heal, teal);
                     AddBurst(ally.X, ally.Y, teal);
                     PushLog($"{enemy.Name} rattles a ward over {ally.Name}.", Tone.Warn);
@@ -14414,7 +14482,7 @@ namespace AshenHalls
             if (enemy.Role == "koboldshaman")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "bonehex", target.X, target.Y, violet);
-                AddEnemySpecialBeam(enemy, target, violet, "hex");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, violet, "hex");
                 DealDamage(target, Mathf.Max(3, enemy.Power - 1 + EnemyRankBonus(enemy)), "mind", violet);
                 TryApplyStatus(target, "hex", 3, enemy, 0.66f + EnemyRankBonus(enemy) * 0.08f, true);
                 Point web = BestHazardTileNear(target, "web");
@@ -14428,7 +14496,7 @@ namespace AshenHalls
             if (enemy.Role == "koboldwizard")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "deathball", target.X, target.Y, blood);
-                AddEnemySpecialBeam(enemy, target, blood, "death");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, blood, "death");
                 int damage = Mathf.Max(5, enemy.Power + 1 + EnemyRankBonus(enemy) * 2);
                 DealDamage(target, damage, "death", blood);
                 foreach (CombatUnit unit in state.Combat.Units.Where(u => u.Side == UnitSide.Party && u.Hp > 0 && u.Id != target.Id && Distance(u.X, u.Y, target.X, target.Y) <= 1))
@@ -14445,7 +14513,7 @@ namespace AshenHalls
             if (enemy.Role == "adept")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "shocksign", target.X, target.Y, gold);
-                AddEnemySpecialBeam(enemy, target, gold, "arc");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, gold, "arc");
                 DealDamage(target, Mathf.Max(3, enemy.Power - 1), "shock", gold);
                 TryApplyStatus(target, "stun", 1, enemy, 0.34f + EnemyRankBonus(enemy) * 0.08f, true);
                 PushLog($"{enemy.Name} snaps a shock sign at {target.Name}.", Tone.Warn);
@@ -14456,7 +14524,7 @@ namespace AshenHalls
             if (enemy.Role == "glassmage")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "coldsplinter", target.X, target.Y, frost);
-                AddEnemySpecialBeam(enemy, target, frost, "ice");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, frost, "ice");
                 DealDamage(target, Mathf.Max(3, enemy.Power), "cold", frost);
                 Point ice = BestHazardTileNear(target, "ice");
                 if (ice != null) state.Combat.Obstacles.Add(ice);
@@ -14468,7 +14536,7 @@ namespace AshenHalls
             if (enemy.Role == "ratmage")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "plaguesigns", target.X, target.Y, poison);
-                AddEnemySpecialBeam(enemy, target, poison, "hex");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, poison, "hex");
                 DealDamage(target, Mathf.Max(3, enemy.Power - 1), "poison", poison);
                 TryApplyStatus(target, "poison", 2, enemy, 0.58f + EnemyRankBonus(enemy) * 0.08f, true);
                 Point gas = BestHazardTileNear(target, "gas");
@@ -14481,7 +14549,7 @@ namespace AshenHalls
             if (enemy.Role == "drowmage" || enemy.Role == "drowpriest")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "darklight", target.X, target.Y, violet);
-                AddEnemySpecialBeam(enemy, target, violet, "hex");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, violet, "hex");
                 DealDamage(target, Mathf.Max(4, enemy.Power), "mind", violet);
                 TryApplyStatus(target, "hex", 2, enemy, 0.48f + EnemyRankBonus(enemy) * 0.08f, true);
                 PushLog($"{enemy.Name} bends dark light around {target.Name}.", Tone.Warn);
@@ -14492,7 +14560,7 @@ namespace AshenHalls
             if (enemy.Role == "spore")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "venomdust", target.X, target.Y, poison);
-                AddEnemySpecialBeam(enemy, target, poison, "hex");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, poison, "hex");
                 DealDamage(target, Mathf.Max(2, enemy.Power - 2), "poison", poison);
                 TryApplyStatus(target, "poison", 2, enemy, 0.55f + EnemyRankBonus(enemy) * 0.08f, true);
                 Point gas = BestHazardTileNear(target, "gas");
@@ -14505,7 +14573,7 @@ namespace AshenHalls
             if (enemy.Role == "cinderling")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "cindertrail", target.X, target.Y, ember);
-                AddEnemySpecialBeam(enemy, target, ember, "fire");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, ember, "fire");
                 DealDamage(target, Mathf.Max(4, enemy.Power), "fire", ember);
                 Point fire = BestHazardTileNear(target, "fire");
                 if (fire != null) state.Combat.Obstacles.Add(fire);
@@ -14517,7 +14585,7 @@ namespace AshenHalls
             if (enemy.Role == "lesserdemon")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "burningpact", target.X, target.Y, ember);
-                AddEnemySpecialBeam(enemy, target, ember, "fire");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, ember, "fire");
                 DealDamage(target, Mathf.Max(5, enemy.Power + EnemyRankBonus(enemy)), "fire", ember);
                 TryApplyStatus(target, "bleed", 2, enemy, 0.34f + EnemyRankBonus(enemy) * 0.08f, true);
                 Point fire = BestHazardTileNear(target, "fire");
@@ -14530,7 +14598,7 @@ namespace AshenHalls
             if (enemy.Role == "shade")
             {
                 EnemyPowerBeat beat = BeginEnemyPowerBeat(enemy, target, "dreamveil", target.X, target.Y, violet);
-                AddEnemySpecialBeam(enemy, target, violet, "hex");
+                AddEnemySpecialBeam(enemy, target, beat.ExactPowerKey, violet, "hex");
                 TryApplyStatus(target, "sleep", 1, enemy, 0.42f + EnemyRankBonus(enemy) * 0.08f, true);
                 DealDamage(target, Mathf.Max(2, enemy.Power - 3), "mind", violet);
                 PushLog($"{enemy.Name} dims the air around {target.Name}.", Tone.Warn);
@@ -14613,7 +14681,7 @@ namespace AshenHalls
                 int heal = ally.Id == king.Id ? 3 : 4 + state.Depth / 2;
                 if (ally.Hp < ally.MaxHp) ally.Hp = Mathf.Min(ally.MaxHp, ally.Hp + heal);
                 ally.Shielded = Mathf.Max(ally.Shielded, ally.Id == king.Id ? 2 : 3);
-                AddBeam(king.X, king.Y, ally.X, ally.Y, gold, "heal");
+                AddLegacyPrimaryPowerBeam(beat.ExactPowerKey, king.X, king.Y, ally.X, ally.Y, gold, "heal");
                 AddFloat(ally.X, ally.Y, ally.Hp < ally.MaxHp ? $"+{heal} ward" : "ward", gold);
                 AddTileGlyph(ally.X, ally.Y, null, "status", gold);
             }
@@ -14629,9 +14697,16 @@ namespace AshenHalls
             Point landing = BestEnemyChargeLanding(king, target, 5);
             if (landing == null) return false;
 
-            EnemyPowerBeat beat = BeginEnemyPowerBeat(king, target, "royalcharge", target.X, target.Y, gold);
-            Vector2 start = new Vector2(king.X, king.Y);
-            AddBeam(king.X, king.Y, target.X, target.Y, gold, "shot");
+            EnemyPowerBeat beat = BeginEnemyPowerBeat(
+                king,
+                target,
+                "royalcharge",
+                target.X,
+                target.Y,
+                gold,
+                landing.X,
+                landing.Y);
+            AddLegacyPrimaryPowerBeam(beat.ExactPowerKey, king.X, king.Y, target.X, target.Y, gold, "shot");
             AddFloat(king.X, king.Y, "charge", gold);
             king.X = landing.X;
             king.Y = landing.Y;
@@ -14650,14 +14725,21 @@ namespace AshenHalls
                 Vector2 fromLanding = new Vector2(king.X, king.Y);
                 king.X = retreat.X;
                 king.Y = retreat.Y;
-                AddTween(king.Id, fromLanding, new Vector2(king.X, king.Y), TweenKind.Move);
+                if (beat.ActorPose != null)
+                {
+                    AddTweenAt(
+                        king.Id,
+                        fromLanding,
+                        new Vector2(king.X, king.Y),
+                        TweenKind.Move,
+                        beat.ActorPose.Start + beat.ActorPose.Duration);
+                }
                 AddFloat(king.X, king.Y, "back!", violet);
                 AddTileGlyph(king.X, king.Y, null, "impact", violet);
                 PushLog($"{king.Name} charges {target.Name} for {damage} physical, stuns, then snaps back to the throne line.", Tone.Warn);
             }
             else
             {
-                AddTween(king.Id, start, new Vector2(king.X, king.Y), TweenKind.Move);
                 PushLog($"{king.Name} charges {target.Name} for {damage} physical and holds the breach.", Tone.Warn);
             }
             CompleteEnemyPowerBeat(beat);
@@ -14670,7 +14752,7 @@ namespace AshenHalls
             if (Distance(king.X, king.Y, target.X, target.Y) > 6) return false;
             EnemyPowerBeat beat = BeginEnemyPowerBeat(king, target, "royalfireball", target.X, target.Y, ember);
             int damage = Mathf.Max(8, king.Power + state.Depth + 2);
-            AddEnemySpecialBeam(king, target, ember, "fireball");
+            AddEnemySpecialBeam(king, target, beat.ExactPowerKey, ember, "fireball");
             AddTileGlyph(target.X, target.Y, null, "fireball", ember);
             foreach (CombatUnit unit in state.Combat.Units.Where(u => u.Side == UnitSide.Party && u.Hp > 0 && Distance(u.X, u.Y, target.X, target.Y) <= 1).ToList())
             {
@@ -14690,7 +14772,7 @@ namespace AshenHalls
             if (king == null || target == null) return false;
             if (Distance(king.X, king.Y, target.X, target.Y) > 6) return false;
             EnemyPowerBeat beat = BeginEnemyPowerBeat(king, target, "royalicelance", target.X, target.Y, frost);
-            AddEnemySpecialBeam(king, target, frost, "ice");
+            AddEnemySpecialBeam(king, target, beat.ExactPowerKey, frost, "ice");
             int damage = DealDamage(target, Mathf.Max(7, king.Power + state.Depth), "cold", frost);
             TryApplyStatus(target, "stun", 1, king, 0.24f, true);
             AddTileGlyph(target.X, target.Y, null, "impact", frost);
@@ -14855,11 +14937,16 @@ namespace AshenHalls
                 || enemy.DamageType == "cold";
         }
 
-        private void AddEnemySpecialBeam(CombatUnit enemy, CombatUnit target, Color color, string kind)
+        private void AddEnemySpecialBeam(
+            CombatUnit enemy,
+            CombatUnit target,
+            string exactPowerKey,
+            Color color,
+            string kind)
         {
             if (enemy == null || target == null) return;
             bool arcing = EnemySpecialArcsOverCover(enemy) && !HasLineOfSight(enemy.X, enemy.Y, target.X, target.Y, true);
-            AddBeam(enemy.X, enemy.Y, target.X, target.Y, color, arcing ? "arc" : kind);
+            AddLegacyPrimaryPowerBeam(exactPowerKey, enemy.X, enemy.Y, target.X, target.Y, color, arcing ? "arc" : kind);
             if (arcing) AddFloat(target.X, target.Y, "over cover", color);
         }
 
@@ -14875,7 +14962,9 @@ namespace AshenHalls
             string powerKey,
             int impactX,
             int impactY,
-            Color color)
+            Color color,
+            int actorLandingX = -1,
+            int actorLandingY = -1)
         {
             CombatPowerIdentity identity = CombatPowerPresentationRules.ForEnemyPower(powerKey, enemy?.Name, target?.Name);
             CombatImpactProfile profile = CombatImpactRules.ForEnemyPower(powerKey);
@@ -14884,6 +14973,7 @@ namespace AshenHalls
             FormulaDef artFormula = null;
 
             string formulaCode = CombatPowerPresentationRules.EnemyPowerFormulaArtCode(powerKey);
+            string exactPowerKey = formulaCode;
             if (!string.IsNullOrEmpty(formulaCode))
             {
                 artFormula = formulaBook.FirstOrDefault(formula => string.Equals(formula.Code, formulaCode, StringComparison.OrdinalIgnoreCase));
@@ -14892,6 +14982,7 @@ namespace AshenHalls
             else
             {
                 string abilityId = CombatPowerPresentationRules.EnemyPowerAbilityArtId(powerKey);
+                exactPowerKey = abilityId;
                 if (!string.IsNullOrEmpty(abilityId))
                 {
                     TryGetAbilityPowerArt(AbilityDef(abilityId), out texture, out source);
@@ -14900,8 +14991,41 @@ namespace AshenHalls
 
             BeginCombatPowerReactionCapture();
             CombatPowerOutcomeSnapshot before = CombatPowerOutcomeRules.Capture(state?.Combat);
-            ShowCombatPowerCue(identity, texture, source, profile.ImpactDelay);
-            StageCombatPowerCast(profile, enemy.X, enemy.Y, impactX, impactY, color, false);
+            float exactImpactDelay = ResolvedCombatPowerSfxImpactDelay(profile, exactPowerKey);
+            int choreographyX = actorLandingX >= 0 ? actorLandingX : impactX;
+            int choreographyY = actorLandingY >= 0 ? actorLandingY : impactY;
+            ShowCombatPowerCue(identity, texture, source, exactImpactDelay);
+            PowerCastAura stagedAura = StageCombatPowerCast(
+                profile,
+                enemy.X,
+                enemy.Y,
+                impactX,
+                impactY,
+                color,
+                false,
+                exactPowerKey);
+            StageCombatPowerTravel(
+                exactPowerKey,
+                enemy.X,
+                enemy.Y,
+                choreographyX,
+                choreographyY,
+                color,
+                CombatImpactRules.VisualIntensity(profile),
+                exactImpactDelay,
+                0,
+                0f,
+                stagedAura?.StableSeed ?? 0);
+            PowerActorPoseBeat stagedActorPose = StageCombatPowerActorPose(
+                enemy,
+                exactPowerKey,
+                enemy.X,
+                enemy.Y,
+                choreographyX,
+                choreographyY,
+                CombatImpactRules.VisualIntensity(profile),
+                stagedAura?.StableSeed ?? 0,
+                startAt: stagedAura?.Start ?? Time.time);
             enemyActionResolutionDelay = CombatPowerResolutionRules.DelayForEnemyPower(powerKey, state != null && state.ReducedMotion);
             enemyActionResolutionLabel = identity.Title;
 
@@ -14909,7 +15033,9 @@ namespace AshenHalls
             {
                 Profile = profile,
                 Before = before,
-                PreviousVfxDelay = BeginCombatVfxTimeline(profile),
+                PreviousVfxDelay = BeginCombatVfxTimeline(profile, exactPowerKey),
+                ExactPowerKey = exactPowerKey,
+                ActorPose = stagedActorPose,
                 ImpactX = impactX,
                 ImpactY = impactY,
                 Color = color
@@ -14919,7 +15045,13 @@ namespace AshenHalls
         private void CompleteEnemyPowerBeat(EnemyPowerBeat beat)
         {
             RestoreCombatVfxTimeline(beat.PreviousVfxDelay);
-            ApplyCombatImpactFeedback(beat.Profile, beat.ImpactX, beat.ImpactY, beat.Color);
+            ApplyCombatImpactFeedback(
+                beat.Profile,
+                beat.ImpactX,
+                beat.ImpactY,
+                beat.Color,
+                beat.ExactPowerKey,
+                beat.ExactPowerKey);
             SetCombatPowerOutcome(beat.Before);
         }
 
@@ -15100,6 +15232,16 @@ namespace AshenHalls
                 return;
             }
 
+            StageCombatUnitPresentationBeat(
+                active,
+                CombatUnitPresentationBeatKind.Unbind,
+                Time.time,
+                CombatPowerActorPoseRules.StableActorSignedSample(
+                    active.Id,
+                    active.X * 31 + active.Y * 17,
+                    CombatPowerActorPoseRole.Landing,
+                    CombatPowerActorPosePhase.SummonReveal,
+                    0));
             AddFloat(active.X, active.Y, "unbound", violet);
             AddBurst(active.X, active.Y, violet);
             AddFlash(active.X, active.Y, violet);
@@ -15182,6 +15324,16 @@ namespace AshenHalls
         {
             if (summon == null || summon.Hp <= 0) return;
             summon.Hp = 0;
+            StageCombatUnitPresentationBeat(
+                summon,
+                CombatUnitPresentationBeatKind.Unbind,
+                Time.time,
+                CombatPowerActorPoseRules.StableActorSignedSample(
+                    summon.Id,
+                    summon.X * 31 + summon.Y * 17,
+                    CombatPowerActorPoseRole.Landing,
+                    CombatPowerActorPosePhase.SummonReveal,
+                    0));
             AddFloat(summon.X, summon.Y, "unbound", violet);
             AddBurst(summon.X, summon.Y, violet);
             AddFlash(summon.X, summon.Y, violet);
@@ -15211,6 +15363,16 @@ namespace AshenHalls
                 powerColor,
                 false,
                 ability.Id);
+            PowerActorPoseBeat stagedActorPose = StageCombatPowerActorPose(
+                active,
+                ability.Id,
+                active.X,
+                active.Y,
+                active.X,
+                active.Y,
+                CombatImpactRules.VisualIntensity(impactProfile),
+                stagedAura?.StableSeed ?? 0,
+                startAt: stagedAura?.Start ?? Time.time);
             BeginCombatPowerReactionCapture();
             float previousVfxDelay = BeginCombatVfxTimeline(impactProfile, ability.Id);
             bool success;
@@ -15231,6 +15393,7 @@ namespace AshenHalls
             {
                 combatPowerReactions.Clear();
                 if (stagedAura != null) powerCastAuras.Remove(stagedAura);
+                if (stagedActorPose != null) powerActorPoseBeats.Remove(stagedActorPose);
             }
             if (success)
             {
@@ -15255,6 +15418,10 @@ namespace AshenHalls
             Color powerColor = string.IsNullOrWhiteSpace(identity.AccentHex) ? gold : identity.AccentHex.ToColor();
             int sourceX = active.X;
             int sourceY = active.Y;
+            Point actorLanding = TargetedAbilityActorLanding(active, ability.Id, target);
+            bool actorMoves = TargetedAbilityMovesActor(ability.Id) && actorLanding != null;
+            int deliveryX = actorMoves ? actorLanding.X : x;
+            int deliveryY = actorMoves ? actorLanding.Y : y;
             PowerCastAura stagedAura = StageCombatPowerCast(
                 impactProfile,
                 sourceX,
@@ -15268,11 +15435,24 @@ namespace AshenHalls
                 ability.Id,
                 sourceX,
                 sourceY,
-                x,
-                y,
+                deliveryX,
+                deliveryY,
                 powerColor,
                 CombatImpactRules.VisualIntensity(impactProfile),
-                ResolvedCombatPowerSfxImpactDelay(impactProfile, ability.Id));
+                ResolvedCombatPowerSfxImpactDelay(impactProfile, ability.Id),
+                0,
+                0f,
+                stagedAura?.StableSeed ?? 0);
+            PowerActorPoseBeat stagedActorPose = StageCombatPowerActorPose(
+                active,
+                ability.Id,
+                sourceX,
+                sourceY,
+                actorMoves ? actorLanding.X : x,
+                actorMoves ? actorLanding.Y : y,
+                CombatImpactRules.VisualIntensity(impactProfile),
+                stagedAura?.StableSeed ?? 0,
+                startAt: stagedAura?.Start ?? Time.time);
             BeginCombatPowerReactionCapture();
             float previousVfxDelay = BeginCombatVfxTimeline(impactProfile, ability.Id);
             targetedMartialHitConnected = true;
@@ -15307,6 +15487,7 @@ namespace AshenHalls
             {
                 combatPowerReactions.Clear();
                 if (stagedAura != null) powerCastAuras.Remove(stagedAura);
+                if (stagedActorPose != null) powerActorPoseBeats.Remove(stagedActorPose);
                 if (stagedTravel != null) powerTravelVfx.Remove(stagedTravel);
             }
             if (success)
@@ -15316,6 +15497,31 @@ namespace AshenHalls
                 else ApplyCombatMissFeedback(impactProfile, x);
             }
             return success;
+        }
+
+        private Point TargetedAbilityActorLanding(CombatUnit active, string abilityId, CombatUnit target)
+        {
+            if (active == null || target == null) return null;
+            switch ((abilityId ?? "").Trim().ToLowerInvariant())
+            {
+                case "charge": return BestChargeLanding(active, target);
+                case "shadowstep": return BestShadowstepLanding(active, target);
+                case "riftpounce": return BestRiftPounceLanding(active, target);
+                default: return null;
+            }
+        }
+
+        private static bool TargetedAbilityMovesActor(string abilityId)
+        {
+            switch ((abilityId ?? "").Trim().ToLowerInvariant())
+            {
+                case "charge":
+                case "shadowstep":
+                case "riftpounce":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private bool CanTargetAbility(CombatUnit active, MartialAbility ability, CombatUnit target, int x, int y, out string reason)
@@ -15498,13 +15704,11 @@ namespace AshenHalls
                 return false;
             }
 
-            Vector2 from = new Vector2(active.X, active.Y);
             int fromX = active.X;
             int fromY = active.Y;
             active.X = landing.X;
             active.Y = landing.Y;
             CombatLifecycle().ApplyMovementBudgetResult(true, 0, 0);
-            AddTween(active.Id, from, new Vector2(active.X, active.Y), TweenKind.Move);
             AddLegacyPrimaryPowerBeam("riftpounce", fromX, fromY, active.X, active.Y, violet, "arc");
             int damage = DealDamage(target, RiftPounceRawDamage(active), "death", violet);
             AddFloat(target.X, target.Y, "RIFT POUNCE", violet);
@@ -15602,11 +15806,9 @@ namespace AshenHalls
                 PlaySfx("blocked", 0.62f);
                 return false;
             }
-            Vector2 from = new Vector2(active.X, active.Y);
             active.X = landing.X;
             active.Y = landing.Y;
             CombatLifecycle().ApplyMovementBudgetResult(true, 0, 0);
-            AddTween(active.Id, from, new Vector2(active.X, active.Y), TweenKind.Move);
             int damage = DealDamage(target, ChargeRawDamage(active), "physical", blood);
             if (target.Hp > 0)
             {
@@ -15927,7 +16129,6 @@ namespace AshenHalls
             active.X = landing.X;
             active.Y = landing.Y;
             CombatLifecycle().ApplyMovementBudgetResult(true, 0, 0);
-            AddTween(active.Id, new Vector2(fromX, fromY), new Vector2(active.X, active.Y), TweenKind.Move);
             AddLegacyPrimaryPowerBeam("shadowstep", fromX, fromY, active.X, active.Y, violet, "arc");
             bool hit = RollMartialHit(active, target, hidden ? 20 : 10, "shadowstep");
             active.Stealthed = 0;
@@ -16673,7 +16874,20 @@ namespace AshenHalls
                 y,
                 FormulaColor(formula),
                 CombatImpactRules.VisualIntensity(impactProfile),
-                ResolvedCombatPowerSfxImpactDelay(impactProfile, formula.Code));
+                ResolvedCombatPowerSfxImpactDelay(impactProfile, formula.Code),
+                0,
+                0f,
+                stagedAura?.StableSeed ?? 0);
+            PowerActorPoseBeat stagedActorPose = StageCombatPowerActorPose(
+                caster,
+                formula.Code,
+                caster.X,
+                caster.Y,
+                x,
+                y,
+                CombatImpactRules.VisualIntensity(impactProfile),
+                stagedAura?.StableSeed ?? 0,
+                startAt: stagedAura?.Start ?? Time.time);
             BeginCombatPowerReactionCapture();
             float previousVfxDelay = BeginCombatVfxTimeline(impactProfile, formula.Code);
             bool success;
@@ -16691,6 +16905,7 @@ namespace AshenHalls
                 combatPowerReactions.Clear();
                 if (stagedAura != null) powerCastAuras.Remove(stagedAura);
                 if (stagedTravel != null) powerTravelVfx.Remove(stagedTravel);
+                if (stagedActorPose != null) powerActorPoseBeats.Remove(stagedActorPose);
                 PlaySfx("blocked");
                 return false;
             }
@@ -16780,7 +16995,6 @@ namespace AshenHalls
                 caster.X = x;
                 caster.Y = y;
                 CombatLifecycle().ApplyMovementBudgetResult(true, state.Combat.MovePoints, state.Combat.MovePoints);
-                AddTween(caster.Id, new Vector2(fromX, fromY), new Vector2(x, y), TweenKind.Move);
                 AddLegacyPrimaryPowerBeam(formula.Code, fromX, fromY, x, y, color, "arc");
                 AddTileGlyph(x, y, formula, "impact", color);
                 AddEpicBurst(x, y, Color.Lerp(color, frost, 0.42f), 22, 1.55f);
@@ -16842,6 +17056,24 @@ namespace AshenHalls
                 if (!CanSummonFormulaAt(formula, caster, x, y, out _)) return false;
                 CombatUnit summon = MakeSummonedUnit(formula, caster, x, y);
                 state.Combat.Units.Add(summon);
+                PowerCastAura summonAura = powerCastAuras.LastOrDefault(aura =>
+                    aura != null
+                    && string.Equals(aura.PowerKey, formula.Code, StringComparison.OrdinalIgnoreCase)
+                    && aura.SourceX == caster.X
+                    && aura.SourceY == caster.Y
+                    && aura.TargetX == x
+                    && aura.TargetY == y);
+                StageCombatPowerActorPose(
+                    summon,
+                    formula.Code,
+                    caster.X,
+                    caster.Y,
+                    x,
+                    y,
+                    CombatImpactRules.VisualIntensity(CombatImpactRules.ForFormula(formula)),
+                    summonAura?.StableSeed ?? 0,
+                    CombatPowerActorPoseRole.Landing,
+                    summonAura?.Start ?? Time.time);
                 StageCombatUnitPresentationBeat(
                     summon,
                     CombatUnitPresentationBeatKind.Reveal,
@@ -18989,6 +19221,55 @@ namespace AshenHalls
             return aura;
         }
 
+        private PowerActorPoseBeat StageCombatPowerActorPose(
+            CombatUnit unit,
+            string exactPowerKey,
+            int sourceX,
+            int sourceY,
+            int landingX,
+            int landingY,
+            int intensity,
+            int stableSeed = 0,
+            CombatPowerActorPoseRole role = CombatPowerActorPoseRole.Source,
+            float startAt = -1f)
+        {
+            if (state == null || state.ReducedMotion || unit == null || string.IsNullOrWhiteSpace(exactPowerKey)) return null;
+            int resolvedStableSeed = stableSeed > 0
+                ? stableSeed
+                : CombatPowerStableSeed(exactPowerKey, sourceX, sourceY, landingX, landingY, 0);
+            CombatPowerActorPosePlan plan = CombatPowerActorPoseRules.For(
+                exactPowerKey,
+                resolvedStableSeed,
+                sourceX,
+                sourceY,
+                landingX,
+                landingY,
+                intensity,
+                false);
+            if (!plan.Supported) return null;
+
+            powerActorPoseBeats.RemoveAll(candidate =>
+                candidate != null && string.Equals(candidate.UnitId, unit.Id, StringComparison.Ordinal));
+            PowerActorPoseBeat beat = new PowerActorPoseBeat
+            {
+                UnitId = unit.Id,
+                PowerKey = plan.PowerKey,
+                Role = role,
+                SourceX = sourceX,
+                SourceY = sourceY,
+                LandingX = landingX,
+                LandingY = landingY,
+                Intensity = plan.Intensity,
+                StableSeed = plan.StableSeed,
+                Start = startAt >= 0f ? startAt : Time.time,
+                Duration = plan.DurationSeconds
+            };
+            powerActorPoseBeats.Add(beat);
+            if (powerActorPoseBeats.Count > 24) powerActorPoseBeats.RemoveRange(0, powerActorPoseBeats.Count - 24);
+            MarkUiDirty();
+            return beat;
+        }
+
         private PowerTravelVfx StageCombatPowerTravel(
             string exactPowerKey,
             int sourceX,
@@ -19478,6 +19759,7 @@ namespace AshenHalls
             powerImpactEchoes.Clear();
             powerTravelVfx.Clear();
             powerAftermathVfx.Clear();
+            powerActorPoseBeats.Clear();
             combatUnitPresentationBeats.Clear();
             combatShakeStarted = 0f;
             combatShakeUntil = 0f;
@@ -19574,6 +19856,7 @@ namespace AshenHalls
             powerCastAuras.Clear();
             powerTravelVfx.Clear();
             powerAftermathVfx.Clear();
+            powerActorPoseBeats.Clear();
             combatUnitPresentationBeats.Clear();
             float now = Time.time;
             CombatUnit active = CurrentUnit();
@@ -20247,18 +20530,66 @@ namespace AshenHalls
 
         private void AddTween(string id, Vector2 from, Vector2 to, TweenKind kind)
         {
+            AddTweenAt(id, from, to, kind, Time.time);
+        }
+
+        private void AddTweenAt(string id, Vector2 from, Vector2 to, TweenKind kind, float startAt)
+        {
             if (state.ReducedMotion) return;
             tweens.RemoveAll(t => t.Id == id);
-            tweens.Add(new Tween(id, from, to, Time.time, kind == TweenKind.Lunge ? 0.14f : 0.18f, kind));
+            tweens.Add(new Tween(id, from, to, startAt, kind == TweenKind.Lunge ? 0.14f : 0.18f, kind));
         }
 
         private Vector2 UnitDrawPos(CombatUnit unit)
         {
+            return UnitDrawPos(unit, Time.time, out _);
+        }
+
+        private Vector2 UnitDrawPos(
+            CombatUnit unit,
+            float presentationNow,
+            out CombatPowerActorPoseFrame actorFrame)
+        {
+            if (TryGetPowerActorPoseFrame(unit, presentationNow, out actorFrame))
+            {
+                return new Vector2(actorFrame.PositionX, actorFrame.PositionY);
+            }
+
             Tween tween = tweens.LastOrDefault(t => t.Id == unit.Id);
             if (tween == null) return new Vector2(unit.X, unit.Y);
-            float t = Mathf.Clamp01((Time.time - tween.Start) / tween.Duration);
+            float t = Mathf.Clamp01((presentationNow - tween.Start) / tween.Duration);
             if (tween.Kind == TweenKind.Lunge) t = Mathf.Sin(t * Mathf.PI);
             return Vector2.Lerp(tween.From, tween.To, Mathf.SmoothStep(0, 1, t));
+        }
+
+        private bool TryGetPowerActorPoseFrame(
+            CombatUnit unit,
+            float presentationNow,
+            out CombatPowerActorPoseFrame frame)
+        {
+            frame = default;
+            if (unit == null || state == null || state.ReducedMotion) return false;
+            for (int i = powerActorPoseBeats.Count - 1; i >= 0; i--)
+            {
+                PowerActorPoseBeat beat = powerActorPoseBeats[i];
+                if (beat == null || !string.Equals(beat.UnitId, unit.Id, StringComparison.Ordinal)) continue;
+                float elapsed = presentationNow - beat.Start;
+                if (elapsed < 0f || elapsed > beat.Duration) continue;
+                CombatPowerActorPosePlan plan = CombatPowerActorPoseRules.For(
+                    beat.PowerKey,
+                    beat.StableSeed,
+                    beat.SourceX,
+                    beat.SourceY,
+                    beat.LandingX,
+                    beat.LandingY,
+                    beat.Intensity,
+                    false);
+                CombatPowerActorPoseFrame candidate = plan.FrameAt(beat.Role, elapsed);
+                if (!candidate.HasPose) return false;
+                frame = candidate;
+                return true;
+            }
+            return false;
         }
 
         private CombatUnit CurrentUnit()

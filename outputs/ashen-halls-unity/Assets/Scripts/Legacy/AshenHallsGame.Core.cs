@@ -2539,6 +2539,7 @@ namespace AshenHalls
             powerCastAuras.RemoveAll(a => now > a.Start + a.Duration);
             powerTravelVfx.RemoveAll(travel => now > travel.Start + travel.Duration);
             powerAftermathVfx.RemoveAll(aftermath => now > aftermath.Start + aftermath.Duration);
+            powerActorPoseBeats.RemoveAll(beat => now > beat.Start + beat.Duration);
 
             UpdateTavernMusic();
             UpdateTavernAmbience();

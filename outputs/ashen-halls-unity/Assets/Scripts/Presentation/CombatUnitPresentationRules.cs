@@ -8,7 +8,8 @@ namespace AshenHalls
     {
         Hit,
         Defeat,
-        Reveal
+        Reveal,
+        Unbind
     }
 
     public sealed class CombatUnitPresentationBeat
@@ -72,6 +73,9 @@ namespace AshenHalls
                 case CombatUnitPresentationBeatKind.Reveal:
                     duration = 0.30f;
                     break;
+                case CombatUnitPresentationBeatKind.Unbind:
+                    duration = 0.38f;
+                    break;
                 default:
                     duration = 0.18f;
                     break;
@@ -93,7 +97,7 @@ namespace AshenHalls
             if (beats == null || beat == null || string.IsNullOrEmpty(beat.UnitId)) return;
             PruneAndBound(beats, now);
 
-            if (beat.Kind == CombatUnitPresentationBeatKind.Defeat)
+            if (beat.Kind == CombatUnitPresentationBeatKind.Defeat || beat.Kind == CombatUnitPresentationBeatKind.Unbind)
             {
                 beats.RemoveAll(candidate =>
                     candidate != null &&
@@ -170,7 +174,7 @@ namespace AshenHalls
                     continue;
                 }
 
-                if (beat.Kind == CombatUnitPresentationBeatKind.Defeat)
+                if (beat.Kind == CombatUnitPresentationBeatKind.Defeat || beat.Kind == CombatUnitPresentationBeatKind.Unbind)
                 {
                     if (result == null || beat.ImpactAt > result.ImpactAt) result = beat;
                     continue;
@@ -203,7 +207,7 @@ namespace AshenHalls
             float now)
         {
             if (beat == null || now > beat.Until) return alive;
-            if (beat.Kind == CombatUnitPresentationBeatKind.Defeat) return true;
+            if (beat.Kind == CombatUnitPresentationBeatKind.Defeat || beat.Kind == CombatUnitPresentationBeatKind.Unbind) return true;
             if (beat.Kind == CombatUnitPresentationBeatKind.Reveal && now < beat.ImpactAt) return false;
             return alive;
         }
@@ -254,6 +258,17 @@ namespace AshenHalls
                         beat.RecoilDirection * recoil * 0.14f,
                         fall * 0.22f,
                         Mathf.Lerp(1f, 0.78f, fall),
+                        fade);
+                }
+                case CombatUnitPresentationBeatKind.Unbind:
+                {
+                    float tighten = SmoothRange(progress, 0f, 0.62f);
+                    float fade = 1f - SmoothRange(progress, 0.18f, 1f);
+                    float twist = Mathf.Sin(progress * Mathf.PI * 2f) * (1f - progress);
+                    return new CombatUnitPresentationPose(
+                        beat.RecoilDirection * twist * 0.09f,
+                        -progress * 0.20f,
+                        Mathf.Lerp(1f, 0.38f, tighten),
                         fade);
                 }
                 default:

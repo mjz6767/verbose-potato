@@ -64,6 +64,7 @@ namespace AshenHalls
             Formula("MTR", "Meteor Shower", CombatVfxShowcaseScenario.AreaBombardment),
             Formula("RCL", "Cold Lance", CombatVfxShowcaseScenario.Projectile),
             Formula("AST", "Arcane Tempest", CombatVfxShowcaseScenario.AreaStorm),
+            Formula("VST", "Thunder Step", CombatVfxShowcaseScenario.TeleportStrike),
             Formula("RBT", "Rift Bolt", CombatVfxShowcaseScenario.Projectile),
             Formula("IBD", "Summon Imp", CombatVfxShowcaseScenario.Summon),
             Formula("IBG", "Summon Greater Demon", CombatVfxShowcaseScenario.Summon),
@@ -71,10 +72,12 @@ namespace AshenHalls
             Formula("DMC", "Doom Circle", CombatVfxShowcaseScenario.GroundField),
             Formula("SLV", "Soul Veil", CombatVfxShowcaseScenario.SupportWard),
             Formula("PBR", "Pact Brand", CombatVfxShowcaseScenario.AreaHex),
+            Formula("VRS", "Rift Step", CombatVfxShowcaseScenario.TeleportStrike),
             Formula("RLM", "Death Burst", CombatVfxShowcaseScenario.AreaBurst),
             Ability("charge", "Charge", CombatVfxShowcaseScenario.MovementStrike),
             Ability("whirlwind", "Whirlwind", CombatVfxShowcaseScenario.MeleeArea),
             Ability("shadowstep", "Shadowstep", CombatVfxShowcaseScenario.TeleportStrike),
+            Ability("riftpounce", "Rift Pounce", CombatVfxShowcaseScenario.TeleportStrike),
             Ability("volley", "Volley", CombatVfxShowcaseScenario.RangedArea)
         };
 

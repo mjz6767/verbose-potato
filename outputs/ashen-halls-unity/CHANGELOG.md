@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.18.0 - Rites in Motion
+
+- Added deterministic actor choreography to every formula and skill. Casters now gather, release, and recover on the same authoritative timeline as authored travel, exact impact sound, target response, and aftermath instead of remaining visually static while the effect plays.
+- Rebuilt Charge, Shadowstep, Rift Pounce, Thunder Step, and Rift Step presentation around their real tactical landing cells. Charges move only from release to impact; teleports vanish and reappear rather than sliding; aura, actor, and travel layers share one stable seed and one exact clock.
+- Gave Pact summons a synchronized portal materialization and a bounded unbinding dissolve, while Abyssal Ascendance keeps mortal art through its windup and reveals the demon form on the morph beat. Reduced Motion preserves the immediate tactical result without delayed actor motion.
+- Promoted enemy signature powers onto the same canonical formula and skill bridge as the party. Crooked Fireball, Royal Ice Lance, Bone Hex, Death Ball, Shock Sign, Cold Splinter, Plague Signs, Dark Light, Cinder Trail, Burning Pact, Dream Veil, Grave Ward, Royal Aegis, and the King's Charge now receive authored cast/travel/impact/aftermath identity and exact sound timing; beneficial ward impacts no longer trigger hurt voices.
+- Expanded the Development Beta Lab showcase from 16 to 19 deterministic entries with Thunder Step, Rift Step, and Rift Pounce, including replayable actor movement and landing previews. RuleSmoke and RuntimeBoot cover all 56 formulas, all 25 skills, the five movement powers, enemy exact-power presentation, summon dismissal, Reduced Motion, and transient cleanup.
+- Save schema remains v25 and the accepted content inventory remains 56 exact runtime-art pins, 91 packaged PNGs, 54 original music masters, and 161 authored SFX; this update changes transient presentation and release metadata only.
+
 ## v2.17.0 - Flame and Focus
 
 - Reworked the title menu around five purpose-built glyphs for Continue, New Game, Settings, Exit Game, and the Development-only Beta Lab. The fireplace, storm, reveal, and focus presentation now obey Reduced Motion; compact layouts keep every core action on one line; and retail builds keep the lab unavailable.

@@ -4998,7 +4998,8 @@ namespace AshenHalls
             PowerCastAura stagedCast = powerCastAuras.LastOrDefault(aura =>
                 aura != null
                 && aura.TargetX == impactX
-                && aura.TargetY == impactY);
+                && aura.TargetY == impactY
+                && string.Equals(aura.PowerKey, plan.ProfileKey, StringComparison.OrdinalIgnoreCase));
             int casterColumn = stagedCast?.SourceX ?? caster?.X ?? impactX;
             float casterPan = CombatAudioMixRules.StereoPanForColumn(casterColumn, CombatW);
             float releasePan = CombatAudioMixRules.StereoPanMidpoint(casterPan, impactPan);
@@ -5069,7 +5070,14 @@ namespace AshenHalls
                 && unit.X == impactX
                 && unit.Y == impactY
                 && unit.Id != caster?.Id);
-            string reactionCue = CreatureAudioRules.CueFor(impactTarget, impactTarget != null && impactTarget.Hp <= 0 ? "death" : "hurt");
+            bool beneficialImpact = string.Equals(plan.Impact.Key, "heal", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(plan.Impact.Key, "ward", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(plan.Impact.Key, "guard", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(plan.Impact.Key, "fieldholy", StringComparison.OrdinalIgnoreCase)
+                || CombatPowerSfxProfileTargetsBeneficiary(plan.ProfileKey);
+            string reactionCue = beneficialImpact
+                ? ""
+                : CreatureAudioRules.CueFor(impactTarget, impactTarget != null && impactTarget.Hp <= 0 ? "death" : "hurt");
             if (!string.IsNullOrEmpty(reactionCue))
             {
                 QueueSfx(
@@ -5093,6 +5101,28 @@ namespace AshenHalls
             }
             BeginCombatMusicDuck(impactProfile, reactionCount, plan.Impact.Delay);
             return true;
+        }
+
+        private bool CombatPowerSfxProfileTargetsBeneficiary(string profileKey)
+        {
+            switch ((profileKey ?? "").Trim().ToLowerInvariant())
+            {
+                case "oic":
+                case "nvc":
+                case "tbq":
+                case "sgw":
+                case "tnc":
+                case "lbc":
+                case "tbg":
+                case "nvl":
+                case "swr":
+                case "dwp":
+                case "slv":
+                case "rally":
+                    return true;
+                default:
+                    return false;
+            }
         }
 
         private bool TryResolveCombatPowerSfxPlan(
@@ -5843,9 +5873,9 @@ namespace AshenHalls
             }
         }
 
-        private bool TryDrawAtlasCombatSprite(Rect rect, CombatUnit unit)
+        private bool TryDrawAtlasCombatSprite(Rect rect, CombatUnit unit, bool allowDemonFormArt = true)
         {
-            int demonIndex = DemonSummonSpriteIndex(unit);
+            int demonIndex = allowDemonFormArt ? DemonSummonSpriteIndex(unit) : -1;
             if (demonIndex >= 0 && TryDrawDemonSummonAtlasIcon(Pad(rect, -rect.width * 0.02f), demonIndex, Color.white)) return true;
             if (unit != null && unit.Side == UnitSide.Enemy)
             {
@@ -6338,7 +6368,8 @@ namespace AshenHalls
             Rect anchoredRect,
             CombatUnit unit,
             bool active,
-            float figureAlpha)
+            float figureAlpha,
+            bool allowDemonFormArt = true)
         {
             Color color = VividColor(unit.Color.ToColor());
             Color frame = CombatFrameColor(unit, active);
@@ -6360,7 +6391,7 @@ namespace AshenHalls
                     previousGuiColor.g,
                     previousGuiColor.b,
                     previousGuiColor.a * Mathf.Clamp01(figureAlpha));
-                bool atlasDrawn = TryDrawAtlasCombatSprite(spriteRect, unit);
+                bool atlasDrawn = TryDrawAtlasCombatSprite(spriteRect, unit, allowDemonFormArt);
 
                 if (!atlasDrawn && unit.Summoned)
                 {

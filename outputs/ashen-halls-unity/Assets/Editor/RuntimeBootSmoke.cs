@@ -4976,6 +4976,9 @@ namespace AshenHalls.Editor
             impactEchoes.Clear();
             List<PowerCastAura> castAuras = GetPrivateField<List<PowerCastAura>>(game, "powerCastAuras");
             castAuras.Clear();
+            List<PowerActorPoseBeat> actorPoseBeats = GetPrivateField<List<PowerActorPoseBeat>>(game, "powerActorPoseBeats");
+            actorPoseBeats.Clear();
+            List<Tween> combatTweens = GetPrivateField<List<Tween>>(game, "tweens");
             List<CombatUnitPresentationBeat> unitPresentationBeats =
                 GetPrivateField<List<CombatUnitPresentationBeat>>(game, "combatUnitPresentationBeats");
             unitPresentationBeats.Clear();
@@ -5012,6 +5015,12 @@ namespace AshenHalls.Editor
             SetPrivateField(game, "combatMusicDuckDepth", 0f);
             object scheduledSfx = GetPrivateField<object>(game, "scheduledSfx");
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
+            Assert(
+                InvokePrivate<bool>(game, "CombatPowerSfxProfileTargetsBeneficiary", "NVC")
+                && InvokePrivate<bool>(game, "CombatPowerSfxProfileTargetsBeneficiary", "nvl")
+                && InvokePrivate<bool>(game, "CombatPowerSfxProfileTargetsBeneficiary", "rally")
+                && !InvokePrivate<bool>(game, "CombatPowerSfxProfileTargetsBeneficiary", "FBL"),
+                "beneficial cleanse, veil, and rally audio suppress target hurt voices without muting hostile impacts");
             string originalCombatMusicBaseKey = GetPrivateField<string>(game, "combatMusicBaseKey");
             CombatState originalCombatAmbienceEncounter = GetPrivateField<CombatState>(game, "combatAmbienceEncounter");
             int originalCombatAmbienceSequence = GetPrivateField<int>(game, "combatAmbienceSequence");
@@ -5116,6 +5125,8 @@ namespace AshenHalls.Editor
             stagedPowerAftermath.Clear();
             impactEchoes.Clear();
             castAuras.Clear();
+            actorPoseBeats.Clear();
+            combatTweens.RemoveAll(value => value.Id == active.Id && value.Kind == TweenKind.Move);
             stagedGlyphs.Clear();
             stagedFlashes.Clear();
             stagedParticles.Clear();
@@ -5146,6 +5157,19 @@ namespace AshenHalls.Editor
                 && aura.TargetX == spellTarget.X
                 && aura.TargetY == spellTarget.Y);
             Assert(stagedFireballAura != null, "focused Fireball stages one exact-key caster-to-target aura");
+            AssertProductionPowerActorChoreography(
+                "Fireball",
+                active,
+                "FBL",
+                active.X,
+                active.Y,
+                spellTarget.X,
+                spellTarget.Y,
+                CombatPowerActorChoreographyKind.Cast,
+                actorPoseBeats,
+                castAuras,
+                stagedPowerTravel,
+                combatTweens);
             CombatPowerAnimationTimeline stagedFireballTravelTimeline = CombatPowerAnimationTimelineRules.ForFormula(
                 fireball,
                 stagedFireball.StableSeed,
@@ -5250,7 +5274,22 @@ namespace AshenHalls.Editor
             List<CellFlash> fieldFlashes = stagedFlashes;
             combatState.ReducedMotion = true;
             InvokePrivate(game, "ClearCombatMotionForReducedMotion");
-            Assert(stagedBeams.Count == 0 && stagedPowerTravel.Count == 0 && stagedPowerAftermath.Count == 0 && impactEchoes.Count == 0 && castAuras.Count == 0 && fieldParticles.Count == 0 && fieldGlyphs.Count == 0, "enabling Reduced Motion clears queued combat travel, aftermath, and animated spectacle immediately");
+            Assert(stagedBeams.Count == 0 && stagedPowerTravel.Count == 0 && stagedPowerAftermath.Count == 0 && impactEchoes.Count == 0 && castAuras.Count == 0 && actorPoseBeats.Count == 0 && fieldParticles.Count == 0 && fieldGlyphs.Count == 0, "enabling Reduced Motion clears queued combat travel, actor choreography, aftermath, and animated spectacle immediately");
+            PowerActorPoseBeat reducedFireballActor = InvokePrivate<PowerActorPoseBeat>(
+                game,
+                "StageCombatPowerActorPose",
+                active,
+                "FBL",
+                active.X,
+                active.Y,
+                spellTarget.X,
+                spellTarget.Y,
+                3,
+                1776,
+                CombatPowerActorPoseRole.Source,
+                Time.time);
+            Assert(reducedFireballActor == null && actorPoseBeats.Count == 0,
+                "Reduced Motion stages no animated Fireball actor beat");
             Assert(fieldFlashes.Count == 1, "Reduced Motion preserves one compact target-local impact confirmation");
             Assert(Math.Abs(GetPrivateField<float>(game, "combatShakeMagnitude")) < 0.0001f, "Reduced Motion clears queued combat shake");
             Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) == 0, "enabling Reduced Motion clears delayed layered combat cues immediately");
@@ -5426,13 +5465,18 @@ namespace AshenHalls.Editor
             combatState.Combat.Obstacles.Clear();
             stagedFloats.Clear();
             stagedBeams.Clear();
+            stagedPowerTravel.Clear();
             castAuras.Clear();
+            actorPoseBeats.Clear();
+            combatTweens.RemoveAll(value => value.Id == active.Id && value.Kind == TweenKind.Move);
             active.X = 1;
             active.Y = 1;
             spellTarget.X = 6;
             spellTarget.Y = 3;
             spellTarget.Hp = spellTarget.MaxHp;
             int thunderStepTargetHp = spellTarget.Hp;
+            int thunderStepSourceX = active.X;
+            int thunderStepSourceY = active.Y;
             active.Mana = active.MaxMana;
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "VST", null, 5, 3), "Thunder Step resolves through the production formula path");
             Assert(active.X == 5 && active.Y == 3, "Thunder Step moves the caster to the chosen open tile");
@@ -5443,6 +5487,19 @@ namespace AshenHalls.Editor
                 && stagedBeams.Any(value => value.Kind == "lightning"), "Thunder Step uses authored travel and retains its post-arrival lightning accents");
             Assert(stagedFloats.Any(value => value.Text == "THUNDER STEP"), "Thunder Step stages its named landing result");
             Assert(castAuras.Any(aura => aura.SourceX == 1 && aura.SourceY == 1 && aura.TargetX == 5 && aura.TargetY == 3), "Thunder Step stages a destination-aware cast aura");
+            AssertProductionPowerActorChoreography(
+                "Thunder Step",
+                active,
+                "VST",
+                thunderStepSourceX,
+                thunderStepSourceY,
+                active.X,
+                active.Y,
+                CombatPowerActorChoreographyKind.Teleport,
+                actorPoseBeats,
+                castAuras,
+                stagedPowerTravel,
+                combatTweens);
 
             combatState.Combat.Obstacles.Clear();
             Point sealedGlyph = new Point(4, 3, "glyph", 2);
@@ -5506,11 +5563,30 @@ namespace AshenHalls.Editor
 
             active.Mana = active.MaxMana;
             stagedBeams.Clear();
+            stagedPowerTravel.Clear();
+            castAuras.Clear();
+            actorPoseBeats.Clear();
+            combatTweens.RemoveAll(value => value.Id == active.Id && value.Kind == TweenKind.Move);
+            int riftStepSourceX = active.X;
+            int riftStepSourceY = active.Y;
             Assert(InvokePrivate<bool>(game, "CastFormula", active, "VRS", null, 2, 3), "Rift Step resolves through the production pact formula path");
             Assert(active.X == 2 && active.Y == 3, "Rift Step moves the warlock to the chosen open tile");
             Assert(combatState.Combat.MovePoints == 0 && combatState.Combat.Moved, "Rift Step consumes ordinary movement after its relocation");
             Assert(stagedPowerTravel.Any(value => value.PowerKey == "VRS")
                 && !stagedBeams.Any(value => value.Kind == "arc"), "Rift Step stages one authored rift travel without a duplicate legacy arc");
+            AssertProductionPowerActorChoreography(
+                "Rift Step",
+                active,
+                "VRS",
+                riftStepSourceX,
+                riftStepSourceY,
+                active.X,
+                active.Y,
+                CombatPowerActorChoreographyKind.Teleport,
+                actorPoseBeats,
+                castAuras,
+                stagedPowerTravel,
+                combatTweens);
 
             combatState.Combat.ActionAvailable = true;
             combatState.Combat.Moved = false;
@@ -5614,26 +5690,36 @@ namespace AshenHalls.Editor
             stagedPowerTravel.Clear();
             impactEchoes.Clear();
             castAuras.Clear();
+            actorPoseBeats.Clear();
+            combatTweens.RemoveAll(value => value.Id == active.Id && value.Kind == TweenKind.Move);
             combatState.Combat.Obstacles.Add(new Point(2, 3, "stone"));
             combatState.Combat.Obstacles.Add(new Point(3, 3, "stone"));
             combatState.Combat.Obstacles.Add(new Point(4, 3, "stone"));
             int pounceTargetHp = spellTarget.Hp;
             int pounceSourceX = active.X;
             int pounceSourceY = active.Y;
-            int pounceTargetX = spellTarget.X;
-            int pounceTargetY = spellTarget.Y;
+            Point expectedPounceLanding = InvokePrivate<Point>(game, "BestRiftPounceLanding", active, spellTarget);
             Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "riftpounce", spellTarget, spellTarget.X, spellTarget.Y), "Rift Pounce resolves through the shared targeted ability path");
             Assert(spellTarget.Hp < pounceTargetHp
+                && expectedPounceLanding != null
+                && active.X == expectedPounceLanding.X
+                && active.Y == expectedPounceLanding.Y
                 && Math.Abs(active.X - spellTarget.X) + Math.Abs(active.Y - spellTarget.Y) == 1
                 && !stagedBeams.Any(value => value.Kind == "arc"),
                 "Rift Pounce crosses blocked intervening tiles, lands beside its target, and deals death damage");
-            Assert(stagedPowerTravel.Count == 1
-                && stagedPowerTravel[0].PowerKey == "riftpounce"
-                && stagedPowerTravel[0].SourceX == pounceSourceX
-                && stagedPowerTravel[0].SourceY == pounceSourceY
-                && stagedPowerTravel[0].TargetX == pounceTargetX
-                && stagedPowerTravel[0].TargetY == pounceTargetY,
-                "Rift Pounce stages one exact source-to-target authored travel identity without a duplicate legacy movement arc");
+            AssertProductionPowerActorChoreography(
+                "Rift Pounce",
+                active,
+                "riftpounce",
+                pounceSourceX,
+                pounceSourceY,
+                active.X,
+                active.Y,
+                CombatPowerActorChoreographyKind.Teleport,
+                actorPoseBeats,
+                castAuras,
+                stagedPowerTravel,
+                combatTweens);
 
             combatState.Combat.Obstacles.Clear();
             active.X = 5;
@@ -5914,9 +6000,49 @@ namespace AshenHalls.Editor
             active.Role = "shield";
             active.X = 1;
             active.Y = 1;
+            spellTarget.X = 4;
+            spellTarget.Y = 1;
+            spellTarget.Hp = spellTarget.MaxHp;
+            spellTarget.Stunned = 0;
+            spellTarget.Guarding = false;
+            spellTarget.GuardBonus = 0;
+            spellTarget.Shielded = 0;
+            combatState.Combat.Obstacles.Clear();
+            combatState.Combat.ActionAvailable = true;
+            stagedPowerTravel.Clear();
+            castAuras.Clear();
+            actorPoseBeats.Clear();
+            combatTweens.RemoveAll(value => value.Id == active.Id && value.Kind == TweenKind.Move);
+            int chargeSourceX = active.X;
+            int chargeSourceY = active.Y;
+            Point expectedChargeLanding = InvokePrivate<Point>(game, "BestChargeLanding", active, spellTarget);
+            int chargeTargetHp = spellTarget.Hp;
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "charge", spellTarget, spellTarget.X, spellTarget.Y), "Charge resolves through the centralized martial path");
+            Assert(expectedChargeLanding != null
+                && active.X == expectedChargeLanding.X
+                && active.Y == expectedChargeLanding.Y
+                && spellTarget.Hp < chargeTargetHp,
+                "Charge follows its real open lane, lands beside the target, and deals damage");
+            AssertProductionPowerActorChoreography(
+                "Charge",
+                active,
+                "charge",
+                chargeSourceX,
+                chargeSourceY,
+                active.X,
+                active.Y,
+                CombatPowerActorChoreographyKind.Dash,
+                actorPoseBeats,
+                castAuras,
+                stagedPowerTravel,
+                combatTweens);
+
+            active.X = 1;
+            active.Y = 1;
             spellTarget.X = 2;
             spellTarget.Y = 1;
             spellTarget.Hp = spellTarget.MaxHp;
+            spellTarget.Stunned = 0;
             spellTarget.Guarding = true;
             spellTarget.GuardBonus = 1;
             spellTarget.Shielded = 3;
@@ -5942,11 +6068,34 @@ namespace AshenHalls.Editor
             spellTarget.Shielded = 0;
             combatState.Combat.ActionAvailable = true;
             SetPrivateField(game, "rng", new System.Random(1));
+            stagedPowerTravel.Clear();
+            castAuras.Clear();
+            actorPoseBeats.Clear();
+            combatTweens.RemoveAll(value => value.Id == active.Id && value.Kind == TweenKind.Move);
             int shadowstepHp = spellTarget.Hp;
+            int shadowstepSourceX = active.X;
+            int shadowstepSourceY = active.Y;
+            Point expectedShadowstepLanding = InvokePrivate<Point>(game, "BestShadowstepLanding", active, spellTarget);
             Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "shadowstep", spellTarget, spellTarget.X, spellTarget.Y), "Shadowstep resolves through the centralized martial path");
             Assert(spellTarget.Hp < shadowstepHp
+                && expectedShadowstepLanding != null
+                && active.X == expectedShadowstepLanding.X
+                && active.Y == expectedShadowstepLanding.Y
                 && Math.Abs(active.X - spellTarget.X) + Math.Abs(active.Y - spellTarget.Y) == 1
                 && active.Stealthed == 0, "Shadowstep lands beside its target, strikes, and consumes stealth");
+            AssertProductionPowerActorChoreography(
+                "Shadowstep",
+                active,
+                "shadowstep",
+                shadowstepSourceX,
+                shadowstepSourceY,
+                active.X,
+                active.Y,
+                CombatPowerActorChoreographyKind.Teleport,
+                actorPoseBeats,
+                castAuras,
+                stagedPowerTravel,
+                combatTweens);
 
             active.ClassKey = "ranger";
             active.Role = "bow";
@@ -5968,6 +6117,8 @@ namespace AshenHalls.Editor
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
             stagedFloats.Clear();
             stagedBeams.Clear();
+            stagedPowerTravel.Clear();
+            stagedPowerAftermath.Clear();
             impactEchoes.Clear();
             castAuras.Clear();
             active.MaxHp = Math.Max(active.MaxHp, 120);
@@ -6014,11 +6165,58 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<bool>(game, "TryKoboldKingFireball", spellTarget, active), "Kobold King fireball resolves through production enemy-power path");
             CombatPowerIdentity enemyCue = GetPrivateField<CombatPowerIdentity>(game, "combatPowerCue");
             Assert(enemyCue.Title == "Crooked Fireball" && enemyCue.Intensity == 3, "enemy power publishes its boss identity");
-            Assert(stagedBeams.Any(value => value.Kind == "fireball" && value.Start <= enemyCastStarted + 0.04f), "enemy fireball projectile begins before impact");
+            PowerCastAura enemyFireballAura = castAuras.SingleOrDefault(aura =>
+                aura != null
+                && string.Equals(aura.PowerKey, "FBL", StringComparison.OrdinalIgnoreCase)
+                && aura.SourceX == spellTarget.X
+                && aura.SourceY == spellTarget.Y
+                && aura.TargetX == active.X
+                && aura.TargetY == active.Y);
+            PowerTravelVfx[] enemyFireballTravel = stagedPowerTravel
+                .Where(value => string.Equals(value.PowerKey, "FBL", StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            Assert(enemyFireballAura != null
+                && enemyFireballAura.Intensity == 3
+                && enemyFireballTravel.Length == 1
+                && enemyFireballTravel[0].SourceX == spellTarget.X
+                && enemyFireballTravel[0].SourceY == spellTarget.Y
+                && enemyFireballTravel[0].TargetX == active.X
+                && enemyFireballTravel[0].TargetY == active.Y,
+                "enemy Fireball bridges Crooked Fireball into the exact FBL cast and authored source-to-target travel");
+            PowerTravelVfx enemyFireballProjectile = enemyFireballTravel[0];
+            CombatPowerAnimationTimeline enemyFireballTimeline = CombatPowerAnimationTimelineRules.For(
+                "FBL",
+                enemyFireballProjectile.StableSeed,
+                enemyFireballProjectile.Intensity,
+                false);
+            Assert(enemyFireballTimeline.Supported
+                && enemyFireballTimeline.HasTravel
+                && enemyFireballAura.StableSeed != 0
+                && enemyFireballAura.StableSeed == enemyFireballProjectile.StableSeed
+                && Math.Abs(enemyFireballAura.ReleaseAt - (enemyFireballAura.Start + enemyFireballTimeline.ReleaseAt)) < 0.0001f
+                && Math.Abs(enemyFireballAura.ImpactAt - (enemyFireballAura.Start + enemyFireballTimeline.ImpactAt)) < 0.0001f
+                && Math.Abs(enemyFireballProjectile.Start - enemyFireballAura.ReleaseAt) < 0.0001f
+                && Math.Abs(enemyFireballProjectile.Start + enemyFireballProjectile.Duration - enemyFireballAura.ImpactAt) < 0.0001f,
+                "enemy FBL cast, release, authored travel, and impact share one deterministic stable-seed timeline");
+            Assert(!stagedBeams.Any(value => value.Kind == "fireball"),
+                "enemy Fireball suppresses the duplicate legacy fireball beam when exact FBL travel is authored");
             Assert(stagedFloats.Any(value => value.Start > enemyCastStarted + 0.04f), "enemy fireball result waits for impact timing");
             Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) >= 1, "enemy fireball queues delayed impact audio");
-            Assert(castAuras.Any(aura => aura.SourceX == spellTarget.X && aura.SourceY == spellTarget.Y && aura.TargetX == active.X && aura.TargetY == active.Y && aura.Intensity == 3), "boss fireball stages an epic caster-origin aura");
-            Assert(impactEchoes.Any(echo => echo.X == active.X && echo.Y == active.Y && echo.Intensity == 3 && echo.Duration >= 0.62f), "boss fireball stages an epic target telegraph and impact echo");
+            Assert(impactEchoes.Any(echo => echo.X == active.X
+                && echo.Y == active.Y
+                && string.Equals(echo.Kind, "FBL", StringComparison.OrdinalIgnoreCase)
+                && echo.Intensity == 3
+                && echo.Duration >= 0.62f),
+                "boss Fireball stages its exact FBL impact identity at the party target");
+            PowerAftermathVfx enemyFireballAftermath = stagedPowerAftermath.SingleOrDefault(value =>
+                string.Equals(value.PowerKey, "FBL", StringComparison.OrdinalIgnoreCase));
+            Assert(enemyFireballAftermath != null
+                && enemyFireballAftermath.X == active.X
+                && enemyFireballAftermath.Y == active.Y
+                && enemyFireballAftermath.StableSeed == enemyFireballAura.StableSeed
+                && enemyFireballAftermath.Duration > 0f
+                && Math.Abs(enemyFireballAftermath.Start - (enemyFireballAura.Start + enemyFireballTimeline.AftermathAt)) < 0.04f,
+                "enemy FBL stages the canonical deterministic Fireball aftermath on its authored aftermath beat");
             Assert(GetPrivateField<float>(game, "combatMusicDuckDepth") >= 0.46f, "boss fireball claims stronger space in the combat mix");
             Assert(GetPrivateField<float>(game, "enemyActionResolutionDelay") >= 0.50f, "boss power requests a readable resolution hold");
             Assert(Math.Abs(GetPrivateField<float>(game, "combatVfxImpactDelay")) < 0.0001f, "enemy power restores VFX timeline context");
@@ -6027,6 +6225,117 @@ namespace AshenHalls.Editor
             Assert(combatState.Combat.Phase == CombatPhase.Resolving, "enemy power exposes the resolving combat phase");
             Assert(GetPrivateField<string>(game, "combatResolutionLabel") == "Crooked Fireball", "enemy resolution names the active power");
             InvokePrivate(game, "CancelCombatResolutionBeat", false);
+
+            actorPoseBeats.Clear();
+            combatTweens.Clear();
+            stagedPowerTravel.Clear();
+            stagedPowerAftermath.Clear();
+            impactEchoes.Clear();
+            castAuras.Clear();
+            combatState.Combat.Obstacles.Clear();
+            active.X = 1;
+            active.Y = 1;
+            active.Hp = active.MaxHp;
+            spellTarget.X = 4;
+            spellTarget.Y = 1;
+            spellTarget.Webbed = 0;
+            int royalChargeSourceX = spellTarget.X;
+            int royalChargeSourceY = spellTarget.Y;
+            Point royalChargeLanding = InvokePrivate<Point>(game, "BestEnemyChargeLanding", spellTarget, active, 5);
+            Assert(royalChargeLanding != null, "Kobold King smoke lane has a legal royal charge landing");
+            Assert(InvokePrivate<bool>(game, "TryKoboldKingChargeAndRetreat", spellTarget, active),
+                "Kobold King charge-and-retreat resolves through the production enemy-power path");
+            PowerActorPoseBeat royalChargeActor = actorPoseBeats.SingleOrDefault(value =>
+                value != null
+                && string.Equals(value.UnitId, spellTarget.Id, StringComparison.Ordinal)
+                && string.Equals(value.PowerKey, "charge", StringComparison.OrdinalIgnoreCase)
+                && value.Role == CombatPowerActorPoseRole.Source);
+            Assert(royalChargeActor != null
+                && royalChargeActor.SourceX == royalChargeSourceX
+                && royalChargeActor.SourceY == royalChargeSourceY
+                && royalChargeActor.LandingX == royalChargeLanding.X
+                && royalChargeActor.LandingY == royalChargeLanding.Y
+                && royalChargeActor.Duration > 0f,
+                "royal charge actor beat owns the exact source-to-landing leg");
+            CombatPowerActorPosePlan royalChargePlan = CombatPowerActorPoseRules.For(
+                royalChargeActor.PowerKey,
+                royalChargeActor.StableSeed,
+                royalChargeActor.SourceX,
+                royalChargeActor.SourceY,
+                royalChargeActor.LandingX,
+                royalChargeActor.LandingY,
+                royalChargeActor.Intensity,
+                false);
+            CombatPowerActorPoseFrame royalChargeImpact = royalChargePlan.SourceFrameAt(royalChargePlan.ImpactAt);
+            Assert(royalChargePlan.Choreography == CombatPowerActorChoreographyKind.Dash
+                && Math.Abs(royalChargeActor.Duration - royalChargePlan.DurationSeconds) < 0.0001f
+                && Math.Abs(royalChargeImpact.PositionX - royalChargeLanding.X) < 0.0001f
+                && Math.Abs(royalChargeImpact.PositionY - royalChargeLanding.Y) < 0.0001f,
+                "royal charge actor reaches its tactical landing on the canonical impact beat");
+            Tween[] royalRetreatTweens = combatTweens
+                .Where(value => value != null && value.Id == spellTarget.Id && value.Kind == TweenKind.Move)
+                .ToArray();
+            float royalChargeActorCompleteAt = royalChargeActor.Start + royalChargeActor.Duration;
+            Assert(royalRetreatTweens.Length == 1
+                && Math.Abs(royalRetreatTweens[0].From.x - royalChargeLanding.X) < 0.0001f
+                && Math.Abs(royalRetreatTweens[0].From.y - royalChargeLanding.Y) < 0.0001f
+                && Math.Abs(royalRetreatTweens[0].To.x - spellTarget.X) < 0.0001f
+                && Math.Abs(royalRetreatTweens[0].To.y - spellTarget.Y) < 0.0001f
+                && (spellTarget.X != royalChargeLanding.X || spellTarget.Y != royalChargeLanding.Y)
+                && Math.Abs(royalRetreatTweens[0].Start - royalChargeActorCompleteAt) < 0.0001f
+                && !royalRetreatTweens.Any(value => value.Start < royalChargeActorCompleteAt - 0.0001f),
+                "royal retreat begins exactly after authored charge recovery and has no masked immediate Move tween");
+
+            actorPoseBeats.Clear();
+            combatTweens.Clear();
+            stagedPowerTravel.Clear();
+            stagedPowerAftermath.Clear();
+            impactEchoes.Clear();
+            castAuras.Clear();
+            active.X = 1;
+            active.Y = 1;
+            active.Hp = active.MaxHp;
+            spellTarget.X = 4;
+            spellTarget.Y = 1;
+
+            bool enemyOriginalReducedMotion = combatState.ReducedMotion;
+            int enemyReducedMotionTargetHp = active.Hp;
+            List<Point> enemyReducedMotionObstacles = combatState.Combat.Obstacles.ToList();
+            try
+            {
+                combatState.ReducedMotion = true;
+                active.Hp = active.MaxHp;
+                stagedFloats.Clear();
+                stagedBeams.Clear();
+                stagedPowerTravel.Clear();
+                stagedPowerAftermath.Clear();
+                impactEchoes.Clear();
+                castAuras.Clear();
+                Assert(InvokePrivate<bool>(game, "TryKoboldKingFireball", spellTarget, active),
+                    "Kobold King Fireball remains functional under Reduced Motion");
+                Assert(castAuras.Count == 0
+                    && stagedPowerTravel.Count == 0
+                    && stagedPowerAftermath.Count == 0
+                    && !stagedBeams.Any(value => value.Kind == "fireball")
+                    && impactEchoes.Count == 1
+                    && string.Equals(impactEchoes[0].Kind, "FBL", StringComparison.OrdinalIgnoreCase)
+                    && impactEchoes[0].StaticStamp
+                    && Math.Abs(impactEchoes[0].ImpactAt - impactEchoes[0].Start) < 0.0001f,
+                    "enemy exact-power bridge collapses FBL to one immediate static impact under Reduced Motion");
+            }
+            finally
+            {
+                combatState.ReducedMotion = enemyOriginalReducedMotion;
+                active.Hp = enemyReducedMotionTargetHp;
+                combatState.Combat.Obstacles.Clear();
+                combatState.Combat.Obstacles.AddRange(enemyReducedMotionObstacles);
+                stagedFloats.Clear();
+                stagedBeams.Clear();
+                stagedPowerTravel.Clear();
+                stagedPowerAftermath.Clear();
+                impactEchoes.Clear();
+                castAuras.Clear();
+            }
 
             AssertRoundTransitionAndStartTurnDefeatRuntime(game);
 
@@ -6281,6 +6590,139 @@ namespace AshenHalls.Editor
             AssertCombatTransientPresentationBoundariesRuntime(game);
         }
 
+        private static PowerActorPoseBeat AssertProductionPowerActorChoreography(
+            string label,
+            CombatUnit actor,
+            string powerKey,
+            int sourceX,
+            int sourceY,
+            int landingX,
+            int landingY,
+            CombatPowerActorChoreographyKind expectedChoreography,
+            List<PowerActorPoseBeat> actorPoseBeats,
+            List<PowerCastAura> castAuras,
+            List<PowerTravelVfx> powerTravel,
+            List<Tween> combatTweens)
+        {
+            PowerActorPoseBeat[] matchingBeats = actorPoseBeats
+                .Where(value => value != null
+                    && string.Equals(value.UnitId, actor.Id, StringComparison.Ordinal)
+                    && string.Equals(value.PowerKey, powerKey, StringComparison.OrdinalIgnoreCase)
+                    && value.Role == CombatPowerActorPoseRole.Source)
+                .ToArray();
+            Assert(matchingBeats.Length == 1,
+                label + " stages exactly one source actor choreography beat");
+            PowerActorPoseBeat beat = matchingBeats[0];
+            PowerCastAura aura = castAuras.LastOrDefault(value => value != null
+                && string.Equals(value.PowerKey, powerKey, StringComparison.OrdinalIgnoreCase)
+                && value.StableSeed == beat.StableSeed);
+            PowerTravelVfx[] matchingTravel = powerTravel
+                .Where(value => value != null
+                    && string.Equals(value.PowerKey, powerKey, StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+            CombatPowerActorPosePlan plan = CombatPowerActorPoseRules.For(
+                powerKey,
+                beat.StableSeed,
+                sourceX,
+                sourceY,
+                landingX,
+                landingY,
+                beat.Intensity,
+                false);
+            CombatPowerAnimationTimeline timeline = CombatPowerAnimationTimelineRules.For(
+                powerKey,
+                beat.StableSeed,
+                beat.Intensity,
+                false);
+
+            Assert(plan.Supported
+                && timeline.Supported
+                && plan.Choreography == expectedChoreography
+                && beat.SourceX == sourceX
+                && beat.SourceY == sourceY
+                && beat.LandingX == landingX
+                && beat.LandingY == landingY
+                && beat.StableSeed != 0
+                && Math.Abs(beat.Duration - plan.DurationSeconds) < 0.0001f,
+                label + " records its real source, actual landing, stable seed, and bounded actor duration");
+            Assert(aura != null
+                && aura.StableSeed == beat.StableSeed
+                && Math.Abs(aura.Start - beat.Start) < 0.0001f
+                && Math.Abs(plan.ReleaseAt - timeline.ReleaseAt) < 0.0001f
+                && Math.Abs(plan.ImpactAt - timeline.ImpactAt) < 0.0001f
+                && Math.Abs(aura.ReleaseAt - (beat.Start + plan.ReleaseAt)) < 0.0001f
+                && Math.Abs(aura.ImpactAt - (beat.Start + plan.ImpactAt)) < 0.0001f,
+                label + " actor windup, release, and impact share the exact cast-aura seed and clock");
+            Assert(matchingTravel.Length == 1
+                && matchingTravel[0].StableSeed == beat.StableSeed
+                && matchingTravel[0].SourceX == sourceX
+                && matchingTravel[0].SourceY == sourceY
+                && matchingTravel[0].TargetX == landingX
+                && matchingTravel[0].TargetY == landingY
+                && Math.Abs(matchingTravel[0].Start - (beat.Start + plan.ReleaseAt)) < 0.0001f
+                && Math.Abs(matchingTravel[0].Start + matchingTravel[0].Duration - (beat.Start + plan.ImpactAt)) < 0.0001f,
+                label + " authored travel begins at actor release and ends at the actor's real landing on impact");
+            Assert(!combatTweens.Any(value => value.Id == actor.Id && value.Kind == TweenKind.Move),
+                label + " uses authored actor choreography without a legacy Move tween");
+
+            float preReleaseAt = Math.Max(0f, plan.ReleaseAt - Math.Min(0.0001f, plan.ReleaseAt * 0.25f));
+            CombatPowerActorPoseFrame preRelease = plan.SourceFrameAt(preReleaseAt);
+            CombatPowerActorPoseFrame onRelease = plan.SourceFrameAt(plan.ReleaseAt);
+            Assert(preRelease.Phase == CombatPowerActorPosePhase.CastWindup,
+                label + " remains in windup until the exact release boundary");
+
+            if (expectedChoreography == CombatPowerActorChoreographyKind.Dash)
+            {
+                CombatPowerActorPoseFrame midDash = plan.SourceFrameAt((plan.ReleaseAt + plan.ImpactAt) * 0.5f);
+                CombatPowerActorPoseFrame onImpact = plan.SourceFrameAt(plan.ImpactAt);
+                float minimumX = Math.Min(sourceX, landingX) - 0.0001f;
+                float maximumX = Math.Max(sourceX, landingX) + 0.0001f;
+                float minimumY = Math.Min(sourceY, landingY) - 0.0001f;
+                float maximumY = Math.Max(sourceY, landingY) + 0.0001f;
+                Assert(onRelease.Phase == CombatPowerActorPosePhase.Dash
+                    && midDash.Phase == CombatPowerActorPosePhase.Dash
+                    && midDash.PositionX >= minimumX
+                    && midDash.PositionX <= maximumX
+                    && midDash.PositionY >= minimumY
+                    && midDash.PositionY <= maximumY
+                    && Math.Abs(midDash.OffsetX) <= CombatPowerActorPoseRules.MaximumOffset
+                    && Math.Abs(midDash.OffsetY) <= CombatPowerActorPoseRules.MaximumOffset
+                    && midDash.Scale >= CombatPowerActorPoseRules.MinimumScale
+                    && midDash.Scale <= CombatPowerActorPoseRules.MaximumScale
+                    && onImpact.Phase == CombatPowerActorPosePhase.Recovery
+                    && Math.Abs(onImpact.PositionX - landingX) < 0.0001f
+                    && Math.Abs(onImpact.PositionY - landingY) < 0.0001f,
+                    label + " pure dash evaluator stays bounded and lands exactly on its impact boundary");
+            }
+            else if (expectedChoreography == CombatPowerActorChoreographyKind.Teleport)
+            {
+                float splitEpsilon = Math.Min(0.0001f, (plan.TeleportSplitAt - plan.ReleaseAt) * 0.25f);
+                CombatPowerActorPoseFrame lastSource = plan.SourceFrameAt(plan.TeleportSplitAt - splitEpsilon);
+                CombatPowerActorPoseFrame firstLanding = plan.SourceFrameAt(plan.TeleportSplitAt);
+                CombatPowerActorPoseFrame onImpact = plan.SourceFrameAt(plan.ImpactAt);
+                Assert(onRelease.Phase == CombatPowerActorPosePhase.TeleportOut
+                    && lastSource.Phase == CombatPowerActorPosePhase.TeleportOut
+                    && Math.Abs(lastSource.PositionX - sourceX) < 0.0001f
+                    && Math.Abs(lastSource.PositionY - sourceY) < 0.0001f
+                    && lastSource.Opacity < 0.02f
+                    && firstLanding.Phase == CombatPowerActorPosePhase.TeleportIn
+                    && Math.Abs(firstLanding.PositionX - landingX) < 0.0001f
+                    && Math.Abs(firstLanding.PositionY - landingY) < 0.0001f
+                    && firstLanding.Opacity < 0.0001f
+                    && onImpact.Phase == CombatPowerActorPosePhase.Recovery
+                    && Math.Abs(onImpact.PositionX - landingX) < 0.0001f
+                    && Math.Abs(onImpact.PositionY - landingY) < 0.0001f,
+                    label + " pure teleport evaluator vanishes at source, snaps while invisible, and reveals at landing");
+            }
+            else
+            {
+                Assert(onRelease.Phase == CombatPowerActorPosePhase.Release,
+                    label + " source actor exits windup on the exact canonical release boundary");
+            }
+
+            return beat;
+        }
+
         private static void AssertTitleMenuFocusReducedMotionRuntime(
             AshenHallsGame game,
             TavernScreen tavernScreen,
@@ -6353,6 +6795,15 @@ namespace AshenHalls.Editor
             GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx").Add(new PowerTravelVfx { PowerKey = sentinel, Start = now, Duration = 30f });
             GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes").Add(new PowerImpactEcho { Kind = sentinel, Start = now, ImpactAt = now + 1f, Duration = 30f });
             GetPrivateField<List<PowerAftermathVfx>>(game, "powerAftermathVfx").Add(new PowerAftermathVfx { PowerKey = sentinel, Start = now + 1f, Duration = 30f });
+            GetPrivateField<List<PowerActorPoseBeat>>(game, "powerActorPoseBeats").Add(new PowerActorPoseBeat
+            {
+                UnitId = sentinel,
+                PowerKey = "FBL",
+                Role = CombatPowerActorPoseRole.Source,
+                StableSeed = 1776,
+                Start = now,
+                Duration = 30f
+            });
             GetPrivateField<List<CombatUnitPresentationBeat>>(game, "combatUnitPresentationBeats").Add(
                 new CombatUnitPresentationBeat(sentinel, CombatUnitPresentationBeatKind.Hit, now + 1f, now + 30f, 1f));
             SetPrivateField(game, "combatPowerCue", new CombatPowerIdentity("Stale boundary cue", "!", sentinel, "ff5500", 3, 30f));
@@ -6383,6 +6834,7 @@ namespace AshenHalls.Editor
                 && GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx").Any(value => value.PowerKey == sentinel)
                 && GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes").Any(value => value.Kind == sentinel)
                 && GetPrivateField<List<PowerAftermathVfx>>(game, "powerAftermathVfx").Any(value => value.PowerKey == sentinel)
+                && GetPrivateField<List<PowerActorPoseBeat>>(game, "powerActorPoseBeats").Any(value => value.UnitId == sentinel)
                 && GetPrivateField<CombatPowerIdentity>(game, "combatPowerCue").Title == "Stale boundary cue",
                 boundary + " preserves the current encounter presentation when adoption fails");
         }
@@ -6401,6 +6853,7 @@ namespace AshenHalls.Editor
                 && !GetPrivateField<List<PowerTravelVfx>>(game, "powerTravelVfx").Any(value => value.PowerKey == sentinel)
                 && !GetPrivateField<List<PowerImpactEcho>>(game, "powerImpactEchoes").Any(value => value.Kind == sentinel)
                 && !GetPrivateField<List<PowerAftermathVfx>>(game, "powerAftermathVfx").Any(value => value.PowerKey == sentinel)
+                && !GetPrivateField<List<PowerActorPoseBeat>>(game, "powerActorPoseBeats").Any(value => value.UnitId == sentinel)
                 && !GetPrivateField<List<CombatUnitPresentationBeat>>(game, "combatUnitPresentationBeats").Any(value => value.UnitId == sentinel),
                 boundary + " removes every stale legacy and authored combat visual layer");
             Assert(string.IsNullOrEmpty(GetPrivateField<CombatPowerIdentity>(game, "combatPowerCue").Title)

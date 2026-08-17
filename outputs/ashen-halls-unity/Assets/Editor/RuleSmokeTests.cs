@@ -179,6 +179,7 @@ namespace AshenHalls.Editor
             ClassSkillVfxProfilesStayDistinctAndMotionSafe();
             CombatPowerTravelVfxProfilesStayDistinctAndMotionSafe();
             CombatPowerAftermathAndTimelineStayDeterministic();
+            CombatPowerActorChoreographyStaysSynchronizedAndBounded();
             CombatVfxShowcaseCatalogIsStableAndReplayable();
             CombatPowerSfxProfilesStayDistinctAndMixSafe();
             CombatUnitPresentationBeatsStaySynchronizedAndBounded();
@@ -3128,7 +3129,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.17.0", VersionInfo.PackageVersion, "package version matches the integrated v2.17 candidate");
+            AssertEqual("v2.18.0", VersionInfo.PackageVersion, "package version matches the integrated v2.18 candidate");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -6463,6 +6464,264 @@ namespace AshenHalls.Editor
             CombatTransientPresentationBoundariesAreExplicit();
         }
 
+        private static void CombatPowerActorChoreographyStaysSynchronizedAndBounded()
+        {
+            const int stableSeed = 48271;
+            const int sourceX = 1;
+            const int sourceY = 2;
+            const int landingX = 6;
+            const int landingY = 4;
+            const float epsilon = 0.0001f;
+
+            string[] abilityIds = new[] { "warrior", "rogue", "ranger", "demon" }
+                .SelectMany(AbilityCatalog.IdsForClass)
+                .ToArray();
+            AssertEqual(56, FormulaCatalog.All.Length, "actor choreography covers every canonical formula");
+            AssertEqual(25, abilityIds.Length, "actor choreography covers every active skill");
+            AssertEqual(25, abilityIds.Distinct(StringComparer.Ordinal).Count(), "actor choreography active-skill catalog is unique");
+
+            List<CombatPowerActorPosePlan> plans = new List<CombatPowerActorPosePlan>();
+            foreach (FormulaDef formula in FormulaCatalog.All)
+            {
+                CombatPowerActorPosePlan plan = CombatPowerActorPoseRules.ForFormula(
+                    formula,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    false);
+                CombatPowerActorPosePlan alias = CombatPowerActorPoseRules.ForFormula(
+                    formula.Name,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    false);
+                CombatPowerActorPosePlan generic = CombatPowerActorPoseRules.For(
+                    formula.Code,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    false);
+                AssertEqual(true, plan.Supported, formula.Code + " actor choreography is supported");
+                AssertEqual(CombatPowerAnimationSourceKind.Formula, plan.SourceKind, formula.Code + " actor choreography retains formula identity");
+                AssertEqual(formula.Code, plan.PowerKey, formula.Code + " actor choreography retains its canonical key");
+                AssertEqual(plan.PowerKey, alias.PowerKey, formula.Code + " full-name actor choreography keeps its canonical key");
+                AssertEqual(plan.Choreography, alias.Choreography, formula.Code + " full-name actor choreography keeps its semantic kind");
+                AssertEqual(plan.ReleaseAt, alias.ReleaseAt, formula.Code + " full-name actor choreography keeps its release boundary");
+                AssertEqual(plan.ImpactAt, alias.ImpactAt, formula.Code + " full-name actor choreography keeps its impact boundary");
+                AssertEqual(plan.DurationSeconds, alias.DurationSeconds, formula.Code + " full-name actor choreography keeps its duration");
+                AssertEqual(plan.Choreography, generic.Choreography, formula.Code + " generic actor lookup keeps its semantic kind");
+                AssertEqual(true, plan.ReleaseAt <= plan.ImpactAt && plan.ImpactAt <= plan.DurationSeconds, formula.Code + " actor choreography boundaries are monotonic");
+                plans.Add(plan);
+            }
+
+            foreach (string abilityId in abilityIds)
+            {
+                MartialAbility ability = AbilityCatalog.For(abilityId);
+                CombatPowerActorPosePlan plan = CombatPowerActorPoseRules.ForAbility(
+                    ability,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    false);
+                CombatPowerActorPosePlan alias = CombatPowerActorPoseRules.ForAbility(
+                    ability.Name,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    false);
+                CombatPowerActorPosePlan generic = CombatPowerActorPoseRules.For(
+                    abilityId,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    false);
+                AssertEqual(true, plan.Supported, abilityId + " actor choreography is supported");
+                AssertEqual(CombatPowerAnimationSourceKind.Ability, plan.SourceKind, abilityId + " actor choreography retains ability identity");
+                AssertEqual(abilityId, plan.PowerKey, abilityId + " actor choreography retains its canonical key");
+                AssertEqual(plan.PowerKey, alias.PowerKey, abilityId + " full-name actor choreography keeps its canonical key");
+                AssertEqual(plan.Choreography, alias.Choreography, abilityId + " full-name actor choreography keeps its semantic kind");
+                AssertEqual(plan.ReleaseAt, alias.ReleaseAt, abilityId + " full-name actor choreography keeps its release boundary");
+                AssertEqual(plan.ImpactAt, alias.ImpactAt, abilityId + " full-name actor choreography keeps its impact boundary");
+                AssertEqual(plan.DurationSeconds, alias.DurationSeconds, abilityId + " full-name actor choreography keeps its duration");
+                AssertEqual(plan.Choreography, generic.Choreography, abilityId + " generic actor lookup keeps its semantic kind");
+                AssertEqual(true, plan.ReleaseAt <= plan.ImpactAt && plan.ImpactAt <= plan.DurationSeconds, abilityId + " actor choreography boundaries are monotonic");
+                plans.Add(plan);
+            }
+
+            AssertEqual(81, plans.Count, "actor choreography test matrix includes all formulas and active skills");
+            foreach (CombatPowerActorPosePlan plan in plans)
+            {
+                float[] sampleTimes =
+                {
+                    -1f,
+                    0f,
+                    Mathf.Max(0f, plan.ReleaseAt - 0.001f),
+                    plan.ReleaseAt,
+                    (plan.ReleaseAt + plan.ImpactAt) * 0.5f,
+                    Mathf.Max(0f, plan.ImpactAt - 0.001f),
+                    plan.ImpactAt,
+                    (plan.ImpactAt + plan.DurationSeconds) * 0.5f,
+                    plan.DurationSeconds,
+                    float.PositiveInfinity,
+                    float.NaN
+                };
+                foreach (CombatPowerActorPoseRole role in Enum.GetValues(typeof(CombatPowerActorPoseRole)))
+                {
+                    foreach (float sampleTime in sampleTimes)
+                    {
+                        CombatPowerActorPoseFrame frame = plan.FrameAt(role, sampleTime);
+                        string label = plan.PowerKey + " " + role + " actor frame at " + sampleTime;
+                        AssertEqual(true, !float.IsNaN(frame.PositionX) && !float.IsInfinity(frame.PositionX), label + " has a finite X coordinate");
+                        AssertEqual(true, !float.IsNaN(frame.PositionY) && !float.IsInfinity(frame.PositionY), label + " has a finite Y coordinate");
+                        AssertEqual(true, frame.PositionX >= Math.Min(sourceX, landingX) - epsilon && frame.PositionX <= Math.Max(sourceX, landingX) + epsilon, label + " X coordinate stays between source and landing");
+                        AssertEqual(true, frame.PositionY >= Math.Min(sourceY, landingY) - epsilon && frame.PositionY <= Math.Max(sourceY, landingY) + epsilon, label + " Y coordinate stays between source and landing");
+                        AssertEqual(true, frame.OffsetX >= -CombatPowerActorPoseRules.MaximumOffset && frame.OffsetX <= CombatPowerActorPoseRules.MaximumOffset, label + " horizontal pose offset stays bounded");
+                        AssertEqual(true, frame.OffsetY >= -CombatPowerActorPoseRules.MaximumOffset && frame.OffsetY <= CombatPowerActorPoseRules.MaximumOffset, label + " vertical pose offset stays bounded");
+                        AssertEqual(true, frame.Scale >= CombatPowerActorPoseRules.MinimumScale && frame.Scale <= CombatPowerActorPoseRules.MaximumScale, label + " scale stays bounded");
+                        AssertEqual(true, frame.Opacity >= 0f && frame.Opacity <= 1f, label + " opacity stays normalized");
+                        AssertEqual(true, frame.LocalProgress >= 0f && frame.LocalProgress <= 1f, label + " phase progress stays normalized");
+                    }
+                }
+            }
+
+            CombatPowerActorPosePlan fireball = CombatPowerActorPoseRules.ForFormula("FBL", stableSeed, sourceX, sourceY, landingX, landingY, 3, false);
+            CombatPowerActorPoseFrame fireballBeforeRelease = fireball.SourceFrameAt(Mathf.Max(0f, fireball.ReleaseAt - 0.001f));
+            CombatPowerActorPoseFrame fireballRelease = fireball.SourceFrameAt(fireball.ReleaseAt);
+            AssertEqual(CombatPowerActorPosePhase.CastWindup, fireballBeforeRelease.Phase, "Fireball actor remains in windup immediately before release");
+            AssertEqual(CombatPowerActorPosePhase.Release, fireballRelease.Phase, "Fireball actor enters release on the exact projectile boundary");
+            AssertEqual(fireball.ReleaseAt, fireballRelease.PhaseStartAt, "Fireball release pose begins on the authored release boundary");
+
+            CombatPowerActorPosePlan charge = CombatPowerActorPoseRules.ForAbility("charge", stableSeed, sourceX, sourceY, landingX, landingY, 3, false);
+            AssertEqual(CombatPowerActorChoreographyKind.Dash, charge.Choreography, "Charge uses continuous dash choreography");
+            AssertEqual(true, charge.HasMovement && charge.ReleaseAt < charge.ImpactAt, "Charge moves only through a finite release-to-impact window");
+            AssertEqual(CombatPowerActorPosePhase.CastWindup, charge.SourceFrameAt(charge.ReleaseAt - 0.001f).Phase, "Charge braces immediately before release");
+            CombatPowerActorPoseFrame chargeRelease = charge.SourceFrameAt(charge.ReleaseAt);
+            CombatPowerActorPoseFrame chargeMidDash = charge.SourceFrameAt((charge.ReleaseAt + charge.ImpactAt) * 0.5f);
+            CombatPowerActorPoseFrame chargeImpact = charge.SourceFrameAt(charge.ImpactAt);
+            AssertEqual(CombatPowerActorPosePhase.Dash, chargeRelease.Phase, "Charge begins its dash on ReleaseAt");
+            AssertEqual((float)sourceX, chargeRelease.PositionX, "Charge begins its dash on the source cell");
+            AssertEqual(true, chargeMidDash.Phase == CombatPowerActorPosePhase.Dash && chargeMidDash.PositionX > sourceX && chargeMidDash.PositionX < landingX, "Charge crosses the battlefield during its authored delivery window");
+            AssertEqual(CombatPowerActorPosePhase.Recovery, chargeImpact.Phase, "Charge begins recovery on ImpactAt");
+            AssertEqual((float)landingX, chargeImpact.PositionX, "Charge reaches its landing cell exactly on impact");
+            AssertEqual(CombatPowerActorPosePhase.Complete, charge.TargetFrameAt(charge.ImpactAt - 0.001f).Phase, "Charge target recoil does not begin early");
+            AssertEqual(CombatPowerActorPosePhase.TargetHit, charge.TargetFrameAt(charge.ImpactAt).Phase, "Charge target recoil begins on impact");
+
+            string[] teleportKeys = { "VST", "VRS", "shadowstep", "riftpounce" };
+            foreach (string teleportKey in teleportKeys)
+            {
+                CombatPowerActorPosePlan teleport = CombatPowerActorPoseRules.For(teleportKey, stableSeed, sourceX, sourceY, landingX, landingY, 3, false);
+                AssertEqual(CombatPowerActorChoreographyKind.Teleport, teleport.Choreography, teleportKey + " uses vanish-and-arrive choreography");
+                AssertEqual(true, teleport.ReleaseAt < teleport.TeleportSplitAt && teleport.TeleportSplitAt < teleport.ImpactAt, teleportKey + " owns distinct vanish and arrival windows");
+                CombatPowerActorPoseFrame teleportRelease = teleport.SourceFrameAt(teleport.ReleaseAt);
+                CombatPowerActorPoseFrame teleportArrival = teleport.SourceFrameAt(teleport.TeleportSplitAt);
+                CombatPowerActorPoseFrame teleportImpact = teleport.SourceFrameAt(teleport.ImpactAt);
+                AssertEqual(CombatPowerActorPosePhase.TeleportOut, teleportRelease.Phase, teleportKey + " begins vanishing on ReleaseAt");
+                AssertEqual((float)sourceX, teleportRelease.PositionX, teleportKey + " vanishes from its source cell");
+                AssertEqual(CombatPowerActorPosePhase.TeleportIn, teleportArrival.Phase, teleportKey + " begins appearing at the authored split boundary");
+                AssertEqual((float)landingX, teleportArrival.PositionX, teleportKey + " reappears on its landing cell instead of sliding between cells");
+                AssertEqual(CombatPowerActorPosePhase.Recovery, teleportImpact.Phase, teleportKey + " settles on ImpactAt");
+                AssertEqual((float)landingX, teleportImpact.PositionX, teleportKey + " remains on its landing cell after contact");
+            }
+
+            string[] summonKeys = { "IBD", "IBF", "IBG" };
+            foreach (string summonKey in summonKeys)
+            {
+                CombatPowerActorPosePlan summon = CombatPowerActorPoseRules.ForFormula(summonKey, stableSeed, sourceX, sourceY, landingX, landingY, 3, false);
+                AssertEqual(CombatPowerActorChoreographyKind.Summon, summon.Choreography, summonKey + " uses landing-reveal choreography");
+                AssertEqual(true, summon.HasLandingReveal && summon.SummonRevealEndAt > summon.ImpactAt, summonKey + " owns a finite post-impact summon reveal");
+                CombatPowerActorPoseFrame hiddenSummon = summon.LandingFrameAt(summon.ImpactAt - 0.001f);
+                CombatPowerActorPoseFrame summonImpact = summon.LandingFrameAt(summon.ImpactAt);
+                CombatPowerActorPoseFrame summonReveal = summon.LandingFrameAt((summon.ImpactAt + summon.SummonRevealEndAt) * 0.5f);
+                AssertEqual(false, hiddenSummon.IsVisible, summonKey + " summon remains hidden immediately before impact");
+                AssertEqual(CombatPowerActorPosePhase.SummonReveal, summonImpact.Phase, summonKey + " summon reveal begins on ImpactAt");
+                AssertEqual(0f, summonImpact.Opacity, summonKey + " summon reveal begins from zero opacity");
+                AssertEqual(true, summonReveal.IsVisible && summonReveal.Scale != 1f, summonKey + " summon visibly rises into its landing cell");
+                AssertEqual(CombatPowerActorPosePhase.Complete, summon.LandingFrameAt(summon.SummonRevealEndAt).Phase, summonKey + " summon reveal retires at its exact end boundary");
+            }
+
+            CombatPowerActorPosePlan morph = CombatPowerActorPoseRules.ForFormula("DFA", stableSeed, sourceX, sourceY, landingX, landingY, 3, false);
+            AssertEqual(CombatPowerActorChoreographyKind.Morph, morph.Choreography, "Abyssal Ascendance uses transformation choreography");
+            AssertEqual(true, morph.HasMorph && morph.MorphOutStartAt < morph.ImpactAt && morph.ImpactAt < morph.MorphInEndAt, "Abyssal Ascendance owns distinct morph-out and morph-in windows");
+            AssertEqual(CombatPowerActorPosePhase.CastWindup, morph.SourceFrameAt(morph.MorphOutStartAt - 0.001f).Phase, "Abyssal Ascendance gathers before the transformation");
+            AssertEqual(CombatPowerActorPosePhase.MorphOut, morph.SourceFrameAt(morph.MorphOutStartAt).Phase, "Abyssal Ascendance begins dissolving at its morph-out boundary");
+            CombatPowerActorPoseFrame morphImpact = morph.SourceFrameAt(morph.ImpactAt);
+            AssertEqual(CombatPowerActorPosePhase.MorphIn, morphImpact.Phase, "Abyssal Ascendance reveals the new form on ImpactAt");
+            AssertEqual((float)landingX, morphImpact.PositionX, "Abyssal Ascendance reveals the transformed actor at its resolved cell");
+            AssertEqual(CombatPowerActorPosePhase.Recovery, morph.SourceFrameAt(morph.MorphInEndAt).Phase, "Abyssal Ascendance settles after its reveal window");
+
+            CombatPowerActorPoseFrame deterministicFrame = fireball.SourceFrameAt((fireball.ReleaseAt + fireball.ReleaseEndAt) * 0.5f);
+            CombatPowerActorPoseFrame repeatedFrame = CombatPowerActorPoseRules.ForFormula("fireball", stableSeed, sourceX, sourceY, landingX, landingY, 3, false)
+                .SourceFrameAt((fireball.ReleaseAt + fireball.ReleaseEndAt) * 0.5f);
+            AssertEqual(deterministicFrame.Phase, repeatedFrame.Phase, "Fireball actor frame phase repeats across aliases");
+            AssertEqual(deterministicFrame.PositionX, repeatedFrame.PositionX, "Fireball actor frame position repeats across aliases");
+            AssertEqual(deterministicFrame.OffsetX, repeatedFrame.OffsetX, "Fireball actor frame horizontal pose repeats across aliases");
+            AssertEqual(deterministicFrame.OffsetY, repeatedFrame.OffsetY, "Fireball actor frame vertical pose repeats across aliases");
+            AssertEqual(deterministicFrame.Scale, repeatedFrame.Scale, "Fireball actor frame scale repeats across aliases");
+            AssertEqual(deterministicFrame.Opacity, repeatedFrame.Opacity, "Fireball actor frame opacity repeats across aliases");
+            int actorHash = CombatPowerActorPoseRules.StableActorHash("FBL", stableSeed, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.Release, 2);
+            AssertEqual(actorHash, CombatPowerActorPoseRules.StableActorHash("fireball", stableSeed, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.Release, 2), "Fireball aliases share deterministic actor hashing");
+            AssertEqual(true, actorHash != CombatPowerActorPoseRules.StableActorHash("FBL", stableSeed, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.Release, 3), "actor pose sampling channels remain decorrelated");
+            float actorSample = CombatPowerActorPoseRules.StableActorSample("FBL", stableSeed, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.Release, 2);
+            float signedActorSample = CombatPowerActorPoseRules.StableActorSignedSample("FBL", stableSeed, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.Release, 2);
+            AssertEqual(true, actorSample >= 0f && actorSample < 1f, "actor pose sampling stays normalized");
+            AssertEqual(true, signedActorSample >= -1f && signedActorSample < 1f, "signed actor pose sampling stays normalized");
+
+            CombatPowerActorPosePlan reducedCharge = CombatPowerActorPoseRules.ForAbility("charge", stableSeed, sourceX, sourceY, landingX, landingY, 3, true);
+            CombatPowerActorPoseFrame reducedChargeFrame = reducedCharge.SourceFrameAt(0f);
+            AssertEqual(true, reducedCharge.Supported && reducedCharge.ReducedMotion, "Reduced Motion keeps Charge choreography semantically supported");
+            AssertEqual(true, reducedChargeFrame.IsStaticFallback, "Reduced Motion replaces Charge motion with a static semantic frame");
+            AssertEqual(CombatPowerActorPosePhase.Dash, reducedChargeFrame.Phase, "Reduced Motion retains Charge's dash identity");
+            AssertEqual((float)landingX, reducedChargeFrame.PositionX, "Reduced Motion places Charge directly on its resolved landing cell");
+            AssertEqual(0f, reducedChargeFrame.OffsetX, "Reduced Motion removes Charge horizontal pose motion");
+            AssertEqual(0f, reducedChargeFrame.OffsetY, "Reduced Motion removes Charge vertical pose motion");
+            AssertEqual(1f, reducedChargeFrame.Scale, "Reduced Motion keeps Charge at neutral scale");
+            AssertEqual(1f, reducedChargeFrame.Opacity, "Reduced Motion keeps Charge fully legible");
+            AssertEqual(CombatPowerActorPosePhase.Complete, reducedCharge.SourceFrameAt(reducedCharge.DurationSeconds).Phase, "Reduced Motion Charge completes after its finite static hold");
+
+            CombatPowerActorPosePlan reducedTeleport = CombatPowerActorPoseRules.ForAbility("shadowstep", stableSeed, sourceX, sourceY, landingX, landingY, 3, true);
+            CombatPowerActorPoseFrame reducedTeleportFrame = reducedTeleport.SourceFrameAt(0f);
+            AssertEqual(true, reducedTeleportFrame.IsStaticFallback, "Reduced Motion replaces Shadowstep with a static arrival");
+            AssertEqual(CombatPowerActorPosePhase.TeleportIn, reducedTeleportFrame.Phase, "Reduced Motion retains Shadowstep's arrival identity");
+            AssertEqual((float)landingX, reducedTeleportFrame.PositionX, "Reduced Motion snaps Shadowstep to its landing cell");
+
+            CombatPowerActorPosePlan reducedSummon = CombatPowerActorPoseRules.ForFormula("IBG", stableSeed, sourceX, sourceY, landingX, landingY, 3, true);
+            CombatPowerActorPoseFrame reducedSummonFrame = reducedSummon.LandingFrameAt(0f);
+            AssertEqual(true, reducedSummonFrame.IsStaticFallback, "Reduced Motion replaces summon materialization with a static reveal");
+            AssertEqual(CombatPowerActorPosePhase.SummonReveal, reducedSummonFrame.Phase, "Reduced Motion retains summon reveal identity");
+
+            CombatPowerActorPosePlan reducedMorph = CombatPowerActorPoseRules.ForFormula("DFA", stableSeed, sourceX, sourceY, landingX, landingY, 3, true);
+            CombatPowerActorPoseFrame reducedMorphFrame = reducedMorph.SourceFrameAt(0f);
+            AssertEqual(true, reducedMorphFrame.IsStaticFallback, "Reduced Motion replaces transformation motion with a static reveal");
+            AssertEqual(CombatPowerActorPosePhase.MorphIn, reducedMorphFrame.Phase, "Reduced Motion retains transformation reveal identity");
+            AssertEqual((float)landingX, reducedMorphFrame.PositionX, "Reduced Motion resolves the transformed actor at its landing cell");
+
+            CombatPowerActorPosePlan unknown = CombatPowerActorPoseRules.For("unknown power", stableSeed, sourceX, sourceY, landingX, landingY, 3, false);
+            CombatPowerActorPoseFrame unknownFrame = unknown.SourceFrameAt(0f);
+            AssertEqual(false, unknown.Supported, "unknown powers do not create actor choreography");
+            AssertEqual(true, unknown.IsEmpty, "unknown actor choreography remains empty");
+            AssertEqual(CombatPowerActorPosePhase.Complete, unknownFrame.Phase, "unknown actor choreography resolves directly to Complete");
+            AssertEqual(false, unknownFrame.HasPose || unknownFrame.IsVisible, "unknown actor choreography never exposes a visible pose");
+            AssertEqual((float)sourceX, unknownFrame.PositionX, "unknown actor choreography retains the source coordinate fallback");
+        }
+
         private static void CombatTransientPresentationBoundariesAreExplicit()
         {
             string combatSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Combat.cs"));
@@ -6498,27 +6757,42 @@ namespace AshenHalls.Editor
         private static void CombatVfxShowcaseCatalogIsStableAndReplayable()
         {
             IReadOnlyList<CombatVfxShowcaseEntry> entries = CombatVfxShowcaseRules.Supported;
-            AssertEqual(16, CombatVfxShowcaseRules.Count, "combat VFX showcase entry count");
+            AssertEqual(19, CombatVfxShowcaseRules.Count, "combat VFX showcase entry count");
             AssertEqual(CombatVfxShowcaseRules.Count, entries.Count, "combat VFX showcase count matches its read-only catalog");
             AssertEqual(
-                "FBL|MTR|RCL|AST|RBT|IBD|IBG|DFA|DMC|SLV|PBR|RLM|charge|whirlwind|shadowstep|volley",
+                "FBL|MTR|RCL|AST|VST|RBT|IBD|IBG|DFA|DMC|SLV|PBR|VRS|RLM|charge|whirlwind|shadowstep|riftpounce|volley",
                 string.Join("|", entries.Select(entry => entry.Id)),
                 "combat VFX showcase keeps its exact regression-tour order");
             AssertEqual(
-                "Fireball|Meteor Shower|Cold Lance|Arcane Tempest|Rift Bolt|Summon Imp|Summon Greater Demon|Abyssal Ascendance|Doom Circle|Soul Veil|Pact Brand|Death Burst|Charge|Whirlwind|Shadowstep|Volley",
+                "Fireball|Meteor Shower|Cold Lance|Arcane Tempest|Thunder Step|Rift Bolt|Summon Imp|Summon Greater Demon|Abyssal Ascendance|Doom Circle|Soul Veil|Pact Brand|Rift Step|Death Burst|Charge|Whirlwind|Shadowstep|Rift Pounce|Volley",
                 string.Join("|", entries.Select(entry => entry.DisplayName)),
                 "combat VFX showcase keeps exact player-facing power names");
             AssertEqual(
-                "Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Ability|Ability|Ability|Ability",
+                "Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Ability|Ability|Ability|Ability|Ability",
                 string.Join("|", entries.Select(entry => entry.Kind.ToString())),
-                "combat VFX showcase distinguishes its twelve formulas and four abilities");
+                "combat VFX showcase distinguishes its fourteen formulas and five abilities");
             AssertEqual(
-                "Projectile|AreaBombardment|Projectile|AreaStorm|Projectile|Summon|Summon|Transformation|GroundField|SupportWard|AreaHex|AreaBurst|MovementStrike|MeleeArea|TeleportStrike|RangedArea",
+                "Projectile|AreaBombardment|Projectile|AreaStorm|TeleportStrike|Projectile|Summon|Summon|Transformation|GroundField|SupportWard|AreaHex|TeleportStrike|AreaBurst|MovementStrike|MeleeArea|TeleportStrike|TeleportStrike|RangedArea",
                 string.Join("|", entries.Select(entry => entry.Scenario.ToString())),
                 "combat VFX showcase scenarios preserve every intended battlefield shape");
+            CombatVfxShowcaseEntry[] movementEntries = entries
+                .Where(entry => entry.Scenario == CombatVfxShowcaseScenario.MovementStrike || entry.Scenario == CombatVfxShowcaseScenario.TeleportStrike)
+                .ToArray();
+            AssertEqual(
+                "VST|VRS|charge|shadowstep|riftpounce",
+                string.Join("|", movementEntries.Select(entry => entry.Id)),
+                "combat VFX showcase explicitly covers every authored actor-movement family");
+            AssertEqual(
+                "Teleport|Teleport|Dash|Teleport|Teleport",
+                string.Join("|", movementEntries.Select(entry => CombatPowerActorPoseRules.For(entry.Id, entry.StableSeed, 1, 1, 4, 2, 3, false).Choreography.ToString())),
+                "combat VFX showcase movement entries route through their exact actor choreography");
+            AssertEqual(
+                true,
+                movementEntries.All(entry => CombatPowerActorPoseRules.For(entry.Id, entry.StableSeed, 1, 1, 4, 2, 3, false).HasMovement),
+                "combat VFX showcase movement entries all stage a source-to-landing actor plan");
             AssertEqual(true, entries.All(entry => entry.Supported), "every combat VFX showcase entry is actionable");
             AssertEqual(true, entries.All(entry => entry.StableSeed > 0), "every combat VFX showcase replay seed is positive");
-            AssertEqual(16, entries.Select(entry => entry.StableSeed).Distinct().Count(), "combat VFX showcase entries use distinct replay seeds");
+            AssertEqual(19, entries.Select(entry => entry.StableSeed).Distinct().Count(), "combat VFX showcase entries use distinct replay seeds");
 
             for (int index = 0; index < entries.Count; index++)
             {
@@ -6532,8 +6806,8 @@ namespace AshenHalls.Editor
             }
 
             AssertEqual("volley", CombatVfxShowcaseRules.At(-1).Id, "combat VFX showcase wraps backward to its final entry");
-            AssertEqual("FBL", CombatVfxShowcaseRules.At(16).Id, "combat VFX showcase wraps forward to its first entry");
-            AssertEqual(0, CombatVfxShowcaseRules.NextIndex(15), "combat VFX showcase Next wraps after Volley");
+            AssertEqual("FBL", CombatVfxShowcaseRules.At(19).Id, "combat VFX showcase wraps forward to its first entry");
+            AssertEqual(0, CombatVfxShowcaseRules.NextIndex(18), "combat VFX showcase Next wraps after Volley");
             AssertEqual(0, CombatVfxShowcaseRules.NextIndex(-1), "combat VFX showcase starts at Fireball from an unset index");
             AssertEqual(1, CombatVfxShowcaseRules.NextIndex("fbl"), "combat VFX showcase Next advances from a case-insensitive ID");
             AssertEqual(0, CombatVfxShowcaseRules.NextIndex("unknown"), "combat VFX showcase unknown selection recovers to Fireball");
@@ -6798,6 +7072,44 @@ namespace AshenHalls.Editor
             AssertEqual(false, CombatUnitPresentationRules.ShouldRenderTacticalOverlay(true, reveal, 3.9f), "summon tactical chrome waits for materialization");
             AssertEqual(true, CombatUnitPresentationRules.ShouldRenderActor(true, reveal, 4f), "summon becomes visible on the ritual beat");
             AssertEqual(true, CombatUnitPresentationRules.PoseFor(reveal, 4.03f, false).Scale < 1f, "summon scales into the battlefield after impact");
+
+            CombatUnitPresentationBeat unbind = CombatUnitPresentationRules.Create(
+                "summon",
+                CombatUnitPresentationBeatKind.Unbind,
+                5f,
+                -1f);
+            AssertEqual(true, CombatUnitPresentationRules.ShouldRenderActor(false, unbind, 4.9f), "dead summon remains visible until its staged unbinding impact");
+            AssertEqual(false, CombatUnitPresentationRules.ShouldRenderTacticalOverlay(false, unbind, 4.9f), "unbound summon immediately loses tactical HP and status chrome");
+            CombatUnitPresentationPose unbindPose = CombatUnitPresentationRules.PoseFor(unbind, 5.14f, false);
+            AssertEqual(true, unbindPose.OffsetX < 0f && unbindPose.OffsetY < 0f, "unbinding summon twists and lifts toward its dismissal direction");
+            AssertEqual(true, unbindPose.Scale < 1f && unbindPose.Alpha < 1f, "unbinding summon visibly shrinks and fades");
+            AssertEqual(false, CombatUnitPresentationRules.ShouldRenderActor(false, unbind, unbind.Until + 0.01f), "unbound summon clears after its bounded dismissal beat");
+
+            List<CombatUnitPresentationBeat> replacementBeats = new List<CombatUnitPresentationBeat>();
+            CombatUnitPresentationRules.AddBounded(
+                replacementBeats,
+                CombatUnitPresentationRules.Create("summon", CombatUnitPresentationBeatKind.Reveal, 5f),
+                0f);
+            CombatUnitPresentationRules.AddBounded(
+                replacementBeats,
+                CombatUnitPresentationRules.Create("summon", CombatUnitPresentationBeatKind.Hit, 5.1f),
+                0f);
+            CombatUnitPresentationRules.AddBounded(
+                replacementBeats,
+                CombatUnitPresentationRules.Create("other-unit", CombatUnitPresentationBeatKind.Hit, 5.1f),
+                0f);
+            CombatUnitPresentationRules.AddBounded(replacementBeats, unbind, 0f);
+            AssertEqual(1, replacementBeats.Count(beat => beat.UnitId == "summon" && beat.Kind == CombatUnitPresentationBeatKind.Unbind), "unbinding inserts one bounded dismissal beat");
+            AssertEqual(1, replacementBeats.Count(beat => beat.UnitId == "other-unit"), "unbinding preserves unrelated combatant presentation beats");
+            CombatUnitPresentationBeat replacementUnbind = CombatUnitPresentationRules.Create(
+                "summon",
+                CombatUnitPresentationBeatKind.Unbind,
+                5.2f,
+                1f);
+            CombatUnitPresentationRules.AddBounded(replacementBeats, replacementUnbind, 0f);
+            AssertEqual(1, replacementBeats.Count(beat => beat.UnitId == "summon"), "a repeated unbinding replaces the summon beat instead of accumulating duplicates");
+            AssertEqual(true, CombatUnitPresentationRules.TryGetBeat(replacementBeats, "summon", 5.1f, out CombatUnitPresentationBeat selectedUnbind), "the replacement unbinding remains queryable before impact");
+            AssertEqual(replacementUnbind, selectedUnbind, "the newest unbinding owns presentation priority for its summon");
 
             List<CombatUnitPresentationBeat> beats = new List<CombatUnitPresentationBeat>();
             CombatUnitPresentationRules.AddBounded(beats, hit, 0f);

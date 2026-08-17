@@ -677,4 +677,19 @@ namespace AshenHalls
         public float Start;
         public float Duration;
     }
+
+    public sealed class PowerActorPoseBeat
+    {
+        public string UnitId;
+        public string PowerKey;
+        public CombatPowerActorPoseRole Role;
+        public int SourceX;
+        public int SourceY;
+        public int LandingX;
+        public int LandingY;
+        public int Intensity;
+        public int StableSeed;
+        public float Start;
+        public float Duration;
+    }
 }

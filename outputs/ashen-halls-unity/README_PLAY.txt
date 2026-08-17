@@ -1,6 +1,12 @@
-Ash & Brimstone v2.17.0 - Flame and Focus
+Ash & Brimstone v2.18.0 - Rites in Motion
 
-Current release update: v2.17.0. Save schema: v25.
+Current release update: v2.18.0. Save schema: v25.
+
+Every formula and skill now choreographs its caster on the same deterministic clock as cast art, release sound, authored travel, impact, and aftermath. Charge moves only during its real release-to-impact window; Shadowstep, Rift Pounce, Thunder Step, and Rift Step vanish and reappear at their actual landing cells instead of sliding early.
+
+Pact summons materialize on the portal impact and dissolve visibly when their binding ends. Abyssal Ascendance keeps the mortal silhouette through its windup, then reveals demon form on the morph beat. Enemy signature magic now uses the same exact formula/skill identities and layered sound plans as player powers, while healing and warding impacts avoid inappropriate hurt reactions.
+
+The Development Beta Lab showcase now tours 19 deterministic powers, including Thunder Step, Rift Step, Rift Pounce, Charge, Shadowstep, summons, and Ascendance. Replay, Next, Cue, and Full/Reduced Motion remain available from the in-combat showcase strip.
 
 The title screen now uses five purpose-built action glyphs for Continue, New Game, Settings, Exit Game, and the Development-only Beta Lab. Fireplace, storm, reveal, and menu motion honor Reduced Motion; the compact parchment keeps every core action on one line at 1024x768; and retail builds keep Beta Lab unavailable.
 
@@ -22,13 +28,13 @@ Mage/warlock, support/hex, class-skill, travel, and aftermath art now stage auth
 
 The dedicated title glyph strip and v2.17 aftermath sheet bring the exact runtime manifest to 56 pins and the packaged art inventory to 91 PNGs. Earlier v2.12.1, v2.13, v2.14, v2.15, and title-atlas filenames retain their historical provenance labels.
 
-The Red Gate v2.12.0 campaign remains the production story baseline inside v2.17. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
+The Red Gate v2.12.0 campaign remains the production story baseline inside v2.18. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
 
 Chapter V crosses three authored sites in order. Break the Red Gate Vanguard at the inner seal, carry its tally north to Gloam Deep Crypt for the Ossuary Road Seal, then take that seal south to Salt Cistern Gate and defeat the named Crownroad Marshal. Three matching patrol bands occupy the road. The later encounters remain locked until their required tally or seal has been recovered.
 
 Marshal victory grants exactly one +6 crownward emberglass warblade and two supplies. Inspect Salt Cistern Gate again to chart the sealed Meteor Crown threshold and complete the chapter. Recall, retry, save/load repair, and depth-five re-entry preserve progress without duplicating rewards or arrival progression. Production exposes no generic depth-six stair or final-boss trigger.
 
-v2.17 validation status: final Unity RuleSmoke and full RuntimeBoot, runtime/editor compilation, exact art/audio contracts, the clean-source Windows package, clean-extracted boot, and the four-capture title/combat/aftermath packet pass from source commit `44deb12bba873998f02081656b003b739f6ba535`. The integrity record confirms save v25, `sourceDirty=false`, player exit 0, and 91 packaged PNGs. `AshAndBrimstone-Windows-v2.17.0.zip` is 228,908,344 bytes with SHA-256 `9dbdebf63650c7fcd3bb7cbba31d7aed05fcef9cda8c05a22b2560267f01b6be`; the capture set SHA-256 is `503a1dc05042c9db8e0a6344003b9252f81db6f05ecb97b4de328ac9544b9bbf`. Physical-controller feel, subjective speaker/headphone listening at several volumes, drag/wheel feel, the minimum-size Help overlay, and a complete human Chapter I-V playthrough remain manual checks.
+v2.18 candidate validation status: runtime/editor response compilation, Unity RuleSmoke, and full RuntimeBoot pass. The Windows package, clean-extracted boot, and final-player combat/Beta Lab review are the remaining release gates. The verified v2.17 package and evidence remain preserved as rollback history. Physical-controller feel, subjective speaker/headphone listening at several volumes, and a complete human Chapter I-V playthrough remain manual checks.
 
 v2.16 release history: deterministic audio checks, Unity RuleSmoke, full RuntimeBoot, clean Windows build/package, clean-extracted packaged boot, and the four-capture Region Map/combat-cursor packet pass from source commit `387e84713cb10f0c86f3ce2787514cb70ddf4196`. The verified ZIP and hashes remain preserved as rollback evidence.
 
