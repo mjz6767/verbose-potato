@@ -5952,8 +5952,8 @@ namespace AshenHalls
             float x = rect.x + 154;
             float gap = 6f;
             string[] labels = martial
-                ? new[] { "Refill", "Promote", "Wound", "Cluster", "Reset", "Spawn", "Showcase" }
-                : new[] { "Refill", "Mage", "Warlock", "Craft", "Stage", "Hazards", "Spawn", "Reset", "Showcase" };
+                ? new[] { "Refill", "Promote", "Wound", "Cluster", "Reset", "Spawn", "Tour" }
+                : new[] { "Refill", "Mage", "Warlock", "Craft", "Stage", "Hazards", "Spawn", "Reset", "Tour" };
             float buttonW = martial ? 68f : 62f;
             if (!martial) gap = 4f;
             for (int i = 0; i < labels.Length; i++)
@@ -5976,7 +5976,7 @@ namespace AshenHalls
                     }
                     else if (labels[i] == "Hazards") AddBetaLabHazards();
                     else if (labels[i] == "Spawn") SpawnBetaLabWave();
-                    else if (labels[i] == "Showcase")
+                    else if (labels[i] == "Tour")
                     {
                         betaVfxShowcaseOpen = !betaVfxShowcaseOpen;
                         if (betaVfxShowcaseOpen) ReplayBetaVfxShowcase();

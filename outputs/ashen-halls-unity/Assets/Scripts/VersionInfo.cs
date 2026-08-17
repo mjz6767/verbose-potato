@@ -7,6 +7,6 @@ namespace AshenHalls
         public const string LegacyProductName = "Ashen Halls";
         public const string PackageVersion = "v2.18.0";
         public const int SaveVersion = 25;
-        public const string BuildStage = "Beta RPG Scaffold";
+        public const string BuildStage = "Rites in Motion";
     }
 }
