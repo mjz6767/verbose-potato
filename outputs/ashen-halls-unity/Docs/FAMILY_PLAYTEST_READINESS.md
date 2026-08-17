@@ -2,16 +2,16 @@
 
 ## Current Release
 
-`v2.18.0` is the current family-playtest candidate for the authored Chapter I-V road campaign. It keeps the v2.17 title, HUD, deterministic VFX/SFX, Region Map, and combat-cursor foundation while synchronizing caster poses, movement landings, teleports, summons, transformations, and enemy signature powers to the exact action timeline. Save schema remains v25; the accepted art set has 56 exact pins and the package contains 91 PNGs. Runtime/editor compilation, Unity RuleSmoke, and full RuntimeBoot pass; package, extraction, and final-player review are pending. The verified v2.17.0 package remains preserved as rollback history.
+`v2.18.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It keeps the v2.17 title, HUD, deterministic VFX/SFX, Region Map, and combat-cursor foundation while synchronizing caster poses, movement landings, teleports, summons, transformations, and enemy signature powers to the exact action timeline. Save schema remains v25; the accepted art set has 56 exact pins and the package contains 91 PNGs. Runtime/editor compilation, Unity RuleSmoke, full RuntimeBoot, the clean Windows build/package, clean-extracted boot, and deterministic built-player Fireball/Beta Lab capture pass from source commit `8b1126127c162ef0d70b3ffddb1db60d971db006`. The verified v2.17.0 package remains preserved as rollback history.
 
-## Rites in Motion v2.18 - Candidate Gates
+## Rites in Motion v2.18 - Release Gates Pass
 
 - All 56 formulas and 25 skills have deterministic caster windup, release, and recovery plans bounded to the existing exact sound/VFX timeline.
 - Charge, Shadowstep, Rift Pounce, Thunder Step, and Rift Step use their actual landing cells. Charges dash between release and impact; teleports disappear and snap into view on impact; Reduced Motion resolves immediately without delayed actor travel.
 - Pact summons combine portal impact with actor materialization and a bounded unbinding dissolve. Abyssal Ascendance defers demon art until the morph beat.
 - Enemy signature powers use canonical player-formula/skill identities for authored cast, travel, impact, aftermath, and exact audio. Beneficial ward/heal contacts suppress hurt reactions.
 - The Development Beta Lab showcase contains 19 stable replay entries and explicitly tours all five movement identities alongside Fireball, storms, summons, transformation, support, hex, and ranged-area shapes.
-- Runtime/editor compilation, RuleSmoke, and full RuntimeBoot pass. Windows build/package, clean-extracted boot, and built-player combat/Beta review remain candidate gates.
+- Runtime/editor compilation, RuleSmoke, full RuntimeBoot, clean Windows build/package, and clean-extracted boot pass. `QA/v2.18.0-release-integrity` records clean source, player exit 0, and 91 packaged PNGs. The 227,899,535-byte ZIP has SHA-256 `ab94b9ffde26da45c993d3c2074c24576faa40b66f1ed1d3145636e951001fb0`; the accepted 1280x720 Fireball/Beta Lab capture packet has SHA-256 `860a63f004e1be206c8475b1064ba16babca5230ff205c2dc869faba69f8ba8d`. Physical-controller feel, subjective audio listening, live Full-versus-Reduced-Motion comparison, and a complete human Chapter I-V playthrough remain manual follow-ups.
 
 ## Flame and Focus v2.17 - Release Gates Pass
 
