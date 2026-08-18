@@ -10,6 +10,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Rebuilt Local and Region road presentation around topology-aware shoulders, cores, junction aprons, bridges, city streets, and Old Road hierarchy. The Old Road remains a broad east-west artery with narrow north/south connectors, but its wagon wear is now broken and inset rather than continuous parallel rails.
 - Filtered incidental foot trails out of Region Map and suppressed generated dangling/parallel sidecars locally while preserving real collinear departures, authored thresholds, clearings, bridges, road roles, traversal, Golden Thread routing, and fog order.
 - Added deterministic RuleSmoke and RuntimeBoot coverage for repeat timing, finite input repair, cardinal ties, one-tile side effects, one-shot interactions, neutral latching, focus ownership, all 16 road joins, width hierarchy, and Old Road connector semantics. Save schema remains v25 and no map topology or campaign state changed.
+- Runtime/editor compilation, RuleSmoke, full RuntimeBoot, the clean Windows build/package, clean-extracted boot, and six built-player Local/Region captures pass from source commit `ecc79da565207f412c82b0683e0092c85a34958e`. The 228,924,664-byte ZIP has SHA-256 `aa981bfde7fadc14d5424be5ec7b866b220eb2dbccca19347479ed8f4dd8a0a4`; the capture packet has SHA-256 `1e4e9eb7d0eb56d0ac56727723498199db05c426a1a2f33aecf7c017bbd56c55`.
 
 ## v2.18.0 - Rites in Motion
 
