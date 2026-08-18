@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.19.0 - The Living Road
+
+- Added hold-to-walk Local Map travel for WASD, arrow keys, and the configured left stick. The first cardinal step remains immediate, then repeats after a 0.34-second hold delay at a measured 0.18-second cadence, with no catch-up burst after a long frame.
+- Added deterministic cardinal arbitration for analog and keyboard axes. Dominant input wins, a small hysteresis absorbs near-diagonal stick noise, stable diagonal ties preserve the held direction, and deliberate direction changes take effect immediately.
+- Hardened held movement around gameplay ownership: walls and interactions latch until neutral, repeated collisions are quiet, bump-use activates only once, footer focus releases before travel, and overlays, map replacement, combat, and Local/Region view changes cannot produce a ghost step.
+- Rebuilt Local and Region road presentation around topology-aware shoulders, cores, junction aprons, bridges, city streets, and Old Road hierarchy. The Old Road remains a broad east-west artery with narrow north/south connectors, but its wagon wear is now broken and inset rather than continuous parallel rails.
+- Filtered incidental foot trails out of Region Map and suppressed generated dangling/parallel sidecars locally while preserving real collinear departures, authored thresholds, clearings, bridges, road roles, traversal, Golden Thread routing, and fog order.
+- Added deterministic RuleSmoke and RuntimeBoot coverage for repeat timing, finite input repair, cardinal ties, one-tile side effects, one-shot interactions, neutral latching, focus ownership, all 16 road joins, width hierarchy, and Old Road connector semantics. Save schema remains v25 and no map topology or campaign state changed.
+
 ## v2.18.0 - Rites in Motion
 
 - Added deterministic actor choreography to every formula and skill. Casters now gather, release, and recover on the same authoritative timeline as authored travel, exact impact sound, target response, and aftermath instead of remaining visually static while the effect plays.

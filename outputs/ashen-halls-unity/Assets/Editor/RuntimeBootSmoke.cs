@@ -1065,10 +1065,365 @@ namespace AshenHalls.Editor
             }
         }
 
+        private static void AssertHeldExplorationMovementRuntime(AshenHallsGame game, GameState originalState)
+        {
+            Assert(originalState?.Map != null, "held exploration movement has a live world-map fixture");
+            GameState movementState = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(originalState));
+            Assert(movementState?.Map != null, "held exploration movement clones the live map without sharing campaign state");
+
+            System.Random originalRng = GetPrivateField<System.Random>(game, "rng");
+            bool originalWideView = GetPrivateField<bool>(game, "exploreWideView");
+            int originalFacingX = GetPrivateField<int>(game, "exploreFacingX");
+            int originalFacingY = GetPrivateField<int>(game, "exploreFacingY");
+            string originalLastExploreRegion = GetPrivateField<string>(game, "lastExploreRegion");
+            string originalBannerText = GetPrivateField<string>(game, "bannerText");
+            float originalBannerUntil = GetPrivateField<float>(game, "bannerUntil");
+            int originalHeldX = GetPrivateField<int>(game, "exploreMovementHeldAxisX");
+            int originalHeldY = GetPrivateField<int>(game, "exploreMovementHeldAxisY");
+            float originalRepeatAt = GetPrivateField<float>(game, "exploreMovementNextRepeatAt");
+            bool originalRequiresNeutral = GetPrivateField<bool>(game, "exploreMovementRequiresNeutral");
+            MapData originalRegionFocusMap = GetPrivateField<MapData>(game, "exploreRegionFocusMap");
+            int originalRegionFocusX = GetPrivateField<int>(game, "exploreRegionFocusX");
+            int originalRegionFocusY = GetPrivateField<int>(game, "exploreRegionFocusY");
+            int originalRegionHeldX = GetPrivateField<int>(game, "exploreRegionHeldAxisX");
+            int originalRegionHeldY = GetPrivateField<int>(game, "exploreRegionHeldAxisY");
+            float originalRegionRepeatAt = GetPrivateField<float>(game, "exploreRegionNextRepeatAt");
+            List<Tween> liveTweens = GetPrivateField<List<Tween>>(game, "tweens");
+            List<Tween> originalTweens = new List<Tween>(liveTweens);
+            EventSystem eventSystem = EventSystem.current
+                ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
+            GameObject selectedBefore = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+
+            try
+            {
+                SetPrivateField(game, "state", movementState);
+                SetPrivateField(game, "rng", new System.Random(movementState.Seed + movementState.Depth * 101));
+                SetPrivateField(game, "exploreWideView", false);
+                InvokePrivate(game, "CloseTransientOverlays");
+                InvokePrivate(game, "InvalidateControllerCaches");
+
+                Assert(TryFindSafeHeldMovementRun(game, movementState, out Point runStart, out int runX, out int runY),
+                    "held exploration movement finds a safe two-step production route");
+                movementState.PlayerX = runStart.X;
+                movementState.PlayerY = runStart.Y;
+                InvokePrivate(game, "InvalidateExplorationController");
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                int stepsBefore = movementState.ExplorationSteps;
+                ExplorationMovementRepeatStep initial = new ExplorationMovementRepeatStep(
+                    runX,
+                    runY,
+                    runX,
+                    runY,
+                    10f + ExplorationMovementRepeatRules.InitialRepeatDelay,
+                    false);
+                Assert(InvokePrivate<bool>(game, "ApplyExploreMovementRepeatStep", initial),
+                    "initial held movement action enters the production movement seam");
+                Assert(movementState.PlayerX == runStart.X + runX
+                    && movementState.PlayerY == runStart.Y + runY
+                    && movementState.ExplorationSteps == stepsBefore + 1,
+                    "initial held movement advances exactly one tile and one exploration step");
+                ExplorationMovementRepeatStep repeated = new ExplorationMovementRepeatStep(
+                    runX,
+                    runY,
+                    runX,
+                    runY,
+                    10f + ExplorationMovementRepeatRules.InitialRepeatDelay + ExplorationMovementRepeatRules.RepeatInterval,
+                    true);
+                Assert(InvokePrivate<bool>(game, "ApplyExploreMovementRepeatStep", repeated),
+                    "held repeat enters the same production movement seam");
+                Assert(movementState.PlayerX == runStart.X + runX * 2
+                    && movementState.PlayerY == runStart.Y + runY * 2
+                    && movementState.ExplorationSteps == stepsBefore + 2,
+                    "held repeat advances one more tile and exactly one more exploration step");
+                Assert(!GetPrivateField<bool>(game, "exploreMovementRequiresNeutral"),
+                    "successful held travel remains armed for its next cadence step");
+
+                Assert(TryFindBlockedHeldMovementApproach(game, movementState, out Point blockedStart, out int blockedX, out int blockedY),
+                    "held exploration movement finds a deterministic terrain collision");
+                movementState.PlayerX = blockedStart.X;
+                movementState.PlayerY = blockedStart.Y;
+                InvokePrivate(game, "InvalidateExplorationController");
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                LogEntry logBeforeBlocked = movementState.Log.FirstOrDefault();
+                string expectedBlockedLine = InvokePrivate<string>(game, "ExploreBlockedMoveLine", blockedX, blockedY);
+                ExplorationMovementRepeatStep initialBlocked = new ExplorationMovementRepeatStep(
+                    blockedX,
+                    blockedY,
+                    blockedX,
+                    blockedY,
+                    20f + ExplorationMovementRepeatRules.InitialRepeatDelay,
+                    false);
+                Assert(InvokePrivate<bool>(game, "ApplyExploreMovementRepeatStep", initialBlocked),
+                    "initial blocked held action is consumed by the production seam");
+                LogEntry reportedBlocked = movementState.Log.FirstOrDefault();
+                Assert(reportedBlocked != null
+                    && !ReferenceEquals(reportedBlocked, logBeforeBlocked)
+                    && reportedBlocked.Text == expectedBlockedLine,
+                    "initial collision reports one exact blocked-movement log line");
+                AssertHeldMovementRequiresNeutral(game, "initial collision");
+
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                int logCountBeforeSilentRepeat = movementState.Log.Count;
+                ExplorationMovementRepeatStep repeatedBlocked = new ExplorationMovementRepeatStep(
+                    blockedX,
+                    blockedY,
+                    blockedX,
+                    blockedY,
+                    20f + ExplorationMovementRepeatRules.InitialRepeatDelay + ExplorationMovementRepeatRules.RepeatInterval,
+                    true);
+                Assert(InvokePrivate<bool>(game, "ApplyExploreMovementRepeatStep", repeatedBlocked),
+                    "blocked held repeat is consumed without falling through to another command");
+                Assert(movementState.PlayerX == blockedStart.X
+                    && movementState.PlayerY == blockedStart.Y
+                    && movementState.Log.Count == logCountBeforeSilentRepeat
+                    && ReferenceEquals(movementState.Log.FirstOrDefault(), reportedBlocked),
+                    "blocked held repeat stays in place without spamming the exploration log");
+                AssertHeldMovementRequiresNeutral(game, "blocked held repeat");
+
+                Assert(TryFindTownGuardBumpApproach(game, movementState, out Point guardStart, out int guardX, out int guardY),
+                    "held exploration movement finds a live adjacent-use guard fixture");
+                InvokePrivate(game, "CloseTransientOverlays");
+                movementState.PlayerX = guardStart.X;
+                movementState.PlayerY = guardStart.Y;
+                InvokePrivate(game, "InvalidateExplorationController");
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                ExplorationMovementRepeatStep initialBump = new ExplorationMovementRepeatStep(
+                    guardX,
+                    guardY,
+                    guardX,
+                    guardY,
+                    30f + ExplorationMovementRepeatRules.InitialRepeatDelay,
+                    false);
+                Assert(InvokePrivate<bool>(game, "ApplyExploreMovementRepeatStep", initialBump),
+                    "initial held bump enters the production adjacent-use path");
+                Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Dialogue
+                    && movementState.PlayerX == guardStart.X
+                    && movementState.PlayerY == guardStart.Y,
+                    "initial held bump talks to the blocking guard exactly once without overlap");
+                LogEntry oneShotGuardLog = movementState.Log.FirstOrDefault();
+                int guardLogCount = movementState.Log.Count;
+                AssertHeldMovementRequiresNeutral(game, "adjacent bump-use");
+
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                ExplorationMovementRepeatStep repeatedBump = new ExplorationMovementRepeatStep(
+                    guardX,
+                    guardY,
+                    guardX,
+                    guardY,
+                    30f + ExplorationMovementRepeatRules.InitialRepeatDelay + ExplorationMovementRepeatRules.RepeatInterval,
+                    true);
+                Assert(InvokePrivate<bool>(game, "ApplyExploreMovementRepeatStep", repeatedBump),
+                    "held bump repeat is consumed by the production movement seam");
+                Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Dialogue
+                    && movementState.PlayerX == guardStart.X
+                    && movementState.PlayerY == guardStart.Y
+                    && movementState.Log.Count == guardLogCount
+                    && ReferenceEquals(movementState.Log.FirstOrDefault(), oneShotGuardLog),
+                    "held bump repeat neither re-enters the guard nor emits duplicate dialogue logs");
+                AssertHeldMovementRequiresNeutral(game, "held adjacent-use repeat");
+                InvokePrivate(game, "CloseTransientOverlays");
+
+                ExplorationHudScreen hud = GetPrivateField<ExplorationHudScreen>(game, "explorationHudScreen");
+                FieldInfo mapButtonField = typeof(ExplorationHudScreen).GetField(
+                    "mapButton",
+                    BindingFlags.Instance | BindingFlags.NonPublic);
+                Button mapButton = mapButtonField == null ? null : mapButtonField.GetValue(hud) as Button;
+                Assert(eventSystem != null && mapButton != null && mapButton.gameObject.activeInHierarchy,
+                    "held exploration movement can probe a live HUD selection owner");
+                eventSystem.SetSelectedGameObject(mapButton.gameObject);
+                InvokePrivate(game, "ReleaseExploreHudSelection");
+                Assert(eventSystem.currentSelectedGameObject == null,
+                    "held local travel releases HUD selection before movement owns the direction axis");
+
+                StageHeldMovementState(game, 1, 0, 41f);
+                movementState.Map = JsonUtility.FromJson<MapData>(JsonUtility.ToJson(movementState.Map));
+                InvokePrivate(game, "InvalidateExplorationController");
+                AssertHeldMovementRequiresNeutral(game, "map replacement");
+
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                StageHeldMovementState(game, 0, -1, 42f);
+                InvokePrivate(game, "ToggleExploreView");
+                Assert(GetPrivateField<bool>(game, "exploreWideView"),
+                    "held movement reset probe enters Region Map view");
+                AssertHeldMovementRequiresNeutral(game, "Region Map view ownership");
+                InvokePrivate(game, "ToggleExploreView");
+                Assert(!GetPrivateField<bool>(game, "exploreWideView"),
+                    "held movement reset probe returns to Local Map view");
+                AssertHeldMovementRequiresNeutral(game, "Local Map view return");
+
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                StageHeldMovementState(game, -1, 0, 43f);
+                InvokePrivate(game, "OpenHelpOverlay");
+                InvokePrivate(game, "Update");
+                Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Help,
+                    "Help owns exploration input during the held-movement reset probe");
+                AssertHeldMovementRequiresNeutral(game, "overlay input ownership");
+                InvokePrivate(game, "CloseHelpOverlay");
+
+                InvokePrivate(game, "ResetExploreMovementInput", false);
+                Assert(GetPrivateField<int>(game, "exploreMovementHeldAxisX") == 0
+                    && GetPrivateField<int>(game, "exploreMovementHeldAxisY") == 0
+                    && Mathf.Approximately(GetPrivateField<float>(game, "exploreMovementNextRepeatAt"), 0f)
+                    && !GetPrivateField<bool>(game, "exploreMovementRequiresNeutral"),
+                    "neutral release clears held state and re-arms local exploration movement");
+            }
+            finally
+            {
+                InvokePrivate(game, "CloseTransientOverlays");
+                SetPrivateField(game, "state", originalState);
+                SetPrivateField(game, "rng", originalRng);
+                SetPrivateField(game, "exploreWideView", originalWideView);
+                InvokePrivate(game, "InvalidateControllerCaches");
+                SetPrivateField(game, "exploreFacingX", originalFacingX);
+                SetPrivateField(game, "exploreFacingY", originalFacingY);
+                SetPrivateField(game, "lastExploreRegion", originalLastExploreRegion);
+                SetPrivateField(game, "bannerText", originalBannerText);
+                SetPrivateField(game, "bannerUntil", originalBannerUntil);
+                SetPrivateField(game, "exploreMovementHeldAxisX", originalHeldX);
+                SetPrivateField(game, "exploreMovementHeldAxisY", originalHeldY);
+                SetPrivateField(game, "exploreMovementNextRepeatAt", originalRepeatAt);
+                SetPrivateField(game, "exploreMovementRequiresNeutral", originalRequiresNeutral);
+                SetPrivateField(game, "exploreRegionFocusMap", originalRegionFocusMap);
+                SetPrivateField(game, "exploreRegionFocusX", originalRegionFocusX);
+                SetPrivateField(game, "exploreRegionFocusY", originalRegionFocusY);
+                SetPrivateField(game, "exploreRegionHeldAxisX", originalRegionHeldX);
+                SetPrivateField(game, "exploreRegionHeldAxisY", originalRegionHeldY);
+                SetPrivateField(game, "exploreRegionNextRepeatAt", originalRegionRepeatAt);
+                liveTweens.Clear();
+                liveTweens.AddRange(originalTweens);
+                if (eventSystem != null)
+                {
+                    eventSystem.SetSelectedGameObject(
+                        selectedBefore != null && selectedBefore.activeInHierarchy ? selectedBefore : null);
+                }
+            }
+        }
+
+        private static bool TryFindSafeHeldMovementRun(
+            AshenHallsGame game,
+            GameState state,
+            out Point start,
+            out int deltaX,
+            out int deltaY)
+        {
+            int[] dx = { 0, 0, -1, 1 };
+            int[] dy = { -1, 1, 0, 0 };
+            for (int y = 0; y < state.Map.Height; y++)
+            for (int x = 0; x < state.Map.Width; x++)
+            for (int direction = 0; direction < dx.Length; direction++)
+            {
+                if (!IsSafeEmptyExploreCell(game, state, x, y)
+                    || !IsSafeEmptyExploreCell(game, state, x + dx[direction], y + dy[direction])
+                    || !IsSafeEmptyExploreCell(game, state, x + dx[direction] * 2, y + dy[direction] * 2))
+                {
+                    continue;
+                }
+
+                start = new Point(x, y);
+                deltaX = dx[direction];
+                deltaY = dy[direction];
+                return true;
+            }
+
+            start = new Point(0, 0);
+            deltaX = 0;
+            deltaY = 0;
+            return false;
+        }
+
+        private static bool IsSafeEmptyExploreCell(AshenHallsGame game, GameState state, int x, int y)
+        {
+            if (state?.Map == null || x < 0 || y < 0 || x >= state.Map.Width || y >= state.Map.Height) return false;
+            if (state.Map.FindObjectAt(x, y) != null || !InvokePrivate<bool>(game, "CanStepExplore", x, y)) return false;
+            WorldZone zone = InvokePrivate<WorldZone>(game, "ZoneFor", x, y, state.Map, state.Depth);
+            return zone != null && zone.Danger <= 0;
+        }
+
+        private static bool TryFindBlockedHeldMovementApproach(
+            AshenHallsGame game,
+            GameState state,
+            out Point start,
+            out int deltaX,
+            out int deltaY)
+        {
+            int[] dx = { 0, 0, -1, 1 };
+            int[] dy = { -1, 1, 0, 0 };
+            for (int y = 0; y < state.Map.Height; y++)
+            for (int x = 0; x < state.Map.Width; x++)
+            {
+                if (!IsSafeEmptyExploreCell(game, state, x, y)) continue;
+                for (int direction = 0; direction < dx.Length; direction++)
+                {
+                    int targetX = x + dx[direction];
+                    int targetY = y + dy[direction];
+                    if (targetX < 0 || targetY < 0 || targetX >= state.Map.Width || targetY >= state.Map.Height) continue;
+                    int index = targetY * state.Map.Width + targetX;
+                    if (index < 0 || index >= state.Map.Tiles.Count || state.Map.Tiles[index] == 1) continue;
+                    if (state.Map.FindObjectAt(targetX, targetY) != null) continue;
+                    start = new Point(x, y);
+                    deltaX = dx[direction];
+                    deltaY = dy[direction];
+                    return true;
+                }
+            }
+
+            start = new Point(0, 0);
+            deltaX = 0;
+            deltaY = 0;
+            return false;
+        }
+
+        private static bool TryFindTownGuardBumpApproach(
+            AshenHallsGame game,
+            GameState state,
+            out Point start,
+            out int deltaX,
+            out int deltaY)
+        {
+            int[] dx = { 0, 0, -1, 1 };
+            int[] dy = { -1, 1, 0, 0 };
+            foreach (MapObject guard in state.Map.Objects.Where(candidate => candidate != null && candidate.Type == ObjectType.TownGuard))
+            {
+                for (int direction = 0; direction < dx.Length; direction++)
+                {
+                    int standX = guard.X - dx[direction];
+                    int standY = guard.Y - dy[direction];
+                    if (!IsSafeEmptyExploreCell(game, state, standX, standY)) continue;
+                    start = new Point(standX, standY);
+                    deltaX = dx[direction];
+                    deltaY = dy[direction];
+                    return true;
+                }
+            }
+
+            start = new Point(0, 0);
+            deltaX = 0;
+            deltaY = 0;
+            return false;
+        }
+
+        private static void StageHeldMovementState(AshenHallsGame game, int heldX, int heldY, float nextRepeatAt)
+        {
+            SetPrivateField(game, "exploreMovementHeldAxisX", heldX);
+            SetPrivateField(game, "exploreMovementHeldAxisY", heldY);
+            SetPrivateField(game, "exploreMovementNextRepeatAt", nextRepeatAt);
+            SetPrivateField(game, "exploreMovementRequiresNeutral", false);
+        }
+
+        private static void AssertHeldMovementRequiresNeutral(AshenHallsGame game, string context)
+        {
+            Assert(GetPrivateField<int>(game, "exploreMovementHeldAxisX") == 0
+                && GetPrivateField<int>(game, "exploreMovementHeldAxisY") == 0
+                && Mathf.Approximately(GetPrivateField<float>(game, "exploreMovementNextRepeatAt"), 0f)
+                && GetPrivateField<bool>(game, "exploreMovementRequiresNeutral"),
+                context + " clears held movement cadence and requires a neutral release");
+        }
+
         private static void AssertExplorationWorldMapRuntime(AshenHallsGame game)
         {
             GameState state = GetPrivateField<GameState>(game, "state");
             AssertRegionMapBrowsingRuntime(game, state);
+            AssertHeldExplorationMovementRuntime(game, state);
             Assert(state.MusicVolumePercent == 65, "fresh games keep an independent readable music level");
             Assert(!state.MusicMuted && !state.SfxMuted, "fresh games start with independent music and SFX channels enabled");
             Dictionary<string, AudioClip> soundClips = GetPrivateField<Dictionary<string, AudioClip>>(game, "soundClips");

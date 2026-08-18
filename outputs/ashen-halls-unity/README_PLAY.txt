@@ -1,6 +1,12 @@
-Ash & Brimstone v2.18.0 - Rites in Motion
+Ash & Brimstone v2.19.0 - The Living Road
 
-Current release update: v2.18.0. Save schema: v25.
+Current release update: v2.19.0. Save schema: v25.
+
+Local Map travel now supports intentional hold-to-walk input from WASD, arrow keys, and the configured left stick. The first step is immediate, then walking repeats at a measured one-tile cadence. Changing direction responds immediately, while walls, adjacent-use objects, modal screens, map replacement, and Local/Region view changes latch movement until the controls return to neutral. This prevents repeated door/NPC activation, blocked-message spam, and ghost steps after closing a screen.
+
+Roads have been rebuilt as topology-aware surfaces rather than bright stacked center lines. City streets, ordinary roads, bridges, and the Old Road now have distinct widths and quieter earth/cobble bands; junctions use clean aprons; vertical details remain inside their road; and Old Road wagon wear breaks naturally instead of forming continuous railway-like stripes. Region Map hides incidental foot trails, while Local Map keeps genuine trail departures and authored thresholds without changing traversal or route topology.
+
+The Golden Thread, collision, encounters, exploration-step accounting, chart/fog behavior, controller focus, and saved world state continue to use the established deterministic systems. Existing campaigns retain their exact maps and progress because this release adds no saved fields and keeps save schema v25.
 
 Every formula and skill now choreographs its caster on the same deterministic clock as cast art, release sound, authored travel, impact, and aftermath. Charge moves only during its real release-to-impact window; Shadowstep, Rift Pounce, Thunder Step, and Rift Step vanish and reappear at their actual landing cells instead of sliding early.
 
@@ -28,13 +34,15 @@ Mage/warlock, support/hex, class-skill, travel, and aftermath art now stage auth
 
 The dedicated title glyph strip and v2.17 aftermath sheet bring the exact runtime manifest to 56 pins and the packaged art inventory to 91 PNGs. Earlier v2.12.1, v2.13, v2.14, v2.15, and title-atlas filenames retain their historical provenance labels.
 
-The Red Gate v2.12.0 campaign remains the production story baseline inside v2.18. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
+The Red Gate v2.12.0 campaign remains the production story baseline inside v2.19. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
 
 Chapter V crosses three authored sites in order. Break the Red Gate Vanguard at the inner seal, carry its tally north to Gloam Deep Crypt for the Ossuary Road Seal, then take that seal south to Salt Cistern Gate and defeat the named Crownroad Marshal. Three matching patrol bands occupy the road. The later encounters remain locked until their required tally or seal has been recovered.
 
 Marshal victory grants exactly one +6 crownward emberglass warblade and two supplies. Inspect Salt Cistern Gate again to chart the sealed Meteor Crown threshold and complete the chapter. Recall, retry, save/load repair, and depth-five re-entry preserve progress without duplicating rewards or arrival progression. Production exposes no generic depth-six stair or final-boss trigger.
 
-v2.18 validation status: runtime/editor response compilation, Unity RuleSmoke, full RuntimeBoot, clean Windows build/package, clean-extracted boot, and deterministic built-player Fireball/Beta Lab review pass from source commit `8b1126127c162ef0d70b3ffddb1db60d971db006`. The 227,899,535-byte ZIP SHA-256 is `ab94b9ffde26da45c993d3c2074c24576faa40b66f1ed1d3145636e951001fb0`; the capture packet SHA-256 is `860a63f004e1be206c8475b1064ba16babca5230ff205c2dc869faba69f8ba8d`. The verified v2.17 package and evidence remain preserved as rollback history. Physical-controller feel, subjective speaker/headphone listening at several volumes, live Full-versus-Reduced-Motion comparison, and a complete human Chapter I-V playthrough remain manual checks.
+v2.19 candidate validation status: runtime/editor response compilation, Unity RuleSmoke, full RuntimeBoot, the integrated Windows build, and a six-capture built-player Local/Region road matrix pass. The deterministic capture-set SHA-256 is `1e4e9eb7d0eb56d0ac56727723498199db05c426a1a2f33aecf7c017bbd56c55`. The canonical clean-source package and clean-extracted boot remain to be completed before release promotion. The verified v2.18 package and evidence remain preserved as rollback history. Physical keyboard/controller feel and a complete human Chapter I-V playthrough remain manual checks.
+
+v2.18 release history: runtime/editor response compilation, Unity RuleSmoke, full RuntimeBoot, clean Windows build/package, clean-extracted boot, and deterministic built-player Fireball/Beta Lab review pass from source commit `8b1126127c162ef0d70b3ffddb1db60d971db006`. The 227,899,535-byte ZIP SHA-256 is `ab94b9ffde26da45c993d3c2074c24576faa40b66f1ed1d3145636e951001fb0`; the capture packet SHA-256 is `860a63f004e1be206c8475b1064ba16babca5230ff205c2dc869faba69f8ba8d`.
 
 v2.16 release history: deterministic audio checks, Unity RuleSmoke, full RuntimeBoot, clean Windows build/package, clean-extracted packaged boot, and the four-capture Region Map/combat-cursor packet pass from source commit `387e84713cb10f0c86f3ce2787514cb70ddf4196`. The verified ZIP and hashes remain preserved as rollback evidence.
 

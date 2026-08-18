@@ -5,8 +5,8 @@ namespace AshenHalls
         public const string ProductName = "Ash & Brimstone";
         public const string ExecutableBaseName = "AshAndBrimstone";
         public const string LegacyProductName = "Ashen Halls";
-        public const string PackageVersion = "v2.18.0";
+        public const string PackageVersion = "v2.19.0";
         public const int SaveVersion = 25;
-        public const string BuildStage = "Rites in Motion";
+        public const string BuildStage = "The Living Road";
     }
 }

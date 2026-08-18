@@ -410,6 +410,7 @@ namespace AshenHalls
             explorationController = null;
             explorationControllerState = null;
             explorationControllerMap = null;
+            RequireExploreMovementNeutral();
         }
 
         private void InvalidateCombatController()
@@ -2546,6 +2547,13 @@ namespace AshenHalls
             UpdateExplorationAmbience();
             UpdateCombatAmbience();
             UpdateScheduledSfx();
+            if (state == null
+                || state.Mode != GameMode.Explore
+                || exploreWideView
+                || !CanAcceptGameplayInput())
+            {
+                RequireExploreMovementNeutral();
+            }
             if (IsStartupSplashVisible()) return;
 
             if (Input.GetKeyDown(KeyCode.F5)) SaveGame();

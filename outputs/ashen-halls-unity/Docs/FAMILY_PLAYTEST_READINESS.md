@@ -2,7 +2,15 @@
 
 ## Current Release
 
-`v2.18.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It keeps the v2.17 title, HUD, deterministic VFX/SFX, Region Map, and combat-cursor foundation while synchronizing caster poses, movement landings, teleports, summons, transformations, and enemy signature powers to the exact action timeline. Save schema remains v25; the accepted art set has 56 exact pins and the package contains 91 PNGs. Runtime/editor compilation, Unity RuleSmoke, full RuntimeBoot, the clean Windows build/package, clean-extracted boot, and deterministic built-player Fireball/Beta Lab capture pass from source commit `8b1126127c162ef0d70b3ffddb1db60d971db006`. The verified v2.17.0 package remains preserved as rollback history.
+`v2.19.0` is the current family-playtest candidate for the authored Chapter I-V road campaign. It preserves the v2.18 combat/title foundation while adding measured hold-to-walk Local travel and rebuilding roads as quieter topology-aware surfaces at Local and Region scales. Save schema remains v25; map topology, traversal, campaign content, the 56 exact art pins, and the 91-PNG packaged inventory are unchanged. Runtime/editor compilation, Unity RuleSmoke, full RuntimeBoot, the integrated Windows build, and a six-capture Local/Region player matrix pass; the canonical clean-source package and clean-extracted boot remain promotion gates. The verified v2.18.0 package remains preserved as rollback history.
+
+## The Living Road v2.19 - Source Gates Pass
+
+- WASD, arrows, and the configured left stick can be held for continuous one-tile Local travel, with an immediate first step, bounded initial delay, slower repeat cadence, cardinal-only arbitration, and no long-frame catch-up burst.
+- Walls, blocked interactions, modal ownership, map replacement, combat, and Local/Region view changes latch movement until neutral; bump-use remains one-shot and held collision feedback stays quiet.
+- Road surfaces now distinguish trail, city street, road, Old Road, and bridge widths. Complex joins use readable center aprons, Old Road wear is broken/inset, and vertical/corner details stay on the surface instead of floating beside it.
+- Region Map hides incidental foot trails. Local Map preserves authored anchors and genuine departures while suppressing generated dangling/parallel sidecars; road roles, collision, Golden Thread routing, fog, sites, and save state remain unchanged.
+- Deterministic source and runtime coverage exercises input boundaries, side effects, neutral ownership, all road join masks, presentation hierarchy, and Old Road connector semantics. Six built-player captures at 960x600, 1280x720, and 1920x1080 pass deterministic validation and direct visual review with capture-set SHA-256 `1e4e9eb7d0eb56d0ac56727723498199db05c426a1a2f33aecf7c017bbd56c55`. Physical keyboard/controller feel remains a manual promotion check.
 
 ## Rites in Motion v2.18 - Release Gates Pass
 

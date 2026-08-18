@@ -157,6 +157,7 @@ namespace AshenHalls.Editor
             ApprovedV130WorldMapAtlasesMatchRuntimeContracts();
             ExplorationArtRulesMapSemanticTilesAndScale();
             ExplorationSurfaceRulesPreserveAuthoredMapStructure();
+            ExplorationRoadPresentationRulesKeepRoutesReadable();
             CombatHudScreenLayoutFitsSupportedResolutions();
             CombatAbilityModalLayoutFitsSupportedResolutions();
             CombatAbilityModalNavigationRepeatsPredictably();
@@ -1596,6 +1597,7 @@ namespace AshenHalls.Editor
                 }
             }
             RegionMapNavigationRulesKeepBrowsingBounded();
+            ExplorationMovementRepeatRulesKeepTravelCardinalAndBounded();
         }
 
         private static void RegionMapNavigationRulesKeepBrowsingBounded()
@@ -1671,6 +1673,238 @@ namespace AshenHalls.Editor
             AssertEqual(true, help.Lines.Any(line => line.IndexOf("left stick", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help names the configured Region Map controller axis");
             AssertEqual(true, help.Lines.Any(line => line.IndexOf("drag", StringComparison.OrdinalIgnoreCase) >= 0 && line.IndexOf("wheel", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help names Region Map pointer panning");
             AssertEqual(true, help.Lines.Any(line => line.IndexOf("Home", StringComparison.OrdinalIgnoreCase) >= 0 && line.IndexOf("gamepad X", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help names both Region Map recenter controls");
+        }
+
+        private static void ExplorationMovementRepeatRulesKeepTravelCardinalAndBounded()
+        {
+            ExplorationMovementRepeatStep belowThreshold = ExplorationMovementRepeatRules.ResolveAxes(
+                ExplorationMovementRepeatRules.AxisThreshold - 0.001f,
+                -(ExplorationMovementRepeatRules.AxisThreshold - 0.001f),
+                0,
+                0,
+                0f,
+                10f);
+            AssertEqual(false, belowThreshold.HasAction, "sub-threshold exploration axes remain neutral");
+            AssertEqual(0, belowThreshold.HeldX, "sub-threshold horizontal intent leaves no held travel direction");
+            AssertEqual(0, belowThreshold.HeldY, "sub-threshold vertical intent leaves no held travel direction");
+
+            ExplorationMovementRepeatStep exactHorizontal = ExplorationMovementRepeatRules.ResolveAxes(
+                ExplorationMovementRepeatRules.AxisThreshold,
+                0f,
+                0,
+                0,
+                0f,
+                10f);
+            AssertEqual(1, exactHorizontal.DeltaX, "the exact positive exploration threshold travels east");
+            AssertEqual(0, exactHorizontal.DeltaY, "horizontal threshold travel remains cardinal");
+            AssertEqual(true, exactHorizontal.IsInitialOrDirectionChange, "a threshold crossing is an initial travel action");
+            AssertEqual(false, exactHorizontal.IsHeldRepeat, "a threshold crossing is not mislabeled as a held repeat");
+            AssertEqual(
+                true,
+                Mathf.Approximately(10f + ExplorationMovementRepeatRules.InitialRepeatDelay, exactHorizontal.NextRepeatAt),
+                "initial exploration travel arms its deterministic repeat delay");
+
+            ExplorationMovementRepeatStep exactVertical = ExplorationMovementRepeatRules.ResolveAxes(
+                0f,
+                -ExplorationMovementRepeatRules.AxisThreshold,
+                0,
+                0,
+                0f,
+                10f);
+            AssertEqual(0, exactVertical.DeltaX, "vertical threshold travel remains cardinal");
+            AssertEqual(1, exactVertical.DeltaY, "the exact negative vertical threshold travels south");
+
+            ExplorationMovementRepeatStep horizontalDominant = ExplorationMovementRepeatRules.ResolveAxes(
+                0.91f,
+                0.72f,
+                0,
+                0,
+                0f,
+                20f);
+            AssertEqual(1, horizontalDominant.DeltaX, "a stronger horizontal diagonal resolves east");
+            AssertEqual(0, horizontalDominant.DeltaY, "a stronger horizontal diagonal never produces a second travel axis");
+            ExplorationMovementRepeatStep verticalDominant = ExplorationMovementRepeatRules.ResolveAxes(
+                -0.72f,
+                0.91f,
+                0,
+                0,
+                0f,
+                20f);
+            AssertEqual(0, verticalDominant.DeltaX, "a stronger vertical diagonal never produces a second travel axis");
+            AssertEqual(-1, verticalDominant.DeltaY, "a stronger upward diagonal resolves north");
+
+            ExplorationMovementRepeatStep tiedInitial = ExplorationMovementRepeatRules.ResolveAxes(
+                1f,
+                1f,
+                0,
+                0,
+                0f,
+                30f);
+            AssertEqual(0, tiedInitial.DeltaX, "an exact new diagonal tie uses the stable vertical priority");
+            AssertEqual(-1, tiedInitial.DeltaY, "an exact new diagonal tie remains one northbound cardinal step");
+            ExplorationMovementRepeatStep tiedHeldHorizontal = ExplorationMovementRepeatRules.ResolveAxes(
+                1f,
+                1f,
+                1,
+                0,
+                31f,
+                30f);
+            AssertEqual(0, tiedHeldHorizontal.DeltaX, "a held horizontal tie waits until its existing deadline");
+            AssertEqual(0, tiedHeldHorizontal.DeltaY, "a held horizontal tie cannot leak into vertical travel");
+            AssertEqual(1, tiedHeldHorizontal.HeldX, "an exact diagonal tie preserves its matching held horizontal direction");
+            AssertEqual(0, tiedHeldHorizontal.HeldY, "a preserved horizontal tie remains cardinal");
+
+            ExplorationMovementRepeatStep noisyDiagonalStart = ExplorationMovementRepeatRules.ResolveAxes(
+                0.72f,
+                0.70f,
+                0,
+                0,
+                0f,
+                32f);
+            AssertEqual(1, noisyDiagonalStart.DeltaX, "a slightly east-dominant stick begins eastbound travel");
+            AssertEqual(0, noisyDiagonalStart.DeltaY, "a slightly east-dominant stick remains cardinal");
+            ExplorationMovementRepeatStep noisyDiagonalFlip = ExplorationMovementRepeatRules.ResolveAxes(
+                0.70f,
+                0.72f,
+                noisyDiagonalStart.HeldX,
+                noisyDiagonalStart.HeldY,
+                noisyDiagonalStart.NextRepeatAt,
+                32.05f);
+            AssertEqual(false, noisyDiagonalFlip.HasAction, "near-diagonal stick noise cannot bypass the held deadline");
+            AssertEqual(1, noisyDiagonalFlip.HeldX, "near-diagonal stick noise preserves the established horizontal direction");
+            AssertEqual(0, noisyDiagonalFlip.HeldY, "near-diagonal stick noise cannot alternate travel axes");
+            AssertEqual(
+                true,
+                Mathf.Approximately(noisyDiagonalStart.NextRepeatAt, noisyDiagonalFlip.NextRepeatAt),
+                "near-diagonal stick noise preserves the existing repeat deadline");
+            ExplorationMovementRepeatStep noisyDiagonalReturn = ExplorationMovementRepeatRules.ResolveAxes(
+                0.72f,
+                0.70f,
+                noisyDiagonalFlip.HeldX,
+                noisyDiagonalFlip.HeldY,
+                noisyDiagonalFlip.NextRepeatAt,
+                32.10f);
+            AssertEqual(false, noisyDiagonalReturn.HasAction, "alternating near-diagonal samples remain cadence-bound");
+            AssertEqual(1, noisyDiagonalReturn.HeldX, "alternating near-diagonal samples retain horizontal ownership");
+            ExplorationMovementRepeatStep decisiveDiagonalChange = ExplorationMovementRepeatRules.ResolveAxes(
+                0.62f,
+                0.75f,
+                noisyDiagonalReturn.HeldX,
+                noisyDiagonalReturn.HeldY,
+                noisyDiagonalReturn.NextRepeatAt,
+                32.15f);
+            AssertEqual(0, decisiveDiagonalChange.DeltaX, "a decisive analog turn releases the previous horizontal direction");
+            AssertEqual(-1, decisiveDiagonalChange.DeltaY, "a decisive analog turn changes north immediately");
+            AssertEqual(true, decisiveDiagonalChange.IsInitialOrDirectionChange, "a decisive analog turn re-arms the initial cadence");
+
+            ExplorationMovementRepeatStep beforeDeadline = ExplorationMovementRepeatRules.ResolveAxes(
+                1f,
+                0f,
+                exactHorizontal.HeldX,
+                exactHorizontal.HeldY,
+                exactHorizontal.NextRepeatAt,
+                exactHorizontal.NextRepeatAt - 0.001f);
+            AssertEqual(false, beforeDeadline.HasAction, "held exploration travel waits through its initial delay");
+            AssertEqual(false, beforeDeadline.IsHeldRepeat, "a waiting held direction is not reported as a repeat action");
+            AssertEqual(false, beforeDeadline.IsInitialOrDirectionChange, "a waiting held direction carries no initial-action flag");
+            ExplorationMovementRepeatStep atDeadline = ExplorationMovementRepeatRules.ResolveAxes(
+                1f,
+                0f,
+                beforeDeadline.HeldX,
+                beforeDeadline.HeldY,
+                beforeDeadline.NextRepeatAt,
+                beforeDeadline.NextRepeatAt);
+            AssertEqual(1, atDeadline.DeltaX, "held exploration travel repeats exactly at its deadline");
+            AssertEqual(0, atDeadline.DeltaY, "held exploration repeat remains cardinal");
+            AssertEqual(true, atDeadline.IsHeldRepeat, "a deadline action carries the held-repeat flag");
+            AssertEqual(false, atDeadline.IsInitialOrDirectionChange, "a held repeat is distinct from an initial action");
+            AssertEqual(
+                true,
+                Mathf.Approximately(beforeDeadline.NextRepeatAt + ExplorationMovementRepeatRules.RepeatInterval, atDeadline.NextRepeatAt),
+                "held exploration travel advances by the exact repeat interval");
+
+            ExplorationMovementRepeatStep directionChange = ExplorationMovementRepeatRules.ResolveAxes(
+                0f,
+                1f,
+                atDeadline.HeldX,
+                atDeadline.HeldY,
+                atDeadline.NextRepeatAt,
+                40f);
+            AssertEqual(0, directionChange.DeltaX, "changing held direction drops the previous horizontal travel axis");
+            AssertEqual(-1, directionChange.DeltaY, "changing held direction acts north immediately");
+            AssertEqual(true, directionChange.IsInitialOrDirectionChange, "a direction change receives the initial-action flag");
+            AssertEqual(false, directionChange.IsHeldRepeat, "a direction change is not mislabeled as a repeat");
+            AssertEqual(
+                true,
+                Mathf.Approximately(40f + ExplorationMovementRepeatRules.InitialRepeatDelay, directionChange.NextRepeatAt),
+                "a direction change re-arms the full initial delay");
+
+            ExplorationMovementRepeatStep longFrame = ExplorationMovementRepeatRules.ResolveAxes(
+                0f,
+                1f,
+                directionChange.HeldX,
+                directionChange.HeldY,
+                directionChange.NextRepeatAt,
+                400f);
+            AssertEqual(0, longFrame.DeltaX, "a late frame still emits no horizontal catch-up travel");
+            AssertEqual(-1, longFrame.DeltaY, "a late frame emits exactly one cardinal repeat");
+            AssertEqual(
+                true,
+                Mathf.Approximately(400f + ExplorationMovementRepeatRules.RepeatInterval, longFrame.NextRepeatAt),
+                "a late frame schedules from now instead of replaying missed deadlines");
+
+            ExplorationMovementRepeatStep released = ExplorationMovementRepeatRules.ResolveAxes(
+                0f,
+                0f,
+                longFrame.HeldX,
+                longFrame.HeldY,
+                longFrame.NextRepeatAt,
+                401f);
+            AssertEqual(false, released.HasAction, "neutral exploration axes emit no travel action");
+            AssertEqual(0, released.HeldX, "neutral exploration axes clear held horizontal state");
+            AssertEqual(0, released.HeldY, "neutral exploration axes clear held vertical state");
+            AssertEqual(0f, released.NextRepeatAt, "neutral exploration axes clear the repeat deadline");
+            AssertEqual(false, released.IsHeldRepeat, "neutral exploration axes clear repeat flags");
+            AssertEqual(false, released.IsInitialOrDirectionChange, "neutral exploration axes clear initial-action flags");
+
+            ExplorationMovementRepeatStep nonFiniteAxes = ExplorationMovementRepeatRules.ResolveAxes(
+                float.NaN,
+                float.PositiveInfinity,
+                1,
+                0,
+                12f,
+                13f);
+            AssertEqual(false, nonFiniteAxes.HasAction, "non-finite exploration axes fail safely to neutral");
+            AssertEqual(0, nonFiniteAxes.HeldX, "non-finite exploration axes clear held horizontal state");
+            AssertEqual(0, nonFiniteAxes.HeldY, "non-finite exploration axes clear held vertical state");
+            AssertEqual(0f, nonFiniteAxes.NextRepeatAt, "non-finite exploration axes clear their repeat deadline");
+
+            ExplorationMovementRepeatStep nonFiniteNow = ExplorationMovementRepeatRules.ResolveAxes(
+                1f,
+                0f,
+                0,
+                0,
+                0f,
+                float.NaN);
+            AssertEqual(1, nonFiniteNow.DeltaX, "a non-finite clock still permits one bounded initial cardinal action");
+            AssertEqual(
+                true,
+                Mathf.Approximately(ExplorationMovementRepeatRules.InitialRepeatDelay, nonFiniteNow.NextRepeatAt),
+                "a non-finite clock falls back to a finite initial deadline");
+            ExplorationMovementRepeatStep nonFiniteDeadline = ExplorationMovementRepeatRules.ResolveAxes(
+                1f,
+                0f,
+                nonFiniteNow.HeldX,
+                nonFiniteNow.HeldY,
+                float.PositiveInfinity,
+                50f);
+            AssertEqual(false, nonFiniteDeadline.HasAction, "a non-finite held deadline cannot trigger an unbounded repeat");
+            AssertEqual(1, nonFiniteDeadline.HeldX, "a non-finite deadline preserves the finite held direction");
+            AssertEqual(
+                true,
+                Mathf.Approximately(50f + ExplorationMovementRepeatRules.InitialRepeatDelay, nonFiniteDeadline.NextRepeatAt),
+                "a non-finite held deadline is repaired with the safe initial delay");
+            AssertEqual(false, float.IsNaN(nonFiniteDeadline.NextRepeatAt) || float.IsInfinity(nonFiniteDeadline.NextRepeatAt), "repaired exploration deadlines remain finite");
         }
 
         private static void ExplorationGuidanceRulesKeepTheGoldenThreadActionable()
@@ -3129,7 +3363,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.18.0", VersionInfo.PackageVersion, "package version matches the integrated v2.18 candidate");
+            AssertEqual("v2.19.0", VersionInfo.PackageVersion, "package version matches the integrated v2.19 candidate");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -4462,6 +4696,184 @@ namespace AshenHalls.Editor
             float offset = ExplorationSurfaceRules.SmoothBoundaryOffset(9, 17, 2.4f);
             AssertEqual(true, offset >= -2.4f && offset <= 2.4f, "visual zone boundary offset remains bounded");
             AssertEqual(offset, ExplorationSurfaceRules.SmoothBoundaryOffset(9, 17, 2.4f), "visual zone boundary offset is deterministic");
+        }
+
+        private static void ExplorationRoadPresentationRulesKeepRoutesReadable()
+        {
+            ExplorationRoadJoin[] expectedJoins =
+            {
+                ExplorationRoadJoin.None,
+                ExplorationRoadJoin.Endpoint,
+                ExplorationRoadJoin.Endpoint,
+                ExplorationRoadJoin.Corner,
+                ExplorationRoadJoin.Endpoint,
+                ExplorationRoadJoin.Straight,
+                ExplorationRoadJoin.Corner,
+                ExplorationRoadJoin.Tee,
+                ExplorationRoadJoin.Endpoint,
+                ExplorationRoadJoin.Corner,
+                ExplorationRoadJoin.Straight,
+                ExplorationRoadJoin.Tee,
+                ExplorationRoadJoin.Corner,
+                ExplorationRoadJoin.Tee,
+                ExplorationRoadJoin.Tee,
+                ExplorationRoadJoin.Cross
+            };
+            for (int mask = 0; mask <= ExplorationRoadPresentationRules.CardinalMask; mask++)
+            {
+                AssertEqual(
+                    expectedJoins[mask],
+                    ExplorationRoadPresentationRules.JoinForMask(mask),
+                    $"road presentation classifies cardinal join mask {mask}");
+                AssertEqual(
+                    expectedJoins[mask],
+                    ExplorationRoadPresentationRules.JoinForMask(mask | 0x70),
+                    $"road presentation ignores non-cardinal bits for join mask {mask}");
+            }
+
+            ExplorationCellRole trail = ExplorationCellRole.Trail;
+            AssertEqual(
+                false,
+                ExplorationRoadPresentationRules.ShouldDrawTrail(
+                    true,
+                    trail,
+                    0,
+                    ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West),
+                "Region Map suppresses pure trail strokes beneath its strategic road read");
+            ExplorationRoadVisualPlan regionTrail = ExplorationRoadPresentationRules.Resolve(
+                trail,
+                true,
+                false,
+                0,
+                ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
+                ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West);
+            AssertEqual(false, regionTrail.Draw, "Region Map pure trails resolve to no visual plan");
+
+            AssertEqual(
+                false,
+                ExplorationRoadPresentationRules.ShouldDrawTrail(
+                    false,
+                    trail,
+                    ExplorationRoadPresentationRules.North,
+                    0),
+                "a Local Map trail dangling from a road receives no decorative sidecar stroke");
+            AssertEqual(
+                false,
+                ExplorationRoadPresentationRules.ShouldDrawTrail(
+                    false,
+                    trail,
+                    ExplorationRoadPresentationRules.North,
+                    ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West),
+                "a Local Map trail parallel to a road receives no ladder-like sidecar stroke");
+            AssertEqual(
+                true,
+                ExplorationRoadPresentationRules.ShouldDrawTrail(
+                    false,
+                    trail,
+                    ExplorationRoadPresentationRules.North,
+                    ExplorationRoadPresentationRules.South),
+                "a Local Map trail continuing directly away from a road retains its real departure");
+            AssertEqual(
+                true,
+                ExplorationRoadPresentationRules.ShouldDrawTrail(
+                    false,
+                    trail | ExplorationCellRole.Threshold,
+                    ExplorationRoadPresentationRules.North,
+                    0),
+                "a Local Map threshold anchors its trail even without a continuation");
+            AssertEqual(
+                true,
+                ExplorationRoadPresentationRules.ShouldDrawTrail(
+                    false,
+                    trail | ExplorationCellRole.Clearing,
+                    ExplorationRoadPresentationRules.East,
+                    ExplorationRoadPresentationRules.North),
+                "a Local Map clearing anchors its trail through a non-collinear meeting");
+
+            foreach (bool wideView in new[] { false, true })
+            {
+                ExplorationRoadVisualPlan city = ExplorationRoadPresentationRules.Resolve(
+                    ExplorationCellRole.Road | ExplorationCellRole.City,
+                    wideView,
+                    false,
+                    ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
+                    0,
+                    0);
+                ExplorationRoadVisualPlan road = ExplorationRoadPresentationRules.Resolve(
+                    ExplorationCellRole.Road,
+                    wideView,
+                    false,
+                    ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
+                    0,
+                    0);
+                ExplorationRoadVisualPlan bridge = ExplorationRoadPresentationRules.Resolve(
+                    ExplorationCellRole.Road | ExplorationCellRole.Bridge,
+                    wideView,
+                    false,
+                    ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
+                    0,
+                    0);
+                ExplorationRoadVisualPlan oldRoad = ExplorationRoadPresentationRules.Resolve(
+                    ExplorationCellRole.Road,
+                    wideView,
+                    true,
+                    ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
+                    0,
+                    0);
+
+                AssertEqual(ExplorationRoadVisualTier.CityStreet, city.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the city-street visual tier");
+                AssertEqual(ExplorationRoadVisualTier.Road, road.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the ordinary-road visual tier");
+                AssertEqual(ExplorationRoadVisualTier.Bridge, bridge.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the bridge visual tier");
+                AssertEqual(ExplorationRoadVisualTier.OldRoad, oldRoad.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the Old Road visual tier");
+                AssertEqual(
+                    true,
+                    oldRoad.ShoulderFraction > bridge.ShoulderFraction
+                        && bridge.ShoulderFraction > road.ShoulderFraction
+                        && road.ShoulderFraction > city.ShoulderFraction,
+                    $"{(wideView ? "Region" : "Local")} Map keeps Old Road, bridge, road, and city shoulders in readable hierarchy");
+                AssertEqual(
+                    true,
+                    oldRoad.CoreFraction > bridge.CoreFraction
+                        && bridge.CoreFraction > road.CoreFraction
+                        && road.CoreFraction > city.CoreFraction,
+                    $"{(wideView ? "Region" : "Local")} Map keeps Old Road, bridge, road, and city cores in readable hierarchy");
+                foreach (ExplorationRoadVisualPlan plan in new[] { city, road, bridge, oldRoad })
+                {
+                    AssertEqual(true, plan.Draw, $"{(wideView ? "Region" : "Local")} Map draws {plan.Tier}");
+                    AssertEqual(true, plan.ShoulderFraction > plan.CoreFraction && plan.CoreFraction > 0f, $"{(wideView ? "Region" : "Local")} Map bounds {plan.Tier} core inside its shoulder");
+                    AssertEqual(true, plan.ShoulderFraction < 1f, $"{(wideView ? "Region" : "Local")} Map keeps {plan.Tier} inside one map cell");
+                }
+            }
+
+            int fullCross = ExplorationRoadPresentationRules.CardinalMask;
+            ExplorationRoadVisualPlan oldRoadCross = ExplorationRoadPresentationRules.Resolve(
+                ExplorationCellRole.Road,
+                false,
+                true,
+                fullCross,
+                0,
+                0);
+            AssertEqual(
+                ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
+                oldRoadCross.MainMask,
+                "Old Road keeps its broad main carriage stroke east-west at a four-way meeting");
+            AssertEqual(
+                ExplorationRoadPresentationRules.North | ExplorationRoadPresentationRules.South,
+                oldRoadCross.ConnectorMask,
+                "Old Road retains north-south road branches as subordinate connectors");
+            AssertEqual(ExplorationRoadJoin.Straight, oldRoadCross.Join, "Old Road join identity follows its east-west main carriage stroke");
+            AssertEqual(true, oldRoadCross.DrawCenterWear, "Local straight Old Road retains its authored center wear");
+
+            ExplorationRoadVisualPlan regionOldRoadCross = ExplorationRoadPresentationRules.Resolve(
+                ExplorationCellRole.Road,
+                true,
+                true,
+                fullCross,
+                0,
+                0);
+            AssertEqual(oldRoadCross.MainMask, regionOldRoadCross.MainMask, "Region Old Road preserves the same east-west main topology");
+            AssertEqual(oldRoadCross.ConnectorMask, regionOldRoadCross.ConnectorMask, "Region Old Road preserves real north-south road branches");
+            AssertEqual(false, regionOldRoadCross.DrawCenterWear, "Region Old Road suppresses Local-only center wear");
         }
 
         private static void CombatHudScreenLayoutFitsSupportedResolutions()

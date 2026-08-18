@@ -27,6 +27,10 @@ namespace AshenHalls
         private int exploreRegionHeldAxisX;
         private int exploreRegionHeldAxisY;
         private float exploreRegionNextRepeatAt;
+        private int exploreMovementHeldAxisX;
+        private int exploreMovementHeldAxisY;
+        private float exploreMovementNextRepeatAt;
+        private bool exploreMovementRequiresNeutral = true;
         private bool exploreRegionPointerDragging;
         private float exploreRegionDragRemainderX;
         private float exploreRegionDragRemainderY;
@@ -1812,7 +1816,7 @@ namespace AshenHalls
         {
             return exploreWideView
                 ? $"Browse {ExploreViewportWidth()}x{ExploreViewportHeight()} map cells with WASD, arrows, left stick, click-drag, or the wheel; Home returns to the party."
-                : $"Local focus: larger {ExploreViewportWidth()}x{ExploreViewportHeight()} tiles for travel and NPCs.";
+                : $"Local focus: hold WASD, arrows, or the left stick to travel across larger {ExploreViewportWidth()}x{ExploreViewportHeight()} tiles.";
         }
 
         private string ExploreHudHint()
@@ -1823,6 +1827,7 @@ namespace AshenHalls
         private void ToggleExploreView()
         {
             exploreWideView = !exploreWideView;
+            RequireExploreMovementNeutral();
             if (exploreWideView) ResetRegionMapFocusToParty();
             else ResetRegionMapNavigationInput();
             if (exploreWideView) ReleaseRegionMapHudSelection();
@@ -2952,15 +2957,34 @@ namespace AshenHalls
             exploreRegionDragRemainderY = 0f;
         }
 
-        private void ReleaseRegionMapHudSelection()
+        private void ResetExploreMovementInput(bool requireNeutral)
         {
-            if (!exploreWideView || CurrentUiOverlay() != UiOverlay.None) return;
+            exploreMovementHeldAxisX = 0;
+            exploreMovementHeldAxisY = 0;
+            exploreMovementNextRepeatAt = 0f;
+            exploreMovementRequiresNeutral = requireNeutral;
+        }
+
+        private void RequireExploreMovementNeutral()
+        {
+            ResetExploreMovementInput(true);
+        }
+
+        private void ReleaseExploreHudSelection()
+        {
+            if (CurrentUiOverlay() != UiOverlay.None) return;
             UnityEngine.EventSystems.EventSystem eventSystem = UnityEngine.EventSystems.EventSystem.current
                 ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
             if (eventSystem != null && eventSystem.currentSelectedGameObject != null)
             {
                 eventSystem.SetSelectedGameObject(null);
             }
+        }
+
+        private void ReleaseRegionMapHudSelection()
+        {
+            if (!exploreWideView) return;
+            ReleaseExploreHudSelection();
         }
 
         private bool SetRegionMapFocus(int x, int y)
@@ -3439,31 +3463,67 @@ namespace AshenHalls
 
         private bool TryHandleExploreMovementInput()
         {
-            if (Input.GetKeyDown(KeyCode.UpArrow) || Input.GetKeyDown(KeyCode.W))
+            ExplorationMovementRepeatStep movement = ExplorationMovementRepeatRules.ResolveAxes(
+                Input.GetAxisRaw("Horizontal"),
+                Input.GetAxisRaw("Vertical"),
+                exploreMovementHeldAxisX,
+                exploreMovementHeldAxisY,
+                exploreMovementNextRepeatAt,
+                Time.unscaledTime);
+            exploreMovementHeldAxisX = movement.HeldX;
+            exploreMovementHeldAxisY = movement.HeldY;
+            exploreMovementNextRepeatAt = movement.NextRepeatAt;
+
+            bool directionHeld = movement.HeldX != 0 || movement.HeldY != 0;
+            if (directionHeld) ReleaseExploreHudSelection();
+            if (exploreMovementRequiresNeutral)
             {
-                TryMoveOrUseExplore(0, -1);
+                if (!directionHeld) exploreMovementRequiresNeutral = false;
+                return directionHeld;
+            }
+
+            if (movement.HasAction) ApplyExploreMovementRepeatStep(movement);
+            return directionHeld;
+        }
+
+        private bool ApplyExploreMovementRepeatStep(ExplorationMovementRepeatStep movement)
+        {
+            if (!movement.HasAction || Mathf.Abs(movement.DeltaX) + Mathf.Abs(movement.DeltaY) != 1) return false;
+
+            MapData mapBefore = state?.Map;
+            int oldX = state?.PlayerX ?? 0;
+            int oldY = state?.PlayerY ?? 0;
+            exploreFacingX = movement.DeltaX;
+            exploreFacingY = movement.DeltaY;
+
+            if (TryEngageRoamingThreatInDirection(movement.DeltaX, movement.DeltaY))
+            {
+                RequireExploreMovementNeutral();
                 return true;
             }
 
-            if (Input.GetKeyDown(KeyCode.DownArrow) || Input.GetKeyDown(KeyCode.S))
+            if (!movement.IsHeldRepeat
+                && TryUseBlockedExploreObjectInDirection(movement.DeltaX, movement.DeltaY))
             {
-                TryMoveOrUseExplore(0, 1);
+                RequireExploreMovementNeutral();
                 return true;
             }
 
-            if (Input.GetKeyDown(KeyCode.LeftArrow) || Input.GetKeyDown(KeyCode.A))
+            bool moved = TryMoveExplore(
+                movement.DeltaX,
+                movement.DeltaY,
+                reportBlocked: !movement.IsHeldRepeat);
+            bool stillOwnsTravel = moved
+                && state != null
+                && state.Mode == GameMode.Explore
+                && ReferenceEquals(mapBefore, state.Map)
+                && CurrentUiOverlay() == UiOverlay.None;
+            if (!stillOwnsTravel
+                || state.PlayerX == oldX && state.PlayerY == oldY)
             {
-                TryMoveOrUseExplore(-1, 0);
-                return true;
+                RequireExploreMovementNeutral();
             }
-
-            if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.D))
-            {
-                TryMoveOrUseExplore(1, 0);
-                return true;
-            }
-
-            return false;
+            return true;
         }
 
         private void TryMoveOrUseExplore(int dx, int dy)
@@ -3501,17 +3561,26 @@ namespace AshenHalls
             return WorldSiteInteractionRules.RewardClaimed(state?.StoryFlags, state?.Depth ?? 1, site.Id);
         }
 
-        private void TryMoveExplore(int dx, int dy)
+        private bool TryMoveExplore(int dx, int dy)
+        {
+            return TryMoveExplore(dx, dy, true);
+        }
+
+        private bool TryMoveExplore(int dx, int dy, bool reportBlocked)
         {
             ExplorationController controller = ExploreController();
             if (controller == null || !controller.TryMove(dx, dy, out ExplorationMoveResult move))
             {
-                PushLog(ExploreBlockedMoveLine(dx, dy), Tone.Warn);
-                PlaySfx("blocked");
-                return;
+                if (reportBlocked)
+                {
+                    PushLog(ExploreBlockedMoveLine(dx, dy), Tone.Warn);
+                    PlaySfx("blocked");
+                }
+                return false;
             }
 
             CompleteExploreMove(move);
+            return true;
         }
 
         private string ExploreBlockedMoveLine(int dx, int dy)
@@ -5262,67 +5331,150 @@ namespace AshenHalls
             MapObject occupant = ObjectAt(state?.Map, x, y);
             if (occupant != null && (UsesSemanticMidgaardGround(occupant) || IsMidgaardGateType(occupant.Type))) return;
 
-            int mask = ExplorationSurfaceRules.PathNeighborMask(state?.Map, x, y);
-            bool city = (roles & ExplorationCellRole.City) != 0;
-            bool road = (roles & (ExplorationCellRole.Road | ExplorationCellRole.Bridge)) != 0;
             bool oldRoad = IsOldRoadSpineCell(state?.Map, x, y);
-            int mainMask = oldRoad ? mask & (2 | 8) : mask;
-            // The authored east-west artery uses one broad carriage stroke. Side
-            // streets join with the normal narrow connector treatment rather than
-            // turning the city into a translucent ladder/grid.
-            float shoulderFraction = oldRoad
-                ? exploreWideView ? 0.50f : 0.60f
-                : city
-                ? exploreWideView ? 0.14f : 0.17f
-                : road
-                    ? exploreWideView ? 0.22f : 0.22f
-                    : exploreWideView ? 0.10f : 0.13f;
-            float shoulderWidth = rect.width * shoulderFraction;
-            float coreWidth = shoulderWidth * (oldRoad ? 0.72f : 0.68f);
-            float highlightWidth = coreWidth * (oldRoad ? 0.11f : 0.20f);
-            Color shoulder = oldRoad
-                ? Hex("17130f", exploreWideView ? 0.52f : 0.58f)
-                : city ? Hex("111719", 0.17f) : Hex("20150e", exploreWideView ? 0.34f : 0.30f);
-            Color core = oldRoad
-                ? Hex("9a7b52", exploreWideView ? 0.40f : 0.46f)
-                : city
-                ? Hex("81765f", 0.13f)
-                : material == ExplorationMaterial.Moss
-                    ? Hex("735637", exploreWideView ? 0.34f : 0.28f)
-                    : Hex("8f6841", exploreWideView ? 0.31f : 0.25f);
-            Color highlight = oldRoad
-                ? Hex("e0c28c", exploreWideView ? 0.25f : 0.30f)
-                : city ? Hex("d3c5a0", 0.09f) : Hex("e2bd83", exploreWideView ? 0.22f : 0.15f);
-            DrawExplorePathStroke(rect, mainMask, shoulderWidth, shoulder);
-            DrawExplorePathStroke(rect, mainMask, coreWidth, core);
-            DrawExplorePathStroke(rect, mainMask, highlightWidth, highlight);
-            if (oldRoad)
+            ExplorationRoadVisualPlan plan = ExplorationRoadPresentationRules.Resolve(
+                state?.Map,
+                x,
+                y,
+                exploreWideView,
+                oldRoad);
+            if (!plan.Draw) return;
+
+            ExploreRoadPalette(plan.Tier, material, out Color shoulder, out Color core, out Color detail, out Color rut);
+            float shoulderWidth = rect.width * plan.ShoulderFraction;
+            float coreWidth = rect.width * plan.CoreFraction;
+            if (plan.ConnectorMask != 0)
             {
-                float rutHeight = Mathf.Max(1f, rect.height * (exploreWideView ? 0.018f : 0.024f));
-                float rutOffset = coreWidth * 0.24f;
-                Color rut = Hex("3a2919", exploreWideView ? 0.30f : 0.38f);
-                float rutX = rect.x + ((mainMask & 8) == 0 ? rect.width * 0.34f : 0f);
-                float rutXMax = rect.xMax - ((mainMask & 2) == 0 ? rect.width * 0.34f : 0f);
-                float rutWidth = Mathf.Max(0f, rutXMax - rutX);
-                DrawRect(new Rect(rutX, rect.center.y - rutOffset, rutWidth, rutHeight), rut);
-                DrawRect(new Rect(rutX, rect.center.y + rutOffset - rutHeight, rutWidth, rutHeight), rut);
+                float connectorScale = plan.Tier == ExplorationRoadVisualTier.OldRoad ? 0.62f : 0.46f;
+                DrawExplorePathStroke(
+                    rect,
+                    plan.ConnectorMask,
+                    shoulderWidth * connectorScale,
+                    shoulder.WithAlpha(shoulder.a * 0.90f));
+                DrawExplorePathStroke(
+                    rect,
+                    plan.ConnectorMask,
+                    coreWidth * connectorScale,
+                    core.WithAlpha(core.a * 0.94f));
             }
-            if (road)
-            {
-                int connectorMask = ExplorationSurfaceRules.PathConnectorNeighborMask(state?.Map, x, y) & ~mainMask;
-                if (connectorMask != 0)
-                {
-                    float connectorShoulder = rect.width * (exploreWideView ? 0.10f : 0.13f);
-                    float connectorCore = connectorShoulder * 0.64f;
-                    DrawExplorePathStroke(rect, connectorMask, connectorShoulder, shoulder.WithAlpha(shoulder.a * 0.78f));
-                    DrawExplorePathStroke(rect, connectorMask, connectorCore, core.WithAlpha(core.a * 0.84f));
-                }
-            }
+            DrawExplorePathStroke(rect, plan.MainMask, shoulderWidth, shoulder);
+            DrawExplorePathStroke(rect, plan.MainMask, coreWidth, core);
+            DrawExploreRoadSurfaceWear(rect, x, y, plan, coreWidth, detail, rut);
             if ((roles & ExplorationCellRole.Clearing) != 0)
             {
                 DrawRegionalJunctionGroundMark(rect, x, y);
             }
             if (oldRoad) DrawOldRoadGroundMark(rect, x, y);
+        }
+
+        private void ExploreRoadPalette(
+            ExplorationRoadVisualTier tier,
+            ExplorationMaterial material,
+            out Color shoulder,
+            out Color core,
+            out Color detail,
+            out Color rut)
+        {
+            switch (tier)
+            {
+                case ExplorationRoadVisualTier.Trail:
+                    shoulder = Hex("20170f", 0.34f);
+                    core = material == ExplorationMaterial.Moss
+                        ? Hex("725637", 0.40f)
+                        : Hex("745334", 0.42f);
+                    detail = Hex("c4a06b", 0.18f);
+                    rut = Hex("2b1c12", 0.24f);
+                    return;
+                case ExplorationRoadVisualTier.CityStreet:
+                    shoulder = Hex("111416", exploreWideView ? 0.36f : 0.42f);
+                    core = Hex("776e5c", exploreWideView ? 0.40f : 0.46f);
+                    detail = Hex("c7b98f", 0.18f);
+                    rut = Hex("292621", 0.24f);
+                    return;
+                case ExplorationRoadVisualTier.OldRoad:
+                    shoulder = Hex("17120d", exploreWideView ? 0.64f : 0.68f);
+                    core = Hex("93734b", exploreWideView ? 0.62f : 0.68f);
+                    detail = Hex("d8b87c", exploreWideView ? 0.22f : 0.28f);
+                    rut = Hex("352316", exploreWideView ? 0.34f : 0.46f);
+                    return;
+                case ExplorationRoadVisualTier.Bridge:
+                    shoulder = Hex("100d0a", exploreWideView ? 0.62f : 0.68f);
+                    core = Hex("6f5136", exploreWideView ? 0.58f : 0.64f);
+                    detail = Hex("c69a60", exploreWideView ? 0.20f : 0.28f);
+                    rut = Hex("281a11", 0.34f);
+                    return;
+                default:
+                    shoulder = Hex("1c130c", exploreWideView ? 0.50f : 0.54f);
+                    core = material == ExplorationMaterial.Moss
+                        ? Hex("745735", exploreWideView ? 0.50f : 0.56f)
+                        : material == ExplorationMaterial.RedAsh
+                            ? Hex("76503b", exploreWideView ? 0.50f : 0.56f)
+                            : Hex("87633e", exploreWideView ? 0.54f : 0.60f);
+                    detail = Hex("cfa56c", exploreWideView ? 0.18f : 0.23f);
+                    rut = Hex("302014", exploreWideView ? 0.26f : 0.34f);
+                    return;
+            }
+        }
+
+        private void DrawExploreRoadSurfaceWear(
+            Rect rect,
+            int x,
+            int y,
+            ExplorationRoadVisualPlan plan,
+            float coreWidth,
+            Color detail,
+            Color rut)
+        {
+            int noise = ExploreNoise(x, y, 347);
+            bool horizontal = (plan.MainMask & (ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West)) != 0
+                && (plan.MainMask & (ExplorationRoadPresentationRules.North | ExplorationRoadPresentationRules.South)) == 0;
+            bool vertical = (plan.MainMask & (ExplorationRoadPresentationRules.North | ExplorationRoadPresentationRules.South)) != 0
+                && (plan.MainMask & (ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West)) == 0;
+
+            if (plan.DrawCenterWear && horizontal && noise % 3 != 0)
+            {
+                float thickness = Mathf.Max(1f, rect.height * 0.026f);
+                float offset = coreWidth * 0.27f;
+                float leftInset = rect.width * (0.12f + (noise % 4) * 0.025f);
+                float rightInset = rect.width * (0.14f + ((noise / 4) % 3) * 0.03f);
+                float wearWidth = Mathf.Max(1f, rect.width - leftInset - rightInset);
+                DrawRect(new Rect(rect.x + leftInset, rect.center.y - offset, wearWidth, thickness), rut);
+                DrawRect(new Rect(rect.x + leftInset, rect.center.y + offset - thickness, wearWidth, thickness), rut);
+            }
+
+            if (plan.Tier == ExplorationRoadVisualTier.Bridge && !exploreWideView)
+            {
+                float seam = Mathf.Max(1f, rect.width * 0.018f);
+                if (horizontal)
+                {
+                    DrawRect(new Rect(rect.x + rect.width * 0.32f, rect.center.y - coreWidth * 0.5f, seam, coreWidth), detail);
+                    DrawRect(new Rect(rect.x + rect.width * 0.68f, rect.center.y - coreWidth * 0.5f, seam, coreWidth), detail);
+                }
+                else if (vertical)
+                {
+                    DrawRect(new Rect(rect.center.x - coreWidth * 0.5f, rect.y + rect.height * 0.32f, coreWidth, seam), detail);
+                    DrawRect(new Rect(rect.center.x - coreWidth * 0.5f, rect.y + rect.height * 0.68f, coreWidth, seam), detail);
+                }
+            }
+
+            if (exploreWideView
+                || noise % 3 == 0
+                || plan.Join == ExplorationRoadJoin.Corner
+                || plan.Join == ExplorationRoadJoin.Tee
+                || plan.Join == ExplorationRoadJoin.Cross)
+            {
+                return;
+            }
+            float chipWidth = Mathf.Max(1f, rect.width * (plan.Tier == ExplorationRoadVisualTier.Trail ? 0.08f : 0.06f));
+            float chipHeight = Mathf.Max(1f, rect.height * 0.035f);
+            float along = 0.22f + (noise % 5) * 0.13f;
+            float side = (noise / 5) % 2 == 0 ? -coreWidth * 0.30f : coreWidth * 0.24f;
+            float chipX = vertical ? rect.center.x + side : rect.x + rect.width * along;
+            float chipY = vertical ? rect.y + rect.height * along : rect.center.y + side;
+            if (!horizontal && !vertical) return;
+            DrawRect(vertical
+                ? new Rect(chipX - chipHeight * 0.5f, chipY, chipHeight, chipWidth)
+                : new Rect(chipX, chipY - chipHeight * 0.5f, chipWidth, chipHeight), detail);
         }
 
         private void DrawOldRoadGroundMark(Rect rect, int x, int y)
@@ -5673,14 +5825,26 @@ namespace AshenHalls
 
         private void DrawExplorePathStroke(Rect rect, int mask, float width, Color color)
         {
+            width = Mathf.Clamp(width, 1f, Mathf.Min(rect.width, rect.height) * 0.90f);
             float cx = rect.center.x;
             float cy = rect.center.y;
             float half = width * 0.5f;
-            DrawRect(new Rect(cx - half, cy - half, width, width), color);
-            if ((mask & 1) != 0) DrawRect(new Rect(cx - half, rect.y, width, cy - rect.y), color);
-            if ((mask & 2) != 0) DrawRect(new Rect(cx, cy - half, rect.xMax - cx, width), color);
-            if ((mask & 4) != 0) DrawRect(new Rect(cx - half, cy, width, rect.yMax - cy), color);
-            if ((mask & 8) != 0) DrawRect(new Rect(rect.x, cy - half, cx - rect.x, width), color);
+            float chamfer = Mathf.Clamp(width * 0.18f, 0.25f, width * 0.42f);
+            float armWidth = Mathf.Max(1f, width * 0.90f);
+            float armHalf = armWidth * 0.5f;
+
+            // Two crossed rectangles form a restrained octagonal apron. Corners
+            // and junctions read as worn ground instead of stacked square pipes.
+            DrawRect(new Rect(cx - half + chamfer, cy - half, width - chamfer * 2f, width), color);
+            DrawRect(new Rect(cx - half, cy - half + chamfer, width, width - chamfer * 2f), color);
+            if ((mask & ExplorationRoadPresentationRules.North) != 0)
+                DrawRect(new Rect(cx - armHalf, rect.y, armWidth, cy - rect.y), color);
+            if ((mask & ExplorationRoadPresentationRules.East) != 0)
+                DrawRect(new Rect(cx, cy - armHalf, rect.xMax - cx, armWidth), color);
+            if ((mask & ExplorationRoadPresentationRules.South) != 0)
+                DrawRect(new Rect(cx - armHalf, cy, armWidth, rect.yMax - cy), color);
+            if ((mask & ExplorationRoadPresentationRules.West) != 0)
+                DrawRect(new Rect(rect.x, cy - armHalf, cx - rect.x, armWidth), color);
         }
 
         private string ExploreTerrainFamily(string kind)
@@ -5706,6 +5870,7 @@ namespace AshenHalls
 
             if (kind == "road")
             {
+                if (ExplorationSurfaceRules.IsPath(ExploreRolesAt(x, y))) return;
                 Color track = Hex("211912", 0.32f);
                 bool vertical = TileAt(state.Map, x, y - 1) == 1 || TileAt(state.Map, x, y + 1) == 1;
                 bool horizontal = TileAt(state.Map, x - 1, y) == 1 || TileAt(state.Map, x + 1, y) == 1;
@@ -5777,6 +5942,7 @@ namespace AshenHalls
 
             if (kind == "road")
             {
+                if (ExplorationSurfaceRules.IsPath(ExploreRolesAt(x, y))) return;
                 bool vertical = TileAt(state.Map, x, y - 1) == 1 || TileAt(state.Map, x, y + 1) == 1;
                 bool horizontal = TileAt(state.Map, x - 1, y) == 1 || TileAt(state.Map, x + 1, y) == 1;
                 Color rut = Hex("15110e", 0.13f);

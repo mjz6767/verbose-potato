@@ -101,7 +101,7 @@ namespace AshenHalls
                     Subtitle = homeTownName + ", the Old Road, and contextual use",
                     Lines = new[]
                     {
-                        "Local Map: WASD / arrows move one tile. Click adjacent tiles to walk.",
+                        "Local Map: hold WASD / arrows / left stick to keep walking; tap for one tile. Click adjacent tiles to walk.",
                         "Space / E: use the highlighted nearby target: talk, loot, enter, recall, or descend.",
                         "Q: Details. Tab / gamepad Y: Local/Region. Region Map: WASD/arrows/left stick, drag, or wheel pan; Home/gamepad X finds the party.",
                         "I: Armory. Its Growth tab previews and spends earned points. J: Journal. C: spell reference.",
