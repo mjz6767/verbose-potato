@@ -2,7 +2,15 @@
 
 ## Current Release
 
-`v2.21.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It keeps the v2.19 movement/road foundation while adding signature rewards and save-v26 migration, conservative Loot/Pack ownership, six campaign formulas, the guarded 31-entry Beta Lab, a quieter combat command deck, coherent Midgaard architecture/NPCs, and seamless road materials. Runtime/editor compilation, all integrated Unity smoke gates, clean retail packaging and clean-extracted boot, the guarded Beta title smoke, and a 20-capture final-player matrix pass from runtime source commit `11222c94b27d5541b9160e9a80ec7d55de60e407`. The verified v2.19.0 package remains preserved as rollback history.
+`v2.22.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It keeps the accepted v2.21 art/content package while adding stable physical-item identity, canonical equipment links, conservative save-v27 migration, exact Pack/Loot selection, and focus recovery after equipped rows reorder. Runtime/editor compilation, all integrated Unity smoke gates, clean retail packaging and clean-extracted boot, and a six-capture Inventory/Loot matrix pass from release source commit `700cd4cf496ff1f97d2e6370b57b42927bb0c262`. The verified v2.21.0 and v2.19.0 packages remain preserved as rollback history.
+
+## Stable Inventory Identity v2.22 - Release Gates Pass
+
+- Every acquired object receives one unique identity at the inventory gateway; member weapon and armor IDs are canonical and legacy owner text is only a rebuilt compatibility mirror.
+- Save v27 repairs unique pre-v27 ownership matches but refuses duplicate, cross-member, current-schema, or ambiguous Maud claims. No refresh or normalization path can silently retarget an identical item.
+- Pack and Loot retain the exact selected item through reorder/removal, move keyboard/controller focus with a selected row, suppress strategic Quick Equip, recheck at commit, and checkpoint vendor transactions only after all related mutations succeed.
+- Zero-diagnostic compilation, InventoryLootExperienceSmoke, RuleSmoke, SpriteArtRuntimeSmoke, focused combat UI, full RuntimeBoot, clean package/integrity/clean-extract gates, and six supported-resolution captures pass. The 229,948,882-byte retail ZIP has SHA-256 `b4120012d888bedab594dbeca19a12ee46908a384d9ea634243b4a69d9658338`; the capture set has SHA-256 `d87d21819860897dba396f36257e45421cde8aa0823f97321138603314810e7e`.
+- Physical-controller feel and a complete human Chapter I-V playthrough remain manual follow-ups.
 
 ## Stone, Steel, and Sorcery v2.21 - Release Gates Pass
 

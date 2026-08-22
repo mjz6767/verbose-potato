@@ -8,7 +8,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Hardened duplicate and legacy equipment handling. Identical copies, duplicate IDs, padded legacy IDs, and ambiguous Maud enchantment candidates now fail closed rather than silently retargeting a party member or synthesizing another item.
 - Kept Pack and Loot attached to the exact selected object through sorting and equipment changes. Keyboard/controller focus follows a selected row when it moves, Review opens the same item instance, and strategic Quick Equip is suppressed and rechecked at commit time.
 - Made Borin, Tessa, and Maud inventory transactions checkpoint only after the complete mutation succeeds. Borin's purchased armor stays in the Pack for an explicit comparison, and no acquisition silently changes a loadout.
-- Runtime/editor compilation plus the focused InventoryLootExperienceSmoke, RuleSmoke, and full RuntimeBoot gates pass on the frozen release candidate. The clean Windows package, clean-extracted boot, and packaged-player visual review are the remaining release gates.
+- Final zero-diagnostic compilation, InventoryLootExperienceSmoke, RuleSmoke, SpriteArtRuntimeSmoke, focused combat UI, full RuntimeBoot, clean retail packaging, canonical integrity checks, clean-extracted boot, and six supported-resolution Inventory/Loot captures pass from release source commit `700cd4cf496ff1f97d2e6370b57b42927bb0c262`. The 229,948,882-byte ZIP SHA-256 is `b4120012d888bedab594dbeca19a12ee46908a384d9ea634243b4a69d9658338`; the accepted capture-set SHA-256 is `d87d21819860897dba396f36257e45421cde8aa0823f97321138603314810e7e`.
 
 ## v2.21.0 - Stone, Steel, and Sorcery
 
