@@ -118,3 +118,19 @@ Reject any capture with repeated square road nodes, a rail/plank reading, brown
 dirt painted over civic cobble, ambient full-body NPCs in Region view, clipped
 building roofs, disconnected doorsteps, or named contacts that cannot be
 distinguished at 960 by 600.
+
+## Accepted release evidence
+
+The final retail package contains all 58 exact manifest pins and 92 selected
+PNGs, then clean-extracts and boots successfully from runtime source commit
+`11222c94b27d5541b9160e9a80ec7d55de60e407`. Twenty packaged-player captures
+under `QA/v2.21.0-release-visuals-11222c9-rerun2` cover all four Midgaard gate
+approaches, Local/Region layouts, named street contacts, combat, Inventory, and
+Loot across the supported endpoint/intermediate resolutions. The deterministic
+packet passes with zero failures or warnings and capture-set SHA-256
+`a66068e10c28a4157117d2de2678cf4965f9f606794e94aeac8bca942e3087c5`.
+
+Independent visual review accepts the city structures, road materials/joins,
+NPC-family scale, and responsive layouts without a release blocker. Compact
+960 by 600 header elision and one shortened secondary Inventory summary are
+nonblocking because the full selected-row values and all actions remain visible.

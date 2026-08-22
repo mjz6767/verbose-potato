@@ -11,6 +11,8 @@ High-visibility runtime art loads an approved exact filename first, then uses a 
 
 Both accepted sources were created with built-in ImageGen from explicit style and role references. The exact prompts are preserved as `source-midgaard-road-surfaces-v2.21.0-prompt.txt` and `source-world-npc-citizens-v2.21.0-prompt.txt`. `Tools/BuildMidgaardWorldArtAtlases.py` deterministically removes baked neutral backgrounds from sprite sources, normalizes every figure, makes the road edges exactly seamless, and writes SHA-256-backed validation JSON. The accepted hashes are `428A853DF2FF339740DC5E54D3DB8061C608D1C6E2DA5041B4435A726AEA7E72` and `6F45940F1F590D2F4CE04450AD19A0C081611A06897B9B3952A51F2551AFB198`.
 
+The final v2.21 retail package gate verifies 58 unique manifest pins, 92 packaged PNGs, exact source/staged/package hash parity, and a successful clean-extracted boot from runtime source commit `11222c94b27d5541b9160e9a80ec7d55de60e407`. Twenty packaged-player Local/Region/NPC/combat/Inventory/Loot captures under `QA/v2.21.0-release-visuals-11222c9-rerun2` pass deterministic validation and independent visual review; capture-set SHA-256 is `a66068e10c28a4157117d2de2678cf4965f9f606794e94aeac8bca942e3087c5`.
+
 ## Active v2.20.0 signature-item contract
 
 `unique-item-atlas-runtime-v2.20.0.png` is the exact-pinned transparent 5 by 4 signature-equipment sheet. It is 1280 by 1024 RGBA with 256-pixel cells, at least 70% transparent pixels overall, at least 4% visible pixels overall, and no visible alpha in reserved cells 7-19. Runtime checks this sheet before consumable and generic equipment art and rejects incorrect geometry or alpha balance through the existing fail-closed fallback chain.

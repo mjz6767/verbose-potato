@@ -2,7 +2,16 @@
 
 ## Current Release
 
-`v2.19.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It preserves the v2.18 combat/title foundation while adding measured hold-to-walk Local travel and rebuilding roads as quieter topology-aware surfaces at Local and Region scales. Save schema remains v25; map topology, traversal, campaign content, the 56 exact art pins, and the 91-PNG packaged inventory are unchanged. Runtime/editor compilation, Unity RuleSmoke, full RuntimeBoot, the clean Windows build/package, clean-extracted boot, and a six-capture Local/Region player matrix pass from source commit `ecc79da565207f412c82b0683e0092c85a34958e`. The verified v2.18.0 package remains preserved as rollback history.
+`v2.21.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It keeps the v2.19 movement/road foundation while adding signature rewards and save-v26 migration, conservative Loot/Pack ownership, six campaign formulas, the guarded 31-entry Beta Lab, a quieter combat command deck, coherent Midgaard architecture/NPCs, and seamless road materials. Runtime/editor compilation, all integrated Unity smoke gates, clean retail packaging and clean-extracted boot, the guarded Beta title smoke, and a 20-capture final-player matrix pass from runtime source commit `11222c94b27d5541b9160e9a80ec7d55de60e407`. The verified v2.19.0 package remains preserved as rollback history.
+
+## Stone, Steel, and Sorcery v2.21 - Release Gates Pass
+
+- Seven signature campaign rewards retain exact reward gates/base stats while gaining stable identities, truthful intrinsics, distinct art, enchantment-safe migration, and save/load idempotence under save schema v26.
+- Loot never silently equips. Continue remains safe, exact Quick Equip names its recipient, Compare others opens Pack, and strategic/signature/enchantment changes stay deliberate Review decisions with both loadouts disclosed.
+- Midgaard buildings read as grounded structures, four seamless road materials follow the established topology, and named/ambient NPCs share a coherent baseline and scale. The exact manifest has 58 pins and the package contains 92 PNGs.
+- Combat keeps blocked target/LOS information prominent through focus while removing repeated idle command copy; all three supported resolutions preserve board, actions, active/target cards, and turn order.
+- Zero-diagnostic compilation, InventoryLootExperienceSmoke, RuleSmoke, SpriteArtRuntimeSmoke, focused combat UI, full RuntimeBoot, the clean package/integrity/clean-extract gates, and guarded Beta title smoke pass. The 229,943,551-byte retail ZIP has SHA-256 `80347335d998d42702583d6d33520d76af7136431bddb65d088625e5cdf384bb`; the Beta ZIP has SHA-256 `a9b2d0281d81fda8e6a47197c037e7ea1734a8008c51dc72513071c7df99b568`.
+- Twenty final-player captures pass deterministic validation and independent visual review with set SHA-256 `a66068e10c28a4157117d2de2678cf4965f9f606794e94aeac8bca942e3087c5`. Physical-controller feel, subjective listening, live Reduced Motion comparison, and a complete human Chapter I-V playthrough remain manual follow-ups.
 
 ## The Living Road v2.19 - Release Gates Pass
 

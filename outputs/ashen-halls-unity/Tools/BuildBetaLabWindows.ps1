@@ -20,16 +20,18 @@ Write-Host "Building the opt-in Beta Development player..."
 Write-Host "Project: $projectRoot"
 Write-Host "Log: $LogPath"
 
-& $UnityExe `
-    -batchmode `
-    -nographics `
-    -quit `
-    -projectPath $projectRoot `
-    -executeMethod AshenHalls.Editor.BuildWindows.BuildBeta `
-    -logFile $LogPath
-
-if ($LASTEXITCODE -ne 0) {
-    throw "Beta Lab Windows build failed with exit code $LASTEXITCODE. See $LogPath"
+$unityArguments =
+    '-batchmode -nographics -quit -projectPath "' + $projectRoot +
+    '" -executeMethod AshenHalls.Editor.BuildWindows.BuildBeta -logFile "' + $LogPath + '"'
+$unityProcess = Start-Process `
+    -FilePath $UnityExe `
+    -ArgumentList $unityArguments `
+    -PassThru `
+    -WindowStyle Hidden
+$unityProcess.WaitForExit()
+$unityExitCode = $unityProcess.ExitCode
+if ($unityExitCode -ne 0) {
+    throw "Beta Lab Windows build failed with exit code $unityExitCode. See $LogPath"
 }
 
 $logText = Get-Content -LiteralPath $LogPath -Raw
@@ -97,14 +99,17 @@ try {
     }
 
     Write-Host "Verifying the clean-extracted Development player exposes the guarded title Beta Lab..."
-    & $extractedPlayerExe `
-        -batchmode `
-        -nographics `
-        -quit `
-        -ashen-beta-title-smoke `
-        -logFile $betaSmokeLog
-    if ($LASTEXITCODE -ne 0) {
-        throw "Clean-extracted Beta player smoke failed with exit code $LASTEXITCODE. See $betaSmokeLog"
+    $playerArguments =
+        '-batchmode -nographics -quit -ashen-beta-title-smoke -logFile "' + $betaSmokeLog + '"'
+    $playerProcess = Start-Process `
+        -FilePath $extractedPlayerExe `
+        -ArgumentList $playerArguments `
+        -PassThru `
+        -WindowStyle Hidden
+    $playerProcess.WaitForExit()
+    $playerExitCode = $playerProcess.ExitCode
+    if ($playerExitCode -ne 0) {
+        throw "Clean-extracted Beta player smoke failed with exit code $playerExitCode. See $betaSmokeLog"
     }
     $betaSmokeText = Get-Content -LiteralPath $betaSmokeLog -Raw
     if ($betaSmokeText -notmatch "beta title smoke passed: development title exposes Beta Lab") {

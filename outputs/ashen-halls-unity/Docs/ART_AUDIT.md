@@ -6,6 +6,7 @@
 - `world-npc-citizen-atlas-runtime-v2.21.0.png` replaces the coarser v2.4 ambient sheet with eight transparent figures drawn in the named v2.21 NPC language. Every cell is 384 pixels square with a 344-pixel figure, exact 20-pixel top/bottom gutters, shared baseline, restrained neutral shadow, and 25%-38% visible coverage.
 - Town Guards use named-contact padding. Ambient citizens and Grand Hearth patrons stay within eight percent of named-contact height locally, Region view still suppresses exterior ambient figures, and doubled generic/authored shadows are removed.
 - The exact output SHA-256 values are `428A853DF2FF339740DC5E54D3DB8061C608D1C6E2DA5041B4435A726AEA7E72` for roads and `6F45940F1F590D2F4CE04450AD19A0C081611A06897B9B3952A51F2551AFB198` for citizens. Prompts, generated sources, validation JSON, deterministic builder, and the combined contact sheet are preserved beside the runtime files.
+- Final RuleSmoke, SpriteArtRuntimeSmoke, full RuntimeBoot, clean packaging, 92-PNG inventory parity, clean-extracted boot, and 20-capture packaged-player review pass from runtime source commit `11222c94b27d5541b9160e9a80ec7d55de60e407`. The accepted visual packet is `QA/v2.21.0-release-visuals-11222c9-rerun2`, with capture-set SHA-256 `a66068e10c28a4157117d2de2678cf4965f9f606794e94aeac8bca942e3087c5`.
 
 ## Newly connected for v2.20.0 - signature equipment
 
