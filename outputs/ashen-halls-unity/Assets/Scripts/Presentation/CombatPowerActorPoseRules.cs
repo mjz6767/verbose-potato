@@ -31,7 +31,12 @@ namespace AshenHalls
         Dash,
         Teleport,
         Summon,
-        Morph
+        Morph,
+        Whirl,
+        Brace,
+        Bow,
+        Vanish,
+        HeavyStrike
     }
 
     public readonly struct CombatPowerActorPoseProfile
@@ -554,14 +559,55 @@ namespace AshenHalls
             }
 
             CombatPowerActorChoreographyKind choreography = CombatPowerActorChoreographyKind.Cast;
+            float releaseDuration = 0.085f;
+            float recoveryDuration = 0.19f;
             switch (key)
             {
                 case "charge":
                     choreography = CombatPowerActorChoreographyKind.Dash;
                     break;
                 case "shadowstep":
+                    // Shadowstep retains the public teleport/movement contract, but its
+                    // source frames receive the Vanish family's crouch and silhouette fade.
+                    recoveryDuration = 0.24f;
+                    choreography = CombatPowerActorChoreographyKind.Teleport;
+                    break;
                 case "riftpounce":
                     choreography = CombatPowerActorChoreographyKind.Teleport;
+                    break;
+                case "whirlwind":
+                case "abyssalwhirl":
+                    choreography = CombatPowerActorChoreographyKind.Whirl;
+                    releaseDuration = 0.18f;
+                    recoveryDuration = 0.28f;
+                    break;
+                case "rally":
+                case "dreadroar":
+                    choreography = CombatPowerActorChoreographyKind.Brace;
+                    releaseDuration = 0.15f;
+                    recoveryDuration = 0.26f;
+                    break;
+                case "volley":
+                    choreography = CombatPowerActorChoreographyKind.Bow;
+                    releaseDuration = 0.18f;
+                    recoveryDuration = 0.24f;
+                    break;
+                case "quickshot":
+                    choreography = CombatPowerActorChoreographyKind.Bow;
+                    releaseDuration = 0.14f;
+                    recoveryDuration = 0.20f;
+                    break;
+                case "stealth":
+                case "smokebomb":
+                    choreography = CombatPowerActorChoreographyKind.Vanish;
+                    releaseDuration = 0.15f;
+                    recoveryDuration = 0.24f;
+                    break;
+                case "sunder":
+                case "execute":
+                    choreography = CombatPowerActorChoreographyKind.HeavyStrike;
+                    releaseDuration = 0.15f;
+                    recoveryDuration = 0.28f;
                     break;
             }
 
@@ -574,8 +620,8 @@ namespace AshenHalls
                 targetHit,
                 false,
                 AbilityEnergy(key),
-                0.085f,
-                0.19f,
+                releaseDuration,
+                recoveryDuration,
                 0.17f);
         }
 
@@ -641,6 +687,16 @@ namespace AshenHalls
                     return EvaluateTeleportSource(plan, elapsed);
                 case CombatPowerActorChoreographyKind.Morph:
                     return EvaluateMorphSource(plan, elapsed);
+                case CombatPowerActorChoreographyKind.Whirl:
+                    return EvaluateWhirlSource(plan, elapsed);
+                case CombatPowerActorChoreographyKind.Brace:
+                    return EvaluateBraceSource(plan, elapsed);
+                case CombatPowerActorChoreographyKind.Bow:
+                    return EvaluateBowSource(plan, elapsed);
+                case CombatPowerActorChoreographyKind.Vanish:
+                    return EvaluateVanishSource(plan, elapsed);
+                case CombatPowerActorChoreographyKind.HeavyStrike:
+                    return EvaluateHeavyStrikeSource(plan, elapsed);
                 default:
                     return EvaluateCastSource(plan, elapsed);
             }
@@ -907,6 +963,252 @@ namespace AshenHalls
             return CompleteFrame(plan, CombatPowerActorPoseRole.Source, elapsed, plan.SourceX, plan.SourceY);
         }
 
+        private static CombatPowerActorPoseFrame EvaluateWhirlSource(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            if (elapsed < plan.CastWindupEndAt)
+            {
+                return WhirlWindupFrame(plan, elapsed);
+            }
+
+            if (elapsed < plan.ReleaseEndAt)
+            {
+                float progress = PhaseProgress(elapsed, plan.ReleaseAt, plan.ReleaseEndAt);
+                float unwind = 1f - Smooth01(progress);
+                float envelope = (float)Math.Sin(progress * Math.PI);
+                float orbit = (float)Math.Sin(progress * Math.PI * 4f) * envelope;
+                float lift = Math.Abs((float)Math.Sin(progress * Math.PI * 2f)) * envelope;
+                float direction = StableDirection(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.CastWindup,
+                    4);
+                return Frame(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.Release,
+                    elapsed,
+                    plan.ReleaseAt,
+                    plan.ReleaseEndAt,
+                    progress,
+                    plan.SourceX,
+                    plan.SourceY,
+                    direction * (-0.060f * plan.Energy * unwind + 0.105f * plan.Energy * orbit),
+                    0.055f * plan.Energy * unwind - 0.035f * plan.Energy * lift,
+                    1f - 0.065f * plan.Energy * unwind + 0.075f * plan.Energy * envelope,
+                    1f);
+            }
+
+            if (elapsed < plan.RecoveryEndAt)
+            {
+                return RecoveryFrame(plan, elapsed, plan.SourceX, plan.SourceY);
+            }
+
+            return CompleteFrame(plan, CombatPowerActorPoseRole.Source, elapsed, plan.SourceX, plan.SourceY);
+        }
+
+        private static CombatPowerActorPoseFrame EvaluateBraceSource(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            if (elapsed < plan.CastWindupEndAt)
+            {
+                return BraceWindupFrame(plan, elapsed);
+            }
+
+            if (elapsed < plan.ReleaseEndAt)
+            {
+                float progress = PhaseProgress(elapsed, plan.ReleaseAt, plan.ReleaseEndAt);
+                float unwind = 1f - Smooth01(progress);
+                float crest = (float)Math.Sin(progress * Math.PI);
+                float resonance = (float)Math.Sin(progress * Math.PI * 3f) * (1f - progress);
+                float direction = StableDirection(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.CastWindup,
+                    5);
+                return Frame(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.Release,
+                    elapsed,
+                    plan.ReleaseAt,
+                    plan.ReleaseEndAt,
+                    progress,
+                    plan.SourceX,
+                    plan.SourceY,
+                    direction * (0.022f * unwind + 0.028f * crest + 0.010f * resonance),
+                    0.065f * plan.Energy * unwind - 0.075f * plan.Energy * crest,
+                    1f - 0.075f * plan.Energy * unwind + 0.090f * plan.Energy * crest,
+                    1f);
+            }
+
+            if (elapsed < plan.RecoveryEndAt)
+            {
+                return RecoveryFrame(plan, elapsed, plan.SourceX, plan.SourceY);
+            }
+
+            return CompleteFrame(plan, CombatPowerActorPoseRole.Source, elapsed, plan.SourceX, plan.SourceY);
+        }
+
+        private static CombatPowerActorPoseFrame EvaluateBowSource(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            if (elapsed < plan.CastWindupEndAt)
+            {
+                return BowWindupFrame(plan, elapsed);
+            }
+
+            if (elapsed < plan.ReleaseEndAt)
+            {
+                float progress = PhaseProgress(elapsed, plan.ReleaseAt, plan.ReleaseEndAt);
+                float unwind = 1f - Smooth01(progress);
+                float pulse = string.Equals(plan.PowerKey, "quickshot", StringComparison.Ordinal)
+                    ? Math.Abs((float)Math.Sin(progress * Math.PI * 2f))
+                    : (float)Math.Sin(progress * Math.PI);
+                DirectionToLanding(plan, out float directionX, out float directionY);
+                float side = StableDirection(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.CastWindup,
+                    6);
+                return Frame(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.Release,
+                    elapsed,
+                    plan.ReleaseAt,
+                    plan.ReleaseEndAt,
+                    progress,
+                    plan.SourceX,
+                    plan.SourceY,
+                    -directionX * 0.085f * plan.Energy * unwind
+                        + side * 0.018f * unwind
+                        + directionX * 0.120f * plan.Energy * pulse,
+                    -directionY * 0.045f * plan.Energy * unwind
+                        + 0.025f * unwind
+                        + directionY * 0.070f * plan.Energy * pulse
+                        - 0.025f * pulse,
+                    1f - 0.040f * plan.Energy * unwind + 0.055f * plan.Energy * pulse,
+                    1f);
+            }
+
+            if (elapsed < plan.RecoveryEndAt)
+            {
+                return RecoveryFrame(plan, elapsed, plan.SourceX, plan.SourceY);
+            }
+
+            return CompleteFrame(plan, CombatPowerActorPoseRole.Source, elapsed, plan.SourceX, plan.SourceY);
+        }
+
+        private static CombatPowerActorPoseFrame EvaluateVanishSource(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            if (elapsed < plan.CastWindupEndAt)
+            {
+                return VanishWindupFrame(plan, elapsed, plan.CastWindupEndAt);
+            }
+
+            float direction = StableDirection(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                7);
+            if (elapsed < plan.ReleaseEndAt)
+            {
+                float progress = PhaseProgress(elapsed, plan.ReleaseAt, plan.ReleaseEndAt);
+                float vanish = Smooth01(progress);
+                return Frame(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.Release,
+                    elapsed,
+                    plan.ReleaseAt,
+                    plan.ReleaseEndAt,
+                    progress,
+                    plan.SourceX,
+                    plan.SourceY,
+                    direction * Lerp(0.040f, 0.075f, vanish) * plan.Energy,
+                    Lerp(0.040f, 0.080f, vanish) * plan.Energy,
+                    Lerp(1f - 0.065f * plan.Energy, 0.78f, vanish),
+                    Lerp(0.90f, 0.28f, vanish));
+            }
+
+            if (elapsed < plan.RecoveryEndAt)
+            {
+                float progress = PhaseProgress(elapsed, plan.RecoveryStartAt, plan.RecoveryEndAt);
+                float reveal = Smooth01(progress);
+                return Frame(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.Recovery,
+                    elapsed,
+                    plan.RecoveryStartAt,
+                    plan.RecoveryEndAt,
+                    progress,
+                    plan.SourceX,
+                    plan.SourceY,
+                    direction * 0.075f * plan.Energy * (1f - reveal),
+                    0.080f * plan.Energy * (1f - reveal),
+                    OvershootScale(progress, 0.78f, 1.07f, 1f),
+                    Lerp(0.28f, 1f, reveal));
+            }
+
+            return CompleteFrame(plan, CombatPowerActorPoseRole.Source, elapsed, plan.SourceX, plan.SourceY);
+        }
+
+        private static CombatPowerActorPoseFrame EvaluateHeavyStrikeSource(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            if (elapsed < plan.CastWindupEndAt)
+            {
+                return HeavyStrikeWindupFrame(plan, elapsed);
+            }
+
+            if (elapsed < plan.ReleaseEndAt)
+            {
+                float progress = PhaseProgress(elapsed, plan.ReleaseAt, plan.ReleaseEndAt);
+                float unwind = 1f - Smooth01(progress);
+                float strike = (float)Math.Sin(progress * Math.PI);
+                DirectionToLanding(plan, out float directionX, out float directionY);
+                float side = StableDirection(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.CastWindup,
+                    8);
+                return Frame(
+                    plan,
+                    CombatPowerActorPoseRole.Source,
+                    CombatPowerActorPosePhase.Release,
+                    elapsed,
+                    plan.ReleaseAt,
+                    plan.ReleaseEndAt,
+                    progress,
+                    plan.SourceX,
+                    plan.SourceY,
+                    -directionX * 0.095f * plan.Energy * unwind
+                        + side * 0.015f * unwind
+                        + directionX * 0.145f * plan.Energy * strike,
+                    -directionY * 0.055f * plan.Energy * unwind
+                        - 0.055f * plan.Energy * unwind
+                        + directionY * 0.090f * plan.Energy * strike
+                        + 0.045f * plan.Energy * strike,
+                    1f - 0.055f * plan.Energy * unwind + 0.090f * plan.Energy * strike,
+                    1f);
+            }
+
+            if (elapsed < plan.RecoveryEndAt)
+            {
+                return RecoveryFrame(plan, elapsed, plan.SourceX, plan.SourceY);
+            }
+
+            return CompleteFrame(plan, CombatPowerActorPoseRole.Source, elapsed, plan.SourceX, plan.SourceY);
+        }
+
         private static CombatPowerActorPoseFrame EvaluateDashSource(
             CombatPowerActorPosePlan plan,
             float elapsed)
@@ -954,14 +1256,21 @@ namespace AshenHalls
         {
             if (elapsed < plan.CastWindupEndAt)
             {
-                return CastWindupFrame(plan, elapsed, plan.CastWindupEndAt);
+                return string.Equals(plan.PowerKey, "shadowstep", StringComparison.Ordinal)
+                    ? VanishWindupFrame(plan, elapsed, plan.CastWindupEndAt)
+                    : CastWindupFrame(plan, elapsed, plan.CastWindupEndAt);
             }
 
             if (elapsed < plan.TeleportSplitAt && plan.TeleportSplitAt > plan.ReleaseAt)
             {
                 float progress = PhaseProgress(elapsed, plan.ReleaseAt, plan.TeleportSplitAt);
                 float fade = Smooth01(progress);
-                float jitter = StableSigned(plan, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.TeleportOut, 0);
+                bool shadowstep = string.Equals(plan.PowerKey, "shadowstep", StringComparison.Ordinal);
+                float jitter = shadowstep
+                    ? StableDirection(plan, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.CastWindup, 7)
+                    : StableSigned(plan, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.TeleportOut, 0);
+                float shadowGatherX = shadowstep ? 0.040f * plan.Energy * (1f - fade) : 0f;
+                float shadowGatherY = shadowstep ? 0.040f * plan.Energy * (1f - fade) : 0f;
                 return Frame(
                     plan,
                     CombatPowerActorPoseRole.Source,
@@ -972,17 +1281,20 @@ namespace AshenHalls
                     progress,
                     plan.SourceX,
                     plan.SourceY,
-                    jitter * 0.055f * fade,
-                    -0.075f * fade,
-                    Lerp(1f, 0.78f, fade),
-                    1f - fade);
+                    jitter * (shadowGatherX + (shadowstep ? 0.085f : 0.055f) * fade),
+                    shadowGatherY + (shadowstep ? 0.090f : -0.075f) * fade,
+                    Lerp(shadowstep ? 1f - 0.065f * plan.Energy : 1f, shadowstep ? 0.72f : 0.78f, fade),
+                    Lerp(shadowstep ? 0.90f : 1f, 0f, fade));
             }
 
             if (elapsed < plan.ImpactAt && plan.ImpactAt > plan.TeleportSplitAt)
             {
                 float progress = PhaseProgress(elapsed, plan.TeleportSplitAt, plan.ImpactAt);
                 float appear = Smooth01(progress);
-                float jitter = StableSigned(plan, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.TeleportIn, 0);
+                bool shadowstep = string.Equals(plan.PowerKey, "shadowstep", StringComparison.Ordinal);
+                float jitter = shadowstep
+                    ? StableDirection(plan, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.CastWindup, 7)
+                    : StableSigned(plan, CombatPowerActorPoseRole.Source, CombatPowerActorPosePhase.TeleportIn, 0);
                 return Frame(
                     plan,
                     CombatPowerActorPoseRole.Source,
@@ -993,9 +1305,9 @@ namespace AshenHalls
                     progress,
                     plan.LandingX,
                     plan.LandingY,
-                    jitter * 0.055f * (1f - appear),
-                    0.075f * (1f - appear),
-                    OvershootScale(progress, 0.78f, 1.08f, 1f),
+                    jitter * (shadowstep ? 0.080f : 0.055f) * (1f - appear),
+                    (shadowstep ? 0.100f : 0.075f) * (1f - appear),
+                    OvershootScale(progress, shadowstep ? 0.72f : 0.78f, shadowstep ? 1.12f : 1.08f, 1f),
                     appear);
             }
 
@@ -1064,6 +1376,144 @@ namespace AshenHalls
             }
 
             return CompleteFrame(plan, CombatPowerActorPoseRole.Source, elapsed, plan.LandingX, plan.LandingY);
+        }
+
+        private static CombatPowerActorPoseFrame WhirlWindupFrame(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            float progress = PhaseProgress(elapsed, 0f, plan.CastWindupEndAt);
+            float gather = Smooth01(progress);
+            float direction = StableDirection(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                4);
+            return Frame(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                elapsed,
+                0f,
+                plan.CastWindupEndAt,
+                progress,
+                plan.SourceX,
+                plan.SourceY,
+                -direction * 0.060f * plan.Energy * gather,
+                0.055f * plan.Energy * gather,
+                1f - 0.065f * plan.Energy * gather,
+                1f);
+        }
+
+        private static CombatPowerActorPoseFrame BraceWindupFrame(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            float progress = PhaseProgress(elapsed, 0f, plan.CastWindupEndAt);
+            float gather = Smooth01(progress);
+            float direction = StableDirection(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                5);
+            return Frame(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                elapsed,
+                0f,
+                plan.CastWindupEndAt,
+                progress,
+                plan.SourceX,
+                plan.SourceY,
+                direction * 0.022f * gather,
+                0.065f * plan.Energy * gather,
+                1f - 0.075f * plan.Energy * gather,
+                1f);
+        }
+
+        private static CombatPowerActorPoseFrame BowWindupFrame(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            float progress = PhaseProgress(elapsed, 0f, plan.CastWindupEndAt);
+            float gather = Smooth01(progress);
+            DirectionToLanding(plan, out float directionX, out float directionY);
+            float side = StableDirection(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                6);
+            return Frame(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                elapsed,
+                0f,
+                plan.CastWindupEndAt,
+                progress,
+                plan.SourceX,
+                plan.SourceY,
+                -directionX * 0.085f * plan.Energy * gather + side * 0.018f * gather,
+                -directionY * 0.045f * plan.Energy * gather + 0.025f * gather,
+                1f - 0.040f * plan.Energy * gather,
+                1f);
+        }
+
+        private static CombatPowerActorPoseFrame VanishWindupFrame(
+            CombatPowerActorPosePlan plan,
+            float elapsed,
+            float endAt)
+        {
+            float progress = PhaseProgress(elapsed, 0f, endAt);
+            float gather = Smooth01(progress);
+            float direction = StableDirection(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                7);
+            return Frame(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                elapsed,
+                0f,
+                endAt,
+                progress,
+                plan.SourceX,
+                plan.SourceY,
+                direction * 0.040f * plan.Energy * gather,
+                0.040f * plan.Energy * gather,
+                1f - 0.065f * plan.Energy * gather,
+                1f - 0.10f * gather);
+        }
+
+        private static CombatPowerActorPoseFrame HeavyStrikeWindupFrame(
+            CombatPowerActorPosePlan plan,
+            float elapsed)
+        {
+            float progress = PhaseProgress(elapsed, 0f, plan.CastWindupEndAt);
+            float gather = Smooth01(progress);
+            DirectionToLanding(plan, out float directionX, out float directionY);
+            float side = StableDirection(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                8);
+            return Frame(
+                plan,
+                CombatPowerActorPoseRole.Source,
+                CombatPowerActorPosePhase.CastWindup,
+                elapsed,
+                0f,
+                plan.CastWindupEndAt,
+                progress,
+                plan.SourceX,
+                plan.SourceY,
+                -directionX * 0.095f * plan.Energy * gather + side * 0.015f * gather,
+                -directionY * 0.055f * plan.Energy * gather - 0.055f * plan.Energy * gather,
+                1f - 0.055f * plan.Energy * gather,
+                1f);
         }
 
         private static CombatPowerActorPoseFrame CastWindupFrame(
@@ -1346,6 +1796,15 @@ namespace AshenHalls
             int channel)
         {
             return StableActorSignedSample(plan.PowerKey, plan.StableSeed, role, phase, channel);
+        }
+
+        private static float StableDirection(
+            CombatPowerActorPosePlan plan,
+            CombatPowerActorPoseRole role,
+            CombatPowerActorPosePhase phase,
+            int channel)
+        {
+            return StableSigned(plan, role, phase, channel) >= 0f ? 1f : -1f;
         }
 
         private static void DirectionToLanding(

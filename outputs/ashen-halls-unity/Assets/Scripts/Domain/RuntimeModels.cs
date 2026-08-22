@@ -161,6 +161,7 @@ namespace AshenHalls
     [Serializable]
     public sealed class InventoryItem
     {
+        public string SignatureId;
         public string Mark;
         public string EquippedById;
         public string Material;

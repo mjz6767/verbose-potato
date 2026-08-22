@@ -1,0 +1,35 @@
+Built-in ImageGen edit workflow, 2026-08-20
+
+Base edit target
+----------------
+unique-item-atlas-runtime-v0.71.png (1280x1024 RGBA, 5 columns x 4 rows)
+
+Generation prompt
+-----------------
+Use case: precise-object-edit
+Asset type: production game UI icon atlas for Ash & Brimstone / Ashen Halls
+Input images: Image 1 is the edit target and existing approved 1280x1024 transparent unique-item atlas.
+Primary request: Preserve cell 0 exactly as supplied, pixel-for-pixel. Fill only cells 1 through 6 with six distinct signature equipment icons. Keep cells 7 through 19 fully transparent.
+Atlas geometry: exact 1280x1024 canvas, transparent RGBA; 5 columns by 4 rows; every cell exactly 256x256 pixels. Top row cells are 0,1,2,3,4 left-to-right; second row cells are 5,6,7,8,9. Center one object per populated cell with transparent gutters. No object may cross a cell boundary.
+Cell 1: Sluicekeeper Blade — a sturdy fine-steel broadsword, subtle sluice-gate geometry in the crossguard, dark blue-black wrapped grip, small teal and weathered-brass accents; practical and defensive.
+Cell 2: Stormglass Conductor — a compact ritual staff/focus with a faceted cyan stormglass crystal, copper conduction rings, dark ashwood shaft, restrained pale-blue electrical glint; intelligent caster gear.
+Cell 3: Ratcatcher's Roadcoat — a nimble stitched dark-brown rat-pelt and leather adventurer coat, reinforced seams, short practical cut, small buckles; rugged rather than gruesome, no animal head.
+Cell 4: Gloam Reliquary Mail — charcoal reliquary scale-mail torso, layered small dark metal scales, bone or ivory ward plaques, muted violet and teal accents; protective and funereal.
+Cell 5: Mirrorweave Road Mantle — ash-gray and deep-teal hooded road mantle, layered mirrorweave cloth, one small angular mirror-glass clasp, restrained frost-blue reflections; light and warding.
+Cell 6: Crownward Emberglass Warblade — broad emberglass warblade with dark-steel spine, crown-like antique-gold guard, controlled orange-red inner glow and ember edge; martial, regal, not oversized.
+Style/medium: crisp hand-authored-looking fantasy pixel art, same rendering language, scale, outline density, three-quarter object presentation, and limited color discipline as existing cell 0; legible at 64px.
+Color palette: near-black #050708, parchment ivory #f3ead7, antique gold #d7a84e, ember #c65c3b, teal #58b7a5, blood #b94b56, frost #9ad6e8, violet #8d6dcc.
+Constraints: change only cells 1-6; preserve cell 0 exactly; preserve the exact canvas and cell alignment; genuinely transparent background and gutters; cells 7-19 completely empty/transparent; no frames, tiles, labels, text, numbers, backplates, scenery, or watermark.
+Avoid: painterly blur, photorealism, smooth vector shapes, oversized glows, cropped objects, boundary bleed, checkerboard backgrounds, black opaque backgrounds, decorative cell borders.
+
+Transparency correction prompt
+------------------------------
+Use case: background-extraction
+Asset type: production game UI sprite atlas
+Input images: Image 1 has the correct seven icons in the correct 5x4 order, but an unwanted baked white/light-gray checkerboard background.
+Primary request: Remove only the entire checkerboard/background and replace it with genuine alpha transparency.
+Constraints: keep every icon unchanged in design, color, scale, orientation, sharp pixel-art edges, and location; preserve cells 7-19 empty; output a genuine RGBA PNG with alpha 0 everywhere outside the seven icons; clean edges with no white/gray halos; no checkerboard pixels, solid background, text, frame, or watermark.
+
+Deterministic normalization
+---------------------------
+The transparent 1402x1122 ImageGen result was normalized with Tools/BuildRuntimeIconAtlas.py to an exact 1280x1024 RGBA atlas, 5x4 cells, 256px per cell, 16px minimum gutter. Cell 0 was replaced from the accepted v0.71 atlas and is pixel-identical. Cells 7-19 are fully transparent. See source-unique-item-atlas-v2.20.0-build-report.json.

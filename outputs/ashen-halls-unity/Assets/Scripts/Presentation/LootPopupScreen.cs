@@ -10,6 +10,7 @@ namespace AshenHalls
         public bool Visible;
         public bool HasItem;
         public bool CanReview;
+        public bool CanQuickEquip;
         public string Title;
         public string ItemName;
         public string ItemType;
@@ -19,6 +20,7 @@ namespace AshenHalls
         public string Outcome;
         public string Comparison;
         public string ReviewActionLabel;
+        public string QuickEquipActionLabel;
         public string IconLabel;
         public string AccentHex;
         public Texture2D IconTexture;
@@ -33,6 +35,7 @@ namespace AshenHalls
     {
         public Func<LootPopupView> View;
         public Action Dismiss;
+        public Action QuickEquip;
         public Action ReviewInventory;
     }
 
@@ -61,6 +64,7 @@ namespace AshenHalls
         public readonly Rect ResourceRow;
         public readonly Rect Body;
         public readonly Rect Outcome;
+        public readonly Rect QuickEquipButton;
         public readonly Rect ReviewButton;
         public readonly Rect DismissButton;
 
@@ -73,6 +77,7 @@ namespace AshenHalls
             Rect resourceRow,
             Rect body,
             Rect outcome,
+            Rect quickEquipButton,
             Rect reviewButton,
             Rect dismissButton)
         {
@@ -84,6 +89,7 @@ namespace AshenHalls
             ResourceRow = resourceRow;
             Body = body;
             Outcome = outcome;
+            QuickEquipButton = quickEquipButton;
             ReviewButton = reviewButton;
             DismissButton = dismissButton;
         }
@@ -98,6 +104,7 @@ namespace AshenHalls
                 && FitsLocal(ResourceRow, Panel)
                 && FitsLocal(Body, Panel)
                 && FitsLocal(Outcome, Panel)
+                && FitsLocal(QuickEquipButton, Panel)
                 && FitsLocal(ReviewButton, Panel)
                 && FitsLocal(DismissButton, Panel);
         }
@@ -126,10 +133,11 @@ namespace AshenHalls
             Rect itemTitle = new Rect(158f, 68f, panelW - 182f, 38f);
             Rect resourceRow = new Rect(158f, 112f, panelW - 182f, 30f);
             Rect body = new Rect(158f, 151f, panelW - 182f, 64f);
-            Rect review = new Rect(panelW - 322f, panelH - 54f, 160f, 40f);
-            Rect dismiss = new Rect(panelW - 152f, panelH - 54f, 128f, 40f);
+            Rect dismiss = new Rect(panelW - 148f, panelH - 54f, 124f, 40f);
+            Rect review = new Rect(dismiss.x - 158f, panelH - 54f, 148f, 40f);
+            Rect quickEquip = new Rect(review.x - 186f, panelH - 54f, 176f, 40f);
             Rect outcome = new Rect(24f, 226f, panelW - 48f, Mathf.Max(62f, review.y - 238f));
-            return new LootPopupGeometry(backdrop, panel, icon, eyebrow, itemTitle, resourceRow, body, outcome, review, dismiss);
+            return new LootPopupGeometry(backdrop, panel, icon, eyebrow, itemTitle, resourceRow, body, outcome, quickEquip, review, dismiss);
         }
     }
 
@@ -155,6 +163,7 @@ namespace AshenHalls
         private Text suppliesText;
         private Text elixirText;
         private Text inputHintText;
+        private Button quickEquipButton;
         private Button reviewButton;
         private Button dismissButton;
         private Font font;
@@ -162,15 +171,17 @@ namespace AshenHalls
         private float lastHeight = -1f;
         private bool lastRefreshSucceeded;
 
-        public bool IsReady => canvas != null && panel != null && dismissButton != null && iconPanel != null;
+        public bool IsReady => canvas != null && panel != null && dismissButton != null && quickEquipButton != null && iconPanel != null;
         public bool IsVisible => IsReady && UiRuntime.IsCanvasVisible(canvas);
         public bool HasRenderableGeometry => IsReady
             && lastRefreshSucceeded
             && UiRuntime.CanOwnModal(canvas, panel, null, dismissButton);
         public bool HasRealIconForTest => iconImage != null && iconImage.gameObject.activeSelf && iconImage.texture != null;
         public bool HasReviewActionForTest => reviewButton != null && reviewButton.gameObject.activeSelf && reviewButton.interactable;
+        public bool HasQuickEquipActionForTest => quickEquipButton != null && quickEquipButton.gameObject.activeSelf && quickEquipButton.interactable;
         public string PrimaryActionLabelForTest => dismissButton == null ? "" : dismissButton.GetComponentInChildren<Text>()?.text ?? "";
         public string ReviewActionLabelForTest => reviewButton == null ? "" : reviewButton.GetComponentInChildren<Text>()?.text ?? "";
+        public string QuickEquipActionLabelForTest => quickEquipButton == null ? "" : quickEquipButton.GetComponentInChildren<Text>()?.text ?? "";
         public bool HasDefaultFocusForTest
         {
             get
@@ -252,6 +263,11 @@ namespace AshenHalls
             }
             iconFallbackText.text = string.IsNullOrWhiteSpace(view.IconLabel) ? "LOOT" : view.IconLabel;
 
+            quickEquipButton.gameObject.SetActive(view.CanQuickEquip);
+            quickEquipButton.interactable = view.CanQuickEquip;
+            quickEquipButton.GetComponentInChildren<Text>().text = string.IsNullOrWhiteSpace(view.QuickEquipActionLabel)
+                ? "Equip best fit"
+                : view.QuickEquipActionLabel;
             reviewButton.gameObject.SetActive(view.CanReview);
             reviewButton.interactable = view.CanReview;
             reviewButton.GetComponentInChildren<Text>().text = string.IsNullOrWhiteSpace(view.ReviewActionLabel)
@@ -260,7 +276,7 @@ namespace AshenHalls
             inputHintText.text = view.SecondsRemaining > 0.5f
                 ? $"{Mathf.CeilToInt(view.SecondsRemaining)}s"
                 : "ENTER / A  SELECT   •   ESC / B  CLOSE";
-            ConfigureActionNavigation(view.CanReview);
+            ConfigureActionNavigation(view.CanQuickEquip, view.CanReview);
             if (IsVisible && !IsUsableCanvasSelection(EventSystem.current)) FocusDefaultAction(EventSystem.current);
             Canvas.ForceUpdateCanvases();
             lastRefreshSucceeded = true;
@@ -269,6 +285,11 @@ namespace AshenHalls
         public void InvokeReviewForTest()
         {
             if (reviewButton != null && reviewButton.gameObject.activeSelf && reviewButton.interactable) bindings?.ReviewInventory?.Invoke();
+        }
+
+        public void InvokeQuickEquipForTest()
+        {
+            if (quickEquipButton != null && quickEquipButton.gameObject.activeSelf && quickEquipButton.interactable) bindings?.QuickEquip?.Invoke();
         }
 
         public void InvokeDismissForTest()
@@ -326,9 +347,10 @@ namespace AshenHalls
             outcomeTitleText.fontStyle = FontStyle.Bold;
             outcomeDetailText = AddText("Outcome Detail", outcomePanel, "", 11, Hex("b7aa90", 1f), TextAnchor.UpperLeft);
             inputHintText = AddText("Input Hint", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            quickEquipButton = AddButton("Quick Equip", panel, "Equip best fit", () => bindings?.QuickEquip?.Invoke(), Hex("69c7a7", 0.88f));
             reviewButton = AddButton("Review Equipment", panel, "Compare & equip", () => bindings?.ReviewInventory?.Invoke(), Hex("58b7a5", 0.86f));
             dismissButton = AddButton("Continue", panel, "Continue", () => bindings?.Dismiss?.Invoke(), Hex("d7a84e", 0.86f));
-            ConfigureActionNavigation(true);
+            ConfigureActionNavigation(true, true);
         }
 
         private void ApplyLayout()
@@ -350,9 +372,10 @@ namespace AshenHalls
             SetLocalRect(outcomePanel, geometry.Outcome);
             SetLocalRect(outcomeTitleText.rectTransform, new Rect(14f, 8f, geometry.Outcome.width - 28f, 20f));
             SetLocalRect(outcomeDetailText.rectTransform, new Rect(14f, 30f, geometry.Outcome.width - 28f, Mathf.Max(20f, geometry.Outcome.height - 36f)));
+            SetLocalRect(quickEquipButton.GetComponent<RectTransform>(), geometry.QuickEquipButton);
             SetLocalRect(reviewButton.GetComponent<RectTransform>(), geometry.ReviewButton);
             SetLocalRect(dismissButton.GetComponent<RectTransform>(), geometry.DismissButton);
-            SetLocalRect(inputHintText.rectTransform, new Rect(24f, geometry.DismissButton.y, Mathf.Max(120f, geometry.ReviewButton.x - 40f), geometry.DismissButton.height));
+            SetLocalRect(inputHintText.rectTransform, new Rect(24f, geometry.DismissButton.y, Mathf.Max(120f, geometry.QuickEquipButton.x - 40f), geometry.DismissButton.height));
             LayoutResourceChips();
         }
 
@@ -431,22 +454,30 @@ namespace AshenHalls
             return button;
         }
 
-        private void ConfigureActionNavigation(bool canReview)
+        private void ConfigureActionNavigation(bool canQuickEquip, bool canReview)
         {
-            if (reviewButton == null || dismissButton == null) return;
+            if (quickEquipButton == null || reviewButton == null || dismissButton == null) return;
             Navigation dismissNavigation = new Navigation { mode = Navigation.Mode.Explicit };
-            dismissNavigation.selectOnLeft = canReview ? reviewButton : dismissButton;
-            dismissNavigation.selectOnRight = canReview ? reviewButton : dismissButton;
-            dismissNavigation.selectOnUp = canReview ? reviewButton : dismissButton;
-            dismissNavigation.selectOnDown = canReview ? reviewButton : dismissButton;
+            Selectable dismissNeighbor = canReview ? reviewButton : canQuickEquip ? quickEquipButton : dismissButton;
+            dismissNavigation.selectOnLeft = dismissNeighbor;
+            dismissNavigation.selectOnRight = canQuickEquip ? quickEquipButton : dismissNeighbor;
+            dismissNavigation.selectOnUp = dismissNeighbor;
+            dismissNavigation.selectOnDown = canQuickEquip ? quickEquipButton : dismissNeighbor;
             dismissButton.navigation = dismissNavigation;
 
             Navigation reviewNavigation = new Navigation { mode = Navigation.Mode.Explicit };
-            reviewNavigation.selectOnLeft = dismissButton;
+            reviewNavigation.selectOnLeft = canQuickEquip ? quickEquipButton : dismissButton;
             reviewNavigation.selectOnRight = dismissButton;
             reviewNavigation.selectOnUp = dismissButton;
             reviewNavigation.selectOnDown = dismissButton;
             reviewButton.navigation = reviewNavigation;
+
+            Navigation quickEquipNavigation = new Navigation { mode = Navigation.Mode.Explicit };
+            quickEquipNavigation.selectOnLeft = dismissButton;
+            quickEquipNavigation.selectOnRight = canReview ? reviewButton : dismissButton;
+            quickEquipNavigation.selectOnUp = dismissButton;
+            quickEquipNavigation.selectOnDown = canReview ? reviewButton : dismissButton;
+            quickEquipButton.navigation = quickEquipNavigation;
         }
 
         private bool IsCanvasSelection(GameObject selected)

@@ -1,0 +1,12 @@
+Use case: stylized-concept
+Asset type: source sheet for four seamless top-down CRPG road-surface textures
+Input images: Image 1 is the authoritative Midgaard ground-material style reference; Image 2 is a detail and palette reference only.
+Primary request: create exactly four square, full-bleed, seamless ground-material swatches in a 2 columns by 2 rows grid.
+Top-left: dark charcoal civic cobblestone, small irregular setts with restrained warm mortar.
+Top-right: worn Midgaard stone paving variant, slightly larger rectangular setts, subtle age and hairline cracks.
+Bottom-left: old-road compacted umber earth with embedded small gray stones and restrained wheel wear.
+Bottom-right: old-road packed dirt variant with fine gravel, muted brown-gray tones, and subtle irregular wear.
+Style/medium: polished late-1990s CRPG environment texture, painterly pixel-art finish, identical rendering density and muted lighting to Image 1.
+Composition/framing: orthographic straight-down view; each quadrant is one edge-to-edge material with no central object, no vignette, no perspective, and no directional path shape.
+Lighting/mood: neutral diffuse overcast lighting, almost no cast shadows.
+Constraints: each quadrant must tile seamlessly on all four edges; hard exact quadrant boundaries; no gutters; no border; no labels; no text; no symbols; no drains; no footprints; no leaves; no props; no grass clumps; no buildings; no characters; no watermark; no checkerboard.

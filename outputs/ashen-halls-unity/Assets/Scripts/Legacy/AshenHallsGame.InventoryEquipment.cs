@@ -11,7 +11,7 @@ namespace AshenHalls
         private int armorySelectedInventoryIndex = -1;
         private int armorySelectedPartyIndex;
 
-        private void EnsureInventoryEquipmentLinks()
+        private void EnsureInventoryEquipmentLinks(bool repairMissingLinks = false)
         {
             if (state?.Inventory == null || state.Party == null) return;
 
@@ -36,6 +36,7 @@ namespace AshenHalls
                 if (!claimedSlots.Add(claim)) item.EquippedById = "";
             }
 
+            if (!repairMissingLinks) return;
             foreach (PartyMember member in state.Party)
             {
                 if (member == null) continue;
@@ -80,7 +81,7 @@ namespace AshenHalls
                 item != null
                 && string.IsNullOrWhiteSpace(item.EquippedById)
                 && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form) == weapon
-                && string.Equals(item.DisplayName, equippedName, StringComparison.Ordinal));
+                && MemberGearMatchesInventoryItem(member, item));
             if (match == null) return;
             match.EquippedById = member.Id;
             claimedSlots.Add(claim);
@@ -93,10 +94,11 @@ namespace AshenHalls
 
         private bool MemberGearMatchesInventoryItem(PartyMember member, InventoryItem item)
         {
-            if (member == null || item == null) return false;
+            if (member == null || item == null || !InventoryEquipmentRules.IsEquippable(item)) return false;
             bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
-            string equippedName = weapon ? member.WeaponName : member.ArmorName;
-            return string.Equals(equippedName, item.DisplayName, StringComparison.Ordinal);
+            return weapon
+                ? InventoryEquipmentRules.MatchesWeaponLoadout(item, member, EffectiveWeaponRange(item, member))
+                : InventoryEquipmentRules.MatchesArmorLoadout(item, member, ArmorDefenseBonus(item));
         }
 
         private PartyMember EquippedMember(InventoryItem item)
@@ -128,9 +130,10 @@ namespace AshenHalls
             string displayName = weapon ? member.WeaponName : member.ArmorName;
             if (string.IsNullOrWhiteSpace(displayName)) return null;
 
+            InventoryItem snapshot;
             if (weapon)
             {
-                return new InventoryItem
+                snapshot = new InventoryItem
                 {
                     Mark = "loadout-snapshot",
                     EquippedById = member.Id,
@@ -153,23 +156,30 @@ namespace AshenHalls
                     DisplayName = displayName
                 };
             }
-
-            return new InventoryItem
+            else
             {
-                Mark = "loadout-snapshot",
-                EquippedById = member.Id,
-                Material = EnchantmentWeaponMaterial(displayName),
-                Form = "armor",
-                Trait = EnchantmentWeaponTrait(displayName),
-                Slot = "armor",
-                Bonus = member.ArmorBonus,
-                StrengthBonus = member.ArmorStrengthBonus,
-                IntelligenceBonus = member.ArmorIntelligenceBonus,
-                AgilityBonus = member.ArmorAgilityBonus,
-                HealthBonus = member.ArmorHealthBonus,
-                Rarity = member.ArmorBonus > 2 ? "rare" : member.ArmorBonus > 0 ? "common" : "starter",
-                DisplayName = displayName
-            };
+                snapshot = new InventoryItem
+                {
+                    Mark = "loadout-snapshot",
+                    EquippedById = member.Id,
+                    Material = EnchantmentWeaponMaterial(displayName),
+                    Form = "armor",
+                    Trait = EnchantmentWeaponTrait(displayName),
+                    Slot = "armor",
+                    Bonus = member.ArmorBonus,
+                    StrengthBonus = member.ArmorStrengthBonus,
+                    IntelligenceBonus = member.ArmorIntelligenceBonus,
+                    AgilityBonus = member.ArmorAgilityBonus,
+                    HealthBonus = member.ArmorHealthBonus,
+                    Rarity = member.ArmorBonus > 2 ? "rare" : member.ArmorBonus > 0 ? "common" : "starter",
+                    DisplayName = displayName
+                };
+            }
+
+            // Signature identity remains stable beneath Maud's visible enchantment
+            // prefixes; RepairIdentity deliberately preserves prefixed display text.
+            SignatureItemCatalog.RepairIdentity(snapshot);
+            return snapshot;
         }
 
         private InventoryItem InventorySwapReplacement(PartyMember target, bool weapon)
@@ -209,7 +219,9 @@ namespace AshenHalls
             {
                 return int.MinValue / 4;
             }
-            return InventoryComparisonScore(item, target) + InventoryComparisonScore(replacement, currentOwner);
+            int targetDelta = InventoryComparisonScore(item, target);
+            int currentOwnerDelta = InventoryComparisonScore(replacement, currentOwner);
+            return InventoryEquipmentRules.ReassignmentScore(targetDelta, currentOwnerDelta);
         }
 
         private bool EquipInventoryItemToMember(InventoryItem item, PartyMember target, out string result)
@@ -345,9 +357,51 @@ namespace AshenHalls
             return best;
         }
 
+        private PartyMember BestLootInventoryFit(InventoryItem item, out int partyIndex, out int comparisonScore)
+        {
+            partyIndex = -1;
+            comparisonScore = int.MinValue / 4;
+            if (!InventoryEquipmentRules.IsEquippable(item) || state?.Party == null) return null;
+
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+            int bestRoleFit = int.MinValue;
+            PartyMember best = null;
+            for (int i = 0; i < state.Party.Count; i++)
+            {
+                PartyMember candidate = state.Party[i];
+                if (candidate == null || candidate.Hp <= 0) continue;
+                int score = InventoryComparisonScore(item, candidate);
+                int roleFit = weapon ? WeaponRoleFit(item, candidate) : -ArmorRolePenalty(item, candidate);
+                if (best != null
+                    && (score < comparisonScore || (score == comparisonScore && roleFit <= bestRoleFit)))
+                {
+                    continue;
+                }
+
+                best = candidate;
+                partyIndex = i;
+                comparisonScore = score;
+                bestRoleFit = roleFit;
+            }
+            return best;
+        }
+
         private int BestInventoryComparisonScore(InventoryItem item)
         {
-            return BestInventoryFit(item, out _, out int score) == null ? int.MinValue / 4 : score;
+            PartyMember owner = EquippedMember(item);
+            if (owner == null)
+            {
+                return BestInventoryFit(item, out _, out int score) == null ? int.MinValue / 4 : score;
+            }
+
+            int bestScore = int.MinValue / 4;
+            if (state?.Party == null) return bestScore;
+            foreach (PartyMember target in state.Party)
+            {
+                if (target == null || target == owner) continue;
+                bestScore = Mathf.Max(bestScore, InventoryReassignmentScore(item, target, owner));
+            }
+            return bestScore;
         }
 
         private InventoryUpgradeGrade InventoryGradeFor(InventoryItem item, PartyMember member)
@@ -357,10 +411,36 @@ namespace AshenHalls
             return InventoryEquipmentRules.Grade(InventoryComparisonScore(item, member));
         }
 
+        private string InventoryGradeLabelFor(InventoryItem item, PartyMember member)
+        {
+            if (item == null || member == null) return "Review";
+            InventoryItem current = InventoryCurrentEquipment(member, InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form));
+            return InventoryEquipmentRules.RequiresDeliberateReview(item, current)
+                ? "Review"
+                : InventoryEquipmentRules.GradeLabel(InventoryGradeFor(item, member));
+        }
+
+        private InventoryItem InventoryCurrentEquipment(PartyMember member, bool weapon)
+        {
+            return EquippedInventoryItem(member, weapon) ?? SnapshotMemberEquipment(member, weapon);
+        }
+
         private bool InventoryItemIsUpgrade(InventoryItem item)
         {
-            PartyMember best = BestInventoryFit(item, out _, out int score);
-            return best != null && InventoryEquipmentRules.Grade(score) == InventoryUpgradeGrade.Upgrade;
+            if (EquippedMember(item) != null || state?.Party == null) return false;
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+            return state.Party.Any(member =>
+            {
+                if (member == null
+                    || InventoryEquipmentRules.Grade(InventoryComparisonScore(item, member)) != InventoryUpgradeGrade.Upgrade)
+                {
+                    return false;
+                }
+
+                return !InventoryEquipmentRules.RequiresDeliberateReview(
+                    item,
+                    InventoryCurrentEquipment(member, weapon));
+            });
         }
 
         private string InventoryComparisonLine(InventoryItem item, PartyMember member)
@@ -387,6 +467,8 @@ namespace AshenHalls
                     ComparisonToken("SPD", newSpeed, oldSpeed),
                     ComparisonToken("RNG", newRange, oldRange)
                 };
+                string strategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, currentWeapon);
+                if (!string.IsNullOrWhiteSpace(strategicChange)) comparisons.Insert(0, strategicChange);
                 if (currentWeapon != null && WeaponRoleFit(item, member) != WeaponRoleFit(currentWeapon, member))
                 {
                     comparisons.Add(ComparisonToken("FIT", WeaponRoleFit(item, member), WeaponRoleFit(currentWeapon, member)));
@@ -407,6 +489,8 @@ namespace AshenHalls
                 ComparisonToken("ARM", newArmor, oldArmor),
                 ComparisonToken("AGI", newAgility, oldAgility)
             };
+            string armorStrategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, currentArmor);
+            if (!string.IsNullOrWhiteSpace(armorStrategicChange)) armorComparisons.Insert(0, armorStrategicChange);
             if (currentArmor != null && ArmorRolePenalty(item, member) != ArmorRolePenalty(currentArmor, member))
             {
                 armorComparisons.Add(ComparisonToken("FIT", -ArmorRolePenalty(item, member), -ArmorRolePenalty(currentArmor, member)));
@@ -426,9 +510,9 @@ namespace AshenHalls
         {
             PartyMember owner = EquippedMember(item);
             if (owner != null) return "Equipped by " + owner.Name;
-            PartyMember best = BestInventoryFit(item, out _, out int score);
+            PartyMember best = BestInventoryFit(item, out _, out _);
             if (best == null) return "Stored in the inventory";
-            return $"{InventoryEquipmentRules.GradeLabel(InventoryEquipmentRules.Grade(score))} for {best.Name}";
+            return $"{InventoryGradeLabelFor(item, best)} for {best.Name}";
         }
 
         private string InventoryRarityAccent(string rarity)
@@ -442,6 +526,19 @@ namespace AshenHalls
                 case 2: return "#69c7a7";
                 default: return "#aeb5ad";
             }
+        }
+
+        private static string SignatureItemPresentationLine(InventoryItem item)
+        {
+            SignatureItemDefinition signature = SignatureItemCatalog.Find(item);
+            if (signature == null) return "";
+
+            string intrinsicName = (signature.IntrinsicName ?? "").Trim();
+            string intrinsicSummary = (signature.IntrinsicSummary ?? "").Trim();
+            if (intrinsicName.Length == 0 && intrinsicSummary.Length == 0) return "Signature";
+            if (intrinsicName.Length == 0) return "Signature · " + intrinsicSummary;
+            if (intrinsicSummary.Length == 0) return "Signature · " + intrinsicName;
+            return $"Signature · {intrinsicName}: {intrinsicSummary}";
         }
 
         private bool TryGetInventoryItemIcon(InventoryItem item, out Texture2D texture, out Rect uv)

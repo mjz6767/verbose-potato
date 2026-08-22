@@ -114,7 +114,6 @@ namespace AshenHalls
             if (command == null || compact) return false;
             CombatHudCommandVisualState state = Resolve(command);
             return state == CombatHudCommandVisualState.Armed
-                || state == CombatHudCommandVisualState.Blocked
                 || command.Mode == ActionMode.Guard
                 || command.Mode == ActionMode.Elixir;
         }
@@ -1190,7 +1189,7 @@ namespace AshenHalls
                 && !string.Equals(targetSource, "HOVER", StringComparison.Ordinal);
             string targetCardTitle = view.TargetUnit == null
                 ? "INSPECT UNIT"
-                : targetSourceAddsContext ? targetSource + "  /  " + targetContext : targetContext;
+                : targetSourceAddsContext ? targetSource + " " + targetContext : targetContext;
             RefreshUnitCard(
                 view.TargetUnit,
                 targetTitle,

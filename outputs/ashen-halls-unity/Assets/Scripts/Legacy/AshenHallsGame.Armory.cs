@@ -425,9 +425,7 @@ namespace AshenHalls
                 bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
                 Color accent = weapon ? DamageColor(string.IsNullOrEmpty(item.DamageType) ? "physical" : item.DamageType) : teal;
                 PartyMember owner = equippable ? EquippedMember(item) : null;
-                int comparisonScore = 0;
-                PartyMember best = equippable ? BestInventoryFit(item, out _, out comparisonScore) : null;
-                InventoryUpgradeGrade grade = InventoryEquipmentRules.Grade(comparisonScore);
+                PartyMember best = equippable ? BestInventoryFit(item, out _, out _) : null;
                 TryGetInventoryItemIcon(item, out Texture2D iconTexture, out Rect iconUv);
                 ArmoryRowView row = new ArmoryRowView
                 {
@@ -440,7 +438,7 @@ namespace AshenHalls
                             ? $"Equipped by {owner.Name}"
                             : best == null
                                 ? "Stored"
-                                : $"{InventoryEquipmentRules.GradeLabel(grade)} for {best.Name} · {CompactInventoryComparisonLine(item, best)}",
+                                : $"{InventoryGradeLabelFor(item, best)} for {best.Name} · {CompactInventoryComparisonLine(item, best)}",
                     AccentHex = ColorHtml(accent),
                     Badge = "",
                     BadgeAccentHex = "",
@@ -590,12 +588,11 @@ namespace AshenHalls
 
             if (owner == null)
             {
-                InventoryUpgradeGrade grade = InventoryGradeFor(item, member);
                 return new ArmoryDetailActionView
                 {
                     Key = partyIndex,
                     Label = recommended ? $"Best match · {member.Name}" : member.Name,
-                    Detail = $"{InventoryEquipmentRules.GradeLabel(grade)} · {CompactInventoryComparisonLine(item, member)}",
+                    Detail = $"{InventoryGradeLabelFor(item, member)} · {CompactInventoryComparisonLine(item, member)}",
                     ButtonLabel = "Equip",
                     AccentHex = ColorHtml(MemberColor(member)),
                     Enabled = true
@@ -604,14 +601,21 @@ namespace AshenHalls
 
             bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             InventoryItem replacement = InventorySwapReplacement(member, weapon);
-            int score = InventoryReassignmentScore(item, member, owner);
-            InventoryUpgradeGrade reassignmentGrade = InventoryEquipmentRules.Grade(score);
             string replacementName = replacement == null ? "their current gear" : TrimGearName(replacement.DisplayName);
+            string ownerOutcome = replacement == null ? "Unavailable" : InventoryGradeLabelFor(replacement, owner);
+            string reassignmentOutcome = InventoryEquipmentRules.GradeLabel(
+                InventoryEquipmentRules.Grade(InventoryReassignmentScore(item, member, owner)));
+            InventoryItem memberCurrent = InventoryCurrentEquipment(member, weapon);
+            if (InventoryEquipmentRules.RequiresDeliberateReview(item, memberCurrent)
+                || InventoryEquipmentRules.RequiresDeliberateReview(replacement, owner == null ? null : InventoryCurrentEquipment(owner, weapon)))
+            {
+                reassignmentOutcome = "Review";
+            }
             return new ArmoryDetailActionView
             {
                 Key = partyIndex,
                 Label = recommended ? $"Best reassignment · {member.Name}" : member.Name,
-                Detail = $"{InventoryEquipmentRules.GradeLabel(reassignmentGrade)} · {CompactInventoryComparisonLine(item, member)} · {owner.Name} gets {replacementName}",
+                Detail = $"{reassignmentOutcome} · {CompactInventoryComparisonLine(item, member)} · {owner.Name}: {ownerOutcome} with {replacementName}",
                 ButtonLabel = "Swap",
                 AccentHex = ColorHtml(MemberColor(member)),
                 Enabled = replacement != null
@@ -653,13 +657,14 @@ namespace AshenHalls
                     Item = item,
                     Index = index,
                     Owner = InventoryEquipmentRules.IsEquippable(item) ? EquippedMember(item) : null,
-                    BestScore = InventoryEquipmentRules.IsEquippable(item) ? BestInventoryComparisonScore(item) : int.MinValue / 4
+                    BestScore = InventoryEquipmentRules.IsEquippable(item) ? BestInventoryComparisonScore(item) : int.MinValue / 4,
+                    IsUpgrade = InventoryEquipmentRules.IsEquippable(item) && InventoryItemIsUpgrade(item)
                 })
                 .Where(entry => entry.Item != null
                     && InventoryEquipmentRules.MatchesFilter(
                         entry.Item,
                         filter,
-                        InventoryEquipmentRules.Grade(entry.BestScore) == InventoryUpgradeGrade.Upgrade))
+                        entry.IsUpgrade))
                 .OrderByDescending(entry => InventoryEquipmentRules.SortScore(entry.Item, entry.Owner != null, entry.BestScore))
                 .ThenByDescending(entry => entry.Index)
                 .Select(entry => entry.Index)
@@ -691,6 +696,9 @@ namespace AshenHalls
             List<string> changes = new List<string>();
             if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
             {
+                InventoryItem currentWeapon = EquippedInventoryItem(member, true) ?? SnapshotMemberEquipment(member, true);
+                string strategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, currentWeapon);
+                if (!string.IsNullOrWhiteSpace(strategicChange)) changes.Add(strategicChange);
                 int oldMin = Mathf.Max(1, member.WeaponDamageMin > 0 ? member.WeaponDamageMin : member.DamageMin);
                 int oldMax = Mathf.Max(oldMin + 1, member.WeaponDamageMax > 0 ? member.WeaponDamageMax : member.DamageMax);
                 int newMin = Mathf.Max(1, item.DamageMin);
@@ -704,7 +712,6 @@ namespace AshenHalls
                     "Attributes",
                     item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus,
                     member.WeaponStrengthBonus + member.WeaponIntelligenceBonus + member.WeaponAgilityBonus + member.WeaponHealthBonus);
-                InventoryItem currentWeapon = EquippedInventoryItem(member, true) ?? SnapshotMemberEquipment(member, true);
                 if (currentWeapon != null)
                 {
                     AddCompactDelta(changes, "Fit", WeaponRoleFit(item, member), WeaponRoleFit(currentWeapon, member));
@@ -712,6 +719,9 @@ namespace AshenHalls
             }
             else if (InventoryEquipmentRules.IsArmorSlot(item.Slot, item.Form))
             {
+                InventoryItem currentArmor = EquippedInventoryItem(member, false) ?? SnapshotMemberEquipment(member, false);
+                string strategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, currentArmor);
+                if (!string.IsNullOrWhiteSpace(strategicChange)) changes.Add(strategicChange);
                 AddCompactDelta(changes, "Armor", ArmorDefenseBonus(item), member.ArmorBonus);
                 AddCompactDelta(changes, "Agility", ArmorAgilityModifier(item.DisplayName), ArmorAgilityModifier(member.ArmorName));
                 AddCompactDelta(
@@ -719,7 +729,6 @@ namespace AshenHalls
                     "Attributes",
                     item.StrengthBonus + item.IntelligenceBonus + item.AgilityBonus + item.HealthBonus,
                     member.ArmorStrengthBonus + member.ArmorIntelligenceBonus + member.ArmorAgilityBonus + member.ArmorHealthBonus);
-                InventoryItem currentArmor = EquippedInventoryItem(member, false) ?? SnapshotMemberEquipment(member, false);
                 if (currentArmor != null)
                 {
                     AddCompactDelta(changes, "Fit", -ArmorRolePenalty(item, member), -ArmorRolePenalty(currentArmor, member));
@@ -763,7 +772,14 @@ namespace AshenHalls
             string stats = ItemStatBonusLine(item);
             if (!string.IsNullOrWhiteSpace(stats)) traits.Add(stats);
             string firstLine = core.Count == 0 ? "Adventuring gear" : string.Join(" · ", core);
-            return traits.Count == 0 ? firstLine : firstLine + "\n" + string.Join(" · ", traits.Take(4));
+            string signature = SignatureItemPresentationLine(item);
+            if (string.IsNullOrWhiteSpace(signature))
+            {
+                return traits.Count == 0 ? firstLine : firstLine + "\n" + string.Join(" · ", traits.Take(4));
+            }
+
+            string traitLine = traits.Count == 0 ? "" : "\n" + string.Join(" · ", traits.Take(4));
+            return firstLine + "\n" + signature + traitLine;
         }
 
         private static string InventoryDisplayToken(string value)

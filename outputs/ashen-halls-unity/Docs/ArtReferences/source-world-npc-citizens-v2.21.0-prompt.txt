@@ -1,0 +1,12 @@
+Use case: stylized-concept
+Asset type: production source sheet for eight Unity local-map NPC sprites
+Input images: Image 1 is the authoritative visual-style and scale reference; Image 2 is a subject-role reference only and must be redrawn to match Image 1.
+Primary request: redraw the eight ambient citizens from Image 2 as one coherent sprite family matching Image 1.
+Composition/framing: exact 4 columns by 2 rows, eight equal well-separated cells, row-major. Each figure is full-body in the same slight three-quarter front view, upright on one shared baseline, with the same apparent human body height and head-to-body proportion. Keep at least 8% empty gutter around every cell and prevent all props from crossing cell boundaries.
+Subjects, row 1: teal-hooded lantern traveler; practical fishmonger with basket; gray-skinned seamstress holding scissors and folded cloth; broad gray-skinned stoneworker with small hammer.
+Subjects, row 2: lizardfolk herbalist holding a small tonic and herb satchel; human pilgrim healer with simple staff and bedroll; human road laborer with shovel; gray-skinned green-hooded road scout with staff and rolled map.
+Style/medium: polished late-1990s CRPG sprite art, painterly pixel-art finish, crisp dark silhouette edges, restrained detail, identical rendering density and outline weight to Image 1.
+Lighting/mood: neutral soft overhead light, no dramatic rim light.
+Color palette: charcoal, weathered brown, muted teal, moss green, parchment, small warm lantern accents; harmonized saturation across all eight.
+Materials/textures: worn wool, leather, wood, iron, subtle fabric folds.
+Constraints: genuinely transparent background; one consistent small neutral charcoal-gray contact shadow beneath every figure; no green oval bases; no white halo; no checkerboard baked into the pixels; no text; no labels; no border; no frame; no watermark; no extra people; no cut-off feet or props; do not copy Image 2's coarse rendering or green plinths.

@@ -1,0 +1,16 @@
+Create a production-ready transparent pixel-art source sheet for Ashen Halls, matching the attached Midgaard town atlas's dark Nordic-fantasy palette, crisp hand-painted pixel clusters, warm amber windows, slate/charcoal roofs, worn timber and gray-brown stone.
+
+Canvas: square, truly transparent background. Arrange exactly NINE separate architectural sprites in a clean 3-by-3 grid, equal cells, generous fully transparent gutters, no borders, no labels, no text, no shared ground between cells. Each sprite must be bottom-centered on the same baseline, similarly scaled, fully contained, and read clearly when reduced to about 64 pixels. Front or slight three-quarter game-map elevation, not top-down and not isometric.
+
+Exact row-major order and identity:
+1 Market: enclosed covered market hall/shopfront, broad roof, open arched central entry, hanging scale-and-coin sign.
+2 Temple: substantial stone sanctuary, tall peaked roof, double doors, sun-disc shrine cue.
+3 Tavern: obvious two-story inn, broad roof, welcoming lit door, small tankard sign.
+4 Armorer: stout forge/armory building, stone lower floor, chimney, shield-and-anvil sign.
+5 Provisions: enclosed general store/storehouse, sacks and crate by doorway, grain-sheaf sign.
+6 Weaponsmith: enclosed smithy shopfront, chimney, crossed-swords sign, weapon rack by wall.
+7 Enchanter: enclosed crooked arcane shop, peaked roof, glowing violet window, crystal/rune sign.
+8 Town Hall / King Hall: broad civic hall, central stair and double doors, modest tower/pediment and red-gold banner.
+9 Diner / Cookhouse: enclosed cozy cookhouse, oven chimney, lit service door, bowl-and-spoon sign.
+
+Strong invariants: every subject must unmistakably be a BUILDING with roof mass, wall/front plane, doorway and stoop; no freestanding stalls, tents, wagons, kiosks, characters, large lettering, UI frame, shadows that cross cell gutters, photorealism, smooth vector art, or checkerboard background. Transparent pixels outside the nine sprites. Keep architectural silhouettes distinct but coherent as one city district.

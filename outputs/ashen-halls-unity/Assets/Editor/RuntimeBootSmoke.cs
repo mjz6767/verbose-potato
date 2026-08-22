@@ -248,6 +248,7 @@ namespace AshenHalls.Editor
                 AssertEventSystemCount(1);
                 AssertNoLaunchError(game);
                 AssertMode(game, GameMode.Tavern, "startup reaches Tavern");
+                AssertSignatureItemMigrationRuntime(game);
 
                 liveBetaLab.onClick.Invoke();
                 InvokePrivate(game, "LateUpdate");
@@ -1765,11 +1766,14 @@ namespace AshenHalls.Editor
             Assert(worldUiAtlas.width == 1402 && worldUiAtlas.height == 1122, "world-map UI atlas keeps its approved dimensions");
             Texture2D streetLifeAtlas = GetPrivateField<Texture2D>(game, "midgaardStreetLifeAtlas");
             Texture2D pavingDecalAtlas = GetPrivateField<Texture2D>(game, "midgaardPavingDecalAtlas");
+            Texture2D roadSurfaceAtlas = GetPrivateField<Texture2D>(game, "midgaardRoadSurfaceAtlas");
+            Texture2D ambientCitizenAtlas = GetPrivateField<Texture2D>(game, "worldNpcCitizenAtlas");
             Texture2D interiorPropAtlas = GetPrivateField<Texture2D>(game, "midgaardInteriorPropAtlas");
             Texture2D interiorTileAtlas = GetPrivateField<Texture2D>(game, "midgaardInteriorTileAtlas");
             Texture2D gateAtlas = GetPrivateField<Texture2D>(game, "midgaardGateAtlas");
             Texture2D wallAtlas = GetPrivateField<Texture2D>(game, "midgaardWallAtlas");
             Texture2D midgaardTileAtlas = GetPrivateField<Texture2D>(game, "midgaardTileAtlas");
+            Texture2D midgaardTownAtlas = GetPrivateField<Texture2D>(game, "midgaardTownAtlas");
             Texture2D cityNpcAtlas = GetPrivateField<Texture2D>(game, "midgaardNpcAtlas");
             Texture2D npcPortraitAtlas = GetPrivateField<Texture2D>(game, "npcPortraitAtlas");
             Texture2D characterSpriteAtlas = GetPrivateField<Texture2D>(game, "characterCombatAtlas");
@@ -1791,6 +1795,12 @@ namespace AshenHalls.Editor
             Assert(pavingDecalAtlas != null, "v1.50 Midgaard paving-decal atlas is loaded");
             Assert(pavingDecalAtlas.name.IndexOf("v1.50.0", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard paving details use the pinned v1.50 art contract");
             Assert(pavingDecalAtlas.width == 1252 && pavingDecalAtlas.height == 1252, "Midgaard paving-decal atlas is an exact 4x4 grid");
+            Assert(roadSurfaceAtlas != null, "v2.21 Midgaard road-surface atlas is loaded");
+            Assert(roadSurfaceAtlas.name == RuntimeArtManifest.MidgaardRoadSurfaceAtlas, "Midgaard roads use the exact approved v2.21 material atlas");
+            Assert(roadSurfaceAtlas.width == 512 && roadSurfaceAtlas.height == 512, "Midgaard road surfaces use the exact 2x2 grid");
+            Assert(ambientCitizenAtlas != null, "v2.21 ambient-citizen atlas is loaded");
+            Assert(ambientCitizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "ambient citizens use the exact approved v2.21 art contract");
+            Assert(ambientCitizenAtlas.width == 1536 && ambientCitizenAtlas.height == 768, "ambient citizens use the exact 4x2 grid");
             Assert(roamingThreatAtlas != null, "v1.62 roaming-threat atlas is loaded");
             Assert(roamingThreatAtlas.name.IndexOf("v1.62.0", StringComparison.OrdinalIgnoreCase) >= 0, "roaming patrols use the pinned v1.62 art contract");
             Assert(roamingThreatAtlas.width == 1400 && roamingThreatAtlas.height == 1120, "roaming-threat atlas is an exact 5x4 grid");
@@ -1814,8 +1824,11 @@ namespace AshenHalls.Editor
             Assert(wallAtlas.width == 1280 && wallAtlas.height == 1024, "Midgaard wall atlas is an exact 5x4 grid");
             Assert(midgaardTileAtlas != null && midgaardTileAtlas.name.IndexOf("v1.6.3", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard terrain uses the pinned v1.6.3 art contract");
             Assert(midgaardTileAtlas.width == 1400 && midgaardTileAtlas.height == 1120, "Midgaard terrain atlas is an exact 5x4 grid");
-            Assert(cityNpcAtlas != null, "v1.93 Midgaard NPC atlas is loaded");
-            Assert(cityNpcAtlas.name.IndexOf("v1.93.0", StringComparison.OrdinalIgnoreCase) >= 0, "named Midgaard NPCs use the approved v1.93 art contract");
+            Assert(midgaardTownAtlas != null, "v2.21 Midgaard town atlas is loaded");
+            Assert(midgaardTownAtlas.name.IndexOf("v2.21.0", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard buildings use the approved architectural v2.21 art contract");
+            Assert(midgaardTownAtlas.width == 1280 && midgaardTownAtlas.height == 1024, "Midgaard town atlas is an exact 5x4 grid");
+            Assert(cityNpcAtlas != null, "v2.21 Midgaard NPC atlas is loaded");
+            Assert(cityNpcAtlas.name.IndexOf("v2.21.0", StringComparison.OrdinalIgnoreCase) >= 0, "named Midgaard NPCs use the approved coherent v2.21 art contract");
             Assert(cityNpcAtlas.width == 1280 && cityNpcAtlas.height == 1024, "Midgaard NPC atlas is an exact 5x4 grid");
             Assert(npcPortraitAtlas != null && npcPortraitAtlas.name.IndexOf("v1.60.0", StringComparison.OrdinalIgnoreCase) >= 0, "named Midgaard portraits use the pinned v1.60 art contract");
             Assert(npcPortraitAtlas.width == 1400 && npcPortraitAtlas.height == 1120, "NPC portrait atlas is an exact 5x4 grid");
@@ -2241,6 +2254,29 @@ namespace AshenHalls.Editor
                 && armory.FocusedRowIsCommittedForTest
                 && armory.FocusedRowIndexForTest == armory.CommittedRowIndexForTest
                 && armory.HoveredRowIndexForTest < 0, "reopening Inventory restores the committed row as the single action focus");
+            InventoryItem strategicRowProbe = new InventoryItem
+            {
+                DisplayName = "+20 smoke-test enchanted sabre",
+                Form = "sabre",
+                Slot = "weapon",
+                Trait = "keen",
+                Rarity = "relic",
+                Bonus = 20,
+                DamageMin = 30,
+                DamageMax = 45,
+                AttackSpeed = 20,
+                DamageType = "physical",
+                PermanentEnchantmentId = "smoke-review"
+            };
+            state.Inventory.Add(strategicRowProbe);
+            SetPrivateField(game, "armoryPackFilter", 0);
+            IReadOnlyList<ArmoryRowView> strategicRows = InvokePrivate<IReadOnlyList<ArmoryRowView>>(game, "BuildArmoryPackRows");
+            ArmoryRowView strategicRow = strategicRows.FirstOrDefault(row => row.Key == state.Inventory.IndexOf(strategicRowProbe));
+            Assert(strategicRow != null
+                && strategicRow.Detail.StartsWith("Review for ", StringComparison.Ordinal)
+                && strategicRow.Detail.IndexOf("Upgrade for ", StringComparison.Ordinal) < 0,
+                "strategic inventory rows agree with their detail action and never contradict Review with an Upgrade label");
+            state.Inventory.Remove(strategicRowProbe);
             InvokePrivate(game, "RunArmoryRowAction", state.Inventory.IndexOf(inventoryProbe));
             InvokePrivate(game, "LateUpdate");
             Assert(armory.VisibleDetailActionCountForTest <= 2, "Inventory reveals only the recommended equip action and optional party chooser");
@@ -2313,7 +2349,7 @@ namespace AshenHalls.Editor
             Assert(lootPopup != null && lootPopup.HasRealIconForTest, "loot reward uses the real inventory item atlas");
             Assert(lootPopup.HasReviewActionForTest, "acquired gear offers a direct equipment review action");
             Assert(lootPopup.PrimaryActionLabelForTest == "Continue", "loot action accurately reflects that rewards are already acquired");
-            Assert(lootPopup.ReviewActionLabelForTest == "Compare & equip", "stored gear names the decision available in Inventory");
+            Assert(lootPopup.ReviewActionLabelForTest == "Compare others", "stored gear names the wider comparison available in Inventory");
             Assert(lootPopup.HasDefaultFocusForTest, "loot opens with Continue owning keyboard and controller Submit");
             LootPopupView popupView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
             Assert(popupView.HasItem && popupView.CanReview, "gear reward view exposes the committed item and its review action");
@@ -2410,15 +2446,47 @@ namespace AshenHalls.Editor
                 DamageType = "physical"
             };
             state.Inventory.Add(clearUpgrade);
+            string[] clearUpgradeWeaponNamesBefore = state.Party.Select(member => member?.WeaponName ?? "").ToArray();
+            string initialUpgradeEquipNote = InvokePrivate<string>(game, "AutoEquipItem", clearUpgrade);
+            Assert(string.IsNullOrEmpty(clearUpgrade.EquippedById), "a clear full-score upgrade stays unowned until the player chooses Equip");
+            Assert(state.Party.Select(member => member?.WeaponName ?? "").SequenceEqual(clearUpgradeWeaponNamesBefore), "loot acquisition leaves every loadout unchanged before the explicit action");
+            Assert(initialUpgradeEquipNote.IndexOf("Clear upgrade", StringComparison.Ordinal) >= 0, "loot guidance explains the full-score recommendation");
+            PartyMember downedHighestScore = state.Party
+                .Where(member => member != null && member.Hp > 0)
+                .OrderByDescending(member => InvokePrivate<int>(game, "InventoryComparisonScore", clearUpgrade, member))
+                .ThenByDescending(member => InvokePrivate<int>(game, "WeaponRoleFit", clearUpgrade, member))
+                .ThenBy(member => state.Party.IndexOf(member))
+                .First();
+            int downedHighestScoreHp = downedHighestScore.Hp;
+            downedHighestScore.Hp = 0;
+            PartyMember expectedBest = state.Party
+                .Where(member => member != null && member.Hp > 0)
+                .OrderByDescending(member => InvokePrivate<int>(game, "InventoryComparisonScore", clearUpgrade, member))
+                .ThenByDescending(member => InvokePrivate<int>(game, "WeaponRoleFit", clearUpgrade, member))
+                .ThenBy(member => state.Party.IndexOf(member))
+                .First();
             string upgradeEquipNote = InvokePrivate<string>(game, "AutoEquipItem", clearUpgrade);
-            Assert(!string.IsNullOrEmpty(clearUpgrade.EquippedById), "a clear full-score upgrade equips one intended owner");
-            Assert(state.Party.Count(member => member != null && member.Id == clearUpgrade.EquippedById) == 1, "auto-equip records exactly one valid owner");
-            Assert(state.Party.Count(member => member != null && member.WeaponName == clearUpgrade.DisplayName) == 1, "auto-equip mutates exactly one weapon loadout");
-            Assert(upgradeEquipNote.IndexOf("Clear upgrade", StringComparison.Ordinal) >= 0, "auto-equip explains the full-score decision");
+            Assert(upgradeEquipNote.IndexOf("Kept in the pack", StringComparison.Ordinal) >= 0, "available-target guidance remains a non-mutating recommendation");
+            Assert(upgradeEquipNote.IndexOf(expectedBest.Name, StringComparison.Ordinal) >= 0
+                && upgradeEquipNote.IndexOf(downedHighestScore.Name, StringComparison.Ordinal) < 0,
+                "loot guidance skips the downed highest-score adventurer and names the canonical available target");
             InvokePrivate(game, "ShowLootPanel", clearUpgrade, 0, 0, 0, upgradeEquipNote, "Clear Upgrade");
             InvokePrivate(game, "LateUpdate");
+            LootPopupView pendingLootView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
+            LootPopupScreen clearUpgradePopup = GetPrivateField<LootPopupScreen>(game, "lootPopupScreen");
+            Assert(pendingLootView.CanQuickEquip && clearUpgradePopup.HasQuickEquipActionForTest, "clear upgrade exposes the explicit quick-equip action");
+            Assert(pendingLootView.QuickEquipActionLabel == "Equip to " + expectedBest.Name
+                && clearUpgradePopup.QuickEquipActionLabelForTest == "Equip to " + expectedBest.Name, "quick equip names the exact best-fit adventurer");
+            clearUpgradePopup.InvokeQuickEquipForTest();
+            InvokePrivate(game, "LateUpdate");
+            Assert(clearUpgrade.EquippedById == expectedBest.Id, "the explicit quick action records the exact recommended owner");
+            Assert(state.Party.Count(member => member != null && member.WeaponName == clearUpgrade.DisplayName) == 1
+                && expectedBest.WeaponName == clearUpgrade.DisplayName, "the explicit quick action changes exactly the recommended loadout");
+            Assert(state.Party.Where((member, index) => member != null && member != expectedBest)
+                .All(member => member.WeaponName == clearUpgradeWeaponNamesBefore[state.Party.IndexOf(member)]), "quick equip leaves every other weapon loadout unchanged");
             LootPopupView equippedLootView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
-            Assert(equippedLootView.ReviewActionLabel == "Review or reassign", "auto-equipped loot names the reassignment decision now available in Inventory");
+            Assert(!equippedLootView.CanQuickEquip && equippedLootView.ReviewActionLabel == "Review or reassign", "equipped loot replaces quick equip with the reassignment decision");
+            downedHighestScore.Hp = downedHighestScoreHp;
             InvokePrivate(game, "DismissLootPopup");
             InvokePrivate(game, "LateUpdate");
 
@@ -2517,7 +2585,10 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             Assert(ContentSetCatalog.HasSewerSafeRoomChoice(state.StoryFlags), "safe-room callback records its claim");
             Assert(state.StoryFlags.Contains(StoryFlags.SewerSafeRoomFocusChosen), "safe-room callback records the selected focus");
-            Assert(state.Inventory.Count(item => item != null && item.DisplayName == "+2 etched stormglass ritual staff") == 1, "safe-room focus enters inventory once");
+            Assert(state.Inventory.Count(item => item != null
+                && item.DisplayName == "+2 Stormglass Conductor"
+                && item.SignatureId == SignatureItemCatalog.StormglassConductorId) == 1,
+                "safe-room focus enters inventory once with its canonical signature identity");
             Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Loot, "safe-room choice opens equipment comparison");
             ExplorationHudView finalRoomView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
             Assert(finalRoomView.ObjectiveSummary.IndexOf("Cistern Den", StringComparison.OrdinalIgnoreCase) >= 0, "compact objective advances to Cistern Den");
@@ -3137,16 +3208,22 @@ namespace AshenHalls.Editor
                     && unit.Name == "Rift-bound Gloam Knight"),
                 "the live Warden breach resolves into a production-active Gloam Knight instead of prototype demon content");
 
-            int reliquaryMailBefore = state.Inventory.Count(item => item != null && item.DisplayName == "+4 gloamward reliquary scale mail");
+            int reliquaryMailBefore = state.Inventory.Count(item => item != null
+                && item.DisplayName == "+4 Gloam Reliquary Mail"
+                && item.SignatureId == SignatureItemCatalog.GloamReliquaryMailId);
             int suppliesBeforeWardenReward = state.Supplies;
             InvokePrivate(game, "ApplyBoneRoadStoryVictory", "gloam-warden-boss");
             Assert(state.StoryFlags.Contains(StoryFlags.GloamWardenDefeated)
-                && state.Inventory.Count(item => item != null && item.DisplayName == "+4 gloamward reliquary scale mail") == reliquaryMailBefore + 1
+                && state.Inventory.Count(item => item != null
+                    && item.DisplayName == "+4 Gloam Reliquary Mail"
+                    && item.SignatureId == SignatureItemCatalog.GloamReliquaryMailId) == reliquaryMailBefore + 1
                 && state.Supplies == suppliesBeforeWardenReward + 1
                 && GetPrivateField<string>(game, "lootPanelTitle").IndexOf("Ossuary Warden", StringComparison.OrdinalIgnoreCase) >= 0,
                 "Ossuary Warden victory grants its named reliquary reward once");
             InvokePrivate(game, "ApplyBoneRoadStoryVictory", "gloam-warden-boss");
-            Assert(state.Inventory.Count(item => item != null && item.DisplayName == "+4 gloamward reliquary scale mail") == reliquaryMailBefore + 1
+            Assert(state.Inventory.Count(item => item != null
+                    && item.DisplayName == "+4 Gloam Reliquary Mail"
+                    && item.SignatureId == SignatureItemCatalog.GloamReliquaryMailId) == reliquaryMailBefore + 1
                 && state.Supplies == suppliesBeforeWardenReward + 1,
                 "replaying the Warden victory callback cannot duplicate its reward");
             state.Mode = GameMode.Explore;
@@ -3328,7 +3405,7 @@ namespace AshenHalls.Editor
             const string glassRoadPassageId = "glass-and-ash-passage-red-gate";
             const string glassLibraryObjectId = "regional-site:glass-lore-library";
             const string redGateObjectId = "regional-site:red-gate-seal";
-            const string mantleName = "+5 ashglass mirrorweave road mantle";
+            const string mantleName = "+5 Mirrorweave Road Mantle";
 
             InvokePrivate(game, "RecallToTempleSquare");
             Assert(state.Depth == 1
@@ -3479,7 +3556,9 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Red Gate Seal",
                 "the recovered Mirror Index advances guidance to the exact far seal");
 
-            int mantleBefore = state.Inventory.Count(item => item != null && item.DisplayName == mantleName);
+            int mantleBefore = state.Inventory.Count(item => item != null
+                && item.DisplayName == mantleName
+                && item.SignatureId == SignatureItemCatalog.MirrorweaveRoadMantleId);
             int suppliesBeforeWarden = state.Supplies;
             InvokePrivate(game, "ResolveExploreObject", farSeal);
             CombatUnit pactWarden = state.Combat?.Units?.FirstOrDefault(unit => unit != null
@@ -3491,13 +3570,17 @@ namespace AshenHalls.Editor
                 "the Mirror Index opens the named Ashen Pact boss instead of a generic depth-five fight");
             InvokePrivate(game, "ApplyGlassAndAshStoryVictory", "ashen-pact-warden-boss");
             Assert(ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)
-                && state.Inventory.Count(item => item != null && item.DisplayName == mantleName) == mantleBefore + 1
+                && state.Inventory.Count(item => item != null
+                    && item.DisplayName == mantleName
+                    && item.SignatureId == SignatureItemCatalog.MirrorweaveRoadMantleId) == mantleBefore + 1
                 && state.Supplies == suppliesBeforeWarden + 2
                 && state.StoryChapter == 5
                 && (state.ActiveStory ?? "").IndexOf("Chapter IV complete", StringComparison.OrdinalIgnoreCase) >= 0,
                 "Ashen Pact victory grants the Emberglass key, unique mantle, supplies, and honest chapter endpoint");
             InvokePrivate(game, "ApplyGlassAndAshStoryVictory", "ashen-pact-warden-boss");
-            Assert(state.Inventory.Count(item => item != null && item.DisplayName == mantleName) == mantleBefore + 1
+            Assert(state.Inventory.Count(item => item != null
+                    && item.DisplayName == mantleName
+                    && item.SignatureId == SignatureItemCatalog.MirrorweaveRoadMantleId) == mantleBefore + 1
                 && state.Supplies == suppliesBeforeWarden + 2,
                 "replaying the Ashen Pact callback cannot duplicate the unique reward");
             state.Mode = GameMode.Explore;
@@ -3593,7 +3676,7 @@ namespace AshenHalls.Editor
             const string redGateObjectId = "regional-site:red-gate-seal";
             const string gloamCryptObjectId = "regional-site:gloam-deep-crypt";
             const string saltCisternObjectId = "regional-site:salt-cistern-gate";
-            const string warbladeName = "+6 crownward emberglass warblade";
+            const string warbladeName = "+6 Crownward Emberglass Warblade";
 
             InvokePrivate(game, "RecallToTempleSquare");
             Assert(state.Depth == 1
@@ -3749,7 +3832,9 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == "Salt Cistern Gate",
                 "the recovered road seal advances guidance to the exact Salt Cistern threshold");
 
-            int warbladesBefore = state.Inventory.Count(item => item != null && item.DisplayName == warbladeName);
+            int warbladesBefore = state.Inventory.Count(item => item != null
+                && item.DisplayName == warbladeName
+                && item.SignatureId == SignatureItemCatalog.CrownwardWarbladeId);
             int suppliesBeforeMarshal = state.Supplies;
             InvokePrivate(game, "ResolveExploreObject", saltCistern);
             CombatUnit marshal = state.Combat?.Units?.FirstOrDefault(unit => unit != null
@@ -3762,12 +3847,16 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "ApplyRedGateStoryVictory", "crownroad-marshal-boss");
             Assert(state.StoryFlags.Contains(StoryFlags.CrownroadMarshalDefeated)
                 && !ContentSetCatalog.RedGateComplete(state.StoryFlags)
-                && state.Inventory.Count(item => item != null && item.DisplayName == warbladeName) == warbladesBefore + 1
+                && state.Inventory.Count(item => item != null
+                    && item.DisplayName == warbladeName
+                    && item.SignatureId == SignatureItemCatalog.CrownwardWarbladeId) == warbladesBefore + 1
                 && state.Supplies == suppliesBeforeMarshal + 2
                 && (state.ActiveStory ?? "").IndexOf("Inspect", StringComparison.OrdinalIgnoreCase) >= 0,
                 "marshal victory grants the unique warblade and leaves the threshold survey explicit");
             InvokePrivate(game, "ApplyRedGateStoryVictory", "crownroad-marshal-boss");
-            Assert(state.Inventory.Count(item => item != null && item.DisplayName == warbladeName) == warbladesBefore + 1
+            Assert(state.Inventory.Count(item => item != null
+                    && item.DisplayName == warbladeName
+                    && item.SignatureId == SignatureItemCatalog.CrownwardWarbladeId) == warbladesBefore + 1
                 && state.Supplies == suppliesBeforeMarshal + 2,
                 "replaying the marshal callback cannot duplicate its unique reward");
             state.Mode = GameMode.Explore;
@@ -4861,7 +4950,7 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             Assert(!InvokePrivate<CombatHudView>(game, "BuildCombatHudView").CanUndoMove && !hud.IsUndoMoveVisible, "Undo Move hides again at the restored origin");
 
-            InvokePrivate(game, "PromoteMageTester", active);
+            InvokePrivate(game, "ExecuteBetaLabToolbarAction", BetaLabToolbarActionId.Mage, active);
             active = InvokePrivate<CombatUnit>(game, "CurrentUnit");
             moveOriginX = active.X;
             moveOriginY = active.Y;
@@ -5900,7 +5989,7 @@ namespace AshenHalls.Editor
             combatState.Combat.Units.Remove(ritualSpawn);
             combatState.Combat.InitiativeQueue.Remove(ritualSpawn.Id);
 
-            InvokePrivate(game, "PromoteWarlockTester", active);
+            InvokePrivate(game, "ExecuteBetaLabToolbarAction", BetaLabToolbarActionId.Warlock, active);
             active = InvokePrivate<CombatUnit>(game, "CurrentUnit");
             combatState.Combat.Obstacles.Clear();
             active.X = 1;
@@ -6865,6 +6954,32 @@ namespace AshenHalls.Editor
                 PowerCastAura firstShowcaseAura = castAuras[0];
                 PowerTravelVfx firstShowcaseTravel = stagedPowerTravel[0];
                 PowerAftermathVfx firstShowcaseAftermath = stagedPowerAftermath[0];
+                PowerImpactEcho firstShowcaseImpact = impactEchoes[0];
+                SetPrivateField(game, "combatAdvancePending", true);
+                try
+                {
+                    InvokePrivate(
+                        game,
+                        "ExecuteBetaLabToolbarAction",
+                        BetaLabToolbarActionId.VisualTour,
+                        warlockTester);
+                    InvokePrivate(game, "ReplayBetaVfxShowcase");
+                    Assert(GetPrivateField<bool>(game, "combatAdvancePending")
+                        && GetPrivateField<bool>(game, "betaVfxShowcaseOpen")
+                        && castAuras.Count == 1
+                        && ReferenceEquals(castAuras[0], firstShowcaseAura)
+                        && stagedPowerTravel.Count == 1
+                        && ReferenceEquals(stagedPowerTravel[0], firstShowcaseTravel)
+                        && stagedPowerAftermath.Count == 1
+                        && ReferenceEquals(stagedPowerAftermath[0], firstShowcaseAftermath)
+                        && impactEchoes.Count == 1
+                        && ReferenceEquals(impactEchoes[0], firstShowcaseImpact),
+                        "Beta actions cannot clear or replace a production spell presentation while resolution is pending");
+                }
+                finally
+                {
+                    SetPrivateField(game, "combatAdvancePending", false);
+                }
                 CombatPowerAftermathVfxProfile firstShowcaseAftermathProfile = CombatPowerAftermathVfxRules.ProfileFor(firstShowcaseAftermath.PowerKey);
                 CombatPowerAnimationTimeline firstShowcaseTimeline = CombatPowerAnimationTimelineRules.For(
                     firstShowcaseAftermath.PowerKey,
@@ -6919,6 +7034,44 @@ namespace AshenHalls.Editor
                 Assert(stagedPowerTravel.Count == 1
                     && stagedPowerTravel[0].PowerKey == "charge",
                     "Beta VFX Showcase exercises one representative targeted class-skill travel identity");
+
+                Dictionary<string, CombatPowerActorChoreographyKind> signatureSkillTour =
+                    new Dictionary<string, CombatPowerActorChoreographyKind>(StringComparer.OrdinalIgnoreCase)
+                    {
+                        ["whirlwind"] = CombatPowerActorChoreographyKind.Whirl,
+                        ["rally"] = CombatPowerActorChoreographyKind.Brace,
+                        ["quickshot"] = CombatPowerActorChoreographyKind.Bow,
+                        ["stealth"] = CombatPowerActorChoreographyKind.Vanish,
+                        ["sunder"] = CombatPowerActorChoreographyKind.HeavyStrike
+                    };
+                foreach (KeyValuePair<string, CombatPowerActorChoreographyKind> expected in signatureSkillTour)
+                {
+                    int showcaseIndex = CombatVfxShowcaseRules.IndexFor(expected.Key);
+                    Assert(showcaseIndex >= 0, expected.Key + " belongs to the expanded Beta skill tour");
+                    SetPrivateField(game, "betaVfxShowcaseIndex", showcaseIndex);
+                    InvokePrivate(game, "ReplayBetaVfxShowcase");
+                    PowerActorPoseBeat poseBeat = actorPoseBeats.SingleOrDefault(value =>
+                        value != null
+                        && value.Role == CombatPowerActorPoseRole.Source
+                        && string.Equals(value.PowerKey, expected.Key, StringComparison.OrdinalIgnoreCase));
+                    Assert(poseBeat != null, expected.Key + " Beta replay stages one production actor-pose beat");
+                    CombatPowerActorPosePlan posePlan = CombatPowerActorPoseRules.ForAbility(
+                        expected.Key,
+                        poseBeat.StableSeed,
+                        poseBeat.SourceX,
+                        poseBeat.SourceY,
+                        poseBeat.LandingX,
+                        poseBeat.LandingY,
+                        poseBeat.Intensity,
+                        false);
+                    CombatPowerActorPoseFrame releaseFrame = posePlan.SourceFrameAt(
+                        (posePlan.ReleaseAt + posePlan.ReleaseEndAt) * 0.5f);
+                    Assert(posePlan.Choreography == expected.Value
+                        && releaseFrame.Phase == CombatPowerActorPosePhase.Release
+                        && releaseFrame.IsVisible,
+                        expected.Key + " Beta replay reaches its distinct visible release choreography");
+                }
+
                 int visualCountBeforeCue = castAuras.Count + stagedPowerTravel.Count + impactEchoes.Count;
                 InvokePrivate(game, "CueBetaVfxShowcaseAudio");
                 Assert(castAuras.Count + stagedPowerTravel.Count + impactEchoes.Count == visualCountBeforeCue,
@@ -6942,6 +7095,15 @@ namespace AshenHalls.Editor
                 SetPrivateField(game, "betaVfxShowcaseOpen", false);
                 InvokePrivate(game, "ClearBetaVfxShowcasePresentation");
             }
+            SetPrivateField(game, "betaLabToolbarFocused", true);
+            SetPrivateField(game, "betaVfxShowcaseOpen", true);
+            Assert(InvokePrivate<bool>(game, "CancelBetaLabToolbarFocus")
+                && !GetPrivateField<bool>(game, "betaVfxShowcaseOpen")
+                && GetPrivateField<bool>(game, "betaLabToolbarFocused"),
+                "first Beta cancel closes the visual preview without leaking focus into combat");
+            Assert(InvokePrivate<bool>(game, "CancelBetaLabToolbarFocus")
+                && !GetPrivateField<bool>(game, "betaLabToolbarFocused"),
+                "second Beta cancel releases the lab rail and restores combat-command ownership");
             AssertCombatTransientPresentationBoundariesRuntime(game);
         }
 
@@ -7797,7 +7959,7 @@ namespace AshenHalls.Editor
 
             InvokePrivate(game, "EnsureInventoryList");
             InvokePrivate(game, "EnsurePartyInventoryIds");
-            InvokePrivate(game, "EnsureInventoryEquipmentLinks");
+            InvokePrivate(game, "EnsureInventoryEquipmentLinks", false);
             Assert(state.Party != null && state.Party.Count >= 3, "Maud has at least two distinct party weapons to test");
             PartyMember[] starterTargets = state.Party
                 .Where(member =>
@@ -9235,6 +9397,134 @@ namespace AshenHalls.Editor
             };
         }
 
+        private static void AssertSignatureItemMigrationRuntime(AshenHallsGame game)
+        {
+            string[] expectedIds =
+            {
+                SignatureItemCatalog.UnfathomableSwordId,
+                SignatureItemCatalog.SluicekeeperBladeId,
+                SignatureItemCatalog.StormglassConductorId,
+                SignatureItemCatalog.RatcatcherRoadcoatId,
+                SignatureItemCatalog.GloamReliquaryMailId,
+                SignatureItemCatalog.MirrorweaveRoadMantleId,
+                SignatureItemCatalog.CrownwardWarbladeId
+            };
+            InventoryItem[] liveRewards =
+            {
+                InvokePrivate<InventoryItem>(game, "MakeSwordOfUnfathomableDarkness"),
+                ContentSetCatalog.CreateSewerSafeRoomBlade(),
+                ContentSetCatalog.CreateSewerSafeRoomFocus(),
+                ContentSetCatalog.CreateSewerSliceReward(),
+                InvokePrivate<InventoryItem>(game, "MakeGloamReliquaryMail"),
+                ContentSetCatalog.CreateAshglassRoadMantle(),
+                ContentSetCatalog.CreateCrownwardEmberglassWarblade()
+            };
+            Assert(liveRewards.Select(item => item?.SignatureId).SequenceEqual(expectedIds),
+                "all seven live reward factories emit their expected signature IDs");
+
+            string[] legacyNames =
+            {
+                "Sword of Unfathomable Darkness",
+                "+2 sluicekeeper fine steel broadsword",
+                "+2 etched stormglass ritual staff",
+                "+3 stitched rat pelt armor",
+                "+4 gloamward reliquary scale mail",
+                "+5 ashglass mirrorweave road mantle",
+                "+6 crownward emberglass warblade"
+            };
+            InventoryItem[] legacyItems = liveRewards;
+            for (int i = 0; i < legacyItems.Length; i++)
+            {
+                legacyItems[i].SignatureId = "";
+                legacyItems[i].DisplayName = legacyNames[i];
+            }
+
+            InventoryItem capturedWeapon = legacyItems[2];
+            Assert(WeaponEnchantmentRules.ApplyPermanent(capturedWeapon, "fire"),
+                "save-v25 signature probe captures a prefixed weapon enchantment");
+            capturedWeapon.EquippedById = "signature-migration-owner";
+            PartyMember owner = new PartyMember
+            {
+                Id = capturedWeapon.EquippedById,
+                Name = "Legacy Wielder",
+                Stats = new Stats(8, 12, 8, 8),
+                WeaponName = capturedWeapon.DisplayName
+            };
+            InvokePrivate(game, "ApplyInventoryItemToLoadout", capturedWeapon, owner, true);
+            InventoryItem equippedLegacyArmor = legacyItems[3];
+            equippedLegacyArmor.EquippedById = "signature-migration-armor-owner";
+            PartyMember armorOwner = new PartyMember
+            {
+                Id = equippedLegacyArmor.EquippedById,
+                Name = "Legacy Roadcoat Wearer",
+                Stats = new Stats(10, 8, 12, 10),
+                ArmorName = equippedLegacyArmor.DisplayName
+            };
+            InvokePrivate(game, "ApplyInventoryItemToLoadout", equippedLegacyArmor, armorOwner, false);
+            InventoryItem proceduralLookalike = new InventoryItem
+            {
+                Mark = "salvaged",
+                Material = "stormglass",
+                Form = "ritual staff",
+                Trait = "storm replica",
+                Slot = "weapon",
+                DisplayName = "+2 Stormglass Conductor Replica"
+            };
+            GameState migrationState = new GameState
+            {
+                SaveVersion = 25,
+                Mode = GameMode.Tavern,
+                Depth = 1,
+                StoryChapter = 1,
+                ActiveStory = "Signature item migration probe",
+                Party = new List<PartyMember> { owner, armorOwner },
+                Inventory = legacyItems.Concat(new[] { proceduralLookalike }).ToList()
+            };
+
+            GameState previousState = GetPrivateField<GameState>(game, "state");
+            try
+            {
+                SetPrivateField(game, "state", migrationState);
+                InvokePrivate(game, "EnsureWorldState", 25);
+
+                Assert(migrationState.Inventory.Count(item =>
+                        item != null && !string.IsNullOrWhiteSpace(item.SignatureId)) == expectedIds.Length
+                    && legacyItems.Select(item => item.SignatureId).SequenceEqual(expectedIds)
+                    && expectedIds.Distinct(StringComparer.Ordinal).Count() == expectedIds.Length,
+                    "save-v25 migration assigns every exact signature ID once");
+                Assert(string.IsNullOrEmpty(proceduralLookalike.SignatureId),
+                    "save-v25 migration does not misclassify a similarly named procedural staff");
+                Assert(Enumerable.Range(0, legacyItems.Length).All(index =>
+                        ReferenceEquals(legacyItems[index], capturedWeapon)
+                        || legacyItems[index].DisplayName == SignatureItemCatalog.Find(expectedIds[index]).DisplayName),
+                    "save-v25 migration canonicalizes every unenchanted legacy display identity");
+
+                Assert(capturedWeapon.PermanentEnchantmentId == "fire"
+                    && capturedWeapon.EnchantmentBaseCaptured
+                    && capturedWeapon.EnchantmentBaseDisplayName == "+2 Stormglass Conductor"
+                    && capturedWeapon.EnchantmentBaseTrait == "storm"
+                    && capturedWeapon.EnchantmentBaseDamageType == "shock"
+                    && capturedWeapon.DisplayName == "flamebound +2 Stormglass Conductor"
+                    && capturedWeapon.EquippedById == owner.Id
+                    && owner.WeaponName == capturedWeapon.DisplayName,
+                    "save-v25 migration preserves enchantment state and owner while canonicalizing its captured base identity");
+                Assert(equippedLegacyArmor.SignatureId == SignatureItemCatalog.RatcatcherRoadcoatId
+                    && equippedLegacyArmor.DisplayName == "+3 Ratcatcher’s Roadcoat"
+                    && equippedLegacyArmor.EquippedById == armorOwner.Id
+                    && armorOwner.ArmorName == equippedLegacyArmor.DisplayName,
+                    "save-v25 migration preserves equipped armor ownership while canonicalizing its loadout name");
+
+                string firstPass = JsonUtility.ToJson(migrationState);
+                InvokePrivate(game, "EnsureWorldState", 25);
+                Assert(JsonUtility.ToJson(migrationState) == firstPass,
+                    "save-v25 signature migration is idempotent on a second normalization pass");
+            }
+            finally
+            {
+                SetPrivateField(game, "state", previousState);
+            }
+        }
+
         private static void AssertInventoryEquipmentSwapAndRangeSemantics(AshenHallsGame game)
         {
             GameState previousState = GetPrivateField<GameState>(game, "state");
@@ -9333,7 +9623,7 @@ namespace AshenHalls.Editor
                     Inventory = new List<InventoryItem> { cinderBow, broadsword }
                 };
                 SetPrivateField(game, "state", linkedState);
-                InvokePrivate(game, "EnsureInventoryEquipmentLinks");
+                InvokePrivate(game, "EnsureInventoryEquipmentLinks", false);
                 Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", cinderBow, brann, null), "equipped weapon can be reassigned through one atomic swap");
                 Assert(linkedState.Inventory.Count == 2, "linked equipment swap preserves inventory membership");
                 Assert(cinderBow.EquippedById == brann.Id && broadsword.EquippedById == arden.Id, "linked equipment swap exchanges both exact owner IDs");
@@ -9361,7 +9651,7 @@ namespace AshenHalls.Editor
 
                 GameState roundTrip = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(linkedState));
                 SetPrivateField(game, "state", roundTrip);
-                InvokePrivate(game, "EnsureInventoryEquipmentLinks");
+                InvokePrivate(game, "EnsureInventoryEquipmentLinks", false);
                 InventoryItem restoredBow = roundTrip.Inventory.Single(item => item.DisplayName == cinderBow.DisplayName);
                 InventoryItem restoredSword = roundTrip.Inventory.Single(item => item.DisplayName == broadsword.DisplayName);
                 Assert(restoredBow.EquippedById == brann.Id && restoredSword.EquippedById == arden.Id, "equipment swap ownership survives save round-trip and link repair");
@@ -9380,6 +9670,8 @@ namespace AshenHalls.Editor
                 legacyTarget.WeaponAttackSpeed = 7;
                 InventoryItem syntheticBow = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(cinderBow));
                 syntheticBow.EquippedById = syntheticOwner.Id;
+                InvokePrivate(game, "ApplyInventoryItemToLoadout", syntheticBow, syntheticOwner, true);
+                InvokePrivate(game, "ApplyInventoryItemToLoadout", broadsword, legacyTarget, true);
                 GameState syntheticState = new GameState
                 {
                     Mode = GameMode.Explore,
@@ -9399,6 +9691,7 @@ namespace AshenHalls.Editor
                 failedTarget.WeaponName = "";
                 InventoryItem failedBow = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(syntheticBow));
                 failedBow.EquippedById = failedOwner.Id;
+                InvokePrivate(game, "ApplyInventoryItemToLoadout", failedBow, failedOwner, true);
                 GameState failedState = new GameState
                 {
                     Mode = GameMode.Explore,

@@ -1,0 +1,439 @@
+{
+  "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+  "output": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\unique-item-atlas-runtime-v2.20.0.png",
+  "grid": [
+    5,
+    4
+  ],
+  "cellSize": 256,
+  "padding": 16,
+  "atlasSize": [
+    1280,
+    1024
+  ],
+  "cells": [
+    {
+      "index": 0,
+      "source": "outputs\\ashen-halls-unity\\Docs\\ArtReferences\\unique-item-atlas-runtime-v0.71.png",
+      "sourceIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        256,
+        256
+      ],
+      "sourceBounds": [
+        28,
+        16,
+        228,
+        240
+      ],
+      "runtimeBounds": [
+        28,
+        16,
+        228,
+        240
+      ],
+      "size": [
+        200,
+        224
+      ]
+    },
+    {
+      "index": 1,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 1,
+      "sourceRegion": [
+        280,
+        0,
+        561,
+        280
+      ],
+      "sourceBounds": [
+        36,
+        13,
+        238,
+        254
+      ],
+      "runtimeBounds": [
+        290,
+        16,
+        478,
+        240
+      ],
+      "size": [
+        188,
+        224
+      ]
+    },
+    {
+      "index": 2,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 2,
+      "sourceRegion": [
+        561,
+        0,
+        841,
+        280
+      ],
+      "sourceBounds": [
+        55,
+        28,
+        223,
+        250
+      ],
+      "runtimeBounds": [
+        556,
+        17,
+        724,
+        239
+      ],
+      "size": [
+        168,
+        222
+      ]
+    },
+    {
+      "index": 3,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 3,
+      "sourceRegion": [
+        841,
+        0,
+        1122,
+        280
+      ],
+      "sourceBounds": [
+        55,
+        26,
+        232,
+        246
+      ],
+      "runtimeBounds": [
+        807,
+        18,
+        984,
+        238
+      ],
+      "size": [
+        177,
+        220
+      ]
+    },
+    {
+      "index": 4,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 4,
+      "sourceRegion": [
+        1122,
+        0,
+        1402,
+        280
+      ],
+      "sourceBounds": [
+        60,
+        25,
+        221,
+        254
+      ],
+      "runtimeBounds": [
+        1073,
+        16,
+        1230,
+        240
+      ],
+      "size": [
+        157,
+        224
+      ]
+    },
+    {
+      "index": 5,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 5,
+      "sourceRegion": [
+        0,
+        280,
+        280,
+        561
+      ],
+      "sourceBounds": [
+        39,
+        26,
+        240,
+        258
+      ],
+      "runtimeBounds": [
+        31,
+        272,
+        225,
+        496
+      ],
+      "size": [
+        194,
+        224
+      ]
+    },
+    {
+      "index": 6,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 6,
+      "sourceRegion": [
+        280,
+        280,
+        561,
+        561
+      ],
+      "sourceBounds": [
+        39,
+        14,
+        253,
+        267
+      ],
+      "runtimeBounds": [
+        289,
+        272,
+        478,
+        496
+      ],
+      "size": [
+        189,
+        224
+      ]
+    },
+    {
+      "index": 7,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 7,
+      "sourceRegion": [
+        561,
+        280,
+        841,
+        561
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 8,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 8,
+      "sourceRegion": [
+        841,
+        280,
+        1122,
+        561
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 9,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 9,
+      "sourceRegion": [
+        1122,
+        280,
+        1402,
+        561
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 10,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 10,
+      "sourceRegion": [
+        0,
+        561,
+        280,
+        842
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 11,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 11,
+      "sourceRegion": [
+        280,
+        561,
+        561,
+        842
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 12,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 12,
+      "sourceRegion": [
+        561,
+        561,
+        841,
+        842
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 13,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 13,
+      "sourceRegion": [
+        841,
+        561,
+        1122,
+        842
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 14,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 14,
+      "sourceRegion": [
+        1122,
+        561,
+        1402,
+        842
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 15,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 15,
+      "sourceRegion": [
+        0,
+        842,
+        280,
+        1122
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 16,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 16,
+      "sourceRegion": [
+        280,
+        842,
+        561,
+        1122
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 17,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 17,
+      "sourceRegion": [
+        561,
+        842,
+        841,
+        1122
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 18,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 18,
+      "sourceRegion": [
+        841,
+        842,
+        1122,
+        1122
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    },
+    {
+      "index": 19,
+      "source": "C:\\Users\\markz\\.codex\\generated_images\\01a02008-09a6-78f0-be94-f9aa11ca3454\\exec-8c386eed-c6e8-4c77-8428-521ffa5c2bb5.png",
+      "sourceIndex": 19,
+      "sourceRegion": [
+        1122,
+        842,
+        1402,
+        1122
+      ],
+      "sourceBounds": null,
+      "runtimeBounds": null,
+      "size": [
+        0,
+        0
+      ],
+      "empty": true
+    }
+  ]
+}

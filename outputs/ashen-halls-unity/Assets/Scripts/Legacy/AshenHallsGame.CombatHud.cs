@@ -1172,12 +1172,16 @@ namespace AshenHalls
             CombatUnit active = CurrentUnit();
             bool playerTurn = active != null && active.Side == UnitSide.Party;
             Rect baseRect = CombatHudScreenLayout.Calculate(Screen.width, Screen.height).Board;
-            if (baseRect.width < 480f) return;
-            Rect toolbar = new Rect(baseRect.x + 8f, baseRect.y + 8f, Mathf.Min(900f, baseRect.width - 16f), 30f);
+            if (baseRect.width < BetaLabToolbarRules.MinimumToolbarWidth + 16f) return;
+            Rect toolbar = new Rect(
+                baseRect.x + 8f,
+                baseRect.y + 8f,
+                Mathf.Min(900f, baseRect.width - 16f),
+                BetaLabToolbarRules.ToolbarHeight);
             DrawBetaLabToolbar(toolbar, active, playerTurn);
             if (betaVfxShowcaseOpen)
             {
-                DrawBetaVfxShowcaseToolbar(new Rect(toolbar.x, toolbar.y + 34f, toolbar.width, 30f));
+                DrawBetaVfxShowcaseToolbar(new Rect(toolbar.x, toolbar.yMax + 4f, toolbar.width, 30f));
             }
         }
     }

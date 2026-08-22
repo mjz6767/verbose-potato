@@ -1,0 +1,104 @@
+{
+  "kind": "midgaard-road-surface-atlas",
+  "output": "midgaard-road-surface-atlas-runtime-v2.21.0.png",
+  "outputSha256": "428A853DF2FF339740DC5E54D3DB8061C608D1C6E2DA5041B4435A726AEA7E72",
+  "atlasSize": [
+    512,
+    512
+  ],
+  "cellSize": 256,
+  "requiredGutter": 0,
+  "targetBaseline": null,
+  "sources": [
+    {
+      "path": "Docs\\ArtReferences\\source-midgaard-road-surfaces-v2.21.0.png",
+      "sha256": "072DEF4E77266F9D1869256DAE45E56E6187D57DB430897CBE6FBD9DC81A2CBC"
+    }
+  ],
+  "cells": [
+    {
+      "name": "civic-cobble",
+      "sourceIndex": 0,
+      "targetIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        627,
+        627
+      ],
+      "runtimeSize": [
+        256,
+        256
+      ],
+      "meanRgb": [
+        41.211,
+        39.369,
+        36.76
+      ],
+      "oppositeEdgeMeanDelta": 0.0
+    },
+    {
+      "name": "civic-setts",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceRegion": [
+        627,
+        0,
+        1254,
+        627
+      ],
+      "runtimeSize": [
+        256,
+        256
+      ],
+      "meanRgb": [
+        52.865,
+        50.153,
+        47.695
+      ],
+      "oppositeEdgeMeanDelta": 0.0
+    },
+    {
+      "name": "old-road-stone-earth",
+      "sourceIndex": 2,
+      "targetIndex": 2,
+      "sourceRegion": [
+        0,
+        627,
+        627,
+        1254
+      ],
+      "runtimeSize": [
+        256,
+        256
+      ],
+      "meanRgb": [
+        58.011,
+        48.554,
+        38.373
+      ],
+      "oppositeEdgeMeanDelta": 0.0
+    },
+    {
+      "name": "old-road-fine-gravel",
+      "sourceIndex": 3,
+      "targetIndex": 3,
+      "sourceRegion": [
+        627,
+        627,
+        1254,
+        1254
+      ],
+      "runtimeSize": [
+        256,
+        256
+      ],
+      "meanRgb": [
+        63.583,
+        54.493,
+        46.712
+      ],
+      "oppositeEdgeMeanDelta": 0.0
+    }
+  ]
+}

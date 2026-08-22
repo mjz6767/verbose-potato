@@ -1,0 +1,5 @@
+Create one standalone full-body Midgaard stable-hand NPC sprite in exactly the same dark Nordic-fantasy pixel-art style, body proportions, palette, lighting, and rendering density as the attached 5x4 NPC sheet.
+
+The character is Pell: a practical young stable hand wearing a muted forest-green cap, weathered dark green wool jacket, brown trousers and boots. He holds a small grooming brush in one hand and a neatly coiled lead rope in the other. He is alone: absolutely NO horse, pony, animal, cart, stable, scenery, text, label, border, or UI. Front/slight three-quarter standing pose, full head and both feet visible, subtle compact contact shadow, centered with generous empty margin. Strong readable silhouette at 48 pixels.
+
+Output a square production sprite source on an empty clean transparent canvas with real alpha; the only visible pixels should be Pell and his small contact shadow. Do not paint a checkerboard or colored background.

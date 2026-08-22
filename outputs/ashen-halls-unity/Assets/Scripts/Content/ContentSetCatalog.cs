@@ -11,9 +11,9 @@ namespace AshenHalls
 
         private static readonly string[] sewerSliceFormulaCodes =
         {
-            "OIC", "TBQ", "NVC", "GBH", "TNC", "SRF", "DWP", "SBN",
-            "FIF", "RIG", "WBI", "FBL", "RSG", "CLT", "CNS", "VST", "ACR", "AST",
-            "RKW", "RNH", "RBT", "IBD", "GRH", "SLV", "PBR", "VRS", "DFA"
+            "OIC", "TBQ", "NVC", "OBL", "GBH", "TNC", "HLC", "SRF", "DWP", "SBN",
+            "FIF", "RIG", "WBI", "RCL", "FBL", "RSG", "CLT", "CNS", "VST", "ACR", "AST",
+            "RKW", "RNH", "RBT", "IBD", "SLV", "INH", "PBR", "GRH", "IBF", "DMC", "VRS", "DFA"
         };
 
         private static readonly string[] sewerSliceAbilityIds =
@@ -325,98 +325,27 @@ namespace AshenHalls
 
         public static InventoryItem CreateSewerSliceReward()
         {
-            return new InventoryItem
-            {
-                Mark = "stitched",
-                Material = "rat pelt",
-                Form = "rat pelt armor",
-                Trait = "nimble",
-                Slot = "armor",
-                Bonus = 3,
-                AgilityBonus = 1,
-                HealthBonus = 1,
-                Rarity = "quest",
-                DisplayName = "+3 stitched rat pelt armor"
-            };
+            return SignatureItemCatalog.CreateRatcatcherRoadcoat();
         }
 
         public static InventoryItem CreateSewerSafeRoomBlade()
         {
-            return new InventoryItem
-            {
-                Mark = "sluicekeeper",
-                Material = "fine steel",
-                Form = "broadsword",
-                Trait = "guarding",
-                Slot = "weapon",
-                Bonus = 2,
-                StrengthBonus = 1,
-                DamageMin = 4,
-                DamageMax = 7,
-                AttackSpeed = 3,
-                Rarity = "quest",
-                DamageType = "physical",
-                DisplayName = "+2 sluicekeeper fine steel broadsword"
-            };
+            return SignatureItemCatalog.CreateSluicekeeperBlade();
         }
 
         public static InventoryItem CreateSewerSafeRoomFocus()
         {
-            return new InventoryItem
-            {
-                Mark = "etched",
-                Material = "stormglass",
-                Form = "ritual staff",
-                Trait = "storm",
-                Slot = "weapon",
-                Bonus = 2,
-                IntelligenceBonus = 1,
-                DamageMin = 3,
-                DamageMax = 6,
-                AttackSpeed = 3,
-                Rarity = "quest",
-                DamageType = "shock",
-                DisplayName = "+2 etched stormglass ritual staff"
-            };
+            return SignatureItemCatalog.CreateStormglassConductor();
         }
 
         public static InventoryItem CreateAshglassRoadMantle()
         {
-            return new InventoryItem
-            {
-                Mark = "ashglass",
-                Material = "mirrorweave",
-                Form = "road mantle",
-                Trait = "warding",
-                Slot = "armor",
-                Bonus = 5,
-                IntelligenceBonus = 2,
-                AgilityBonus = 1,
-                HealthBonus = 1,
-                Rarity = "quest",
-                DisplayName = "+5 ashglass mirrorweave road mantle"
-            };
+            return SignatureItemCatalog.CreateMirrorweaveRoadMantle();
         }
 
         public static InventoryItem CreateCrownwardEmberglassWarblade()
         {
-            return new InventoryItem
-            {
-                Mark = "crownward",
-                Material = "emberglass",
-                Form = "broadsword",
-                Trait = "warding",
-                Slot = "weapon",
-                Bonus = 6,
-                StrengthBonus = 2,
-                IntelligenceBonus = 1,
-                DamageMin = 8,
-                DamageMax = 13,
-                AttackSpeed = 3,
-                DamageType = "fire",
-                Rarity = "quest",
-                DisplayName = "+6 crownward emberglass warblade"
-            };
+            return SignatureItemCatalog.CreateCrownwardWarblade();
         }
 
         public static bool HasSewerSafeRoomChoice(IReadOnlyCollection<string> flags)

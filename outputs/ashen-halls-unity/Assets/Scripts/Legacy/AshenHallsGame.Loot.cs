@@ -21,6 +21,7 @@ namespace AshenHalls
                 {
                     View = BuildLootPopupView,
                     Dismiss = DismissLootPopup,
+                    QuickEquip = EquipLootToBestFit,
                     ReviewInventory = ReviewLootInInventory
                 });
                 created.SetVisible(false);
@@ -86,6 +87,7 @@ namespace AshenHalls
                 : Mathf.CeilToInt(Mathf.Max(0f, lootPanelUntil - Time.time));
             return "loot=" + (lootPanelItem?.DisplayName ?? "").GetHashCode()
                 + ":" + (lootPanelBody ?? "").GetHashCode()
+                + ":" + (lootPanelEquipNote ?? "").GetHashCode()
                 + ":" + (lootPanelItem?.EquippedById ?? "").GetHashCode()
                 + ":" + lootPanelGold
                 + ":" + lootPanelSupplies
@@ -105,12 +107,13 @@ namespace AshenHalls
             int bestComparisonScore = 0;
             if (equippable && owner == null)
             {
-                best = BestInventoryFit(item, out _, out bestComparisonScore);
+                best = BestLootInventoryFit(item, out _, out bestComparisonScore);
             }
             Texture2D iconTexture = null;
             Rect iconUv = default;
             if (hasItem) TryGetInventoryItemIcon(item, out iconTexture, out iconUv);
             bool canReview = hasItem && state?.Inventory != null && state.Inventory.Contains(item);
+            bool canQuickEquip = canReview && equippable && owner == null && best != null;
             string comparison = !hasItem
                 ? ""
                 : !equippable
@@ -119,7 +122,7 @@ namespace AshenHalls
                         ? $"{InventoryEquipmentRules.SlotLabel(item.Slot, item.Form)} is active on {owner.Name}."
                         : best == null
                             ? "Stored safely with the party's other gear."
-                            : $"Best fit: {best.Name}  •  {InventoryEquipmentRules.GradeLabel(InventoryEquipmentRules.Grade(bestComparisonScore))}  •  {InventoryComparisonLine(item, best)}";
+                            : $"Best fit: {best.Name}  •  {InventoryGradeLabelFor(item, best)}  •  {InventoryComparisonLine(item, best)}";
             return new LootPopupView
             {
                 Visible = state != null
@@ -127,6 +130,7 @@ namespace AshenHalls
                     && (lootPanelRequiresDismissal || remaining > 0f),
                 HasItem = hasItem,
                 CanReview = canReview,
+                CanQuickEquip = canQuickEquip,
                 Title = lootPanelTitle,
                 ItemName = hasItem ? item.DisplayName : "Victory spoils",
                 ItemType = hasItem ? InventoryEquipmentRules.SlotLabel(item.Slot, item.Form) : "",
@@ -143,7 +147,8 @@ namespace AshenHalls
                     ? ""
                     : !equippable
                     ? "View in inventory"
-                    : owner != null ? "Review or reassign" : "Compare & equip",
+                    : owner != null ? "Review or reassign" : canQuickEquip ? "Compare others" : "Review inventory",
+                QuickEquipActionLabel = canQuickEquip ? "Equip to " + best.Name : "",
                 IconLabel = LootIconLabel(item),
                 AccentHex = hasItem ? InventoryRarityAccent(item.Rarity) : "#d7a84e",
                 IconTexture = iconTexture,
@@ -161,6 +166,39 @@ namespace AshenHalls
             DismissLootPopupSilently();
             SyncLootPopupScreen();
             PlaySfx("uiclose", 0.35f);
+        }
+
+        private void EquipLootToBestFit()
+        {
+            InventoryItem item = lootPanelItem;
+            if (state == null
+                || item == null
+                || state.Inventory == null
+                || !state.Inventory.Contains(item)
+                || !InventoryEquipmentRules.IsEquippable(item))
+            {
+                return;
+            }
+
+            SuppressBoardPointer();
+            EnsureInventoryEquipmentLinks();
+            PartyMember owner = EquippedMember(item);
+            PartyMember best = owner == null ? BestLootInventoryFit(item, out _, out _) : null;
+            string result = string.Empty;
+            bool equipped = best != null && EquipInventoryItemToMember(item, best, out result);
+            if (best == null)
+            {
+                result = owner == null
+                    ? "No adventurer can equip this item right now."
+                    : $"{owner.Name} already has {item.DisplayName} equipped.";
+            }
+
+            lootPanelEquipNote = result;
+            if (equipped) AutosaveCheckpoint("equipment changed");
+            PushLog(result, equipped ? Tone.Good : Tone.Warn);
+            MarkUiDirty();
+            SyncLootPopupScreen();
+            PlaySfx(equipped ? "itemequip" : "blocked", 0.55f);
         }
 
         private void ReviewLootInInventory()

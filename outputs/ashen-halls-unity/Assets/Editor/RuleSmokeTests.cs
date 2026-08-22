@@ -181,6 +181,7 @@ namespace AshenHalls.Editor
             CombatPowerTravelVfxProfilesStayDistinctAndMotionSafe();
             CombatPowerAftermathAndTimelineStayDeterministic();
             CombatPowerActorChoreographyStaysSynchronizedAndBounded();
+            BetaLabToolbarRulesStayResponsiveAndAccessible();
             CombatVfxShowcaseCatalogIsStableAndReplayable();
             CombatPowerSfxProfilesStayDistinctAndMixSafe();
             CombatUnitPresentationBeatsStaySynchronizedAndBounded();
@@ -205,6 +206,7 @@ namespace AshenHalls.Editor
             DialoguePagingAndPortraitCatalogAreReadable();
             LootPopupLayoutFitsSupportedResolutions();
             ArmoryOverlayLayoutFitsSupportedResolutions();
+            SignatureItemCatalogAndAtlasMatchRuntimeContract();
             PartyGrowthRulesStageAndApplyCampaignPointsSafely();
             InventoryEquipmentRulesMakeOwnershipAndComparisonsExplicit();
             WeaponEnchantmentRulesPreserveAffinityAndDuration();
@@ -3202,8 +3204,27 @@ namespace AshenHalls.Editor
             AssertEqual(true, ExplorationCharacterArtCatalog.CanPlaceAmbientCitizen(ExplorationCellRole.None, false, false, false, false, false), "off-lane civic ground remains eligible for ambient life");
             AssertEqual("Lamplighter / passing townsfolk", ExplorationCharacterArtCatalog.AmbientCitizenDisplayLabel(AmbientCitizenProfession.Lamplighter), "passersby receive natural non-interactive hover labels");
             AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenPadding(true) > ExplorationCharacterArtCatalog.ExteriorCitizenPadding(false), "region-map passersby occupy less of their cell");
-            AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, false) < 0.80f, "local passersby remain visibly behind named actors");
+            AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, false) >= 0.80f && ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, false) < 0.90f, "local passersby stay readable while remaining behind named actors");
             AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, true) < ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, false), "nearby passersby fade as they yield the path");
+            AssertEqual(true, ExplorationNpcPresentationRules.ShouldDrawExteriorAmbientCitizen(false), "Local Map keeps readable ambient citizens");
+            AssertEqual(false, ExplorationNpcPresentationRules.ShouldDrawExteriorAmbientCitizen(true), "Region Map replaces ambient full-body figures with strategic map clarity");
+            AssertEqual(ExplorationNpcPresentationRules.ExteriorAmbientPadding(false), ExplorationCharacterArtCatalog.ExteriorCitizenPadding(false), "ambient-citizen catalog delegates Local sizing to the shared v2.21 presentation rules");
+            AssertEqual(ExplorationNpcPresentationRules.ExteriorAmbientAlpha(false, false), ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(false, false), "ambient-citizen catalog delegates Local opacity to the shared v2.21 presentation rules");
+            AssertEqual(true, ExplorationNpcPresentationRules.ExteriorAmbientAlpha(false, true) < ExplorationNpcPresentationRules.ExteriorAmbientAlpha(false, false), "v2.21 citizens still yield visually beside the party");
+            float namedNpcLocalOccupancy = (1f - 2f * ExplorationNpcPresentationRules.NamedObjectPadding(false))
+                * (1f - 2f * ExplorationNpcPresentationRules.NamedArtPadding())
+                * ExplorationNpcPresentationRules.NamedArtScale(false);
+            float ambientNpcLocalOccupancy = (1f - 2f * ExplorationNpcPresentationRules.ExteriorAmbientPadding(false)) * 0.98f;
+            float patronNpcLocalOccupancy = (1f - 2f * ExplorationNpcPresentationRules.GrandHearthPatronPadding(false)) * 0.98f;
+            AssertEqual(true, namedNpcLocalOccupancy >= 0.90f && namedNpcLocalOccupancy <= 1.05f, "named Local Map NPCs occupy a readable but bounded share of their cell");
+            AssertEqual(true, Math.Abs(namedNpcLocalOccupancy - ambientNpcLocalOccupancy) <= 0.08f, "ambient Local Map citizens stay within eight percent of named-NPC height");
+            AssertEqual(true, Math.Abs(namedNpcLocalOccupancy - patronNpcLocalOccupancy) <= 0.08f, "Grand Hearth patrons stay within eight percent of named-NPC height");
+            float namedNpcWideOccupancy = (1f - 2f * ExplorationNpcPresentationRules.NamedObjectPadding(true))
+                * (1f - 2f * ExplorationNpcPresentationRules.NamedArtPadding())
+                * ExplorationNpcPresentationRules.NamedArtScale(true);
+            float patronNpcWideOccupancy = (1f - 2f * ExplorationNpcPresentationRules.GrandHearthPatronPadding(true)) * 0.98f;
+            AssertEqual(true, Math.Abs(namedNpcWideOccupancy - patronNpcWideOccupancy) <= 0.03f, "Region named contacts and Grand Hearth patrons stay optically aligned");
+            AssertEqual(true, ExplorationNpcPresentationRules.NamedObjectPadding(true) > ExplorationNpcPresentationRules.NamedObjectPadding(false), "named Region Map NPCs remain subordinate to landmarks");
             AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenYieldsToParty(5, 4, 4, 4), "orthogonally adjacent passersby yield to the party");
             AssertEqual(true, ExplorationCharacterArtCatalog.ExteriorCitizenYieldsToParty(4, 4, 4, 4), "overlapped passersby finish stepping aside instead of popping out");
             AssertEqual(false, ExplorationCharacterArtCatalog.ExteriorCitizenYieldsToParty(5, 5, 4, 4), "diagonal passersby do not pretend to occupy a movement target");
@@ -3211,7 +3232,7 @@ namespace AshenHalls.Editor
             AssertEqual(citizenOffset, ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells("Wharf Market", 9471, 23, 17, 12, 12), "passerby edge placement is deterministic");
             AssertEqual(true, Math.Abs(citizenOffset) >= 0.12f && Math.Abs(citizenOffset) <= 0.18f, "passersby stay near a cell edge without leaving their walkable cell");
             float overlapOffset = ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells("Wharf Market", 9471, 23, 17, 23, 17);
-            AssertEqual(true, Math.Abs(overlapOffset) >= 0.15f && Math.Abs(overlapOffset) <= ExplorationCharacterArtCatalog.ExteriorCitizenPadding(false), "an overlapped passerby completes a visible side-step without spilling into an adjacent cell");
+            AssertEqual(true, Math.Abs(overlapOffset) >= 0.15f && Math.Abs(overlapOffset) <= 0.18f, "an overlapped passerby completes a bounded visible side-step");
         }
 
         private static void ExplorationMiniMapPresentationRulesReserveSemanticMarkers()
@@ -3363,7 +3384,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.19.0", VersionInfo.PackageVersion, "package version matches the integrated v2.19 candidate");
+            AssertEqual("v2.21.0", VersionInfo.PackageVersion, "package version matches the integrated v2.21 candidate");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -3378,6 +3399,7 @@ namespace AshenHalls.Editor
             AssertEqual("class-skill-vfx-atlas-runtime-v2.14.0.png", RuntimeArtManifest.ClassSkillVfxAtlas, "approved v2.14 class skill VFX pin");
             AssertEqual("combat-power-travel-vfx-atlas-runtime-v2.15.0.png", RuntimeArtManifest.CombatPowerTravelVfxAtlas, "approved v2.15 combat power travel VFX pin");
             AssertEqual("combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png", RuntimeArtManifest.CombatPowerAftermathVfxAtlas, "approved v2.17 combat power aftermath VFX pin");
+            AssertEqual("unique-item-atlas-runtime-v2.20.0.png", RuntimeArtManifest.UniqueItemAtlas, "approved v2.20 signature-item atlas pin");
             AssertEqual("title-backdrop-runtime-v2.4.0.png", RuntimeArtManifest.TavernBackdrop, "approved v2.4 Grand Hearth title backdrop pin");
             AssertEqual("tavern-ui-atlas-runtime-v1.5.9.png", RuntimeArtManifest.TavernUiAtlas, "approved v1.5.9 Grand Hearth relic atlas pin");
             AssertEqual("title-menu-scroll-runtime-v2.12.1.png", RuntimeArtManifest.TitleMenuScroll, "approved v2.12.1 Ashen Road charter pin");
@@ -3399,13 +3421,14 @@ namespace AshenHalls.Editor
             AssertEqual("world-area-setpiece-atlas-runtime-v2.3.0.png", RuntimeArtManifest.WorldAreaSetpieceAtlas, "approved v2.3 world-area set-piece atlas pin");
             AssertEqual("world-threat-habitat-atlas-runtime-v2.4.0.png", RuntimeArtManifest.WorldThreatHabitatAtlas, "approved v2.4 roaming-threat habitat atlas pin");
             AssertEqual("player-exploration-role-atlas-runtime-v2.4.0.png", RuntimeArtManifest.PlayerExplorationRoleAtlas, "approved v2.4 player exploration-role atlas pin");
-            AssertEqual("midgaard-town-atlas-runtime-v1.29.0.png", RuntimeArtManifest.MidgaardTownAtlas, "approved v1.29 town atlas pin");
+            AssertEqual("midgaard-town-atlas-runtime-v2.21.0.png", RuntimeArtManifest.MidgaardTownAtlas, "approved v2.21 architectural town atlas pin");
             AssertEqual("midgaard-tile-atlas-runtime-v1.6.3.png", RuntimeArtManifest.MidgaardTileAtlas, "approved v1.6.3 Midgaard terrain pin");
             AssertEqual("midgaard-city-prop-atlas-runtime-v1.29.0.png", RuntimeArtManifest.MidgaardCityPropAtlas, "approved v1.29 city prop atlas pin");
             AssertEqual("midgaard-street-life-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardStreetLifeAtlas, "approved v1.50 street-life atlas pin");
             AssertEqual("midgaard-paving-decal-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardPavingDecalAtlas, "approved v1.50 paving-decal atlas pin");
-            AssertEqual("midgaard-npc-atlas-runtime-v1.93.0.png", RuntimeArtManifest.MidgaardNpcAtlas, "approved v1.93 NPC atlas pin");
-            AssertEqual("world-npc-citizen-atlas-runtime-v2.4.0.png", RuntimeArtManifest.WorldNpcCitizenAtlas, "approved v2.4 ambient-citizen atlas pin");
+            AssertEqual("midgaard-road-surface-atlas-runtime-v2.21.0.png", RuntimeArtManifest.MidgaardRoadSurfaceAtlas, "approved v2.21 road-surface atlas pin");
+            AssertEqual("midgaard-npc-atlas-runtime-v2.21.0.png", RuntimeArtManifest.MidgaardNpcAtlas, "approved v2.21 coherent named-NPC atlas pin");
+            AssertEqual("world-npc-citizen-atlas-runtime-v2.21.0.png", RuntimeArtManifest.WorldNpcCitizenAtlas, "approved v2.21 coherent ambient-citizen atlas pin");
             AssertEqual("route-scaffold-atlas-runtime-v1.30.0.png", RuntimeArtManifest.RouteScaffoldAtlas, "approved v1.30 route scaffold atlas pin");
             AssertEqual("kobold-route-atlas-runtime-v1.30.0.png", RuntimeArtManifest.KoboldRouteAtlas, "approved v1.30 kobold route atlas pin");
             AssertEqual("midgaard-sewer-atlas-runtime-v1.30.0.png", RuntimeArtManifest.MidgaardSewerAtlas, "approved v1.30 sewer atlas pin");
@@ -3422,10 +3445,10 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|title-menu-icon-atlas-runtime-v2.16.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v1.29.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-npc-atlas-runtime-v1.93.0.png|world-npc-citizen-atlas-runtime-v2.4.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png|unique-item-atlas-runtime-v2.20.0.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|title-menu-icon-atlas-runtime-v2.16.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v2.21.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-road-surface-atlas-runtime-v2.21.0.png|midgaard-npc-atlas-runtime-v2.21.0.png|world-npc-citizen-atlas-runtime-v2.21.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(56, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(58, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -3576,6 +3599,27 @@ namespace AshenHalls.Editor
                         AssertEqual(true, partyBounds.height >= 216 && partyBounds.height <= 224, "party marker uses the vertical space needed at region scale");
                         AssertEqual(true, partyAspect >= 0.74f && partyAspect <= 0.80f, "party marker keeps a readable near-portrait group silhouette");
                     }
+                    if (string.Equals(fileName, RuntimeArtManifest.MidgaardTownAtlas, StringComparison.Ordinal))
+                    {
+                        int[] architectureCells = { 0, 1, 3, 4, 5, 6, 7, 11, 14 };
+                        AssertAtlasCellCoverageAtAlpha(atlas, 5, 4, architectureCells, 0.34f, 0.55f, 24, "v2.21 Midgaard architecture");
+                        foreach (int cell in architectureCells)
+                        {
+                            RectInt bounds = AtlasCellVisibleBounds(atlas, 5, 4, cell, 24);
+                            AssertEqual(true, bounds.width >= 170 && bounds.width <= 220, "v2.21 Midgaard building cell " + cell + " has substantial facade width");
+                            AssertEqual(true, bounds.height >= 188 && bounds.height <= 220, "v2.21 Midgaard building cell " + cell + " has roof-led vertical mass");
+                        }
+                    }
+                    if (string.Equals(fileName, RuntimeArtManifest.MidgaardNpcAtlas, StringComparison.Ordinal))
+                    {
+                        AssertAtlasCellCoverageAtAlpha(atlas, 5, 4, Enumerable.Range(0, 20), 0.18f, 0.40f, 24, "v2.21 named Midgaard NPC");
+                        foreach (int cell in Enumerable.Range(0, 20))
+                        {
+                            RectInt bounds = AtlasCellVisibleBounds(atlas, 5, 4, cell, 24);
+                            AssertEqual(true, bounds.height >= 216 && bounds.height <= 220, "v2.21 named NPC cell " + cell + " shares the normalized baseline height");
+                            AssertEqual(true, bounds.width >= 90 && bounds.width <= 170, "v2.21 named NPC cell " + cell + " keeps a readable bounded silhouette");
+                        }
+                    }
                 }
 
                 Texture2D npcPortraits = LoadApprovedRuntimeAtlas(RuntimeArtManifest.NpcPortraitAtlas);
@@ -3646,26 +3690,37 @@ namespace AshenHalls.Editor
                 normalizedAtlases.Add(ambientCitizens);
                 normalizedAtlases.Add(playerRoles);
                 AssertEqual(new Vector2Int(1536, 768), new Vector2Int(threatHabitats.width, threatHabitats.height), "v2.4 threat-habitat dimensions");
-                AssertEqual(new Vector2Int(1536, 768), new Vector2Int(ambientCitizens.width, ambientCitizens.height), "v2.4 ambient-citizen dimensions");
+                AssertEqual(new Vector2Int(1536, 768), new Vector2Int(ambientCitizens.width, ambientCitizens.height), "v2.21 ambient-citizen dimensions");
                 AssertEqual(new Vector2Int(1536, 768), new Vector2Int(playerRoles.width, playerRoles.height), "v2.4 player-role dimensions");
                 AssertAtlasCellCoverageAtAlpha(threatHabitats, 4, 2, Enumerable.Range(0, 8), 0.46f, 0.51f, 8, "v2.4 threat habitat");
-                AssertAtlasCellCoverageAtAlpha(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 0.26f, 0.34f, 8, "v2.4 ambient citizen");
+                AssertAtlasCellCoverageAtAlpha(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 0.25f, 0.38f, 8, "v2.21 ambient citizen");
                 AssertAtlasCellCoverageAtAlpha(playerRoles, 4, 2, Enumerable.Range(0, 8), 0.22f, 0.43f, 8, "v2.4 player role");
                 AssertAtlasCellSafeGutter(threatHabitats, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 threat habitat");
-                AssertAtlasCellSafeGutter(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 ambient citizen");
+                AssertAtlasCellSafeGutter(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.21 ambient citizen");
                 AssertAtlasCellSafeGutter(playerRoles, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 player role");
                 AssertAtlasHasNoVisibleBrightMagenta(threatHabitats, 8, "v2.4 threat habitat");
-                AssertAtlasHasNoVisibleBrightMagenta(ambientCitizens, 8, "v2.4 ambient citizen");
+                AssertAtlasHasNoVisibleBrightMagenta(ambientCitizens, 8, "v2.21 ambient citizen");
                 AssertAtlasHasNoVisibleBrightMagenta(playerRoles, 8, "v2.4 player role");
+                for (int cell = 0; cell < ExplorationCharacterArtCatalog.CitizenCellCount; cell++)
+                {
+                    RectInt bounds = AtlasCellVisibleBounds(ambientCitizens, 4, 2, cell, 8);
+                    AssertEqual(20, bounds.y, "v2.21 ambient citizen cell " + cell + " keeps the exact top gutter");
+                    AssertEqual(344, bounds.height, "v2.21 ambient citizen cell " + cell + " uses the shared figure height");
+                    AssertEqual(20, 384 - bounds.yMax, "v2.21 ambient citizen cell " + cell + " keeps the shared baseline gutter");
+                }
 
                 Texture2D streetLife = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardStreetLifeAtlas);
                 Texture2D pavingDecals = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardPavingDecalAtlas);
+                Texture2D roadSurfaces = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardRoadSurfaceAtlas);
                 normalizedAtlases.Add(streetLife);
                 normalizedAtlases.Add(pavingDecals);
+                normalizedAtlases.Add(roadSurfaces);
                 AssertEqual(new Vector2Int(1400, 1120), new Vector2Int(streetLife.width, streetLife.height), "v1.50 Midgaard street-life dimensions");
                 AssertEqual(new Vector2Int(1252, 1252), new Vector2Int(pavingDecals.width, pavingDecals.height), "v1.50 Midgaard paving-decal dimensions");
+                AssertEqual(new Vector2Int(512, 512), new Vector2Int(roadSurfaces.width, roadSurfaces.height), "v2.21 Midgaard road-surface dimensions");
                 AssertAtlasCellCoverage(streetLife, 5, 4, Enumerable.Range(0, 20), 0.10f, 0.92f, "v1.50 street-life prop");
                 AssertAtlasCellCoverage(pavingDecals, 4, 4, Enumerable.Range(0, 16), 0.08f, 0.92f, "v1.50 paving decal");
+                AssertAtlasCellCoverage(roadSurfaces, 2, 2, Enumerable.Range(0, 4), 0.99f, 1f, "v2.21 seamless road surface");
 
                 Texture2D interiorProps = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardInteriorPropAtlas);
                 Texture2D interiorTiles = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardInteriorTileAtlas);
@@ -4458,9 +4513,46 @@ namespace AshenHalls.Editor
             float regionBuildingFill = (1f - 2f * ExplorationArtRules.MidgaardBuildingPadding(true))
                 * buildingArtFill
                 * ExplorationArtRules.MidgaardBuildingSpriteScale(true);
-            AssertEqual(true, localBuildingFill >= 1.30f && localBuildingFill <= 1.33f, "local Midgaard buildings rise beyond one cell for landmark readability");
-            AssertEqual(true, regionBuildingFill >= 0.99f && regionBuildingFill <= 1.02f, "region Midgaard buildings remain cell-filling silhouettes");
+            AssertEqual(true, localBuildingFill >= 1.44f && localBuildingFill <= 1.46f, "v2.21 local Midgaard buildings carry a roof-led architectural silhouette");
+            AssertEqual(true, regionBuildingFill >= 1.05f && regionBuildingFill <= 1.07f, "v2.21 region Midgaard buildings remain landmark-readable silhouettes");
+            AssertEqual(true, ExplorationArtRules.MidgaardBuildingSpriteScale(ObjectType.KingHall, false) > ExplorationArtRules.MidgaardBuildingSpriteScale(ObjectType.Market, false), "Town Hall owns the strongest local civic skyline weight");
+            AssertEqual(true, ExplorationArtRules.MidgaardBuildingSpriteScale(ObjectType.Temple, true) > ExplorationArtRules.MidgaardBuildingSpriteScale(ObjectType.Provisions, true), "Temple remains distinct from ordinary Region Map shopfronts");
             AssertEqual(true, ExplorationArtRules.MidgaardBuildingVerticalOffset(false) < ExplorationArtRules.MidgaardBuildingVerticalOffset(true), "local building growth favors the roofline over the street");
+            foreach (ObjectType buildingType in new[] { ObjectType.Market, ObjectType.Temple, ObjectType.Tavern, ObjectType.KingHall })
+            {
+                foreach (bool wideView in new[] { false, true })
+                {
+                    float scale = ExplorationArtRules.MidgaardBuildingSpriteScale(buildingType, wideView);
+                    float offset = ExplorationArtRules.MidgaardBuildingVerticalOffset(buildingType, wideView);
+                    AssertEqual(true, Mathf.Abs(0.5f + offset + scale * 0.5f - 1f) < 0.001f, buildingType + " keeps its doorway on the cell baseline");
+                }
+            }
+
+            Dictionary<ObjectType, int> townAtlasCells = new Dictionary<ObjectType, int>
+            {
+                { ObjectType.Market, 0 },
+                { ObjectType.Temple, 1 },
+                { ObjectType.Fountain, 2 },
+                { ObjectType.Tavern, 3 },
+                { ObjectType.Armorer, 4 },
+                { ObjectType.Provisions, 5 },
+                { ObjectType.WeaponVendor, 6 },
+                { ObjectType.Enchanter, 7 },
+                { ObjectType.KingHall, 11 },
+                { ObjectType.Sewer, 12 },
+                { ObjectType.CityWall, 13 },
+                { ObjectType.Diner, 14 },
+                { ObjectType.RatPeltQuest, 15 },
+                { ObjectType.RecallCircle, 17 }
+            };
+            foreach (KeyValuePair<ObjectType, int> entry in townAtlasCells)
+            {
+                AssertEqual(entry.Value, MidgaardTownArtCatalog.AtlasIndex(entry.Key), entry.Key + " keeps its semantic Midgaard town-atlas cell");
+                AssertEqual(ExplorationArtRules.IsMidgaardBuilding(entry.Key), MidgaardTownArtCatalog.IsArchitectureCell(entry.Value), entry.Key + " atlas cell agrees with its architectural footprint role");
+            }
+            AssertEqual(-1, MidgaardTownArtCatalog.AtlasIndex(ObjectType.Encounter), "non-city encounters never borrow a Midgaard building cell");
+            AssertEqual(ObjectType.KingHall, MidgaardTownArtCatalog.PresentationType(ObjectType.Tavern, true), "Grand Hearth exterior uses Town Hall art and skyline weight");
+            AssertEqual(ObjectType.Tavern, MidgaardTownArtCatalog.PresentationType(ObjectType.Tavern, false), "ordinary taverns retain their own building presentation");
 
             AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(false, true) >= 0.76f && ExplorationArtRules.GateArtWidthInCells(false, true) <= 0.80f, "local side gate keeps a compact wall-aligned frame");
             AssertEqual(true, ExplorationArtRules.GateArtWidthInCells(false, false) >= 1.98f && ExplorationArtRules.GateArtWidthInCells(false, false) <= 2.06f, "local sealed gate width is bounded");
@@ -4729,6 +4821,10 @@ namespace AshenHalls.Editor
                     expectedJoins[mask],
                     ExplorationRoadPresentationRules.JoinForMask(mask | 0x70),
                     $"road presentation ignores non-cardinal bits for join mask {mask}");
+                AssertEqual(
+                    expectedJoins[mask] != ExplorationRoadJoin.Straight,
+                    ExplorationRoadPresentationRules.ShouldDrawJunctionApron(expectedJoins[mask]),
+                    $"road join mask {mask} reserves the central apron for actual endpoints and junctions");
             }
 
             ExplorationCellRole trail = ExplorationCellRole.Trail;
@@ -4820,11 +4916,22 @@ namespace AshenHalls.Editor
                     ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
                     0,
                     0);
+                ExplorationRoadVisualPlan civicOldRoad = ExplorationRoadPresentationRules.Resolve(
+                    ExplorationCellRole.Road | ExplorationCellRole.City,
+                    wideView,
+                    true,
+                    ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West,
+                    0,
+                    0);
 
                 AssertEqual(ExplorationRoadVisualTier.CityStreet, city.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the city-street visual tier");
                 AssertEqual(ExplorationRoadVisualTier.Road, road.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the ordinary-road visual tier");
                 AssertEqual(ExplorationRoadVisualTier.Bridge, bridge.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the bridge visual tier");
                 AssertEqual(ExplorationRoadVisualTier.OldRoad, oldRoad.Tier, $"{(wideView ? "Region" : "Local")} Map resolves the Old Road visual tier");
+                AssertEqual(true, city.CivicSurface, $"{(wideView ? "Region" : "Local")} Map gives city streets a civic cobble surface");
+                AssertEqual(false, road.CivicSurface, $"{(wideView ? "Region" : "Local")} Map keeps wilderness roads earthen");
+                AssertEqual(false, oldRoad.CivicSurface, $"{(wideView ? "Region" : "Local")} Map keeps the Old Road earthen outside Midgaard");
+                AssertEqual(true, civicOldRoad.CivicSurface, $"{(wideView ? "Region" : "Local")} Map dresses the Old Road as restrained cobble inside Midgaard");
                 AssertEqual(
                     true,
                     oldRoad.ShoulderFraction > bridge.ShoulderFraction
@@ -4842,6 +4949,7 @@ namespace AshenHalls.Editor
                     AssertEqual(true, plan.Draw, $"{(wideView ? "Region" : "Local")} Map draws {plan.Tier}");
                     AssertEqual(true, plan.ShoulderFraction > plan.CoreFraction && plan.CoreFraction > 0f, $"{(wideView ? "Region" : "Local")} Map bounds {plan.Tier} core inside its shoulder");
                     AssertEqual(true, plan.ShoulderFraction < 1f, $"{(wideView ? "Region" : "Local")} Map keeps {plan.Tier} inside one map cell");
+                    AssertEqual(false, plan.DrawJunctionApron, $"{(wideView ? "Region" : "Local")} Map renders straight {plan.Tier} as one uninterrupted strip");
                 }
             }
 
@@ -4874,6 +4982,33 @@ namespace AshenHalls.Editor
             AssertEqual(oldRoadCross.MainMask, regionOldRoadCross.MainMask, "Region Old Road preserves the same east-west main topology");
             AssertEqual(oldRoadCross.ConnectorMask, regionOldRoadCross.ConnectorMask, "Region Old Road preserves real north-south road branches");
             AssertEqual(false, regionOldRoadCross.DrawCenterWear, "Region Old Road suppresses Local-only center wear");
+
+            ExplorationRoadVisualPlan civicEndpoint = ExplorationRoadPresentationRules.Resolve(
+                ExplorationCellRole.Road | ExplorationCellRole.City,
+                false,
+                false,
+                ExplorationRoadPresentationRules.East,
+                0,
+                0);
+            ExplorationRoadVisualPlan earthenEndpoint = ExplorationRoadPresentationRules.Resolve(
+                ExplorationCellRole.Road,
+                false,
+                false,
+                ExplorationRoadPresentationRules.East,
+                0,
+                0);
+            AssertEqual(
+                false,
+                ExplorationRoadPresentationRules.ShouldDrawGenericSurfaceChip(civicEndpoint, false, 1),
+                "a civic endpoint cannot place a stray generic chip on its absent half");
+            AssertEqual(
+                true,
+                ExplorationRoadPresentationRules.ShouldDrawGenericSurfaceChip(earthenEndpoint, false, 1),
+                "a Local earthen endpoint retains sparse material variation");
+            AssertEqual(
+                false,
+                ExplorationRoadPresentationRules.ShouldDrawGenericSurfaceChip(earthenEndpoint, true, 1),
+                "Region roads suppress cell-scale material chips");
         }
 
         private static void CombatHudScreenLayoutFitsSupportedResolutions()
@@ -5453,7 +5588,7 @@ namespace AshenHalls.Editor
             AssertEqual("ARMED", CombatHudCommandStyleRules.StateTag(CombatHudCommandStyleRules.Resolve(armed)), "armed command receives a targeting tag");
             AssertEqual("Choose a target", CombatHudCommandStyleRules.SecondaryLine(armed), "armed commands do not repeat their state tag in secondary copy");
             AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(armed, false), "armed targeting keeps its useful target detail in the full command deck");
-            AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(blocked, false), "blocked commands keep their actionable reason in the full command deck");
+            AssertEqual(false, CombatHudCommandStyleRules.ShowsPersistentSecondary(blocked, false), "blocked commands expose their actionable reason through focus instead of crowding the full command deck");
             AssertEqual(false, CombatHudCommandStyleRules.ShowsPersistentSecondary(available, false), "ordinary commands defer explanatory copy to the contextual prompt");
             AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(guard, false), "Guard keeps its decision-changing bonus in the full command deck");
             AssertEqual(true, CombatHudCommandStyleRules.ShowsPersistentSecondary(elixir, false), "Elixir keeps its shared stock count in the full command deck");
@@ -7036,6 +7171,55 @@ namespace AshenHalls.Editor
             AssertEqual(CombatPowerActorPosePhase.Complete, charge.TargetFrameAt(charge.ImpactAt - 0.001f).Phase, "Charge target recoil does not begin early");
             AssertEqual(CombatPowerActorPosePhase.TargetHit, charge.TargetFrameAt(charge.ImpactAt).Phase, "Charge target recoil begins on impact");
 
+            Dictionary<string, CombatPowerActorChoreographyKind> signatureSkillChoreography =
+                new Dictionary<string, CombatPowerActorChoreographyKind>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["whirlwind"] = CombatPowerActorChoreographyKind.Whirl,
+                    ["abyssalwhirl"] = CombatPowerActorChoreographyKind.Whirl,
+                    ["rally"] = CombatPowerActorChoreographyKind.Brace,
+                    ["dreadroar"] = CombatPowerActorChoreographyKind.Brace,
+                    ["volley"] = CombatPowerActorChoreographyKind.Bow,
+                    ["quickshot"] = CombatPowerActorChoreographyKind.Bow,
+                    ["stealth"] = CombatPowerActorChoreographyKind.Vanish,
+                    ["smokebomb"] = CombatPowerActorChoreographyKind.Vanish,
+                    ["sunder"] = CombatPowerActorChoreographyKind.HeavyStrike,
+                    ["execute"] = CombatPowerActorChoreographyKind.HeavyStrike
+                };
+            foreach (KeyValuePair<string, CombatPowerActorChoreographyKind> expected in signatureSkillChoreography)
+            {
+                CombatPowerActorPosePlan signature = CombatPowerActorPoseRules.ForAbility(
+                    expected.Key,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    false);
+                AssertEqual(expected.Value, signature.Choreography, expected.Key + " keeps its signature actor body language");
+                CombatPowerActorPoseFrame windup = signature.SourceFrameAt(Mathf.Max(0f, signature.ReleaseAt - 0.001f));
+                CombatPowerActorPoseFrame release = signature.SourceFrameAt((signature.ReleaseAt + signature.ReleaseEndAt) * 0.5f);
+                AssertEqual(CombatPowerActorPosePhase.CastWindup, windup.Phase, expected.Key + " anticipates before release");
+                AssertEqual(CombatPowerActorPosePhase.Release, release.Phase, expected.Key + " performs its signature release pose");
+                AssertEqual(true, Math.Abs(release.OffsetX) > 0.001f || Math.Abs(release.OffsetY) > 0.001f || Math.Abs(release.Scale - 1f) > 0.001f || release.Opacity < 0.99f,
+                    expected.Key + " release is visually distinct from a neutral actor frame");
+
+                CombatPowerActorPosePlan reducedSignature = CombatPowerActorPoseRules.ForAbility(
+                    expected.Key,
+                    stableSeed,
+                    sourceX,
+                    sourceY,
+                    landingX,
+                    landingY,
+                    3,
+                    true);
+                CombatPowerActorPoseFrame reducedFrame = reducedSignature.SourceFrameAt(0f);
+                AssertEqual(true, reducedFrame.IsStaticFallback, expected.Key + " Reduced Motion uses a static semantic pose");
+                AssertEqual(0f, reducedFrame.OffsetX, expected.Key + " Reduced Motion removes horizontal actor motion");
+                AssertEqual(0f, reducedFrame.OffsetY, expected.Key + " Reduced Motion removes vertical actor motion");
+                AssertEqual(1f, reducedFrame.Scale, expected.Key + " Reduced Motion keeps neutral actor scale");
+            }
+
             string[] teleportKeys = { "VST", "VRS", "shadowstep", "riftpounce" };
             foreach (string teleportKey in teleportKeys)
             {
@@ -7134,6 +7318,116 @@ namespace AshenHalls.Editor
             AssertEqual((float)sourceX, unknownFrame.PositionX, "unknown actor choreography retains the source coordinate fallback");
         }
 
+        private static void BetaLabToolbarRulesStayResponsiveAndAccessible()
+        {
+            AssertEqual(
+                "Refill|Mage|Warlock|Craft|Stage|Hazards|Spawn|Reset|VisualTour",
+                string.Join("|", BetaLabToolbarRules.Actions(BetaLabKind.Caster).Select(action => action.Id.ToString())),
+                "caster Beta Lab keeps its exact action order");
+            AssertEqual(
+                "Refill|Promote|Wound|Cluster|Reset|Spawn|VisualTour",
+                string.Join("|", BetaLabToolbarRules.Actions(BetaLabKind.Martial).Select(action => action.Id.ToString())),
+                "martial Beta Lab keeps its exact action order");
+            BetaLabToolbarActionDefinition visualTour = BetaLabToolbarRules.Actions(BetaLabKind.Caster).Last();
+            AssertEqual(true, visualTour.VisualOnly, "Beta VFX/SFX tour is explicitly nonmutating");
+            AssertEqual("Visual-only Tour", visualTour.Label, "Beta tour labels its presentation-only contract");
+            AssertEqual(true, visualTour.Description.Contains("without casting"), "Beta tour describes its non-casting behavior");
+
+            float[] widths = { 448f, 588f, 652f, 864f, 900f };
+            foreach (BetaLabKind kind in Enum.GetValues(typeof(BetaLabKind)))
+            {
+                foreach (float width in widths)
+                {
+                    BetaLabToolbarGeometry geometry = BetaLabToolbarRules.Calculate(
+                        new Rect(12f, 18f, width, BetaLabToolbarRules.ToolbarHeight),
+                        kind);
+                    AssertEqual(true, geometry.Fits(), $"{kind} Beta toolbar fits {width}px without overlap");
+                    AssertEqual(2, geometry.RowCount, $"{kind} Beta toolbar uses two readable rows at {width}px");
+                    AssertEqual(BetaLabToolbarRules.Actions(kind).Count, geometry.ActionCount, $"{kind} Beta toolbar exposes every action at {width}px");
+                    AssertEqual(true, geometry.ActionRects.All(rect => rect.width >= BetaLabToolbarRules.MinimumActionWidth), $"{kind} Beta controls retain minimum hit width at {width}px");
+                }
+            }
+
+            AssertEqual(0, BetaLabToolbarRules.NextIndex(BetaLabKind.Caster, -1), "unset Beta selection recovers to first action");
+            AssertEqual(0, BetaLabToolbarRules.NextIndex(BetaLabKind.Caster, 8), "caster Beta next wraps after Visual-only Tour");
+            AssertEqual(8, BetaLabToolbarRules.PreviousIndex(BetaLabKind.Caster, 0), "caster Beta previous wraps before Refill");
+            AssertEqual(4, BetaLabToolbarRules.Navigate(BetaLabKind.Caster, 0, BetaLabToolbarNavigation.Left), "caster horizontal navigation wraps within its first row");
+            AssertEqual(5, BetaLabToolbarRules.Navigate(BetaLabKind.Caster, 0, BetaLabToolbarNavigation.Down), "caster vertical navigation maps by button center into row two");
+            AssertEqual(0, BetaLabToolbarRules.Navigate(BetaLabKind.Caster, 5, BetaLabToolbarNavigation.Up), "caster vertical navigation returns to the aligned first-row action");
+            AssertEqual(6, BetaLabToolbarRules.Navigate(BetaLabKind.Martial, 0, BetaLabToolbarNavigation.Previous), "martial bumper navigation wraps linearly");
+            AssertEqual(true, BetaLabToolbarRules.KeyboardNavigationHint.Contains("Enter/Space"), "Beta toolbar publishes keyboard activation guidance");
+            AssertEqual(true, BetaLabToolbarRules.ControllerNavigationHint.Contains("A: use"), "Beta toolbar publishes controller activation guidance");
+            AssertEqual(false, BetaLabToolbarRules.ControllerNavigationHint.Contains("D-pad"), "Beta toolbar does not advertise an unconfigured controller D-pad axis");
+
+            BetaLabBuildFlavorProfile retail = BetaLabBuildFlavorRules.ProfileFor(BetaLabBuildFlavor.Retail);
+            BetaLabBuildFlavorProfile beta = BetaLabBuildFlavorRules.ProfileFor(BetaLabBuildFlavor.BetaDevelopment);
+            AssertEqual(true, retail.IsRetailRelease && !retail.ShowsTitleBetaLab && !retail.RequiresUnityDevelopmentBuild, "retail build keeps developer tools hidden");
+            AssertEqual(true, !beta.IsRetailRelease && beta.ShowsTitleBetaLab && beta.RequiresUnityDevelopmentBuild, "Beta artifact requires a Unity Development build and exposes the title lab");
+            AssertEqual(true, BetaLabBuildFlavorRules.MatchesUnityBuild(BetaLabBuildFlavor.Retail, false), "retail flavor matches a non-development Unity player");
+            AssertEqual(true, BetaLabBuildFlavorRules.MatchesUnityBuild(BetaLabBuildFlavor.BetaDevelopment, true), "Beta flavor matches a Unity Development player");
+            AssertEqual(false, BetaLabBuildFlavorRules.MatchesUnityBuild(BetaLabBuildFlavor.BetaDevelopment, false), "Beta flavor rejects an accidentally retail-compiled player");
+            AssertEqual(
+                "AshAndBrimstone-Windows-v2.21.0-beta-dev",
+                BetaLabBuildFlavorRules.WindowsArtifactName("AshAndBrimstone", "v2.21.0", BetaLabBuildFlavor.BetaDevelopment),
+                "Beta Development artifact remains distinct from retail");
+            AssertEqual(
+                "AshAndBrimstone-Windows-v2.21.0-beta-dev.zip",
+                BetaLabBuildFlavorRules.WindowsZipFileName("AshAndBrimstone", "v2.21.0", BetaLabBuildFlavor.BetaDevelopment),
+                "Beta Development zip remains distinct from retail");
+
+            string combatSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Combat.cs"));
+            string coreSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Core.cs"));
+            string buildSource = File.ReadAllText(Path.Combine(Application.dataPath, "Editor", "BuildWindows.cs"));
+            string betaBuildScript = File.ReadAllText(Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Tools", "BuildBetaLabWindows.ps1"));
+            AssertEqual(true,
+                new[]
+                {
+                    "TryHandleBetaVfxShowcaseInput()", "KeyCode.Q", "KeyCode.E", "KeyCode.C", "KeyCode.V",
+                    "JoystickButton4", "JoystickButton5", "JoystickButton2", "JoystickButton3",
+                    "ReplayBetaVfxShowcase();", "CueBetaVfxShowcaseAudio();", "ToggleReducedMotionSetting();"
+                }.All(token => combatSource.Contains(token)),
+                "focused Beta tour routes keyboard and controller replay, next/previous, cue, and motion controls");
+            int executeLabAt = combatSource.IndexOf("private void ExecuteBetaLabToolbarAction", StringComparison.Ordinal);
+            int executeLabGuardAt = combatSource.IndexOf("if (IsCombatResolutionPending())", executeLabAt, StringComparison.Ordinal);
+            int executeLabSwitchAt = combatSource.IndexOf("switch (actionId)", executeLabAt, StringComparison.Ordinal);
+            int showcaseDrawAt = combatSource.IndexOf("private void DrawBetaVfxShowcaseToolbar", StringComparison.Ordinal);
+            int showcaseDrawEndAt = combatSource.IndexOf("private void ReplayBetaVfxShowcase", showcaseDrawAt, StringComparison.Ordinal);
+            string showcaseDrawBody = showcaseDrawAt >= 0 && showcaseDrawEndAt > showcaseDrawAt
+                ? combatSource.Substring(showcaseDrawAt, showcaseDrawEndAt - showcaseDrawAt)
+                : "";
+            AssertEqual(true,
+                combatSource.Contains("GUI.enabled = guiEnabled && !actionsLocked;")
+                && executeLabAt >= 0
+                && executeLabGuardAt > executeLabAt
+                && executeLabSwitchAt > executeLabGuardAt
+                && showcaseDrawBody.Contains("actionsLocked = IsCombatResolutionPending()")
+                && showcaseDrawBody.Contains("GUI.enabled = guiEnabled && !actionsLocked")
+                && combatSource.Contains("if (IsCombatResolutionPending() || !betaLabMode || state?.Combat == null) return;"),
+                "Beta mouse, keyboard, controller, replay, and cue actions stay locked while production combat presentation resolves");
+            int closeOverlayAt = coreSource.IndexOf("if (CloseTopOverlay()) return true;", StringComparison.Ordinal);
+            int cancelLabAt = coreSource.IndexOf("if (CancelBetaLabToolbarFocus()) return true;", StringComparison.Ordinal);
+            int cancelTargetAt = coreSource.IndexOf("CancelCombatTargeting()", cancelLabAt, StringComparison.Ordinal);
+            AssertEqual(true, closeOverlayAt >= 0 && cancelLabAt > closeOverlayAt && cancelTargetAt > cancelLabAt,
+                "Cancel closes modal overlays first, then the focused Beta preview/rail before combat targeting or Pause");
+            AssertEqual(true,
+                buildSource.Contains("public static void BuildBeta()")
+                && buildSource.Contains("BuildOptions.Development")
+                && buildSource.Contains("WriteBetaLabPackageNote")
+                && buildSource.Contains("press T (or Ctrl+Shift+B)"),
+                "BuildWindows exposes a distinct Unity Development Beta artifact without weakening retail");
+            AssertEqual(true,
+                betaBuildScript.Contains("-ashen-beta-title-smoke")
+                && betaBuildScript.Contains("development title exposes Beta Lab")
+                && betaBuildScript.Contains("Compress-Archive")
+                && betaBuildScript.Contains("-LiteralPath $outputRoot")
+                && betaBuildScript.Contains("Expand-Archive")
+                && betaBuildScript.Contains("$extractedPlayerExe")
+                && betaBuildScript.Contains("QA\\beta-development")
+                && !betaBuildScript.Contains("Join-Path $outputRoot \"beta-title-smoke.log\"")
+                && betaBuildScript.Contains("Get-FileHash"),
+                "Beta build wrapper archives the named folder, clean-extracts the packaged player, keeps machine logs outside it, and reports a hash");
+        }
+
         private static void CombatTransientPresentationBoundariesAreExplicit()
         {
             string combatSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Combat.cs"));
@@ -7169,22 +7463,22 @@ namespace AshenHalls.Editor
         private static void CombatVfxShowcaseCatalogIsStableAndReplayable()
         {
             IReadOnlyList<CombatVfxShowcaseEntry> entries = CombatVfxShowcaseRules.Supported;
-            AssertEqual(19, CombatVfxShowcaseRules.Count, "combat VFX showcase entry count");
+            AssertEqual(31, CombatVfxShowcaseRules.Count, "combat VFX showcase entry count");
             AssertEqual(CombatVfxShowcaseRules.Count, entries.Count, "combat VFX showcase count matches its read-only catalog");
             AssertEqual(
-                "FBL|MTR|RCL|AST|VST|RBT|IBD|IBG|DFA|DMC|SLV|PBR|VRS|RLM|charge|whirlwind|shadowstep|riftpounce|volley",
+                "FBL|MTR|RCL|OBL|AST|VST|RBT|INH|IBD|IBF|IBG|DFA|DMC|HLC|SLV|PBR|VRS|RLM|charge|whirlwind|abyssalwhirl|rally|dreadroar|quickshot|stealth|smokebomb|sunder|execute|shadowstep|riftpounce|volley",
                 string.Join("|", entries.Select(entry => entry.Id)),
                 "combat VFX showcase keeps its exact regression-tour order");
             AssertEqual(
-                "Fireball|Meteor Shower|Cold Lance|Arcane Tempest|Thunder Step|Rift Bolt|Summon Imp|Summon Greater Demon|Abyssal Ascendance|Doom Circle|Soul Veil|Pact Brand|Rift Step|Death Burst|Charge|Whirlwind|Shadowstep|Rift Pounce|Volley",
+                "Fireball|Meteor Shower|Cold Lance|Light Bolt|Arcane Tempest|Thunder Step|Rift Bolt|Drain Life|Summon Imp|Summon Lesser Demon|Summon Greater Demon|Abyssal Ascendance|Doom Circle|Hallowed Circle|Soul Veil|Pact Brand|Rift Step|Death Burst|Charge|Whirlwind|Abyssal Whirl|Rally|Dread Roar|Quick Shot|Stealth|Smoke Bomb|Sunder|Execute|Shadowstep|Rift Pounce|Volley",
                 string.Join("|", entries.Select(entry => entry.DisplayName)),
                 "combat VFX showcase keeps exact player-facing power names");
             AssertEqual(
-                "Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Ability|Ability|Ability|Ability|Ability",
+                "Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability",
                 string.Join("|", entries.Select(entry => entry.Kind.ToString())),
-                "combat VFX showcase distinguishes its fourteen formulas and five abilities");
+                "combat VFX showcase distinguishes its eighteen formulas and thirteen abilities");
             AssertEqual(
-                "Projectile|AreaBombardment|Projectile|AreaStorm|TeleportStrike|Projectile|Summon|Summon|Transformation|GroundField|SupportWard|AreaHex|TeleportStrike|AreaBurst|MovementStrike|MeleeArea|TeleportStrike|TeleportStrike|RangedArea",
+                "Projectile|AreaBombardment|Projectile|Projectile|AreaStorm|TeleportStrike|Projectile|Projectile|Summon|Summon|Summon|Transformation|GroundField|GroundField|SupportWard|AreaHex|TeleportStrike|AreaBurst|MovementStrike|MeleeArea|MeleeArea|SelfAura|SelfAura|RangedArea|SelfAura|SelfAura|MeleeStrike|MeleeStrike|TeleportStrike|TeleportStrike|RangedArea",
                 string.Join("|", entries.Select(entry => entry.Scenario.ToString())),
                 "combat VFX showcase scenarios preserve every intended battlefield shape");
             CombatVfxShowcaseEntry[] movementEntries = entries
@@ -7204,7 +7498,7 @@ namespace AshenHalls.Editor
                 "combat VFX showcase movement entries all stage a source-to-landing actor plan");
             AssertEqual(true, entries.All(entry => entry.Supported), "every combat VFX showcase entry is actionable");
             AssertEqual(true, entries.All(entry => entry.StableSeed > 0), "every combat VFX showcase replay seed is positive");
-            AssertEqual(19, entries.Select(entry => entry.StableSeed).Distinct().Count(), "combat VFX showcase entries use distinct replay seeds");
+            AssertEqual(31, entries.Select(entry => entry.StableSeed).Distinct().Count(), "combat VFX showcase entries use distinct replay seeds");
 
             for (int index = 0; index < entries.Count; index++)
             {
@@ -7218,8 +7512,8 @@ namespace AshenHalls.Editor
             }
 
             AssertEqual("volley", CombatVfxShowcaseRules.At(-1).Id, "combat VFX showcase wraps backward to its final entry");
-            AssertEqual("FBL", CombatVfxShowcaseRules.At(19).Id, "combat VFX showcase wraps forward to its first entry");
-            AssertEqual(0, CombatVfxShowcaseRules.NextIndex(18), "combat VFX showcase Next wraps after Volley");
+            AssertEqual("FBL", CombatVfxShowcaseRules.At(31).Id, "combat VFX showcase wraps forward to its first entry");
+            AssertEqual(0, CombatVfxShowcaseRules.NextIndex(30), "combat VFX showcase Next wraps after Volley");
             AssertEqual(0, CombatVfxShowcaseRules.NextIndex(-1), "combat VFX showcase starts at Fireball from an unset index");
             AssertEqual(1, CombatVfxShowcaseRules.NextIndex("fbl"), "combat VFX showcase Next advances from a case-insensitive ID");
             AssertEqual(0, CombatVfxShowcaseRules.NextIndex("unknown"), "combat VFX showcase unknown selection recovers to Fireball");
@@ -8820,6 +9114,227 @@ namespace AshenHalls.Editor
             };
         }
 
+        private static void SignatureItemCatalogAndAtlasMatchRuntimeContract()
+        {
+            string[] expectedIds =
+            {
+                SignatureItemCatalog.UnfathomableSwordId,
+                SignatureItemCatalog.SluicekeeperBladeId,
+                SignatureItemCatalog.StormglassConductorId,
+                SignatureItemCatalog.RatcatcherRoadcoatId,
+                SignatureItemCatalog.GloamReliquaryMailId,
+                SignatureItemCatalog.MirrorweaveRoadMantleId,
+                SignatureItemCatalog.CrownwardWarbladeId
+            };
+            string[] expectedNames =
+            {
+                "Sword of Unfathomable Darkness",
+                "+2 Sluicekeeper Blade",
+                "+2 Stormglass Conductor",
+                "+3 Ratcatcher’s Roadcoat",
+                "+4 Gloam Reliquary Mail",
+                "+5 Mirrorweave Road Mantle",
+                "+6 Crownward Emberglass Warblade"
+            };
+            string[] expectedIntrinsicNames =
+            {
+                "Life Drinker",
+                "Sluicekeeper’s Brace",
+                "Conduction",
+                "Sewer-Step",
+                "Reliquary Ward",
+                "Mirrorweave",
+                "Crownfire"
+            };
+            Func<InventoryItem>[] factories =
+            {
+                SignatureItemCatalog.CreateUnfathomableSword,
+                SignatureItemCatalog.CreateSluicekeeperBlade,
+                SignatureItemCatalog.CreateStormglassConductor,
+                SignatureItemCatalog.CreateRatcatcherRoadcoat,
+                SignatureItemCatalog.CreateGloamReliquaryMail,
+                SignatureItemCatalog.CreateMirrorweaveRoadMantle,
+                SignatureItemCatalog.CreateCrownwardWarblade
+            };
+
+            IReadOnlyList<SignatureItemDefinition> definitions = SignatureItemCatalog.All;
+            AssertEqual(7, definitions.Count, "signature-item catalog contains the seven authored rewards");
+            AssertEqual(7, definitions.Select(definition => definition.Id).Distinct(StringComparer.Ordinal).Count(), "signature-item IDs are unique");
+            AssertEqual(7, definitions.Select(definition => definition.IconIndex).Distinct().Count(), "signature-item icon cells are unique");
+            AssertEqual(7, definitions.Select(definition => definition.DisplayName).Distinct(StringComparer.Ordinal).Count(), "signature-item canonical names are unique");
+
+            for (int index = 0; index < definitions.Count; index++)
+            {
+                SignatureItemDefinition definition = definitions[index];
+                AssertEqual(expectedIds[index], definition.Id, "signature-item definition " + index + " stable ID");
+                AssertEqual(index, definition.IconIndex, "signature-item definition " + index + " atlas cell");
+                AssertEqual(expectedNames[index], definition.DisplayName, "signature-item definition " + index + " canonical name");
+                AssertEqual(expectedIntrinsicNames[index], definition.IntrinsicName, "signature-item definition " + index + " canonical intrinsic");
+                AssertEqual(true, !string.IsNullOrWhiteSpace(definition.Lore), "signature-item definition " + index + " has authored lore");
+                AssertEqual(true, !string.IsNullOrWhiteSpace(definition.IntrinsicName), "signature-item definition " + index + " names its intrinsic");
+                AssertEqual(true, !string.IsNullOrWhiteSpace(definition.IntrinsicSummary), "signature-item definition " + index + " explains its intrinsic");
+                AssertEqual(definition, SignatureItemCatalog.Find(expectedIds[index]), "signature-item definition " + index + " resolves by ID");
+                AssertEqual(definition, SignatureItemCatalog.Identify(expectedNames[index]), "signature-item definition " + index + " resolves by canonical name");
+                AssertEqual(index, SignatureItemCatalog.IconIndex(expectedIds[index]), "signature-item definition " + index + " maps its ID to art");
+                AssertEqual(index, SignatureItemCatalog.IconIndex(expectedNames[index]), "signature-item definition " + index + " maps its canonical name to art");
+                AssertEqual(index, SignatureItemCatalog.IconIndex("enchanted " + expectedNames[index]), "signature-item definition " + index + " keeps art after an enchantment prefix");
+                foreach (string legacyName in definition.LegacyDisplayNames)
+                {
+                    AssertEqual(index, SignatureItemCatalog.IconIndex(legacyName), "signature-item definition " + index + " maps legacy name '" + legacyName + "'");
+                }
+
+                InventoryItem factoryItem = factories[index]();
+                AssertEqual(definition, SignatureItemCatalog.Find(factoryItem), "signature-item factory " + index + " preserves catalog identity");
+                AssertEqual(index, SignatureItemCatalog.IconIndex(factoryItem), "signature-item factory " + index + " preserves atlas cell");
+            }
+
+            AssertSignatureItemFactory(
+                SignatureItemCatalog.CreateUnfathomableSword(),
+                SignatureItemCatalog.UnfathomableSwordId,
+                "Sword of Unfathomable Darkness", "stolen", "blackglass", "broadsword", "unfathomable darkness", "weapon",
+                4, 1, 0, 1, 1, 5, 11, 8, "epic", "death");
+            AssertSignatureItemFactory(
+                SignatureItemCatalog.CreateSluicekeeperBlade(),
+                SignatureItemCatalog.SluicekeeperBladeId,
+                "+2 Sluicekeeper Blade", "sluicekeeper", "fine steel", "broadsword", "guarding", "weapon",
+                2, 1, 0, 0, 0, 4, 7, 3, "quest", "physical");
+            AssertSignatureItemFactory(
+                SignatureItemCatalog.CreateStormglassConductor(),
+                SignatureItemCatalog.StormglassConductorId,
+                "+2 Stormglass Conductor", "etched", "stormglass", "ritual staff", "storm", "weapon",
+                2, 0, 1, 0, 0, 3, 6, 3, "quest", "shock");
+            AssertSignatureItemFactory(
+                SignatureItemCatalog.CreateRatcatcherRoadcoat(),
+                SignatureItemCatalog.RatcatcherRoadcoatId,
+                "+3 Ratcatcher’s Roadcoat", "stitched", "rat pelt", "rat pelt armor", "nimble", "armor",
+                3, 0, 0, 1, 1, 0, 0, 0, "quest", "");
+            AssertSignatureItemFactory(
+                SignatureItemCatalog.CreateGloamReliquaryMail(),
+                SignatureItemCatalog.GloamReliquaryMailId,
+                "+4 Gloam Reliquary Mail", "gloamward", "reliquary scale", "scale mail", "warding", "armor",
+                4, 0, 1, 0, 2, 0, 0, 0, "quest", "");
+            AssertSignatureItemFactory(
+                SignatureItemCatalog.CreateMirrorweaveRoadMantle(),
+                SignatureItemCatalog.MirrorweaveRoadMantleId,
+                "+5 Mirrorweave Road Mantle", "ashglass", "mirrorweave", "road mantle", "warding", "armor",
+                5, 0, 2, 1, 1, 0, 0, 0, "quest", "");
+            AssertSignatureItemFactory(
+                SignatureItemCatalog.CreateCrownwardWarblade(),
+                SignatureItemCatalog.CrownwardWarbladeId,
+                "+6 Crownward Emberglass Warblade", "crownward", "emberglass", "broadsword", "warding", "weapon",
+                6, 2, 1, 0, 0, 8, 13, 3, "quest", "fire");
+
+            InventoryItem sword = SignatureItemCatalog.CreateUnfathomableSword();
+            InventoryItem sluicekeeper = SignatureItemCatalog.CreateSluicekeeperBlade();
+            InventoryItem conductor = SignatureItemCatalog.CreateStormglassConductor();
+            InventoryItem roadcoat = SignatureItemCatalog.CreateRatcatcherRoadcoat();
+            InventoryItem reliquaryMail = SignatureItemCatalog.CreateGloamReliquaryMail();
+            InventoryItem mirrorweave = SignatureItemCatalog.CreateMirrorweaveRoadMantle();
+            InventoryItem crownward = SignatureItemCatalog.CreateCrownwardWarblade();
+            AssertEqual(1, SignatureItemRules.GuardActionBonus(sluicekeeper), "Sluicekeeper’s Brace adds one Guard to the Guard action");
+            AssertEqual(0, SignatureItemRules.GuardActionBonus(conductor), "non-Sluicekeeper weapons do not inherit its Guard intrinsic");
+            AssertEqual("stun", SignatureItemRules.BasicHitStatus(conductor), "Conduction applies the authored stun status");
+            AssertEqual(true, Mathf.Approximately(0.30f, SignatureItemRules.BasicHitStatusChance(conductor)), "Conduction keeps an exact 30% base stun chance");
+            AssertEqual(1, SignatureItemRules.DamageReduction(roadcoat, "poison"), "Sewer-Step reduces poison damage by one");
+            AssertEqual(0, SignatureItemRules.DamageReduction(roadcoat, "physical"), "Sewer-Step does not reduce physical damage");
+            AssertEqual(1, SignatureItemRules.DamageReduction(reliquaryMail, "death"), "Reliquary Ward reduces death damage by one");
+            AssertEqual(1, SignatureItemRules.DamageReduction(reliquaryMail, "mind"), "Reliquary Ward reduces mind damage by one");
+            AssertEqual(0, SignatureItemRules.DamageReduction(reliquaryMail, "fire"), "Reliquary Ward does not reduce unrelated damage");
+            AssertEqual(0, SignatureItemRules.DamageReduction(mirrorweave, "physical"), "Mirrorweave leaves physical damage unchanged");
+            AssertEqual(1, SignatureItemRules.DamageReduction(mirrorweave, "fire"), "Mirrorweave reduces nonphysical damage by one");
+            AssertEqual(3, SignatureItemRules.WeaponHitBonus(sword), "Life Drinker preserves the sword's exact hit edge");
+            AssertEqual(2, SignatureItemRules.WeaponPowerBonus(sword), "Life Drinker preserves the sword's exact power edge");
+            AssertEqual(2, SignatureItemRules.LifeDrainAmount(sword, 11), "Life Drinker scales its bounded healing from dealt damage");
+            AssertEqual(1, SignatureItemRules.WardTurnsRemovedOnBasicHit(crownward, 3, true), "Crownfire strips one Ward turn on a successful basic hit");
+            AssertEqual(0, SignatureItemRules.WardTurnsRemovedOnBasicHit(crownward, 3, false), "Crownfire does not strip Ward on a miss");
+
+            InventoryItem enchantedLegacyConductor = SignatureItemCatalog.CreateStormglassConductor();
+            enchantedLegacyConductor.SignatureId = "";
+            enchantedLegacyConductor.DisplayName = "+2 etched stormglass ritual staff";
+            AssertEqual(true, WeaponEnchantmentRules.ApplyPermanent(enchantedLegacyConductor, "fire"), "legacy signature weapon accepts Maud's permanent binding");
+            AssertEqual(true, SignatureItemCatalog.RepairIdentity(enchantedLegacyConductor), "legacy enchanted signature weapon gains stable identity");
+            WeaponEnchantmentRules.Rebuild(enchantedLegacyConductor);
+            AssertEqual(SignatureItemCatalog.StormglassConductorId, enchantedLegacyConductor.SignatureId, "Maud binding preserves signature ID");
+            AssertEqual("+2 Stormglass Conductor", enchantedLegacyConductor.EnchantmentBaseDisplayName, "migration canonicalizes the captured signature base name");
+            AssertEqual("flamebound +2 Stormglass Conductor", enchantedLegacyConductor.DisplayName, "Maud prefix survives canonical signature repair");
+            AssertEqual(2, SignatureItemCatalog.IconIndex(enchantedLegacyConductor), "Maud binding preserves signature art cell");
+
+            InventoryItem proceduralLookalike = new InventoryItem
+            {
+                DisplayName = "+2 stormglass conductor blade",
+                Mark = "road-marked",
+                Material = "stormglass",
+                Form = "sabre",
+                Trait = "steady",
+                Slot = "weapon"
+            };
+            AssertEqual(null, SignatureItemCatalog.Identify(proceduralLookalike), "similarly named procedural gear is not misclassified as a signature reward");
+            AssertEqual(false, SignatureItemCatalog.RepairIdentity(proceduralLookalike), "procedural lookalike remains mutation-free during repair");
+
+            AssertEqual("unique-item-atlas-runtime-v2.20.0.png", RuntimeArtManifest.UniqueItemAtlas, "signature-item art uses the exact approved v2.20 atlas");
+            AssertEqual(58, RuntimeArtManifest.ApprovedRuntimeFiles.Length, "approved runtime manifest includes all 58 exact pins");
+            AssertEqual(58, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct(StringComparer.Ordinal).Count(), "approved runtime manifest has no duplicate pins");
+            AssertEqual(1, RuntimeArtManifest.ApprovedRuntimeFiles.Count(file => file == RuntimeArtManifest.UniqueItemAtlas), "signature-item atlas appears once in the approved runtime manifest");
+
+            Texture2D atlas = null;
+            try
+            {
+                atlas = LoadApprovedRuntimeAtlas(RuntimeArtManifest.UniqueItemAtlas);
+                AssertEqual(new Vector2Int(1280, 1024), new Vector2Int(atlas.width, atlas.height), "approved signature-item atlas uses exact 5x4 geometry");
+                Color32[] pixels = atlas.GetPixels32();
+                float transparentFraction = pixels.Count(pixel => pixel.a < 32) / (float)pixels.Length;
+                float visibleFraction = pixels.Count(pixel => pixel.a >= 32) / (float)pixels.Length;
+                AssertEqual(true, transparentFraction >= 0.70f, "approved signature-item atlas preserves at least 70% transparency");
+                AssertEqual(true, visibleFraction >= 0.04f, "approved signature-item atlas preserves at least 4% visible art");
+                AssertAtlasCellCoverageAtAlpha(atlas, 5, 4, Enumerable.Range(0, 7), 0.12f, 0.45f, 8, "approved signature item");
+                AssertAtlasCellCoverageAtAlpha(atlas, 5, 4, Enumerable.Range(7, 13), 0f, 0f, 1, "reserved signature item");
+            }
+            finally
+            {
+                if (atlas != null) UnityEngine.Object.DestroyImmediate(atlas);
+            }
+        }
+
+        private static void AssertSignatureItemFactory(
+            InventoryItem item,
+            string signatureId,
+            string displayName,
+            string mark,
+            string material,
+            string form,
+            string trait,
+            string slot,
+            int bonus,
+            int strengthBonus,
+            int intelligenceBonus,
+            int agilityBonus,
+            int healthBonus,
+            int damageMin,
+            int damageMax,
+            int attackSpeed,
+            string rarity,
+            string damageType)
+        {
+            AssertEqual(true, item != null, signatureId + " factory creates an item");
+            AssertEqual(signatureId, item.SignatureId, signatureId + " factory signature ID");
+            AssertEqual(displayName, item.DisplayName, signatureId + " factory canonical name");
+            AssertEqual(mark, item.Mark, signatureId + " factory mark");
+            AssertEqual(material, item.Material, signatureId + " factory material");
+            AssertEqual(form, item.Form, signatureId + " factory form");
+            AssertEqual(trait, item.Trait, signatureId + " factory trait");
+            AssertEqual(slot, item.Slot, signatureId + " factory slot");
+            AssertEqual(bonus, item.Bonus, signatureId + " factory bonus");
+            AssertEqual(strengthBonus, item.StrengthBonus, signatureId + " factory Strength");
+            AssertEqual(intelligenceBonus, item.IntelligenceBonus, signatureId + " factory Intelligence");
+            AssertEqual(agilityBonus, item.AgilityBonus, signatureId + " factory Agility");
+            AssertEqual(healthBonus, item.HealthBonus, signatureId + " factory Health");
+            AssertEqual(damageMin, item.DamageMin, signatureId + " factory minimum damage");
+            AssertEqual(damageMax, item.DamageMax, signatureId + " factory maximum damage");
+            AssertEqual(attackSpeed, item.AttackSpeed, signatureId + " factory attack speed");
+            AssertEqual(rarity, item.Rarity, signatureId + " factory rarity");
+            AssertEqual(damageType, item.DamageType, signatureId + " factory damage type");
+        }
+
         private static void InventoryEquipmentRulesMakeOwnershipAndComparisonsExplicit()
         {
             InventoryItem focus = new InventoryItem
@@ -9953,7 +10468,7 @@ namespace AshenHalls.Editor
             int visiblePriority = EnemyTacticsRules.TargetPriorityAdjustment(caster, exposedMage);
             exposedMage.Stealthed = 2;
             AssertEqual(true, EnemyTacticsRules.TargetPriorityAdjustment(caster, exposedMage) > visiblePriority, "stealth lowers enemy target priority");
-            AssertEqual(25, VersionInfo.SaveVersion, "current save schema persists weapon enchantments and the route waypoint");
+            AssertEqual(26, VersionInfo.SaveVersion, "current save schema persists signature identity, weapon enchantments, and the route waypoint");
         }
 
         private static CombatUnit TacticalEnemy(string id, string rank = "")
@@ -10076,7 +10591,7 @@ namespace AshenHalls.Editor
             AssertEqual("threat: 1 can hit", CombatThreatRules.MovementDestinationLabel(1, 0), "one direct movement threat is explicit");
             AssertEqual("threat: 2 can reach", CombatThreatRules.MovementDestinationLabel(0, 2), "closing movement threats are distinguished from direct attacks");
             AssertEqual("threat: 1 can hit + 2 can reach", CombatThreatRules.MovementDestinationLabel(1, 2), "mixed destination threats retain both responsible groups");
-            AssertEqual(25, VersionInfo.SaveVersion, "current save schema persists weapon enchantments and the route waypoint");
+            AssertEqual(26, VersionInfo.SaveVersion, "current save schema persists signature identity, weapon enchantments, and the route waypoint");
         }
 
         private static void CombatControllerOwnsTurnAndActionLifecycle()
@@ -10589,7 +11104,7 @@ namespace AshenHalls.Editor
             AssertEqual("glass_and_ash_debriefed", StoryFlags.GlassAndAshDebriefed, "the post-key Yara debrief has a stable save flag");
 
             InventoryItem mantle = ContentSetCatalog.CreateAshglassRoadMantle();
-            AssertEqual("+5 ashglass mirrorweave road mantle", mantle.DisplayName, "Chapter IV reward has a stable player-facing identity");
+            AssertEqual("+5 Mirrorweave Road Mantle", mantle.DisplayName, "Chapter IV reward has a stable player-facing identity");
             AssertEqual("armor", mantle.Slot, "Chapter IV reward is equippable armor rather than a sellable gate key");
             AssertEqual(5, mantle.Bonus, "Chapter IV reward advances beyond the Gloam reliquary reward");
             AssertEqual(2, mantle.IntelligenceBonus, "Chapter IV reward carries its exact mirror ward bonus");
@@ -10664,7 +11179,7 @@ namespace AshenHalls.Editor
             AssertEqual("red_gate_debriefed", StoryFlags.RedGateDebriefed, "the post-threshold Yara debrief has a stable save flag");
 
             InventoryItem warblade = ContentSetCatalog.CreateCrownwardEmberglassWarblade();
-            AssertEqual("+6 crownward emberglass warblade", warblade.DisplayName, "Chapter V reward has a stable player-facing identity");
+            AssertEqual("+6 Crownward Emberglass Warblade", warblade.DisplayName, "Chapter V reward has a stable player-facing identity");
             AssertEqual("weapon", warblade.Slot, "Chapter V reward is an equippable weapon rather than a hidden story token");
             AssertEqual(6, warblade.Bonus, "Chapter V reward advances beyond the Ashglass mantle tier");
             AssertEqual(8, warblade.DamageMin, "Chapter V reward keeps its exact minimum damage");
@@ -10685,16 +11200,23 @@ namespace AshenHalls.Editor
 
         private static void SewerSliceContentSetDefinesCompleteFirstPlayPath()
         {
-            AssertEqual(27, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
+            AssertEqual(33, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
             AssertEqual(25, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice permanent and derived ability count");
             AssertEqual(22, ContentSetCatalog.SewerSliceEnemyIds.Count, "production campaign enemy count through the Red Gate");
             AssertEqual(3, ContentSetCatalog.SewerSliceEncounters.Count, "sewer slice encounter count");
+            AssertEqual(
+                "OIC,TBQ,NVC,OBL,GBH,TNC,HLC,SRF,DWP,SBN,FIF,RIG,WBI,RCL,FBL,RSG,CLT,CNS,VST,ACR,AST,RKW,RNH,RBT,IBD,SLV,INH,PBR,GRH,IBF,DMC,VRS,DFA",
+                string.Join(",", ContentSetCatalog.SewerSliceFormulaCodes),
+                "sewer slice formulas stay grouped by spellcraft and ordered by unlock tier");
 
             foreach (string code in ContentSetCatalog.SewerSliceFormulaCodes)
             {
                 AssertEqual(true, FormulaCatalog.All.Any(formula => formula.Code == code), "slice formula exists " + code);
                 AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, code), "slice formula active " + code);
             }
+            string[] campaignFormulaExpansion = { "OBL", "RCL", "INH", "HLC", "IBF", "DMC" };
+            AssertEqual(true, campaignFormulaExpansion.All(FormulaCatalog.HasExplicitRequiredLevel), "expanded campaign formulas have explicit unlock levels");
+            AssertEqual(true, campaignFormulaExpansion.All(code => ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, code.ToLowerInvariant())), "expanded campaign formulas resolve case-insensitively as known sewer-slice powers");
             AssertEqual(false, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "MTR"), "meteor shower hidden in sewer slice");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.FullPrototype, "MTR"), "meteor shower available in prototype");
             AssertEqual(true, ContentSetCatalog.FormulaActive(ContentSetCatalog.SewerSlice, "RKW"), "warlock bind active in sewer slice");

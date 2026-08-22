@@ -2,6 +2,21 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.21.0 - Stone, Steel, and Sorcery
+
+- Added an exact-pinned 2 by 2 Midgaard road-material atlas with seamless civic cobble and earthen swatches. Topology-aware clipping keeps straight roads continuous, reserves aprons for real joins, and prevents civic endpoint details from spilling onto an absent half.
+- Re-authored all eight ambient citizens to match the coherent named-NPC palette, outline weight, rendering density, three-quarter view, baseline, and neutral grounding. Town Guards now share named-NPC padding, while ambient citizens and Grand Hearth patrons remain within eight percent of named-contact height locally.
+- Removed stacked generic plinths beneath named sprites and duplicate patron shadows so every NPC family has one grounding treatment.
+- Added deterministic source-to-runtime generation, exact hashes, cell geometry and coverage checks, road-edge checks, focused runtime smoke, and one combined architecture/NPC/road contact sheet. The new road pin brings the exact manifest to 58 files and the selected package inventory to 92 PNGs; campaign state and save schema v26 are unchanged.
+- Promoted seven authored campaign rewards into signature gear with stable serialized IDs, canonical names, lore, unique atlas cells, and explicit intrinsic descriptions. Existing Chapter I-V acquisition gates and exact base stats remain unchanged.
+- Added deterministic intrinsic rules: Sluicekeeper’s Brace strengthens Guard; Conduction preserves the Stormglass stun chance; Sewer-Step, Reliquary Ward, and Mirrorweave reduce their named damage families; Life Drinker preserves the blackglass sword’s edge and healing; and Crownfire strips one Ward turn on a successful basic hit.
+- Added save schema v26 migration for legacy and enchantment-prefixed copies. Signature identity survives Maud’s temporary or permanent affinities, fingerprint-based equipment repair, save/load, and synthesized equipment snapshots.
+- Added the exact-pinned transparent 5 by 4 `unique-item-atlas-runtime-v2.20.0.png`. Cells 0-6 contain the seven signature silhouettes, with the original Unfathomable sword preserved in cell 0; cells 7-19 remain transparent reserves.
+- Reworked Loot and Pack decisions around explicit ownership. Acquisition never silently changes a loadout; the loot card keeps Continue as the safe default, names an exact `Equip to …` action, and preserves Compare others. Upgrade filters and swap grades protect both recipients, surface signature/enchantment/tactical behavior as Review, and prevent stale duplicate links from impersonating equipped gear.
+- Promoted six additional formulas into the normal campaign—Light Bolt, Cold Lance, Drain Life, Hallowed Circle, Summon Lesser Demon, and Doom Circle—raising campaign availability from 27 to 33 of the complete 56-formula catalog.
+- Expanded the Development Beta Lab to a 31-entry visual-only tour of 18 formulas and 13 skills, with responsive keyboard/controller toolbar navigation and a separately named Unity Development artifact that cannot overwrite the retail package.
+- Decluttered combat command rows by moving blocked explanations into the existing focus/hover prompt instead of repeating them beneath every unavailable action. Target headings now read naturally, such as `NEAREST ENEMY`, without removing legality, targeting, forecast, or turn-order information.
+
 ## v2.19.0 - The Living Road
 
 - Added hold-to-walk Local Map travel for WASD, arrow keys, and the configured left stick. The first cardinal step remains immediate, then repeats after a 0.34-second hold delay at a measured 0.18-second cadence, with no catch-up burst after a long frame.

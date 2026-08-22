@@ -29,6 +29,8 @@ namespace AshenHalls
         public readonly float ShoulderFraction;
         public readonly float CoreFraction;
         public readonly bool DrawCenterWear;
+        public readonly bool CivicSurface;
+        public readonly bool DrawJunctionApron;
 
         public ExplorationRoadVisualPlan(
             ExplorationRoadVisualTier tier,
@@ -37,7 +39,9 @@ namespace AshenHalls
             int connectorMask,
             float shoulderFraction,
             float coreFraction,
-            bool drawCenterWear)
+            bool drawCenterWear,
+            bool civicSurface,
+            bool drawJunctionApron)
         {
             Tier = tier;
             Join = join;
@@ -46,6 +50,8 @@ namespace AshenHalls
             ShoulderFraction = shoulderFraction;
             CoreFraction = coreFraction;
             DrawCenterWear = drawCenterWear;
+            CivicSurface = civicSurface;
+            DrawJunctionApron = drawJunctionApron;
         }
 
         public bool Draw => Tier != ExplorationRoadVisualTier.None;
@@ -128,7 +134,45 @@ namespace AshenHalls
             bool centerWear = !wideView
                 && tier == ExplorationRoadVisualTier.OldRoad
                 && join == ExplorationRoadJoin.Straight;
-            return new ExplorationRoadVisualPlan(tier, join, mainMask, connectorMask, shoulder, core, centerWear);
+            bool civicSurface = UsesCivicCobbleSurface(tier, roles);
+            return new ExplorationRoadVisualPlan(
+                tier,
+                join,
+                mainMask,
+                connectorMask,
+                shoulder,
+                core,
+                centerWear,
+                civicSurface,
+                ShouldDrawJunctionApron(join));
+        }
+
+        public static bool ShouldDrawJunctionApron(ExplorationRoadJoin join)
+        {
+            return join != ExplorationRoadJoin.Straight;
+        }
+
+        public static bool ShouldDrawGenericSurfaceChip(
+            ExplorationRoadVisualPlan plan,
+            bool wideView,
+            int noise)
+        {
+            return !plan.CivicSurface
+                && !wideView
+                && noise % 3 != 0
+                && plan.Join != ExplorationRoadJoin.Corner
+                && plan.Join != ExplorationRoadJoin.Tee
+                && plan.Join != ExplorationRoadJoin.Cross;
+        }
+
+        public static bool UsesCivicCobbleSurface(
+            ExplorationRoadVisualTier tier,
+            ExplorationCellRole roles)
+        {
+            return (roles & ExplorationCellRole.City) != 0
+                && (tier == ExplorationRoadVisualTier.CityStreet
+                    || tier == ExplorationRoadVisualTier.Road
+                    || tier == ExplorationRoadVisualTier.OldRoad);
         }
 
         public static bool ShouldDrawTrail(
@@ -231,9 +275,9 @@ namespace AshenHalls
             switch (tier)
             {
                 case ExplorationRoadVisualTier.Trail: return 0.18f;
-                case ExplorationRoadVisualTier.CityStreet: return wideView ? 0.26f : 0.32f;
+                case ExplorationRoadVisualTier.CityStreet: return wideView ? 0.30f : 0.38f;
                 case ExplorationRoadVisualTier.Road: return wideView ? 0.34f : 0.42f;
-                case ExplorationRoadVisualTier.OldRoad: return wideView ? 0.54f : 0.64f;
+                case ExplorationRoadVisualTier.OldRoad: return wideView ? 0.48f : 0.56f;
                 case ExplorationRoadVisualTier.Bridge: return wideView ? 0.38f : 0.46f;
                 default: return 0f;
             }
@@ -244,9 +288,9 @@ namespace AshenHalls
             switch (tier)
             {
                 case ExplorationRoadVisualTier.Trail: return 0.12f;
-                case ExplorationRoadVisualTier.CityStreet: return wideView ? 0.17f : 0.21f;
+                case ExplorationRoadVisualTier.CityStreet: return wideView ? 0.20f : 0.25f;
                 case ExplorationRoadVisualTier.Road: return wideView ? 0.22f : 0.28f;
-                case ExplorationRoadVisualTier.OldRoad: return wideView ? 0.36f : 0.43f;
+                case ExplorationRoadVisualTier.OldRoad: return wideView ? 0.32f : 0.38f;
                 case ExplorationRoadVisualTier.Bridge: return wideView ? 0.25f : 0.31f;
                 default: return 0f;
             }
@@ -272,6 +316,8 @@ namespace AshenHalls
                 0,
                 0f,
                 0f,
+                false,
+                false,
                 false);
         }
     }

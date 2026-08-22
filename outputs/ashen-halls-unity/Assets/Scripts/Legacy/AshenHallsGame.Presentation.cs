@@ -2472,9 +2472,11 @@ namespace AshenHalls
             string stats = ItemStatBonusLine(item);
             if (!string.IsNullOrEmpty(stats)) parts.Add(stats);
             if (!string.IsNullOrEmpty(item.Rarity) && item.Rarity != "starter") parts.Add(item.Rarity);
-            return parts.Count == 0
+            string details = parts.Count == 0
                 ? InventoryEquipmentRules.IsEquippable(item) ? "Plain but serviceable." : "Quest item secured."
                 : (InventoryEquipmentRules.IsEquippable(item) ? "Traits: " : "Details: ") + string.Join(" / ", parts);
+            string signature = SignatureItemPresentationLine(item);
+            return string.IsNullOrWhiteSpace(signature) ? details : signature + "\n" + details;
         }
 
         private string WeaponSummaryLine(PartyMember member)

@@ -512,6 +512,21 @@ namespace AshenHalls
         {
             if (args == null || args.Length == 0) return;
             ApplyVisualSmokeSeed(args);
+            if (args.Any(arg => string.Equals(arg, "-ashen-beta-title-smoke", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!TavernMenuRules.ShowDeveloperTesting(DeveloperTestingBuildEnabled()))
+                {
+                    throw new InvalidOperationException(
+                        "Beta title smoke requires a Unity Development build with the guarded Beta Lab row.");
+                }
+                if (state == null || state.Mode != GameMode.Tavern) NewMuster();
+                EnsureTavernScreen();
+                SyncTavernScreen();
+                Debug.Log(
+                    VersionInfo.ProductName +
+                    " beta title smoke passed: development title exposes Beta Lab.");
+                return;
+            }
             bool contactDialogueSmoke = args.Any(arg => string.Equals(
                 arg,
                 "-ashen-contact-dialogue-smoke",
@@ -2019,6 +2034,7 @@ namespace AshenHalls
             }
             if (CurrentUiOverlay() == UiOverlay.Armory && CollapseArmoryInventoryTargetPicker()) return true;
             if (CloseTopOverlay()) return true;
+            if (CancelBetaLabToolbarFocus()) return true;
             if (state != null && state.Mode == GameMode.Combat && CancelCombatTargeting()) return true;
             if (!CanOpenPauseMenu()) return false;
             OpenPauseMenu();
@@ -3003,8 +3019,10 @@ namespace AshenHalls
         {
             if (state == null) return;
             state.ContentSetId = ContentSetCatalog.NormalizeContentSetId(activeContentSet);
+            RepairSignatureItemIdentities();
             NormalizeWeaponEnchantments();
             EnsureInventoryEquipmentLinks();
+            RepairSignatureItemIdentities();
             if (state.Map != null)
             {
                 EnsureExploreSurfaceData(state.Map, state.SaveVersion);
@@ -3193,8 +3211,10 @@ namespace AshenHalls
             if (state.DiscoveredZones == null) state.DiscoveredZones = new List<string>();
             if (state.RoamingThreats == null) state.RoamingThreats = new List<RoamingThreat>();
             if (state.Inventory == null) state.Inventory = new List<InventoryItem>();
+            RepairSignatureItemIdentities();
             NormalizeWeaponEnchantments(sourceSaveVersion);
-            EnsureInventoryEquipmentLinks();
+            EnsureInventoryEquipmentLinks(true);
+            RepairSignatureItemIdentities();
             state.ExplorationSteps = Mathf.Max(0, state.ExplorationSteps);
             if (state.Map != null && state.Map.Depth <= 0) state.Map.Depth = Mathf.Max(1, state.Depth);
             if (state.Map != null)
@@ -3238,6 +3258,39 @@ namespace AshenHalls
             RepairRedGateStoryObjective();
             if (state.Depth == 2 && state.Map != null) EnsureKoboldKingCaveMarker();
             if (state.Depth == 3 && state.Map != null) EnsureGlassAndAshPassageMarker();
+        }
+
+        private int RepairSignatureItemIdentities()
+        {
+            if (state?.Inventory == null) return 0;
+            int repaired = 0;
+            foreach (InventoryItem item in state.Inventory)
+            {
+                bool changed = SignatureItemCatalog.RepairIdentity(item);
+                if (item != null
+                    && !string.IsNullOrWhiteSpace(item.SignatureId)
+                    && !string.IsNullOrWhiteSpace(item.EquippedById)
+                    && state.Party != null)
+                {
+                    PartyMember owner = state.Party.FirstOrDefault(member =>
+                        member != null
+                        && string.Equals(member.Id, item.EquippedById, StringComparison.Ordinal));
+                    bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+                    string equippedName = weapon ? owner?.WeaponName : owner?.ArmorName;
+                    SignatureItemDefinition equippedIdentity = SignatureItemCatalog.Identify(equippedName);
+                    if (owner != null
+                        && equippedIdentity != null
+                        && string.Equals(equippedIdentity.Id, item.SignatureId, StringComparison.Ordinal)
+                        && !string.Equals(equippedName, item.DisplayName, StringComparison.Ordinal))
+                    {
+                        if (weapon) owner.WeaponName = item.DisplayName;
+                        else owner.ArmorName = item.DisplayName;
+                        changed = true;
+                    }
+                }
+                if (changed) repaired++;
+            }
+            return repaired;
         }
 
         private string SavePath()

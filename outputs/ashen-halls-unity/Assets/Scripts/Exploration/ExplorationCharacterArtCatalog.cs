@@ -274,7 +274,7 @@ namespace AshenHalls
 
         public static float ExteriorCitizenPadding(bool wideView)
         {
-            return wideView ? 0.26f : 0.16f;
+            return ExplorationNpcPresentationRules.ExteriorAmbientPadding(wideView);
         }
 
         public static bool ExteriorCitizenYieldsToParty(
@@ -288,8 +288,7 @@ namespace AshenHalls
 
         public static float ExteriorCitizenAlpha(bool wideView, bool yieldingToParty)
         {
-            if (yieldingToParty) return wideView ? 0.50f : 0.66f;
-            return wideView ? 0.58f : 0.76f;
+            return ExplorationNpcPresentationRules.ExteriorAmbientAlpha(wideView, yieldingToParty);
         }
 
         public static float ExteriorCitizenHorizontalOffsetInCells(

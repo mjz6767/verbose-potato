@@ -3,6 +3,20 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.21.0 Midgaard road and citizen contract
+
+`midgaard-road-surface-atlas-runtime-v2.21.0.png` is the exact-pinned opaque 2 by 2 road-material sheet. It is 512 by 512 with four 256-pixel cells ordered civic cobble, civic setts, old-road stone-earth, and old-road fine gravel. Every cell is fully populated and must match its own opposite edges exactly. Runtime rejects incorrect geometry and retains the existing procedural shoulder/core road as a fail-closed fallback.
+
+`world-npc-citizen-atlas-runtime-v2.21.0.png` is the exact-pinned transparent 4 by 2 ambient-citizen sheet. It is 1536 by 768 with 384-pixel cells ordered lamplighter, fishmonger, tailor, mason, apothecary, road pilgrim, gravedigger, and caravan guide. Every cell uses a 344-pixel shared figure height, baseline 364, exact 20-pixel top/bottom gutters, and 25%-38% visible coverage.
+
+Both accepted sources were created with built-in ImageGen from explicit style and role references. The exact prompts are preserved as `source-midgaard-road-surfaces-v2.21.0-prompt.txt` and `source-world-npc-citizens-v2.21.0-prompt.txt`. `Tools/BuildMidgaardWorldArtAtlases.py` deterministically removes baked neutral backgrounds from sprite sources, normalizes every figure, makes the road edges exactly seamless, and writes SHA-256-backed validation JSON. The accepted hashes are `428A853DF2FF339740DC5E54D3DB8061C608D1C6E2DA5041B4435A726AEA7E72` and `6F45940F1F590D2F4CE04450AD19A0C081611A06897B9B3952A51F2551AFB198`.
+
+## Active v2.20.0 signature-item contract
+
+`unique-item-atlas-runtime-v2.20.0.png` is the exact-pinned transparent 5 by 4 signature-equipment sheet. It is 1280 by 1024 RGBA with 256-pixel cells, at least 70% transparent pixels overall, at least 4% visible pixels overall, and no visible alpha in reserved cells 7-19. Runtime checks this sheet before consumable and generic equipment art and rejects incorrect geometry or alpha balance through the existing fail-closed fallback chain.
+
+The stable row-major cells are Sword of Unfathomable Darkness, Sluicekeeper Blade, Stormglass Conductor, Ratcatcher’s Roadcoat, Gloam Reliquary Mail, Mirrorweave Road Mantle, and Crownward Emberglass Warblade. Cell 0 is preserved pixel-for-pixel from the accepted v0.71 sheet. The v2.20 atlas was created with built-in ImageGen, corrected to genuine transparency, then normalized with `Tools/BuildRuntimeIconAtlas.py`; the exact generation/correction prompts and deterministic build report are preserved as `source-unique-item-atlas-v2.20.0-prompt.txt` and `source-unique-item-atlas-v2.20.0-build-report.json`. The accepted runtime PNG SHA-256 is `872312EC77CB78F8C65BCEA2F6FE10BF85681324E65024C46547909B9AE3ABD5`.
+
 ## Active v2.17.0 title menu icon contract
 
 `title-menu-icon-atlas-runtime-v2.16.0.png` is the dedicated transparent title-menu icon strip. It is an exact 1280 by 256 RGBA image arranged as five 256-pixel square cells in stable row-major order: Continue scroll and chevron, New Game road gate and spark, Settings eight-tooth cog, Exit arched door and outward arrow, and development-only Beta Lab flask and spark. The bold silhouettes, dark outlines, and clear cell gutters are designed to remain readable when the parchment menu scales down.
@@ -484,16 +498,23 @@ v1.5.8 preserves the optimized v0.80 terrain sheet but replaces cell 11, the nor
 
 ## Unique Item Atlas Cells
 
-`unique-item-atlas-runtime-v0.xx.png` is an optional 5 by 4 sheet checked before the normal item inventory atlas. It is for named boss/relic gear that should not replace generic sword, armor, ring, coin, or scroll cells.
+`unique-item-atlas-runtime-v0.xx.png` is a 5 by 4 sheet checked before consumable and normal item inventory art. It is for named boss/relic gear that should not replace generic sword, armor, ring, coin, or scroll cells.
 
-Current runtime sheet: `unique-item-atlas-runtime-v0.71.png`.
+Current exact runtime sheet: `unique-item-atlas-runtime-v2.20.0.png`.
 
-- Cell 0: Sword of Unfathomable Darkness, blackglass/violet stolen adventurer's sword with a mild life-drain/vorpal feel.
-- Cells 1-19: reserved for later named relics, boss drops, quest weapons, and unique armor.
+- Cell 0: Sword of Unfathomable Darkness.
+- Cell 1: Sluicekeeper Blade.
+- Cell 2: Stormglass Conductor.
+- Cell 3: Ratcatcher’s Roadcoat.
+- Cell 4: Gloam Reliquary Mail.
+- Cell 5: Mirrorweave Road Mantle.
+- Cell 6: Crownward Emberglass Warblade.
+- Cells 7-19: transparent reserves for later named relics, boss drops, quest weapons, and unique armor.
 
-v0.71 source notes:
-- `source-sword-unfathomable-darkness-v0.71-chromakey.png` is the generated chroma-key source.
-- `sword-unfathomable-darkness-runtime-v0.71.png` is the cleaned transparent standalone source used to compose the unique-item atlas.
+v2.20 source notes:
+- The accepted atlas is exact RGBA 1280 by 1024; cell 0 remains pixel-identical to the corresponding v0.71 cell.
+- `source-unique-item-atlas-v2.20.0-prompt.txt` records both built-in ImageGen passes and the normalization step.
+- `source-unique-item-atlas-v2.20.0-build-report.json` records deterministic cell replacement and validation data.
 
 ## Kobold Route Atlas Cells
 

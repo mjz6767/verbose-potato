@@ -1,5 +1,19 @@
 # Ashen Halls Runtime Art Audit
 
+## Newly connected for v2.21.0 - Midgaard roads and coherent citizens
+
+- `midgaard-road-surface-atlas-runtime-v2.21.0.png` adds four exact 256-pixel opaque swatches in a 2 by 2 sheet: civic cobble, civic setts, old-road stone-earth, and old-road fine gravel. Every swatch has exact matching opposite edges and is clipped to the existing topology-aware road shape.
+- `world-npc-citizen-atlas-runtime-v2.21.0.png` replaces the coarser v2.4 ambient sheet with eight transparent figures drawn in the named v2.21 NPC language. Every cell is 384 pixels square with a 344-pixel figure, exact 20-pixel top/bottom gutters, shared baseline, restrained neutral shadow, and 25%-38% visible coverage.
+- Town Guards use named-contact padding. Ambient citizens and Grand Hearth patrons stay within eight percent of named-contact height locally, Region view still suppresses exterior ambient figures, and doubled generic/authored shadows are removed.
+- The exact output SHA-256 values are `428A853DF2FF339740DC5E54D3DB8061C608D1C6E2DA5041B4435A726AEA7E72` for roads and `6F45940F1F590D2F4CE04450AD19A0C081611A06897B9B3952A51F2551AFB198` for citizens. Prompts, generated sources, validation JSON, deterministic builder, and the combined contact sheet are preserved beside the runtime files.
+
+## Newly connected for v2.20.0 - signature equipment
+
+- `unique-item-atlas-runtime-v2.20.0.png` replaces the one-cell v0.71 relic sheet with seven distinct campaign silhouettes in exact stable cells: Unfathomable sword, Sluicekeeper blade, Stormglass conductor, Ratcatcher roadcoat, Gloam reliquary mail, Mirrorweave mantle, and Crownward warblade.
+- The atlas is exact RGBA 1280 by 1024 in a 5 by 4 grid. Overall transparency is 90.50%; populated cells 0-6 remain inside the runtime coverage bounds; cells 7-19 have zero visible alpha; and cell 0 preserves the accepted original sword pixels.
+- Runtime exact-pins the sheet, requires at least 70% transparent and 4% visible pixels, requires exact geometry, maps icons by stable signature identity, and retains the generic item path if the approved art is absent or rejected.
+- The built-in ImageGen prompt, transparency-correction prompt, and deterministic normalization report are preserved beside the accepted runtime PNG. Loot and Pack pair each silhouette with its truthful catalog intrinsic rather than relying on name substrings.
+
 ## Newly connected for v2.17.0 - title menu icons
 
 - `title-menu-icon-atlas-runtime-v2.16.0.png` replaces borrowed tavern-atlas cells with five purpose-built title actions: Continue, New Game, Settings, Exit, and the development-only Beta Lab.
@@ -15,7 +29,7 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 
 - Title/tavern: splash reference fallback, title card, game icon, tavern backdrop, tavern UI, title scroll and focus art, and the dedicated five-cell title menu icon atlas.
 - Party/enemies: character combat atlas, enemy sprite atlas, creature/combat sprite fallback atlas, enemy roster, boss enemy fallback, Kobold King boss atlas.
-- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, procedural non-interactive exterior citizens, six authored non-interactive Town Hall patrons, dedicated Grand Hearth floor/set-piece/ambience companions, quest world objects, and Midgaard town/tile/NPC/sewer sheets.
+- World map: world environment/object fallback, world-map ground tiles, regional set-pieces, threat habitats, landmarks, overlays, progression overlays, mixed and solo-role token sprites, props, coherent non-interactive exterior citizens, six authored non-interactive Town Hall patrons, dedicated Grand Hearth floor/set-piece/ambience companions, quest world objects, and Midgaard town/tile/road/NPC/sewer sheets.
 
 ## Newly Connected In v2.9.0 - Automated, Build, Package, and Visual Gates Passed
 
@@ -35,7 +49,7 @@ These atlas families are loaded by `AshenHallsGame.LoadExternalArt()` and have d
 - RuleSmoke, focused SpriteArtRuntimeSmoke, full RuntimeBoot, and the Windows build pass. Six Local/Region captures under `QA/v2.8.0-grand-hearth` cover 960 by 600, 1280 by 720, and 1920 by 1080; all report `complete=True`, `failure=None`, and the deterministic packet passes. Visual review accepts restrained warm/cool depth, horizontal east-door guidance, readable patrons, continuous runner, and unobstructed fixtures. Canonical package inventory and clean-extracted boot pass; the release-integrity record reports clean tracked source, save v25, player exit 0, 83 packaged art files, and the exact ambience-atlas hash.
 - Kobold route: route markers, cave props, dedicated kobold combat terrain, boss route art.
 - Combat UI/effects: combat UI, combat UI panel, combat HUD, combat command icons, ability icons, spellbook UI, combat spellbook UI, spellbook open art, magic UI, ember/epic/combat spell effects, spell animation, combat floating text art.
-- Inventory/items: item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.
+- Inventory/items: exact-pinned signature-item atlas, item inventory atlas, older item equipment/icon fallbacks, inventory consumable atlas, character inventory UI.
 - Journal/scaffold: story cards, NPC portraits, route/dungeon/service/faction scaffold hooks when matching files are present.
 
 ## Newly Connected In v2.7.0 - Automated, Build, and Visual Gates Passed

@@ -89,10 +89,23 @@ namespace AshenHalls
 
         public static float MidgaardBuildingSpriteScale(bool wideView)
         {
-            // Region view still needs an almost cell-filling silhouette; local view
-            // can let roofs and awnings rise beyond the cell without changing the
-            // deterministic interaction footprint beneath them.
-            return wideView ? 1.22f : 1.34f;
+            return wideView ? 1.28f : 1.48f;
+        }
+
+        public static float MidgaardBuildingSpriteScale(ObjectType type, bool wideView)
+        {
+            // Civic anchors get more skyline weight, while ordinary shopfronts
+            // remain compact enough to preserve their one-cell interaction lane.
+            switch (type)
+            {
+                case ObjectType.KingHall:
+                    return wideView ? 1.42f : 1.66f;
+                case ObjectType.Temple:
+                case ObjectType.Tavern:
+                    return wideView ? 1.34f : 1.56f;
+                default:
+                    return MidgaardBuildingSpriteScale(wideView);
+            }
         }
 
         public static float MidgaardBuildingArtPadding()
@@ -114,10 +127,16 @@ namespace AshenHalls
 
         public static float MidgaardBuildingVerticalOffset(bool wideView)
         {
+            return -(MidgaardBuildingSpriteScale(wideView) - 1f) * 0.5f;
+        }
+
+        public static float MidgaardBuildingVerticalOffset(ObjectType type, bool wideView)
+        {
             // Scaling from the destination centre would grow just as far into the
-            // street as toward the roofline. Shift upward to keep doorsteps and
-            // market counters visually tied to their map cell.
-            return wideView ? -0.10f : -0.16f;
+            // street as toward the roofline. Offset by exactly half the added
+            // scale so every doorway keeps the one-cell baseline while the roof
+            // grows upward, including larger civic anchors.
+            return -(MidgaardBuildingSpriteScale(type, wideView) - 1f) * 0.5f;
         }
 
         public static string PartyTokenRole(int partyCount, string leadRole)

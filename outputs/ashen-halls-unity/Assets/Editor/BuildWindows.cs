@@ -101,13 +101,29 @@ namespace AshenHalls.Editor
 
         public static void Build()
         {
-            PerformBuild();
+            PerformBuild(BetaLabBuildFlavor.Retail);
+        }
+
+        public static void BuildBeta()
+        {
+            PerformBuild(BetaLabBuildFlavor.BetaDevelopment);
         }
 
         public static void PerformBuild()
         {
+            PerformBuild(BetaLabBuildFlavor.Retail);
+        }
+
+        public static void PerformBetaBuild()
+        {
+            PerformBuild(BetaLabBuildFlavor.BetaDevelopment);
+        }
+
+        private static void PerformBuild(BetaLabBuildFlavor flavor)
+        {
             string projectRoot = Directory.GetParent(Application.dataPath).FullName;
             string packageVersion = AshenHalls.VersionInfo.PackageVersion;
+            BetaLabBuildFlavorProfile buildFlavor = BetaLabBuildFlavorRules.ProfileFor(flavor);
             ValidateReleaseDocs(projectRoot, packageVersion);
             ValidateApprovedRuntimeArtIsLatest(projectRoot);
             RuleSmokeTests.RunOrThrow();
@@ -119,8 +135,15 @@ namespace AshenHalls.Editor
             RuntimeBootSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build runtime boot smoke passed.");
 
-            string outputRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", "ash-and-brimstone-build", VersionInfo.ExecutableBaseName + "-Windows-" + packageVersion));
-            string zipPath = Path.GetFullPath(Path.Combine(projectRoot, "..", VersionInfo.ExecutableBaseName + "-Windows-" + packageVersion + ".zip"));
+            string artifactName = BetaLabBuildFlavorRules.WindowsArtifactName(
+                VersionInfo.ExecutableBaseName,
+                packageVersion,
+                flavor);
+            string outputRoot = Path.GetFullPath(Path.Combine(projectRoot, "..", "ash-and-brimstone-build", artifactName));
+            string zipPath = Path.GetFullPath(Path.Combine(
+                projectRoot,
+                "..",
+                BetaLabBuildFlavorRules.WindowsZipFileName(VersionInfo.ExecutableBaseName, packageVersion, flavor)));
             string exePath = Path.Combine(outputRoot, VersionInfo.ExecutableBaseName + ".exe");
             if (Directory.Exists(outputRoot))
             {
@@ -169,8 +192,18 @@ namespace AshenHalls.Editor
                 scenes = new[] { scenePath },
                 locationPathName = exePath,
                 target = BuildTarget.StandaloneWindows64,
-                options = BuildOptions.None
+                options = buildFlavor.RequiresUnityDevelopmentBuild
+                    ? BuildOptions.Development
+                    : BuildOptions.None
             };
+
+            bool unityDevelopmentBuild = (options.options & BuildOptions.Development) != 0;
+            if (!BetaLabBuildFlavorRules.MatchesUnityBuild(flavor, unityDevelopmentBuild))
+            {
+                throw new BuildFailedException(
+                    "Windows build flavor does not match its Unity Development-build contract: " +
+                    buildFlavor.DisplayName);
+            }
 
             BuildReport report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)
@@ -185,12 +218,33 @@ namespace AshenHalls.Editor
             CopyPackageNote(projectRoot, outputRoot, "KNOWN_ISSUES.txt");
             CopyPackageNote(projectRoot, outputRoot, Path.Combine("Tools", "NewVisualQaPacket.ps1"));
             CopyDocsFolder(projectRoot, outputRoot);
+            if (flavor == BetaLabBuildFlavor.BetaDevelopment)
+            {
+                WriteBetaLabPackageNote(outputRoot, packageVersion);
+            }
             WritePackageHint(outputRoot, zipPath);
 
-            Debug.Log(VersionInfo.ProductName + " Windows build complete: " + exePath);
+            Debug.Log(VersionInfo.ProductName + " " + buildFlavor.DisplayName + " Windows build complete: " + exePath);
             Debug.Log(VersionInfo.ProductName + " package staging complete: " + outputRoot);
             Debug.Log("Create the distributable zip after Unity exits: " + zipPath);
             EditorApplication.Exit(0);
+        }
+
+        private static void WriteBetaLabPackageNote(string outputRoot, string packageVersion)
+        {
+            string path = Path.Combine(outputRoot, "BETA_LAB_README.txt");
+            string text =
+                VersionInfo.ProductName + " " + packageVersion + " - Beta Development build" + Environment.NewLine +
+                Environment.NewLine +
+                "This opt-in tester build exposes the title-screen Beta Lab and developer combat tools." + Environment.NewLine +
+                "Beta Lab sessions are save-blocked and are intended for spell, skill, VFX, SFX, and reduced-motion testing." + Environment.NewLine +
+                "Use the normal retail package for campaign play and release verification." + Environment.NewLine +
+                Environment.NewLine +
+                "In combat: press F10 or controller Back/Select to focus the responsive lab controls;" + Environment.NewLine +
+                "use arrows/left stick to choose an action and Enter/Space/A to activate it." + Environment.NewLine +
+                "From the title screen, press T (or Ctrl+Shift+B) to open the broader testing panel and choose Martial Lab." + Environment.NewLine +
+                "The Visual-only Tour previews effects and audio without resolving a gameplay action." + Environment.NewLine;
+            File.WriteAllText(path, text);
         }
 
         private static Texture2D LoadBuildIcon()

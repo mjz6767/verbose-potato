@@ -1,0 +1,15 @@
+Re-author the attached Ashen Halls Midgaard named-NPC world-sprite sheet as one coherent production pixel-art atlas. The first reference establishes the world-sprite order, poses, clothing and role props. The second reference establishes facial identity, hair, age, complexion and costume colors. Preserve those identities and the exact world-sprite row-major order.
+
+Canvas: square, truly transparent background. Arrange exactly TWENTY separate full-body NPC sprites in a clean 5-column by 4-row grid, equal cells, generous fully transparent gutters, no borders, no labels, no text. Every figure bottom-centered on the same baseline, same apparent body height, completely separated and fully contained. Front or slight three-quarter standing game-map pose.
+
+Exact row-major roles:
+Row 1: Watchman Rusk, Watchwoman Ilyra, King Halvard, market clerk Nessa, healer Mira.
+Row 2: tavern keeper Orren, armorer Borin, weapon merchant Tessa, Captain Brann, enchanter Maud.
+Row 3: cook Kate, provisioner Lute, courier Tovan, wounded traveler Edda, dock worker.
+Row 4: stable hand Pell, herald Vann, novice healer Sera, Old Road scout Yara, scholar.
+
+Art direction: match the references' dark Nordic-fantasy pixel art, crisp readable clusters, modest hand-painted texture, grounded proportions around 3.5 heads tall, strong silhouette at 48 pixels, restrained rain-dark Midgaard palette. Exaggerate role props and the largest coat/hair color blocks slightly for map readability. Each character gets a subtle contact shadow contained inside its cell. Keep scale and rendering density consistent; remove the old green edge/glow inconsistency. Warm skin, readable faces, no chibi giant heads, no photorealism, no smooth vector rendering.
+
+Role cues: guards with spear/shield; king with restrained crown and red-gold mantle; clerk with ledger; healers with pale teal/cream robes and satchel or staff; tavern keeper with apron/tankard; armorer with hammer/leather apron; weapon merchant with sword bundle; captain heavier armor/red plume; enchanter violet crystal/runes; cook with spoon/apron; provisioner with grain sack; courier with satchel; wounded traveler with bandage/staff; dock worker with rope hook; stable hand with brush/rope; herald with scroll/trumpet and red-gold livery; scout with hood/bow; scholar with books.
+
+Hard invariants: exactly 20 figures, no missing or duplicate cell, no buildings, monsters, UI frames, lettering, overlapping between cells, cropped heads/feet, checkerboard painted into the image, shared floor, or opaque background. Preserve true alpha outside each sprite.

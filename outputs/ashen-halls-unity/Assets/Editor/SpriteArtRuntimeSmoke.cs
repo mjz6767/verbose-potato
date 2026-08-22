@@ -39,6 +39,7 @@ namespace AshenHalls.Editor
                 InvokePrivate(game, "Awake");
                 AssertV27GrandHearthAtlasesAndMappings(game);
                 AssertV24WorldMapAtlasesAndMappings(game);
+                AssertV21RoadAtlasAndNpcSizing(game);
 
                 Texture2D characterAtlas = GetPrivateField<Texture2D>(game, "characterCombatAtlas");
                 Assert(characterAtlas != null, "player character atlas loads");
@@ -85,8 +86,8 @@ namespace AshenHalls.Editor
                 Texture2D npcAtlas = GetPrivateField<Texture2D>(game, "midgaardNpcAtlas");
                 Assert(npcAtlas != null, "Midgaard NPC atlas loads");
                 Assert(
-                    npcAtlas.name.IndexOf("v1.93.0", StringComparison.OrdinalIgnoreCase) >= 0,
-                    "runtime selects the approved v1.93 NPC atlas");
+                    npcAtlas.name.IndexOf("v2.21.0", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "runtime selects the approved v2.21 coherent NPC atlas");
                 Assert(
                     npcAtlas.width == NpcPortraitCatalog.Columns * 256
                         && npcAtlas.height == NpcPortraitCatalog.Rows * 256,
@@ -94,11 +95,29 @@ namespace AshenHalls.Editor
                 Assert(InvokePrivate<bool>(game, "IsMidgaardNpcAtlas"), "presentation accepts only the exact 5x4 NPC contract");
                 Dictionary<ObjectType, int> placedNpcCells = new Dictionary<ObjectType, int>
                 {
+                    { ObjectType.TownGuard, 0 },
+                    { ObjectType.KingHalvard, 2 },
+                    { ObjectType.MarketClerk, 3 },
+                    { ObjectType.TempleHealer, 4 },
+                    { ObjectType.TavernKeeper, 5 },
+                    { ObjectType.ArmorerNpc, 6 },
+                    { ObjectType.WeaponMerchantNpc, 7 },
+                    { ObjectType.GateCaptain, 8 },
+                    { ObjectType.EnchanterNpc, 9 },
                     { ObjectType.DinerCook, 10 },
                     { ObjectType.Provisioner, 11 },
+                    { ObjectType.CityCourier, 12 },
+                    { ObjectType.WoundedTraveler, 13 },
                     { ObjectType.DockWorker, 14 },
+                    { ObjectType.StableHand, 15 },
+                    { ObjectType.RoyalHerald, 16 },
+                    { ObjectType.NoviceHealer, 17 },
+                    { ObjectType.OldRoadScout, 18 },
                     { ObjectType.Scholar, 19 }
                 };
+                Assert(
+                    placedNpcCells.Count + 1 == NpcPortraitCatalog.Columns * NpcPortraitCatalog.Rows,
+                    "runtime smoke covers every named Midgaard NPC atlas cell");
                 foreach (KeyValuePair<ObjectType, int> contact in placedNpcCells)
                 {
                     Assert(
@@ -107,6 +126,23 @@ namespace AshenHalls.Editor
                     Assert(
                         InvokePrivate<int>(game, "MidgaardNpcObjectIconIndex", contact.Key, null) == contact.Value,
                         contact.Key + " reaches NPC cell " + contact.Value + " through the live draw adapter");
+                }
+                GameState state = GetPrivateField<GameState>(game, "state");
+                MapData priorMap = state.Map;
+                try
+                {
+                    state.Map = new MapData { StartX = 0 };
+                    MapObject eastSideGuard = new MapObject(1, 0, ObjectType.TownGuard);
+                    Assert(
+                        NpcPortraitCatalog.WorldSpriteIndex(ObjectType.TownGuard, true) == 1,
+                        "east-side Town Guard owns NPC cell 1");
+                    Assert(
+                        InvokePrivate<int>(game, "MidgaardNpcObjectIconIndex", ObjectType.TownGuard, eastSideGuard) == 1,
+                        "east-side Town Guard reaches NPC cell 1 through the live draw adapter");
+                }
+                finally
+                {
+                    state.Map = priorMap;
                 }
             }
             finally
@@ -194,10 +230,10 @@ namespace AshenHalls.Editor
             Assert(habitatAtlas.width == 1536 && habitatAtlas.height == 768, "v2.4 habitat atlas uses the exact 4x2 square-cell contract");
             Assert(InvokePrivate<bool>(game, "IsWorldThreatHabitatAtlas"), "presentation accepts the exact v2.4 habitat atlas");
 
-            Assert(citizenAtlas != null, "v2.4 ambient-citizen atlas loads");
-            Assert(citizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "runtime selects the exact approved v2.4 citizen atlas");
-            Assert(citizenAtlas.width == 1536 && citizenAtlas.height == 768, "v2.4 citizen atlas uses the exact 4x2 square-cell contract");
-            Assert(InvokePrivate<bool>(game, "IsWorldNpcCitizenAtlas"), "presentation accepts the exact v2.4 citizen atlas");
+            Assert(citizenAtlas != null, "v2.21 ambient-citizen atlas loads");
+            Assert(citizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "runtime selects the exact approved v2.21 citizen atlas");
+            Assert(citizenAtlas.width == 1536 && citizenAtlas.height == 768, "v2.21 citizen atlas preserves the exact 4x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsWorldNpcCitizenAtlas"), "presentation accepts the exact v2.21 citizen atlas");
 
             Assert(playerRoleAtlas != null, "v2.4 player exploration-role atlas loads");
             Assert(playerRoleAtlas.name == RuntimeArtManifest.PlayerExplorationRoleAtlas, "runtime selects the exact approved v2.4 player-role atlas");
@@ -314,12 +350,48 @@ namespace AshenHalls.Editor
                     && profession == placement.Profession,
                     placement.Profession + " resolves at its authored Town Hall cell");
                 Assert(ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession) >= 0,
-                    placement.Profession + " uses approved v2.4 citizen art in Town Hall");
+                    placement.Profession + " uses approved v2.21 citizen art in Town Hall");
                 Assert(patronCells.Add(x + "," + y),
                     "Town Hall patron cells are unique");
                 Assert(!MidgaardInteriorRules.IsGrandHearthCompanyRunner(townHallMap, x, y),
                     placement.Profession + " stays off the first-step company runner");
             }
+        }
+
+        private static void AssertV21RoadAtlasAndNpcSizing(AshenHallsGame game)
+        {
+            Texture2D roadAtlas = GetPrivateField<Texture2D>(game, "midgaardRoadSurfaceAtlas");
+            Assert(roadAtlas != null, "v2.21 Midgaard road-surface atlas loads");
+            Assert(roadAtlas.name == RuntimeArtManifest.MidgaardRoadSurfaceAtlas,
+                "runtime selects the exact approved v2.21 road-surface atlas");
+            Assert(roadAtlas.width == 512 && roadAtlas.height == 512,
+                "v2.21 road-surface atlas uses the exact 2x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsMidgaardRoadSurfaceAtlas"),
+                "presentation accepts only the exact v2.21 road-surface contract");
+
+            Assert(InvokePrivate<bool>(game, "UsesNamedNpcPresentation", ObjectType.TownGuard),
+                "Town Guard shares named-NPC sizing");
+            Assert(InvokePrivate<bool>(game, "UsesNamedNpcPresentation", ObjectType.MarketClerk),
+                "named contacts retain named-NPC sizing");
+            Assert(!InvokePrivate<bool>(game, "UsesNamedNpcPresentation", ObjectType.Fountain),
+                "non-NPC objects do not borrow named-NPC sizing");
+
+            float namedLocal = (1f - ExplorationNpcPresentationRules.NamedObjectPadding(false) * 2f)
+                * (1f - ExplorationNpcPresentationRules.NamedArtPadding() * 2f)
+                * ExplorationNpcPresentationRules.NamedArtScale(false);
+            float ambientLocal = (1f - ExplorationNpcPresentationRules.ExteriorAmbientPadding(false) * 2f) * 0.98f;
+            float patronLocal = (1f - ExplorationNpcPresentationRules.GrandHearthPatronPadding(false) * 2f) * 0.98f;
+            Assert(Math.Abs(namedLocal - ambientLocal) <= 0.08f,
+                "local named and ambient NPC height differs by no more than eight percent of a cell");
+            Assert(Math.Abs(namedLocal - patronLocal) <= 0.08f,
+                "local named and Town Hall patron height differs by no more than eight percent of a cell");
+
+            float namedWide = (1f - ExplorationNpcPresentationRules.NamedObjectPadding(true) * 2f)
+                * (1f - ExplorationNpcPresentationRules.NamedArtPadding() * 2f)
+                * ExplorationNpcPresentationRules.NamedArtScale(true);
+            float patronWide = (1f - ExplorationNpcPresentationRules.GrandHearthPatronPadding(true) * 2f) * 0.98f;
+            Assert(Math.Abs(namedWide - patronWide) <= 0.03f,
+                "region named and Town Hall patron height stays optically aligned");
         }
 
         private static T GetPrivateField<T>(object target, string fieldName)

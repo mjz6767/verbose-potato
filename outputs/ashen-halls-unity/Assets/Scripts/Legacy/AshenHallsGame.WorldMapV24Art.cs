@@ -39,7 +39,7 @@ namespace AshenHalls
 
             Debug.LogWarning(
                 $"Rejected approved {label} atlas '{fileName}' because it is {texture.width}x{texture.height}; "
-                + $"the v2.4 runtime contract is exactly {V24WorldMapAtlasWidth}x{V24WorldMapAtlasHeight}.");
+                + $"the shared 4x2 world-character contract is exactly {V24WorldMapAtlasWidth}x{V24WorldMapAtlasHeight}.");
             return null;
         }
 
@@ -321,7 +321,7 @@ namespace AshenHalls
             bool overlapsParty = x == state.PlayerX && y == state.PlayerY;
             Rect citizenRect = Pad(
                 cell,
-                cell.width * ExplorationCharacterArtCatalog.ExteriorCitizenPadding(exploreWideView));
+                cell.width * ExplorationNpcPresentationRules.ExteriorAmbientPadding(exploreWideView));
             citizenRect.x += cell.width * ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells(
                 district,
                 state.Seed,
@@ -334,7 +334,7 @@ namespace AshenHalls
                 y,
                 state.PlayerX,
                 state.PlayerY);
-            float alpha = ExplorationCharacterArtCatalog.ExteriorCitizenAlpha(exploreWideView, yieldingToParty);
+            float alpha = ExplorationNpcPresentationRules.ExteriorAmbientAlpha(exploreWideView, yieldingToParty);
             if (overlapsParty) alpha *= 0.56f;
             WorldMapArtSpec spec = new WorldMapArtSpec(
                 0.98f,
@@ -362,7 +362,8 @@ namespace AshenHalls
         {
             profession = AmbientCitizenProfession.Unknown;
             district = "";
-            if (!IsWorldNpcCitizenAtlas()
+            if (!ExplorationNpcPresentationRules.ShouldDrawExteriorAmbientCitizen(exploreWideView)
+                || !IsWorldNpcCitizenAtlas()
                 || state?.Map == null
                 || tile != 1
                 || IsMidgaardInteriorCell(x, y, state.Map, state.Depth)
@@ -423,8 +424,10 @@ namespace AshenHalls
 
             int index = ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession);
             if (index < 0) return false;
-            Rect patronRect = Pad(cell, cell.width * (exploreWideView ? 0.18f : 0.05f));
-            float alpha = exploreWideView ? 0.76f : 0.94f;
+            Rect patronRect = Pad(
+                cell,
+                cell.width * ExplorationNpcPresentationRules.GrandHearthPatronPadding(exploreWideView));
+            float alpha = ExplorationNpcPresentationRules.GrandHearthPatronAlpha(exploreWideView);
             WorldMapArtSpec spec = new WorldMapArtSpec(
                 0.98f,
                 new Vector2(0.5f, 1f),

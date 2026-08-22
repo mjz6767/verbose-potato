@@ -1,0 +1,824 @@
+{
+  "kind": "midgaard-npc-atlas",
+  "output": "midgaard-npc-atlas-runtime-v2.21.0.png",
+  "outputSha256": "7E33AECC377E690A03A62AC070481A6853BDDFF61C2C56E92E4060E1763F6C27",
+  "atlasSize": [
+    1280,
+    1024
+  ],
+  "cellSize": 256,
+  "requiredGutter": 18,
+  "targetBaseline": 238,
+  "sources": [
+    {
+      "path": "Docs\\ArtReferences\\source-midgaard-npcs-v2.21.0.png",
+      "sha256": "D808E36E60722D01634B8256410FAC06BB617EEC22B8751446F8DE80F0EE562C"
+    },
+    {
+      "path": "Docs\\ArtReferences\\source-midgaard-stable-hand-v2.21.0.png",
+      "sha256": "CC2DCE48B672B0658827376D5175CEA89A03CBBC9D4C3E15CF0FC45FBB5EBD7E"
+    }
+  ],
+  "cells": [
+    {
+      "name": "watchman-rusk",
+      "source": "npc-sheet",
+      "sourceIndex": 0,
+      "targetIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        251,
+        314
+      ],
+      "sourceSize": [
+        159,
+        285
+      ],
+      "scale": 0.77193,
+      "scaleX": 0.773585,
+      "scaleY": 0.77193,
+      "normalizedSize": [
+        123,
+        220
+      ],
+      "runtimeBounds": [
+        66,
+        18,
+        189,
+        238
+      ],
+      "runtimeSize": [
+        123,
+        220
+      ],
+      "gutters": {
+        "left": 66,
+        "top": 18,
+        "right": 67,
+        "bottom": 18
+      },
+      "visibleFraction": 0.276077
+    },
+    {
+      "name": "watchwoman-ilyra",
+      "source": "npc-sheet",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceRegion": [
+        251,
+        0,
+        502,
+        314
+      ],
+      "sourceSize": [
+        176,
+        285
+      ],
+      "scale": 0.77193,
+      "scaleX": 0.772727,
+      "scaleY": 0.77193,
+      "normalizedSize": [
+        136,
+        220
+      ],
+      "runtimeBounds": [
+        60,
+        18,
+        196,
+        238
+      ],
+      "runtimeSize": [
+        136,
+        220
+      ],
+      "gutters": {
+        "left": 60,
+        "top": 18,
+        "right": 60,
+        "bottom": 18
+      },
+      "visibleFraction": 0.272476
+    },
+    {
+      "name": "king-halvard",
+      "source": "npc-sheet",
+      "sourceIndex": 2,
+      "targetIndex": 2,
+      "sourceRegion": [
+        502,
+        0,
+        752,
+        314
+      ],
+      "sourceSize": [
+        209,
+        291
+      ],
+      "scale": 0.756014,
+      "scaleX": 0.755981,
+      "scaleY": 0.756014,
+      "normalizedSize": [
+        158,
+        220
+      ],
+      "runtimeBounds": [
+        49,
+        18,
+        207,
+        238
+      ],
+      "runtimeSize": [
+        158,
+        220
+      ],
+      "gutters": {
+        "left": 49,
+        "top": 18,
+        "right": 49,
+        "bottom": 18
+      },
+      "visibleFraction": 0.336304
+    },
+    {
+      "name": "market-clerk-nessa",
+      "source": "npc-sheet",
+      "sourceIndex": 3,
+      "targetIndex": 3,
+      "sourceRegion": [
+        752,
+        0,
+        1003,
+        314
+      ],
+      "sourceSize": [
+        149,
+        273
+      ],
+      "scale": 0.805861,
+      "scaleX": 0.805369,
+      "scaleY": 0.805861,
+      "normalizedSize": [
+        120,
+        220
+      ],
+      "runtimeBounds": [
+        68,
+        18,
+        188,
+        238
+      ],
+      "runtimeSize": [
+        120,
+        220
+      ],
+      "gutters": {
+        "left": 68,
+        "top": 18,
+        "right": 68,
+        "bottom": 18
+      },
+      "visibleFraction": 0.265579
+    },
+    {
+      "name": "healer-mira",
+      "source": "npc-sheet",
+      "sourceIndex": 4,
+      "targetIndex": 4,
+      "sourceRegion": [
+        1003,
+        0,
+        1254,
+        314
+      ],
+      "sourceSize": [
+        199,
+        282
+      ],
+      "scale": 0.780142,
+      "scaleX": 0.778894,
+      "scaleY": 0.780142,
+      "normalizedSize": [
+        155,
+        220
+      ],
+      "runtimeBounds": [
+        50,
+        18,
+        205,
+        238
+      ],
+      "runtimeSize": [
+        155,
+        220
+      ],
+      "gutters": {
+        "left": 50,
+        "top": 18,
+        "right": 51,
+        "bottom": 18
+      },
+      "visibleFraction": 0.311615
+    },
+    {
+      "name": "tavern-keeper-orren",
+      "source": "npc-sheet",
+      "sourceIndex": 5,
+      "targetIndex": 5,
+      "sourceRegion": [
+        0,
+        314,
+        251,
+        627
+      ],
+      "sourceSize": [
+        191,
+        280
+      ],
+      "scale": 0.785714,
+      "scaleX": 0.78534,
+      "scaleY": 0.785714,
+      "normalizedSize": [
+        150,
+        220
+      ],
+      "runtimeBounds": [
+        53,
+        18,
+        203,
+        238
+      ],
+      "runtimeSize": [
+        150,
+        220
+      ],
+      "gutters": {
+        "left": 53,
+        "top": 18,
+        "right": 53,
+        "bottom": 18
+      },
+      "visibleFraction": 0.314789
+    },
+    {
+      "name": "armorer-borin",
+      "source": "npc-sheet",
+      "sourceIndex": 6,
+      "targetIndex": 6,
+      "sourceRegion": [
+        251,
+        314,
+        502,
+        627
+      ],
+      "sourceSize": [
+        215,
+        284
+      ],
+      "scale": 0.774648,
+      "scaleX": 0.776744,
+      "scaleY": 0.774648,
+      "normalizedSize": [
+        167,
+        220
+      ],
+      "runtimeBounds": [
+        44,
+        18,
+        211,
+        238
+      ],
+      "runtimeSize": [
+        167,
+        220
+      ],
+      "gutters": {
+        "left": 44,
+        "top": 18,
+        "right": 45,
+        "bottom": 18
+      },
+      "visibleFraction": 0.348816
+    },
+    {
+      "name": "weapon-merchant-tessa",
+      "source": "npc-sheet",
+      "sourceIndex": 7,
+      "targetIndex": 7,
+      "sourceRegion": [
+        502,
+        314,
+        752,
+        627
+      ],
+      "sourceSize": [
+        183,
+        276
+      ],
+      "scale": 0.797101,
+      "scaleX": 0.797814,
+      "scaleY": 0.797101,
+      "normalizedSize": [
+        146,
+        220
+      ],
+      "runtimeBounds": [
+        55,
+        18,
+        201,
+        238
+      ],
+      "runtimeSize": [
+        146,
+        220
+      ],
+      "gutters": {
+        "left": 55,
+        "top": 18,
+        "right": 55,
+        "bottom": 18
+      },
+      "visibleFraction": 0.306625
+    },
+    {
+      "name": "captain-brann",
+      "source": "npc-sheet",
+      "sourceIndex": 8,
+      "targetIndex": 8,
+      "sourceRegion": [
+        752,
+        314,
+        1003,
+        627
+      ],
+      "sourceSize": [
+        194,
+        291
+      ],
+      "scale": 0.756014,
+      "scaleX": 0.757732,
+      "scaleY": 0.756014,
+      "normalizedSize": [
+        147,
+        220
+      ],
+      "runtimeBounds": [
+        54,
+        18,
+        201,
+        238
+      ],
+      "runtimeSize": [
+        147,
+        220
+      ],
+      "gutters": {
+        "left": 54,
+        "top": 18,
+        "right": 55,
+        "bottom": 18
+      },
+      "visibleFraction": 0.324615
+    },
+    {
+      "name": "enchanter-maud",
+      "source": "npc-sheet",
+      "sourceIndex": 9,
+      "targetIndex": 9,
+      "sourceRegion": [
+        1003,
+        314,
+        1254,
+        627
+      ],
+      "sourceSize": [
+        138,
+        277
+      ],
+      "scale": 0.794224,
+      "scaleX": 0.797101,
+      "scaleY": 0.794224,
+      "normalizedSize": [
+        110,
+        220
+      ],
+      "runtimeBounds": [
+        73,
+        18,
+        183,
+        238
+      ],
+      "runtimeSize": [
+        110,
+        220
+      ],
+      "gutters": {
+        "left": 73,
+        "top": 18,
+        "right": 73,
+        "bottom": 18
+      },
+      "visibleFraction": 0.287888
+    },
+    {
+      "name": "cook-kate",
+      "source": "npc-sheet",
+      "sourceIndex": 10,
+      "targetIndex": 10,
+      "sourceRegion": [
+        0,
+        627,
+        251,
+        940
+      ],
+      "sourceSize": [
+        171,
+        272
+      ],
+      "scale": 0.808824,
+      "scaleX": 0.807018,
+      "scaleY": 0.808824,
+      "normalizedSize": [
+        138,
+        220
+      ],
+      "runtimeBounds": [
+        59,
+        18,
+        197,
+        238
+      ],
+      "runtimeSize": [
+        138,
+        220
+      ],
+      "gutters": {
+        "left": 59,
+        "top": 18,
+        "right": 59,
+        "bottom": 18
+      },
+      "visibleFraction": 0.260864
+    },
+    {
+      "name": "provisioner-lute",
+      "source": "npc-sheet",
+      "sourceIndex": 11,
+      "targetIndex": 11,
+      "sourceRegion": [
+        251,
+        627,
+        502,
+        940
+      ],
+      "sourceSize": [
+        167,
+        279
+      ],
+      "scale": 0.78853,
+      "scaleX": 0.790419,
+      "scaleY": 0.78853,
+      "normalizedSize": [
+        132,
+        220
+      ],
+      "runtimeBounds": [
+        62,
+        18,
+        194,
+        238
+      ],
+      "runtimeSize": [
+        132,
+        220
+      ],
+      "gutters": {
+        "left": 62,
+        "top": 18,
+        "right": 62,
+        "bottom": 18
+      },
+      "visibleFraction": 0.309845
+    },
+    {
+      "name": "courier-tovan",
+      "source": "npc-sheet",
+      "sourceIndex": 12,
+      "targetIndex": 12,
+      "sourceRegion": [
+        502,
+        627,
+        752,
+        940
+      ],
+      "sourceSize": [
+        200,
+        278
+      ],
+      "scale": 0.791367,
+      "scaleX": 0.79,
+      "scaleY": 0.791367,
+      "normalizedSize": [
+        158,
+        220
+      ],
+      "runtimeBounds": [
+        49,
+        18,
+        207,
+        238
+      ],
+      "runtimeSize": [
+        158,
+        220
+      ],
+      "gutters": {
+        "left": 49,
+        "top": 18,
+        "right": 49,
+        "bottom": 18
+      },
+      "visibleFraction": 0.317917
+    },
+    {
+      "name": "wounded-traveler-edda",
+      "source": "npc-sheet",
+      "sourceIndex": 13,
+      "targetIndex": 13,
+      "sourceRegion": [
+        752,
+        627,
+        1003,
+        940
+      ],
+      "sourceSize": [
+        131,
+        277
+      ],
+      "scale": 0.794224,
+      "scaleX": 0.793893,
+      "scaleY": 0.794224,
+      "normalizedSize": [
+        104,
+        220
+      ],
+      "runtimeBounds": [
+        76,
+        18,
+        180,
+        238
+      ],
+      "runtimeSize": [
+        104,
+        220
+      ],
+      "gutters": {
+        "left": 76,
+        "top": 18,
+        "right": 76,
+        "bottom": 18
+      },
+      "visibleFraction": 0.233917
+    },
+    {
+      "name": "dock-worker",
+      "source": "npc-sheet",
+      "sourceIndex": 14,
+      "targetIndex": 14,
+      "sourceRegion": [
+        1003,
+        627,
+        1254,
+        940
+      ],
+      "sourceSize": [
+        164,
+        281
+      ],
+      "scale": 0.782918,
+      "scaleX": 0.780488,
+      "scaleY": 0.782918,
+      "normalizedSize": [
+        128,
+        220
+      ],
+      "runtimeBounds": [
+        64,
+        18,
+        192,
+        238
+      ],
+      "runtimeSize": [
+        128,
+        220
+      ],
+      "gutters": {
+        "left": 64,
+        "top": 18,
+        "right": 64,
+        "bottom": 18
+      },
+      "visibleFraction": 0.313477
+    },
+    {
+      "name": "stable-hand-pell",
+      "source": "stable-hand-source",
+      "sourceIndex": 15,
+      "targetIndex": 15,
+      "sourceRegion": [
+        0,
+        0,
+        1254,
+        1254
+      ],
+      "sourceSize": [
+        468,
+        904
+      ],
+      "scale": 0.243363,
+      "scaleX": 0.24359,
+      "scaleY": 0.243363,
+      "normalizedSize": [
+        114,
+        220
+      ],
+      "runtimeBounds": [
+        71,
+        18,
+        185,
+        238
+      ],
+      "runtimeSize": [
+        114,
+        220
+      ],
+      "gutters": {
+        "left": 71,
+        "top": 18,
+        "right": 71,
+        "bottom": 18
+      },
+      "visibleFraction": 0.237839
+    },
+    {
+      "name": "herald-vann",
+      "source": "npc-sheet",
+      "sourceIndex": 16,
+      "targetIndex": 16,
+      "sourceRegion": [
+        251,
+        940,
+        502,
+        1254
+      ],
+      "sourceSize": [
+        196,
+        261
+      ],
+      "scale": 0.842912,
+      "scaleX": 0.841837,
+      "scaleY": 0.842912,
+      "normalizedSize": [
+        165,
+        220
+      ],
+      "runtimeBounds": [
+        45,
+        18,
+        210,
+        238
+      ],
+      "runtimeSize": [
+        165,
+        220
+      ],
+      "gutters": {
+        "left": 45,
+        "top": 18,
+        "right": 46,
+        "bottom": 18
+      },
+      "visibleFraction": 0.372498
+    },
+    {
+      "name": "novice-healer-sera",
+      "source": "npc-sheet",
+      "sourceIndex": 17,
+      "targetIndex": 17,
+      "sourceRegion": [
+        502,
+        940,
+        752,
+        1254
+      ],
+      "sourceSize": [
+        156,
+        258
+      ],
+      "scale": 0.852713,
+      "scaleX": 0.852564,
+      "scaleY": 0.852713,
+      "normalizedSize": [
+        133,
+        220
+      ],
+      "runtimeBounds": [
+        61,
+        18,
+        194,
+        238
+      ],
+      "runtimeSize": [
+        133,
+        220
+      ],
+      "gutters": {
+        "left": 61,
+        "top": 18,
+        "right": 62,
+        "bottom": 18
+      },
+      "visibleFraction": 0.335327
+    },
+    {
+      "name": "old-road-scout-yara",
+      "source": "npc-sheet",
+      "sourceIndex": 18,
+      "targetIndex": 18,
+      "sourceRegion": [
+        752,
+        940,
+        1003,
+        1254
+      ],
+      "sourceSize": [
+        174,
+        264
+      ],
+      "scale": 0.833333,
+      "scaleX": 0.833333,
+      "scaleY": 0.833333,
+      "normalizedSize": [
+        145,
+        220
+      ],
+      "runtimeBounds": [
+        55,
+        18,
+        200,
+        238
+      ],
+      "runtimeSize": [
+        145,
+        220
+      ],
+      "gutters": {
+        "left": 55,
+        "top": 18,
+        "right": 56,
+        "bottom": 18
+      },
+      "visibleFraction": 0.309723
+    },
+    {
+      "name": "scholar",
+      "source": "npc-sheet",
+      "sourceIndex": 19,
+      "targetIndex": 19,
+      "sourceRegion": [
+        1003,
+        940,
+        1254,
+        1254
+      ],
+      "sourceSize": [
+        153,
+        266
+      ],
+      "scale": 0.827068,
+      "scaleX": 0.830065,
+      "scaleY": 0.827068,
+      "normalizedSize": [
+        127,
+        220
+      ],
+      "runtimeBounds": [
+        64,
+        18,
+        191,
+        238
+      ],
+      "runtimeSize": [
+        127,
+        220
+      ],
+      "gutters": {
+        "left": 64,
+        "top": 18,
+        "right": 65,
+        "bottom": 18
+      },
+      "visibleFraction": 0.279068
+    }
+  ]
+}

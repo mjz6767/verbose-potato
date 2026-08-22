@@ -1,0 +1,332 @@
+{
+  "kind": "world-npc-citizen-atlas",
+  "output": "world-npc-citizen-atlas-runtime-v2.21.0.png",
+  "outputSha256": "6F45940F1F590D2F4CE04450AD19A0C081611A06897B9B3952A51F2551AFB198",
+  "atlasSize": [
+    1536,
+    768
+  ],
+  "cellSize": 384,
+  "requiredGutter": 20,
+  "targetBaseline": 364,
+  "sources": [
+    {
+      "path": "Docs\\ArtReferences\\source-world-npc-citizens-v2.21.0.png",
+      "sha256": "3B530AD083C6072F09927DF9EE2548BBF4E610EA3D0FE76C313F0BAF5AF38EC3"
+    }
+  ],
+  "cells": [
+    {
+      "name": "lamplighter",
+      "sourceIndex": 0,
+      "targetIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        384,
+        512
+      ],
+      "sourceSize": [
+        234,
+        388
+      ],
+      "scale": 0.886598,
+      "scaleX": 0.884615,
+      "scaleY": 0.886598,
+      "normalizedSize": [
+        207,
+        344
+      ],
+      "runtimeBounds": [
+        88,
+        20,
+        295,
+        364
+      ],
+      "runtimeSize": [
+        207,
+        344
+      ],
+      "gutters": {
+        "left": 88,
+        "top": 20,
+        "right": 89,
+        "bottom": 20
+      },
+      "visibleFraction": 0.315525
+    },
+    {
+      "name": "fishmonger",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceRegion": [
+        384,
+        0,
+        768,
+        512
+      ],
+      "sourceSize": [
+        227,
+        391
+      ],
+      "scale": 0.879795,
+      "scaleX": 0.881057,
+      "scaleY": 0.879795,
+      "normalizedSize": [
+        200,
+        344
+      ],
+      "runtimeBounds": [
+        92,
+        20,
+        292,
+        364
+      ],
+      "runtimeSize": [
+        200,
+        344
+      ],
+      "gutters": {
+        "left": 92,
+        "top": 20,
+        "right": 92,
+        "bottom": 20
+      },
+      "visibleFraction": 0.286045
+    },
+    {
+      "name": "tailor",
+      "sourceIndex": 2,
+      "targetIndex": 2,
+      "sourceRegion": [
+        768,
+        0,
+        1152,
+        512
+      ],
+      "sourceSize": [
+        237,
+        388
+      ],
+      "scale": 0.886598,
+      "scaleX": 0.886076,
+      "scaleY": 0.886598,
+      "normalizedSize": [
+        210,
+        344
+      ],
+      "runtimeBounds": [
+        87,
+        20,
+        297,
+        364
+      ],
+      "runtimeSize": [
+        210,
+        344
+      ],
+      "gutters": {
+        "left": 87,
+        "top": 20,
+        "right": 87,
+        "bottom": 20
+      },
+      "visibleFraction": 0.269016
+    },
+    {
+      "name": "mason",
+      "sourceIndex": 3,
+      "targetIndex": 3,
+      "sourceRegion": [
+        1152,
+        0,
+        1536,
+        512
+      ],
+      "sourceSize": [
+        270,
+        393
+      ],
+      "scale": 0.875318,
+      "scaleX": 0.874074,
+      "scaleY": 0.875318,
+      "normalizedSize": [
+        236,
+        344
+      ],
+      "runtimeBounds": [
+        74,
+        20,
+        310,
+        364
+      ],
+      "runtimeSize": [
+        236,
+        344
+      ],
+      "gutters": {
+        "left": 74,
+        "top": 20,
+        "right": 74,
+        "bottom": 20
+      },
+      "visibleFraction": 0.324158
+    },
+    {
+      "name": "apothecary",
+      "sourceIndex": 4,
+      "targetIndex": 4,
+      "sourceRegion": [
+        0,
+        512,
+        384,
+        1024
+      ],
+      "sourceSize": [
+        234,
+        384
+      ],
+      "scale": 0.895833,
+      "scaleX": 0.897436,
+      "scaleY": 0.895833,
+      "normalizedSize": [
+        210,
+        344
+      ],
+      "runtimeBounds": [
+        87,
+        20,
+        297,
+        364
+      ],
+      "runtimeSize": [
+        210,
+        344
+      ],
+      "gutters": {
+        "left": 87,
+        "top": 20,
+        "right": 87,
+        "bottom": 20
+      },
+      "visibleFraction": 0.32624
+    },
+    {
+      "name": "road-pilgrim",
+      "sourceIndex": 5,
+      "targetIndex": 5,
+      "sourceRegion": [
+        384,
+        512,
+        768,
+        1024
+      ],
+      "sourceSize": [
+        229,
+        385
+      ],
+      "scale": 0.893506,
+      "scaleX": 0.895197,
+      "scaleY": 0.893506,
+      "normalizedSize": [
+        205,
+        344
+      ],
+      "runtimeBounds": [
+        89,
+        20,
+        294,
+        364
+      ],
+      "runtimeSize": [
+        205,
+        344
+      ],
+      "gutters": {
+        "left": 89,
+        "top": 20,
+        "right": 90,
+        "bottom": 20
+      },
+      "visibleFraction": 0.358331
+    },
+    {
+      "name": "gravedigger",
+      "sourceIndex": 6,
+      "targetIndex": 6,
+      "sourceRegion": [
+        768,
+        512,
+        1152,
+        1024
+      ],
+      "sourceSize": [
+        219,
+        385
+      ],
+      "scale": 0.893506,
+      "scaleX": 0.894977,
+      "scaleY": 0.893506,
+      "normalizedSize": [
+        196,
+        344
+      ],
+      "runtimeBounds": [
+        94,
+        20,
+        290,
+        364
+      ],
+      "runtimeSize": [
+        196,
+        344
+      ],
+      "gutters": {
+        "left": 94,
+        "top": 20,
+        "right": 94,
+        "bottom": 20
+      },
+      "visibleFraction": 0.322428
+    },
+    {
+      "name": "caravan-guide",
+      "sourceIndex": 7,
+      "targetIndex": 7,
+      "sourceRegion": [
+        1152,
+        512,
+        1536,
+        1024
+      ],
+      "sourceSize": [
+        230,
+        385
+      ],
+      "scale": 0.893506,
+      "scaleX": 0.895652,
+      "scaleY": 0.893506,
+      "normalizedSize": [
+        206,
+        344
+      ],
+      "runtimeBounds": [
+        89,
+        20,
+        295,
+        364
+      ],
+      "runtimeSize": [
+        206,
+        344
+      ],
+      "gutters": {
+        "left": 89,
+        "top": 20,
+        "right": 89,
+        "bottom": 20
+      },
+      "visibleFraction": 0.344564
+    }
+  ]
+}

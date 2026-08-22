@@ -1,0 +1,375 @@
+{
+  "kind": "midgaard-town-atlas",
+  "output": "midgaard-town-atlas-runtime-v2.21.0.png",
+  "outputSha256": "593C1DF8EA8142123EA3D2582A87D7900F89F0BFF1376778A7B58CEABAFD7501",
+  "atlasSize": [
+    1280,
+    1024
+  ],
+  "cellSize": 256,
+  "requiredGutter": 18,
+  "targetBaseline": 238,
+  "sources": [
+    {
+      "path": "Docs\\ArtReferences\\midgaard-town-atlas-runtime-v1.29.0.png",
+      "sha256": "208DE2F6D50B8BFEC8D7A2499BF2879A49476472065B1FA3E02F5EA3769ABA1D"
+    },
+    {
+      "path": "Docs\\ArtReferences\\source-midgaard-architecture-v2.21.0.png",
+      "sha256": "67E6B0657B4809B1EC19E92C2A72F1B3EBFF060D4A2EB30A935E0012019C526D"
+    }
+  ],
+  "cells": [
+    {
+      "name": "market",
+      "sourceIndex": 0,
+      "targetIndex": 0,
+      "sourceRegion": [
+        0,
+        0,
+        418,
+        418
+      ],
+      "sourceSize": [
+        402,
+        343
+      ],
+      "scale": 0.547264,
+      "scaleX": 0.547264,
+      "scaleY": 0.548105,
+      "normalizedSize": [
+        220,
+        188
+      ],
+      "runtimeBounds": [
+        18,
+        50,
+        238,
+        238
+      ],
+      "runtimeSize": [
+        220,
+        188
+      ],
+      "gutters": {
+        "left": 18,
+        "top": 50,
+        "right": 18,
+        "bottom": 18
+      },
+      "visibleFraction": 0.45932
+    },
+    {
+      "name": "temple",
+      "sourceIndex": 1,
+      "targetIndex": 1,
+      "sourceRegion": [
+        418,
+        0,
+        836,
+        418
+      ],
+      "sourceSize": [
+        311,
+        402
+      ],
+      "scale": 0.547264,
+      "scaleX": 0.546624,
+      "scaleY": 0.547264,
+      "normalizedSize": [
+        170,
+        220
+      ],
+      "runtimeBounds": [
+        43,
+        18,
+        213,
+        238
+      ],
+      "runtimeSize": [
+        170,
+        220
+      ],
+      "gutters": {
+        "left": 43,
+        "top": 18,
+        "right": 43,
+        "bottom": 18
+      },
+      "visibleFraction": 0.376572
+    },
+    {
+      "name": "tavern",
+      "sourceIndex": 2,
+      "targetIndex": 3,
+      "sourceRegion": [
+        836,
+        0,
+        1254,
+        418
+      ],
+      "sourceSize": [
+        384,
+        331
+      ],
+      "scale": 0.572917,
+      "scaleX": 0.572917,
+      "scaleY": 0.574018,
+      "normalizedSize": [
+        220,
+        190
+      ],
+      "runtimeBounds": [
+        18,
+        48,
+        238,
+        238
+      ],
+      "runtimeSize": [
+        220,
+        190
+      ],
+      "gutters": {
+        "left": 18,
+        "top": 48,
+        "right": 18,
+        "bottom": 18
+      },
+      "visibleFraction": 0.465256
+    },
+    {
+      "name": "armorer",
+      "sourceIndex": 3,
+      "targetIndex": 4,
+      "sourceRegion": [
+        0,
+        418,
+        418,
+        836
+      ],
+      "sourceSize": [
+        363,
+        339
+      ],
+      "scale": 0.606061,
+      "scaleX": 0.606061,
+      "scaleY": 0.60472,
+      "normalizedSize": [
+        220,
+        205
+      ],
+      "runtimeBounds": [
+        18,
+        33,
+        238,
+        238
+      ],
+      "runtimeSize": [
+        220,
+        205
+      ],
+      "gutters": {
+        "left": 18,
+        "top": 33,
+        "right": 18,
+        "bottom": 18
+      },
+      "visibleFraction": 0.465454
+    },
+    {
+      "name": "provisions",
+      "sourceIndex": 4,
+      "targetIndex": 5,
+      "sourceRegion": [
+        418,
+        418,
+        836,
+        836
+      ],
+      "sourceSize": [
+        368,
+        288
+      ],
+      "scale": 0.597826,
+      "scaleX": 0.597826,
+      "scaleY": 0.652778,
+      "normalizedSize": [
+        220,
+        188
+      ],
+      "runtimeBounds": [
+        18,
+        50,
+        238,
+        238
+      ],
+      "runtimeSize": [
+        220,
+        188
+      ],
+      "gutters": {
+        "left": 18,
+        "top": 50,
+        "right": 18,
+        "bottom": 18
+      },
+      "visibleFraction": 0.503967
+    },
+    {
+      "name": "weaponsmith",
+      "sourceIndex": 5,
+      "targetIndex": 6,
+      "sourceRegion": [
+        836,
+        418,
+        1254,
+        836
+      ],
+      "sourceSize": [
+        362,
+        337
+      ],
+      "scale": 0.607735,
+      "scaleX": 0.607735,
+      "scaleY": 0.608309,
+      "normalizedSize": [
+        220,
+        205
+      ],
+      "runtimeBounds": [
+        18,
+        33,
+        238,
+        238
+      ],
+      "runtimeSize": [
+        220,
+        205
+      ],
+      "gutters": {
+        "left": 18,
+        "top": 33,
+        "right": 18,
+        "bottom": 18
+      },
+      "visibleFraction": 0.454956
+    },
+    {
+      "name": "enchanter",
+      "sourceIndex": 6,
+      "targetIndex": 7,
+      "sourceRegion": [
+        0,
+        836,
+        418,
+        1254
+      ],
+      "sourceSize": [
+        346,
+        380
+      ],
+      "scale": 0.578947,
+      "scaleX": 0.578035,
+      "scaleY": 0.578947,
+      "normalizedSize": [
+        200,
+        220
+      ],
+      "runtimeBounds": [
+        28,
+        18,
+        228,
+        238
+      ],
+      "runtimeSize": [
+        200,
+        220
+      ],
+      "gutters": {
+        "left": 28,
+        "top": 18,
+        "right": 28,
+        "bottom": 18
+      },
+      "visibleFraction": 0.4655
+    },
+    {
+      "name": "town-hall",
+      "sourceIndex": 7,
+      "targetIndex": 11,
+      "sourceRegion": [
+        418,
+        836,
+        836,
+        1254
+      ],
+      "sourceSize": [
+        369,
+        377
+      ],
+      "scale": 0.583554,
+      "scaleX": 0.582656,
+      "scaleY": 0.583554,
+      "normalizedSize": [
+        215,
+        220
+      ],
+      "runtimeBounds": [
+        20,
+        18,
+        235,
+        238
+      ],
+      "runtimeSize": [
+        215,
+        220
+      ],
+      "gutters": {
+        "left": 20,
+        "top": 18,
+        "right": 21,
+        "bottom": 18
+      },
+      "visibleFraction": 0.497177
+    },
+    {
+      "name": "cookhouse",
+      "sourceIndex": 8,
+      "targetIndex": 14,
+      "sourceRegion": [
+        836,
+        836,
+        1254,
+        1254
+      ],
+      "sourceSize": [
+        376,
+        365
+      ],
+      "scale": 0.585106,
+      "scaleX": 0.585106,
+      "scaleY": 0.586301,
+      "normalizedSize": [
+        220,
+        214
+      ],
+      "runtimeBounds": [
+        18,
+        24,
+        238,
+        238
+      ],
+      "runtimeSize": [
+        220,
+        214
+      ],
+      "gutters": {
+        "left": 18,
+        "top": 24,
+        "right": 18,
+        "bottom": 18
+      },
+      "visibleFraction": 0.48259
+    }
+  ]
+}

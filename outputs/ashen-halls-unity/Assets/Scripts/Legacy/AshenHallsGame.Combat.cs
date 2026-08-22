@@ -69,6 +69,16 @@ namespace AshenHalls
 
         private int betaVfxShowcaseIndex;
 
+        private bool betaLabToolbarFocused;
+
+        private int betaLabToolbarIndex;
+
+        private int betaLabToolbarNavigationAxisX;
+
+        private int betaLabToolbarNavigationAxisY;
+
+        private float betaLabToolbarNavigationRepeatAt;
+
         private struct EnemyPowerBeat
         {
             public CombatImpactProfile Profile;
@@ -5741,7 +5751,9 @@ namespace AshenHalls
         {
             if (active == null || state?.Combat == null) return 0;
             bool braced = state.Combat.MovePoints >= UnitMoveAllowance(active) && !state.Combat.Moved;
-            return (braced ? 4 : 2) + GearGuardBonus(active);
+            return (braced ? 4 : 2)
+                + GearGuardBonus(active)
+                + SignatureItemRules.GuardActionBonus(CombatEquipmentItem(active, true));
         }
 
         private void DrawActionButtonGlyph(Rect rect, ActionMode mode, bool enabled, bool selected)
@@ -5944,66 +5956,129 @@ namespace AshenHalls
 
         private void DrawBetaLabToolbar(Rect rect, CombatUnit active, bool playerTurn)
         {
-            DrawRect(rect, Hex("080b0d", 0.94f));
-            DrawBorder(rect, Hex("c65c3b", 0.82f), 1);
-            DrawFormulaLabRegion(new Rect(rect.x + 5, rect.y + 4, 24, 22), new Rect(1130, 718, 58, 58));
             bool martial = state?.Combat?.EncounterStyle == "martiallab";
-            GUI.Label(new Rect(rect.x + 34, rect.y + 5, 118, 18), martial ? "Martial Lab" : "Beta Lab", CenterLeftStyle(12, gold));
-            float x = rect.x + 154;
-            float gap = 6f;
-            string[] labels = martial
-                ? new[] { "Refill", "Promote", "Wound", "Cluster", "Reset", "Spawn", "Tour" }
-                : new[] { "Refill", "Mage", "Warlock", "Craft", "Stage", "Hazards", "Spawn", "Reset", "Tour" };
-            float buttonW = martial ? 68f : 62f;
-            if (!martial) gap = 4f;
-            for (int i = 0; i < labels.Length; i++)
-            {
-                Rect button = new Rect(x + i * (buttonW + gap), rect.y + 3, buttonW, 24);
-                if (GUI.Button(button, labels[i], smallButtonStyle))
-                {
-                    if (labels[i] == "Refill") RefillBetaLab();
-                    else if (labels[i] == "Mage") PromoteMageTester(active);
-                    else if (labels[i] == "Warlock") PromoteWarlockTester(active);
-                    else if (labels[i] == "Craft") EmpowerSpellLabCasters();
-                    else if (labels[i] == "Stage") StageSpellLabTargets(active);
-                    else if (labels[i] == "Promote") PromoteMartialLabUnits();
-                    else if (labels[i] == "Wound") StageWoundedEnemyForMartialLab(active);
-                    else if (labels[i] == "Cluster") ClusterEnemiesForMartialLab(active);
-                    else if (labels[i] == "Reset")
-                    {
-                        if (martial) StartMartialCombatLab();
-                        else StartBetaCombatLab();
-                    }
-                    else if (labels[i] == "Hazards") AddBetaLabHazards();
-                    else if (labels[i] == "Spawn") SpawnBetaLabWave();
-                    else if (labels[i] == "Tour")
-                    {
-                        betaVfxShowcaseOpen = !betaVfxShowcaseOpen;
-                        if (betaVfxShowcaseOpen) ReplayBetaVfxShowcase();
-                    }
-                }
-            }
+            bool actionsLocked = IsCombatResolutionPending();
+            BetaLabKind labKind = martial ? BetaLabKind.Martial : BetaLabKind.Caster;
+            IReadOnlyList<BetaLabToolbarActionDefinition> actions = BetaLabToolbarRules.Actions(labKind);
+            if (actions.Count == 0) return;
+            betaLabToolbarIndex = Mathf.Clamp(betaLabToolbarIndex, 0, actions.Count - 1);
+            BetaLabToolbarGeometry geometry = BetaLabToolbarRules.Calculate(rect, labKind);
+            DrawRect(rect, Hex("080b0d", 0.94f));
+            DrawBorder(rect, betaLabToolbarFocused ? gold : Hex("c65c3b", 0.82f), betaLabToolbarFocused ? 2 : 1);
+            DrawFormulaLabRegion(
+                new Rect(geometry.Header.x + 1f, geometry.Header.y, 24f, 22f),
+                new Rect(1130, 718, 58, 58));
+            float headerLabelX = geometry.Header.x + 29f;
+            float headerLabelWidth = Mathf.Max(28f, geometry.Header.xMax - headerLabelX);
+            GUI.Label(
+                new Rect(headerLabelX, geometry.Header.y + 1f, headerLabelWidth, 18f),
+                FitText(martial ? "Martial Lab" : "Beta Lab", headerLabelWidth, CenterLeftStyle(12, gold)),
+                CenterLeftStyle(12, gold));
 
-            if (active != null && rect.width > 650f)
+            string status;
+            if (actionsLocked)
             {
-                string who = playerTurn ? $"{active.Name}: {CombatPhaseLabel()}" : $"{active.Name}: enemy test";
-                float statusX = x + labels.Length * (buttonW + gap) + 8f;
-                float statusW = rect.xMax - statusX - 8f;
-                if (statusW >= 150f)
+                status = "RESOLVING · INPUT LOCKED";
+            }
+            else if (betaLabToolbarFocused)
+            {
+                BetaLabToolbarActionDefinition selected = actions[betaLabToolbarIndex];
+                status = betaVfxShowcaseOpen && selected.Id == BetaLabToolbarActionId.VisualTour
+                    ? "TOUR · Q/E · A"
+                    : "SELECT · " + selected.Label;
+            }
+            else if (active != null)
+            {
+                status = (playerTurn ? active.Name : active.Name + " · enemy test") + " · F10/Back";
+            }
+            else
+            {
+                status = "F10/Back · controls";
+            }
+            GUI.Label(
+                geometry.Status,
+                FitText(status, geometry.Status.width, CenterLeftStyle(10, betaLabToolbarFocused ? cursorWhite : muted)),
+                CenterLeftStyle(10, betaLabToolbarFocused ? cursorWhite : muted));
+
+            bool guiEnabled = GUI.enabled;
+            GUI.enabled = guiEnabled && !actionsLocked;
+            for (int i = 0; i < actions.Count; i++)
+            {
+                Rect button = geometry.ActionRects[i];
+                BetaLabToolbarActionDefinition action = actions[i];
+                if (GUI.Button(button, action.LabelForWidth(button.width), smallButtonStyle))
                 {
-                    GUI.Label(new Rect(statusX, rect.y + 5, statusW, 18), FitText(who, statusW, CenterLeftStyle(11, muted)), CenterLeftStyle(11, muted));
+                    betaLabToolbarIndex = i;
+                    ExecuteBetaLabToolbarAction(action.Id, active);
+                }
+                if (betaLabToolbarFocused && i == betaLabToolbarIndex)
+                {
+                    DrawBorder(button, cursorWhite.WithAlpha(0.96f), 2);
                 }
             }
+            GUI.enabled = guiEnabled;
+        }
+
+        private void ExecuteBetaLabToolbarAction(BetaLabToolbarActionId actionId, CombatUnit active)
+        {
+            if (IsCombatResolutionPending()) return;
+            bool martial = state?.Combat?.EncounterStyle == "martiallab";
+            switch (actionId)
+            {
+                case BetaLabToolbarActionId.Refill:
+                    RefillBetaLab();
+                    break;
+                case BetaLabToolbarActionId.Mage:
+                    PromoteMageTester(active);
+                    break;
+                case BetaLabToolbarActionId.Warlock:
+                    PromoteWarlockTester(active);
+                    break;
+                case BetaLabToolbarActionId.Craft:
+                    EmpowerSpellLabCasters();
+                    break;
+                case BetaLabToolbarActionId.Stage:
+                    StageSpellLabTargets(active);
+                    break;
+                case BetaLabToolbarActionId.Promote:
+                    PromoteMartialLabUnits();
+                    break;
+                case BetaLabToolbarActionId.Wound:
+                    StageWoundedEnemyForMartialLab(active);
+                    break;
+                case BetaLabToolbarActionId.Cluster:
+                    ClusterEnemiesForMartialLab(active);
+                    break;
+                case BetaLabToolbarActionId.Reset:
+                    if (martial) StartMartialCombatLab();
+                    else StartBetaCombatLab();
+                    break;
+                case BetaLabToolbarActionId.Hazards:
+                    AddBetaLabHazards();
+                    break;
+                case BetaLabToolbarActionId.Spawn:
+                    SpawnBetaLabWave();
+                    break;
+                case BetaLabToolbarActionId.VisualTour:
+                    betaVfxShowcaseOpen = !betaVfxShowcaseOpen;
+                    if (betaVfxShowcaseOpen) ReplayBetaVfxShowcase();
+                    else ShowBanner("Visual preview closed");
+                    break;
+            }
+            MarkUiDirty();
         }
 
         private void DrawBetaVfxShowcaseToolbar(Rect rect)
         {
+            bool actionsLocked = IsCombatResolutionPending();
             CombatVfxShowcaseEntry entry = CombatVfxShowcaseRules.At(betaVfxShowcaseIndex);
             DrawRect(rect, Hex("080b0d", 0.96f));
             DrawBorder(rect, Hex("8a61d4", 0.88f), 1);
 
             string kind = entry.Kind == CombatVfxShowcasePowerKind.Formula ? "SPELL" : "SKILL";
-            string label = $"{kind}  {entry.Id} · {entry.DisplayName} · {betaVfxShowcaseIndex + 1}/{CombatVfxShowcaseRules.Count}";
+            string label = actionsLocked
+                ? $"RESOLVING · {entry.Id} · {entry.DisplayName}"
+                : $"{kind}  {entry.Id} · {entry.DisplayName} · {betaVfxShowcaseIndex + 1}/{CombatVfxShowcaseRules.Count}";
             float controlsWidth = 4f * 98f + 3f * 5f;
             float labelWidth = Mathf.Max(60f, rect.width - controlsWidth - 18f);
             GUI.Label(
@@ -6014,6 +6089,8 @@ namespace AshenHalls
             float x = rect.xMax - controlsWidth - 7f;
             string motion = state != null && state.ReducedMotion ? "Motion: Reduced" : "Motion: Full";
             string[] actions = { "Replay", "Next", "Cue", motion };
+            bool guiEnabled = GUI.enabled;
+            GUI.enabled = guiEnabled && !actionsLocked;
             for (int i = 0; i < actions.Length; i++)
             {
                 Rect button = new Rect(x + i * 103f, rect.y + 3f, 98f, 24f);
@@ -6037,11 +6114,12 @@ namespace AshenHalls
                     ReplayBetaVfxShowcase();
                 }
             }
+            GUI.enabled = guiEnabled;
         }
 
         private void ReplayBetaVfxShowcase()
         {
-            if (!betaLabMode || state?.Combat == null) return;
+            if (IsCombatResolutionPending() || !betaLabMode || state?.Combat == null) return;
             CombatVfxShowcaseEntry entry = CombatVfxShowcaseRules.At(betaVfxShowcaseIndex);
             CombatUnit source = CurrentUnit();
             if (source == null || source.Side != UnitSide.Party || source.Hp <= 0)
@@ -6184,6 +6262,7 @@ namespace AshenHalls
                 case CombatVfxShowcaseScenario.Transformation:
                 case CombatVfxShowcaseScenario.SupportWard:
                 case CombatVfxShowcaseScenario.MeleeArea:
+                case CombatVfxShowcaseScenario.SelfAura:
                     return new Point(source.X, source.Y);
                 default:
                     if (target != null) return new Point(target.X, target.Y);
@@ -6229,7 +6308,7 @@ namespace AshenHalls
 
         private void CueBetaVfxShowcaseAudio()
         {
-            if (!betaLabMode || state?.Combat == null) return;
+            if (IsCombatResolutionPending() || !betaLabMode || state?.Combat == null) return;
             CombatVfxShowcaseEntry entry = CombatVfxShowcaseRules.At(betaVfxShowcaseIndex);
             CombatImpactProfile profile;
             if (entry.Kind == CombatVfxShowcasePowerKind.Formula)
@@ -6306,6 +6385,11 @@ namespace AshenHalls
             targetedMartialHitConnected = true;
             betaVfxShowcaseOpen = false;
             betaVfxShowcaseIndex = 0;
+            betaLabToolbarFocused = false;
+            betaLabToolbarIndex = 0;
+            betaLabToolbarNavigationAxisX = 0;
+            betaLabToolbarNavigationAxisY = 0;
+            betaLabToolbarNavigationRepeatAt = 0f;
             combatPowerCue = default;
             combatPowerCueTexture = null;
             combatPowerCueSource = default;
@@ -10512,7 +10596,7 @@ namespace AshenHalls
             string damageType)
         {
             string name = string.IsNullOrWhiteSpace(displayName) ? "plain weapon" : displayName.Trim();
-            return new InventoryItem
+            InventoryItem item = new InventoryItem
             {
                 Mark = "party-carried",
                 EquippedById = target?.Id ?? "",
@@ -10532,6 +10616,8 @@ namespace AshenHalls
                 DamageType = string.IsNullOrWhiteSpace(damageType) ? "physical" : damageType,
                 DisplayName = name
             };
+            SignatureItemCatalog.RepairIdentity(item);
+            return item;
         }
 
         private static string EnchantmentWeaponForm(string weaponName)
@@ -10631,6 +10717,7 @@ namespace AshenHalls
             EnsureInventoryList();
             EnsurePartyInventoryIds();
             if (sourceSaveVersion < 24) MigrateLegacyMaudEnchantment();
+            EnsureInventoryEquipmentLinks();
 
             foreach (InventoryItem item in state.Inventory.Where(item =>
                 item != null && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form)))
@@ -11766,25 +11853,7 @@ namespace AshenHalls
 
         private InventoryItem MakeSwordOfUnfathomableDarkness()
         {
-            return new InventoryItem
-            {
-                Mark = "stolen",
-                Material = "blackglass",
-                Form = "broadsword",
-                Trait = "unfathomable darkness",
-                Slot = "weapon",
-                Bonus = 4,
-                StrengthBonus = 1,
-                IntelligenceBonus = 0,
-                AgilityBonus = 1,
-                HealthBonus = 1,
-                DamageMin = 5,
-                DamageMax = 11,
-                AttackSpeed = 8,
-                Rarity = "epic",
-                DamageType = "death",
-                DisplayName = "Sword of Unfathomable Darkness"
-            };
+            return SignatureItemCatalog.CreateUnfathomableSword();
         }
 
         private int LootSourceScore(CombatUnit enemy)
@@ -12063,24 +12132,24 @@ namespace AshenHalls
             if (item == null || state?.Party == null) return "";
             if (!InventoryEquipmentRules.IsEquippable(item)) return "Quest item secured with the party's materials.";
             EnsureInventoryEquipmentLinks();
-            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
-            PartyMember target = state.Party
-                .Where(candidate => candidate != null && candidate.Hp > 0)
-                .OrderByDescending(candidate => InventoryComparisonScore(item, candidate))
-                .ThenByDescending(candidate => weapon ? WeaponRoleFit(item, candidate) : -ArmorRolePenalty(item, candidate))
-                .FirstOrDefault();
+            PartyMember target = BestLootInventoryFit(item, out _, out int score);
             if (target == null) return "Kept in the pack until a party member can use it.";
 
-            int score = InventoryComparisonScore(item, target);
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             InventoryUpgradeGrade grade = InventoryEquipmentRules.Grade(score);
             string comparison = InventoryComparisonLine(item, target);
+            InventoryItem incumbent = InventoryCurrentEquipment(target, weapon);
+            if (InventoryEquipmentRules.RequiresDeliberateReview(item, incumbent))
+            {
+                string strategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, incumbent);
+                return $"Review for {target.Name} — {comparison}. {strategicChange}. Kept in the pack.";
+            }
             if (grade != InventoryUpgradeGrade.Upgrade)
             {
                 return $"{InventoryEquipmentRules.GradeLabel(grade)} for {target.Name} — {comparison}. Kept in the pack.";
             }
 
-            if (!EquipInventoryItemToMember(item, target, out string failure)) return failure;
-            return $"Clear upgrade for {target.Name} — {comparison}. Auto-equipped.";
+            return $"Clear upgrade for {target.Name} — {comparison}. Kept in the pack for your decision.";
         }
 
         private void ShowGlassAndAshExpeditionReview()
@@ -12299,12 +12368,12 @@ namespace AshenHalls
                 if (range >= 4) notes.Add("long range");
                 else if (range == 3) notes.Add("ranged");
                 else if (range == 2) notes.Add("reach");
-                string status = GearOnHitStatus(text);
+                string status = GearOnHitStatus(text, item);
                 if (!string.IsNullOrEmpty(status)) notes.Add(status + " chance");
-                if (GearLifeDrainAmount(item.DisplayName, Mathf.Max(1, item.DamageMax)) > 0) notes.Add("life drain");
+                if (GearLifeDrainAmount(item.DisplayName, Mathf.Max(1, item.DamageMax), item) > 0) notes.Add("life drain");
                 if (!string.IsNullOrEmpty(item.DamageType) && item.DamageType != "physical") notes.Add(item.DamageType + " affinity");
                 if (text.Contains("focus") || text.Contains("orb") || text.Contains("scepter")) notes.Add("spell focus");
-                if (text.Contains("unfathomable darkness")) notes.Add("mild vorpal edge");
+                if (SignatureItemRules.WeaponPowerBonus(item) > 0) notes.Add("mild vorpal edge");
             }
             else
             {
@@ -12682,6 +12751,7 @@ namespace AshenHalls
 
         private void HandleCombatHotkeys()
         {
+            if (TryHandleBetaLabToolbarInput()) return;
             if (IsCombatResolutionPending()) return;
             CombatUnit active = CurrentUnit();
             if (active == null || active.Side != UnitSide.Party) return;
@@ -12743,6 +12813,228 @@ namespace AshenHalls
                 return;
             }
             if (Input.GetKeyDown(KeyCode.H)) TryHotkeyAction(ActionMode.Elixir, active);
+        }
+
+        private bool TryHandleBetaLabToolbarInput()
+        {
+            if (!betaLabMode || state?.Mode != GameMode.Combat)
+            {
+                betaLabToolbarFocused = false;
+                ResetBetaLabToolbarNavigationCadence();
+                return false;
+            }
+
+            bool toggleFocus = Input.GetKeyDown(KeyCode.F10) || Input.GetKeyDown(KeyCode.JoystickButton6);
+            if (toggleFocus)
+            {
+                if (betaLabToolbarFocused)
+                {
+                    ReleaseBetaLabToolbarFocus();
+                }
+                else
+                {
+                    betaLabToolbarFocused = true;
+                    ResetBetaLabToolbarNavigationCadence();
+                    BetaLabKind kind = CurrentBetaLabKind();
+                    betaLabToolbarIndex = Mathf.Clamp(betaLabToolbarIndex, 0, BetaLabToolbarRules.Actions(kind).Count - 1);
+                    ClearCombatBoardCursor(false);
+                    UnityEngine.EventSystems.EventSystem eventSystem = UnityEngine.EventSystems.EventSystem.current
+                        ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
+                    if (eventSystem != null) eventSystem.SetSelectedGameObject(null);
+                    ShowBanner("Beta controls · arrows + Enter");
+                    PlaySfx("uitab", 0.34f);
+                }
+                MarkUiDirty();
+                return true;
+            }
+            if (!betaLabToolbarFocused) return false;
+            if (IsCombatResolutionPending()) return true;
+
+            BetaLabKind labKind = CurrentBetaLabKind();
+            BetaLabToolbarActionDefinition selectedAction = BetaLabToolbarRules.ActionAt(labKind, betaLabToolbarIndex);
+            if (betaVfxShowcaseOpen
+                && selectedAction.Id == BetaLabToolbarActionId.VisualTour
+                && TryHandleBetaVfxShowcaseInput())
+            {
+                return true;
+            }
+            if (TryReadBetaLabToolbarNavigation(out BetaLabToolbarNavigation navigation))
+            {
+                betaLabToolbarIndex = BetaLabToolbarRules.Navigate(labKind, betaLabToolbarIndex, navigation);
+                PlaySfx("uitab", 0.24f);
+                MarkUiDirty();
+                return true;
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return)
+                || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || Input.GetKeyDown(KeyCode.Space)
+                || Input.GetButtonDown("Submit")
+                || Input.GetKeyDown(KeyCode.JoystickButton0))
+            {
+                BetaLabToolbarActionDefinition action = BetaLabToolbarRules.ActionAt(labKind, betaLabToolbarIndex);
+                ExecuteBetaLabToolbarAction(action.Id, CurrentUnit());
+                return true;
+            }
+
+            // While the lab rail owns focus, consume combat hotkeys so a left-stick
+            // selection cannot also move a unit or retarget the board.
+            return true;
+        }
+
+        private bool TryHandleBetaVfxShowcaseInput()
+        {
+            bool previous = Input.GetKeyDown(KeyCode.Q)
+                || Input.GetKeyDown(KeyCode.JoystickButton4)
+                || ((Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                    && Input.GetKeyDown(KeyCode.Tab));
+            bool next = Input.GetKeyDown(KeyCode.E)
+                || Input.GetKeyDown(KeyCode.JoystickButton5)
+                || (Input.GetKeyDown(KeyCode.Tab) && !previous);
+            if (previous || next)
+            {
+                betaVfxShowcaseIndex = previous
+                    ? (betaVfxShowcaseIndex <= 0 ? CombatVfxShowcaseRules.Count - 1 : betaVfxShowcaseIndex - 1)
+                    : CombatVfxShowcaseRules.NextIndex(betaVfxShowcaseIndex);
+                ReplayBetaVfxShowcase();
+                return true;
+            }
+
+            if (Input.GetKeyDown(KeyCode.Return)
+                || Input.GetKeyDown(KeyCode.KeypadEnter)
+                || Input.GetKeyDown(KeyCode.Space)
+                || Input.GetButtonDown("Submit")
+                || Input.GetKeyDown(KeyCode.JoystickButton0))
+            {
+                ReplayBetaVfxShowcase();
+                return true;
+            }
+            if (Input.GetKeyDown(KeyCode.C) || Input.GetKeyDown(KeyCode.JoystickButton2))
+            {
+                CueBetaVfxShowcaseAudio();
+                return true;
+            }
+            if (Input.GetKeyDown(KeyCode.V) || Input.GetKeyDown(KeyCode.JoystickButton3))
+            {
+                ToggleReducedMotionSetting();
+                ReplayBetaVfxShowcase();
+                return true;
+            }
+            return false;
+        }
+
+        private bool CancelBetaLabToolbarFocus()
+        {
+            if (!betaLabMode || !betaLabToolbarFocused || state?.Mode != GameMode.Combat) return false;
+            if (betaVfxShowcaseOpen)
+            {
+                betaVfxShowcaseOpen = false;
+                ShowBanner("Visual preview closed");
+                PlaySfx("uiclose", 0.30f);
+                MarkUiDirty();
+                return true;
+            }
+            ReleaseBetaLabToolbarFocus();
+            return true;
+        }
+
+        private void ReleaseBetaLabToolbarFocus()
+        {
+            betaLabToolbarFocused = false;
+            ResetBetaLabToolbarNavigationCadence();
+            CombatUnit active = CurrentUnit();
+            if (active != null && active.Side == UnitSide.Party)
+            {
+                FocusCombatCommandPalette();
+            }
+            else
+            {
+                MarkUiDirty();
+            }
+            ShowBanner("Beta controls released");
+        }
+
+        private BetaLabKind CurrentBetaLabKind()
+        {
+            return state?.Combat?.EncounterStyle == "martiallab"
+                ? BetaLabKind.Martial
+                : BetaLabKind.Caster;
+        }
+
+        private bool TryReadBetaLabToolbarNavigation(out BetaLabToolbarNavigation navigation)
+        {
+            navigation = BetaLabToolbarNavigation.Next;
+            if (Input.GetKeyDown(KeyCode.Tab)
+                || Input.GetKeyDown(KeyCode.E)
+                || Input.GetKeyDown(KeyCode.JoystickButton5))
+            {
+                navigation = Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)
+                    ? BetaLabToolbarNavigation.Previous
+                    : BetaLabToolbarNavigation.Next;
+                return true;
+            }
+            if (Input.GetKeyDown(KeyCode.Q) || Input.GetKeyDown(KeyCode.JoystickButton4))
+            {
+                navigation = BetaLabToolbarNavigation.Previous;
+                return true;
+            }
+
+            int axisX = 0;
+            int axisY = 0;
+            if (Input.GetKeyDown(KeyCode.A) || Input.GetKeyDown(KeyCode.LeftArrow)) axisX = -1;
+            else if (Input.GetKeyDown(KeyCode.D) || Input.GetKeyDown(KeyCode.RightArrow)) axisX = 1;
+            else if (Input.GetKeyDown(KeyCode.W) || Input.GetKeyDown(KeyCode.UpArrow)) axisY = -1;
+            else if (Input.GetKeyDown(KeyCode.S) || Input.GetKeyDown(KeyCode.DownArrow)) axisY = 1;
+            if (axisX != 0 || axisY != 0)
+            {
+                betaLabToolbarNavigationAxisX = axisX;
+                betaLabToolbarNavigationAxisY = axisY;
+                betaLabToolbarNavigationRepeatAt = Time.unscaledTime + 0.30f;
+                navigation = axisX < 0
+                    ? BetaLabToolbarNavigation.Left
+                    : axisX > 0
+                        ? BetaLabToolbarNavigation.Right
+                        : axisY < 0
+                            ? BetaLabToolbarNavigation.Up
+                            : BetaLabToolbarNavigation.Down;
+                return true;
+            }
+
+            float horizontal = Input.GetAxisRaw("Horizontal");
+            float vertical = Input.GetAxisRaw("Vertical");
+            axisX = Mathf.Abs(horizontal) >= 0.55f ? Math.Sign(horizontal) : 0;
+            axisY = Mathf.Abs(vertical) >= 0.55f ? -Math.Sign(vertical) : 0;
+            if (axisX == 0 && axisY == 0)
+            {
+                ResetBetaLabToolbarNavigationCadence();
+                return false;
+            }
+            if (axisX != 0 && axisY != 0)
+            {
+                if (Mathf.Abs(horizontal) >= Mathf.Abs(vertical)) axisY = 0;
+                else axisX = 0;
+            }
+
+            bool changed = axisX != betaLabToolbarNavigationAxisX || axisY != betaLabToolbarNavigationAxisY;
+            if (!changed && Time.unscaledTime < betaLabToolbarNavigationRepeatAt) return false;
+            betaLabToolbarNavigationAxisX = axisX;
+            betaLabToolbarNavigationAxisY = axisY;
+            betaLabToolbarNavigationRepeatAt = Time.unscaledTime + (changed ? 0.30f : 0.12f);
+            navigation = axisX < 0
+                ? BetaLabToolbarNavigation.Left
+                : axisX > 0
+                    ? BetaLabToolbarNavigation.Right
+                    : axisY < 0
+                        ? BetaLabToolbarNavigation.Up
+                        : BetaLabToolbarNavigation.Down;
+            return true;
+        }
+
+        private void ResetBetaLabToolbarNavigationCadence()
+        {
+            betaLabToolbarNavigationAxisX = 0;
+            betaLabToolbarNavigationAxisY = 0;
+            betaLabToolbarNavigationRepeatAt = 0f;
         }
 
         private bool CombatHudOwnsCurrentSelection()
@@ -13571,19 +13863,7 @@ namespace AshenHalls
 
         private InventoryItem MakeGloamReliquaryMail()
         {
-            return new InventoryItem
-            {
-                Mark = "gloamward",
-                Material = "reliquary scale",
-                Form = "scale mail",
-                Trait = "warding",
-                Slot = "armor",
-                Bonus = 4,
-                IntelligenceBonus = 1,
-                HealthBonus = 2,
-                Rarity = "quest",
-                DisplayName = "+4 gloamward reliquary scale mail"
-            };
+            return SignatureItemCatalog.CreateGloamReliquaryMail();
         }
 
         private void ApplyGlassAndAshStoryVictory(string encounterStyle)
@@ -16589,12 +16869,24 @@ namespace AshenHalls
                 return true;
             }
             AttackDamageProfile damageProfile = AttackRules.BuildDamageProfile(attacker, target, skillValue, WarriorEnrageBonus(attacker), DemonFormAttackBonus(attacker));
+            InventoryItem attackWeapon = CombatEquipmentItem(attacker, true);
             string damageType = damageProfile.DamageType;
             int enrageBonus = damageProfile.EnrageBonus;
             bool stealthStrike = attacker.Stealthed > 0;
             int rawDamage = damageProfile.RawDamageForBaseRoll(rng.Next(damageProfile.BaseMinDamage, damageProfile.BaseMaxDamage + 1));
             if (critical) rawDamage = Mathf.RoundToInt(rawDamage * 1.65f) + 2;
             int damage = DealDamage(target, rawDamage, damageType, DamageColor(damageType));
+            int wardTurnsRemoved = SignatureItemRules.WardTurnsRemovedOnSuccessfulBasicHit(
+                attackWeapon,
+                target.Shielded);
+            if (wardTurnsRemoved > 0)
+            {
+                target.Shielded = Mathf.Max(0, target.Shielded - wardTurnsRemoved);
+                AddFloat(target.X, target.Y, "ward -" + wardTurnsRemoved, gold);
+                PushLog(
+                    $"{attacker.Name}'s crownfire strips a turn of Ward from {target.Name}.",
+                    attacker.Side == UnitSide.Party ? Tone.Good : Tone.Warn);
+            }
             if (enrageBonus > 0) AddFloat(attacker.X, attacker.Y, "enrage", gold);
             if (stealthStrike)
             {
@@ -16620,7 +16912,7 @@ namespace AshenHalls
             {
                 TryApplyStatus(target, attacker.StatusOnHit, 2, attacker, 0.45f, attacker.Side != target.Side);
             }
-            int lifeDrain = GearLifeDrainAmount(attacker.WeaponName, damage);
+            int lifeDrain = GearLifeDrainAmount(attacker.WeaponName, damage, attackWeapon);
             if (lifeDrain > 0 && attacker.Hp > 0)
             {
                 attacker.Hp = Mathf.Min(attacker.MaxHp, attacker.Hp + lifeDrain);
@@ -16631,10 +16923,16 @@ namespace AshenHalls
             }
             if (target.Hp > 0)
             {
-                string gearStatus = GearOnHitStatus(attacker.WeaponName);
+                string gearStatus = GearOnHitStatus(attacker.WeaponName, attackWeapon);
                 if (!string.IsNullOrEmpty(gearStatus))
                 {
-                    TryApplyStatus(target, gearStatus, 2, attacker, GearOnHitChance(attacker.WeaponName), true);
+                    TryApplyStatus(
+                        target,
+                        gearStatus,
+                        2,
+                        attacker,
+                        GearOnHitChance(attacker.WeaponName, attackWeapon),
+                        true);
                 }
             }
             if (target.Hp <= 0)
@@ -18595,10 +18893,9 @@ namespace AshenHalls
         private int WeaponPowerBonus(string weaponName)
         {
             string text = (weaponName ?? "").ToLowerInvariant();
-            int bonus = 0;
+            int bonus = SignatureItemRules.WeaponPowerBonus(DisplayIdentityItem(weaponName));
             if (text.Contains("broadsword") || text.Contains("war hammer") || text.Contains("war flail") || text.Contains("halberd")) bonus++;
             if (text.Contains("vicious") || text.Contains("vampiric") || text.Contains("death")) bonus++;
-            if (text.Contains("unfathomable darkness")) bonus += 2;
             if (text.Contains("crude")) bonus--;
             return Mathf.Clamp(bonus, -1, 3);
         }
@@ -18606,10 +18903,9 @@ namespace AshenHalls
         private int WeaponHitBonus(string weaponName)
         {
             string text = (weaponName ?? "").ToLowerInvariant();
-            int bonus = 0;
+            int bonus = SignatureItemRules.WeaponHitBonus(DisplayIdentityItem(weaponName));
             if (text.Contains("epee") || text.Contains("sabre") || text.Contains("balanced") || text.Contains("elven")) bonus += 5;
             if (text.Contains("crossbow")) bonus += 4;
-            if (text.Contains("unfathomable darkness")) bonus += 3;
             if (text.Contains("war hammer") || text.Contains("tower")) bonus -= 3;
             if (text.Contains("crude")) bonus -= 5;
             return bonus;
@@ -18640,15 +18936,21 @@ namespace AshenHalls
         {
             string armor = (target?.ArmorName ?? "").ToLowerInvariant();
             string type = (damageType ?? "").ToLowerInvariant();
-            int reduction = 0;
+            int reduction = SignatureItemRules.DamageReduction(
+                CombatEquipmentItem(target, false),
+                type);
             if ((armor.Contains("warding") || armor.Contains("anti-magic") || armor.Contains("moonstone")) && type != "physical") reduction++;
             if ((armor.Contains("plate") || armor.Contains("tower shield")) && type == "physical") reduction++;
             if (armor.Contains("thorns") && type == "physical") reduction++;
             return Mathf.Clamp(reduction, 0, 3);
         }
 
-        private string GearOnHitStatus(string weaponName)
+        private string GearOnHitStatus(string weaponName, InventoryItem weapon = null)
         {
+            string signatureStatus = SignatureItemRules.BasicHitStatus(
+                weapon ?? DisplayIdentityItem(weaponName));
+            if (!string.IsNullOrEmpty(signatureStatus)) return signatureStatus;
+
             string text = (weaponName ?? "").ToLowerInvariant();
             if (text.Contains("stunning") || text.Contains("storm") || text.Contains("war hammer")) return "stun";
             if (text.Contains("bleeding") || text.Contains("vicious") || text.Contains("epee") || text.Contains("sabre") || text.Contains("thorns")) return "bleed";
@@ -18657,22 +18959,50 @@ namespace AshenHalls
             return "";
         }
 
-        private int GearLifeDrainAmount(string weaponName, int dealtDamage)
+        private int GearLifeDrainAmount(
+            string weaponName,
+            int dealtDamage,
+            InventoryItem weapon = null)
         {
-            string text = (weaponName ?? "").ToLowerInvariant();
             if (dealtDamage <= 0) return 0;
-            if (text.Contains("unfathomable darkness")) return Mathf.Clamp(1 + dealtDamage / 8, 1, 3);
+            int signatureDrain = SignatureItemRules.LifeDrainAmount(
+                weapon ?? DisplayIdentityItem(weaponName),
+                dealtDamage);
+            if (signatureDrain > 0) return signatureDrain;
+
+            string text = (weaponName ?? "").ToLowerInvariant();
             if (text.Contains("vampiric")) return Mathf.Clamp(1 + dealtDamage / 10, 1, 2);
             return 0;
         }
 
-        private float GearOnHitChance(string weaponName)
+        private float GearOnHitChance(string weaponName, InventoryItem weapon = null)
         {
+            float signatureChance = SignatureItemRules.BasicHitStatusChance(
+                weapon ?? DisplayIdentityItem(weaponName));
+            if (signatureChance > 0f) return signatureChance;
+
             string text = (weaponName ?? "").ToLowerInvariant();
             float chance = 0.20f;
             if (text.Contains("masterwork") || text.Contains("vicious") || text.Contains("stormglass")) chance += 0.10f;
             if (text.Contains("crude")) chance -= 0.06f;
             return Mathf.Clamp(chance, 0.08f, 0.42f);
+        }
+
+        private InventoryItem CombatEquipmentItem(CombatUnit unit, bool weapon)
+        {
+            PartyMember member = PartyMemberForUnit(unit);
+            InventoryItem linkedItem = member == null
+                ? null
+                : EquippedInventoryItem(member, weapon);
+            if (linkedItem != null) return linkedItem;
+            return DisplayIdentityItem(weapon ? unit?.WeaponName : unit?.ArmorName);
+        }
+
+        private static InventoryItem DisplayIdentityItem(string displayName)
+        {
+            return string.IsNullOrWhiteSpace(displayName)
+                ? null
+                : new InventoryItem { DisplayName = displayName };
         }
 
         private bool TryApplyStatus(CombatUnit target, string status, int duration, CombatUnit source, float chance, bool hostile)

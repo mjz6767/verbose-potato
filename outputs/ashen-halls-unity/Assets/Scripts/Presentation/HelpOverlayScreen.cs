@@ -172,7 +172,8 @@ namespace AshenHalls
 
             return normal.Concat(new[]
             {
-                "Development builds add a direct Beta Lab row for spell and combat testing.",
+                "The separate Beta Development build adds a direct Beta Lab row for spell and combat testing.",
+                "In the lab, F10 or controller Back focuses responsive test controls; arrows/left stick choose and Enter/A activates.",
                 "T opens the broader combat, martial, and route testing panel from the tavern."
             }).ToArray();
         }

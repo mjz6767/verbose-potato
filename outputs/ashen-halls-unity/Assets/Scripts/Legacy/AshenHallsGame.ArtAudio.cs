@@ -3387,7 +3387,17 @@ namespace AshenHalls
             factionBannerAtlas = LoadLatestExternalPng("faction-banner-atlas-runtime-", "");
             serviceScaffoldAtlas = LoadLatestExternalPng("service-scaffold-atlas-runtime-", "");
             characterInventoryUiAtlas = LoadLatestExternalPng("character-inventory-ui-atlas-runtime-", "character-inventory-ui-atlas-runtime-v0.47.png");
-            uniqueItemAtlas = LoadLatestExternalPng("unique-item-atlas-runtime-", "");
+            uniqueItemAtlas = LoadApprovedExternalPngWithAlpha(
+                    RuntimeArtManifest.UniqueItemAtlas,
+                    0.70f,
+                    "signature item icons",
+                    0.04f)
+                ?? LoadLatestExternalPngWithAlpha(
+                    "unique-item-atlas-runtime-",
+                    "",
+                    0.70f,
+                    "signature item icons",
+                    0.04f);
             combatHudUiAtlas = LoadLatestExternalPng("combat-hud-ui-atlas-runtime-", "combat-hud-ui-atlas-runtime-v0.49.png");
             combatSpellFloatAtlas = LoadLatestExternalPng("combat-spell-float-atlas-runtime-", "combat-spell-float-atlas-runtime-v0.49.png");
             enemyWorldObjectAtlas = LoadLatestExternalPng("enemy-world-object-atlas-runtime-", "enemy-world-object-atlas-runtime-v0.49.png");
@@ -3490,6 +3500,7 @@ namespace AshenHalls
                 ?? LoadLatestExternalPngWithAlpha("midgaard-city-prop-atlas-runtime-", "", 0.20f, "Midgaard props", 0.16f);
             midgaardStreetLifeAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardStreetLifeAtlas, 0.20f, "Midgaard street life", 0.10f);
             midgaardPavingDecalAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.MidgaardPavingDecalAtlas, 0.20f, "Midgaard paving decals", 0.08f);
+            LoadMidgaardRoadSurfaceArt();
             // NPC cells are semantic identities, not interchangeable art slots.
             // Older 5x4 sheets used several v1.93 cells as empty reserves, so a
             // geometry-compatible family fallback would silently miscast actors.
@@ -4506,15 +4517,20 @@ namespace AshenHalls
 
             if (IsMidgaardNpcObject(type) || type == ObjectType.TownGuard || type == ObjectType.GateCaptain)
             {
-                return new WorldMapArtSpec(exploreWideView ? 0.94f : 1.04f, new Vector2(0.5f, 1f), new Vector2(0f, 0.02f), false);
+                return new WorldMapArtSpec(
+                    ExplorationNpcPresentationRules.NamedArtScale(exploreWideView),
+                    new Vector2(0.5f, 1f),
+                    new Vector2(0f, 0.02f),
+                    true);
             }
 
-            if (ExplorationArtRules.IsMidgaardBuilding(type))
+            ObjectType presentationType = MidgaardTownPresentationTypeFor(type, obj);
+            if (ExplorationArtRules.IsMidgaardBuilding(presentationType))
             {
                 return new WorldMapArtSpec(
-                    ExplorationArtRules.MidgaardBuildingSpriteScale(exploreWideView),
+                    ExplorationArtRules.MidgaardBuildingSpriteScale(presentationType, exploreWideView),
                     new Vector2(0.5f, 1f),
-                    new Vector2(0f, ExplorationArtRules.MidgaardBuildingVerticalOffset(exploreWideView)),
+                    new Vector2(0f, ExplorationArtRules.MidgaardBuildingVerticalOffset(presentationType, exploreWideView)),
                     true);
             }
 
@@ -4556,24 +4572,7 @@ namespace AshenHalls
 
         private int MidgaardTownObjectIconIndex(ObjectType type)
         {
-            switch (type)
-            {
-                case ObjectType.Market: return 0;
-                case ObjectType.Temple: return 1;
-                case ObjectType.Fountain: return 2;
-                case ObjectType.Tavern: return 3;
-                case ObjectType.Armorer: return 4;
-                case ObjectType.Provisions: return 5;
-                case ObjectType.WeaponVendor: return 6;
-                case ObjectType.Enchanter: return 7;
-                case ObjectType.KingHall: return 11;
-                case ObjectType.Sewer: return 12;
-                case ObjectType.CityWall: return 13;
-                case ObjectType.Diner: return 14;
-                case ObjectType.RatPeltQuest: return 15;
-                case ObjectType.RecallCircle: return 17;
-                default: return -1;
-            }
+            return MidgaardTownArtCatalog.AtlasIndex(type);
         }
 
         private int MidgaardNpcObjectIconIndex(ObjectType type, MapObject obj = null)
@@ -4607,15 +4606,14 @@ namespace AshenHalls
 
         private int MidgaardTownObjectIconIndexFor(ObjectType type, MapObject obj)
         {
-            // The exterior portal remains semantically a Tavern for established
-            // quest routing, but its stable identity now presents Town Hall with
-            // the approved civic-hall silhouette.
-            if (obj != null
-                && string.Equals(obj.Id, MidgaardInteriorRules.GrandHearthDoorId, StringComparison.Ordinal))
-            {
-                return MidgaardTownObjectIconIndex(ObjectType.KingHall);
-            }
-            return MidgaardTownObjectIconIndex(type);
+            return MidgaardTownObjectIconIndex(MidgaardTownPresentationTypeFor(type, obj));
+        }
+
+        private ObjectType MidgaardTownPresentationTypeFor(ObjectType type, MapObject obj)
+        {
+            bool grandHearthDoor = obj != null
+                && string.Equals(obj.Id, MidgaardInteriorRules.GrandHearthDoorId, StringComparison.Ordinal);
+            return MidgaardTownArtCatalog.PresentationType(type, grandHearthDoor);
         }
 
         private int MidgaardSewerObjectIconIndex(ObjectType type)
@@ -5638,15 +5636,15 @@ namespace AshenHalls
             string name = item?.DisplayName ?? "";
             string slot = item?.Slot ?? "";
             string type = item?.DamageType ?? "";
-            DrawGearIcon(rect, name, slot, type);
+            DrawGearIcon(rect, name, slot, type, item);
         }
 
-        private void DrawGearIcon(Rect rect, string name, string slot, string damageType)
+        private void DrawGearIcon(Rect rect, string name, string slot, string damageType, InventoryItem item = null)
         {
             Color accent = slot == "armor" ? teal : DamageColor(string.IsNullOrEmpty(damageType) ? "physical" : damageType);
             DrawRect(rect, Hex("050708", 0.86f));
             DrawBorder(rect, accent.WithAlpha(0.85f), 1);
-            int uniqueIndex = UniqueItemIconIndex(name);
+            int uniqueIndex = item != null ? UniqueItemIconIndex(item) : UniqueItemIconIndex(name);
             if (uniqueIndex >= 0 && TryDrawUniqueItemAtlasIcon(Pad(rect, rect.width * 0.06f), uniqueIndex, Color.white))
             {
                 return;
@@ -5689,14 +5687,17 @@ namespace AshenHalls
 
         private bool IsUniqueItemAtlas()
         {
-            return uniqueItemAtlas != null && uniqueItemAtlas.width >= 768 && uniqueItemAtlas.height >= 600;
+            return uniqueItemAtlas != null && uniqueItemAtlas.width == 1280 && uniqueItemAtlas.height == 1024;
+        }
+
+        private int UniqueItemIconIndex(InventoryItem item)
+        {
+            return SignatureItemCatalog.IconIndex(item);
         }
 
         private int UniqueItemIconIndex(string name)
         {
-            string text = (name ?? "").ToLowerInvariant();
-            if (text.Contains("unfathomable darkness")) return 0;
-            return -1;
+            return SignatureItemCatalog.IconIndex(name);
         }
 
         private int ItemIconIndex(string name, string slot)

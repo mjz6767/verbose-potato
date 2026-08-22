@@ -1670,9 +1670,8 @@ namespace AshenHalls
                 }
                 DrawExploreTileEdges(c, x, y, tile);
                 DrawExploreDistanceShade(c, vx, vy, viewW, viewH);
-                // Preserve the accepted Grand Hearth composition: patrons and
-                // their authored shadows receive the room's light/embers above.
-                DrawGrandHearthPatronShadow(c, x, y, tile, guidanceCells);
+                // Citizen atlases own one consistent contact shadow. Do not
+                // stack the older room-level patron shadow beneath them.
                 bool drewGrandHearthPatron = TryDrawGrandHearthPatron(c, x, y, tile, guidanceCells);
                 if (midgaardInterior && !drewGrandHearthPatron)
                 {
@@ -2110,7 +2109,7 @@ namespace AshenHalls
 
         private float ExploreObjectPadding(ObjectType type)
         {
-            if (IsMidgaardNpcObject(type)) return exploreWideView ? 0.18f : 0.09f;
+            if (UsesNamedNpcPresentation(type)) return ExplorationNpcPresentationRules.NamedObjectPadding(exploreWideView);
             if (type == ObjectType.CityWall) return 0.06f;
             if (type == ObjectType.EastGate || type == ObjectType.WestGate || type == ObjectType.NorthGate || type == ObjectType.SouthGate) return exploreWideView ? 0.10f : 0.02f;
             if (type == ObjectType.TownGuard) return exploreWideView ? 0.18f : 0.10f;
@@ -2606,6 +2605,11 @@ namespace AshenHalls
                 persistentLocalType);
         }
 
+        private bool UsesNamedNpcPresentation(ObjectType type)
+        {
+            return type == ObjectType.TownGuard || IsMidgaardNpcObject(type);
+        }
+
         private bool ShouldUseExploreObjectBackdrop(MapObject obj)
         {
             if (obj == null || state == null) return false;
@@ -2620,6 +2624,7 @@ namespace AshenHalls
             if (type == ObjectType.CityWall) return 0.00f;
             if (type == ObjectType.NorthGate || type == ObjectType.SouthGate || type == ObjectType.EastGate || type == ObjectType.WestGate) return 0.00f;
             if (ExplorationArtRules.IsMidgaardBuilding(type)) return ExplorationArtRules.MidgaardBuildingArtPadding();
+            if (UsesNamedNpcPresentation(type)) return ExplorationNpcPresentationRules.NamedArtPadding();
             if (type == ObjectType.InteriorDoor || IsMidgaardInteriorDecoration(type)) return 0.02f;
             if (quiet) return 0.03f;
             return 0.03f;
@@ -5340,7 +5345,7 @@ namespace AshenHalls
                 oldRoad);
             if (!plan.Draw) return;
 
-            ExploreRoadPalette(plan.Tier, material, out Color shoulder, out Color core, out Color detail, out Color rut);
+            ExploreRoadPalette(plan, material, out Color shoulder, out Color core, out Color detail, out Color rut);
             float shoulderWidth = rect.width * plan.ShoulderFraction;
             float coreWidth = rect.width * plan.CoreFraction;
             if (plan.ConnectorMask != 0)
@@ -5350,15 +5355,18 @@ namespace AshenHalls
                     rect,
                     plan.ConnectorMask,
                     shoulderWidth * connectorScale,
-                    shoulder.WithAlpha(shoulder.a * 0.90f));
+                    shoulder.WithAlpha(shoulder.a * 0.90f),
+                    true);
                 DrawExplorePathStroke(
                     rect,
                     plan.ConnectorMask,
                     coreWidth * connectorScale,
-                    core.WithAlpha(core.a * 0.94f));
+                    core.WithAlpha(core.a * 0.94f),
+                    true);
             }
-            DrawExplorePathStroke(rect, plan.MainMask, shoulderWidth, shoulder);
-            DrawExplorePathStroke(rect, plan.MainMask, coreWidth, core);
+            DrawExplorePathStroke(rect, plan.MainMask, shoulderWidth, shoulder, plan.DrawJunctionApron);
+            DrawExplorePathStroke(rect, plan.MainMask, coreWidth, core, plan.DrawJunctionApron);
+            TryDrawExploreRoadSurfaceTexture(rect, plan, coreWidth);
             DrawExploreRoadSurfaceWear(rect, x, y, plan, coreWidth, detail, rut);
             if ((roles & ExplorationCellRole.Clearing) != 0)
             {
@@ -5368,14 +5376,23 @@ namespace AshenHalls
         }
 
         private void ExploreRoadPalette(
-            ExplorationRoadVisualTier tier,
+            ExplorationRoadVisualPlan plan,
             ExplorationMaterial material,
             out Color shoulder,
             out Color core,
             out Color detail,
             out Color rut)
         {
-            switch (tier)
+            if (plan.CivicSurface)
+            {
+                shoulder = Hex("171a1b", exploreWideView ? 0.38f : 0.46f);
+                core = Hex("746f63", exploreWideView ? 0.44f : 0.52f);
+                detail = Hex("c7b98f", exploreWideView ? 0.18f : 0.25f);
+                rut = Hex("302e2a", exploreWideView ? 0.24f : 0.34f);
+                return;
+            }
+
+            switch (plan.Tier)
             {
                 case ExplorationRoadVisualTier.Trail:
                     shoulder = Hex("20170f", 0.34f);
@@ -5392,10 +5409,10 @@ namespace AshenHalls
                     rut = Hex("292621", 0.24f);
                     return;
                 case ExplorationRoadVisualTier.OldRoad:
-                    shoulder = Hex("17120d", exploreWideView ? 0.64f : 0.68f);
-                    core = Hex("93734b", exploreWideView ? 0.62f : 0.68f);
-                    detail = Hex("d8b87c", exploreWideView ? 0.22f : 0.28f);
-                    rut = Hex("352316", exploreWideView ? 0.34f : 0.46f);
+                    shoulder = Hex("19150f", exploreWideView ? 0.42f : 0.48f);
+                    core = Hex("80694d", exploreWideView ? 0.46f : 0.54f);
+                    detail = Hex("c8aa76", exploreWideView ? 0.18f : 0.24f);
+                    rut = Hex("33261a", exploreWideView ? 0.28f : 0.38f);
                     return;
                 case ExplorationRoadVisualTier.Bridge:
                     shoulder = Hex("100d0a", exploreWideView ? 0.62f : 0.68f);
@@ -5431,7 +5448,20 @@ namespace AshenHalls
             bool vertical = (plan.MainMask & (ExplorationRoadPresentationRules.North | ExplorationRoadPresentationRules.South)) != 0
                 && (plan.MainMask & (ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West)) == 0;
 
-            if (plan.DrawCenterWear && horizontal && noise % 3 != 0)
+            if (plan.CivicSurface)
+            {
+                DrawExploreCivicRoadCobbles(
+                    rect,
+                    noise,
+                    plan.MainMask,
+                    coreWidth,
+                    detail,
+                    rut,
+                    horizontal,
+                    vertical);
+            }
+
+            if (!plan.CivicSurface && plan.DrawCenterWear && horizontal && noise % 3 != 0)
             {
                 float thickness = Mathf.Max(1f, rect.height * 0.026f);
                 float offset = coreWidth * 0.27f;
@@ -5457,11 +5487,10 @@ namespace AshenHalls
                 }
             }
 
-            if (exploreWideView
-                || noise % 3 == 0
-                || plan.Join == ExplorationRoadJoin.Corner
-                || plan.Join == ExplorationRoadJoin.Tee
-                || plan.Join == ExplorationRoadJoin.Cross)
+            if (!ExplorationRoadPresentationRules.ShouldDrawGenericSurfaceChip(
+                    plan,
+                    exploreWideView,
+                    noise))
             {
                 return;
             }
@@ -5475,6 +5504,56 @@ namespace AshenHalls
             DrawRect(vertical
                 ? new Rect(chipX - chipHeight * 0.5f, chipY, chipHeight, chipWidth)
                 : new Rect(chipX, chipY - chipHeight * 0.5f, chipWidth, chipHeight), detail);
+        }
+
+        private void DrawExploreCivicRoadCobbles(
+            Rect rect,
+            int noise,
+            int mainMask,
+            float coreWidth,
+            Color detail,
+            Color rut,
+            bool horizontal,
+            bool vertical)
+        {
+            if (!horizontal && !vertical) return;
+            float curb = Mathf.Max(1f, Mathf.Min(rect.width, rect.height) * 0.018f);
+            Color curbColor = detail.WithAlpha(detail.a * 0.72f);
+            if (horizontal)
+            {
+                bool west = (mainMask & ExplorationRoadPresentationRules.West) != 0;
+                bool east = (mainMask & ExplorationRoadPresentationRules.East) != 0;
+                float startX = west ? rect.x : rect.center.x;
+                float endX = east ? rect.xMax : rect.center.x;
+                float spanWidth = Mathf.Max(0f, endX - startX);
+                if (spanWidth <= 0f) return;
+                float top = rect.center.y - coreWidth * 0.56f;
+                float bottom = rect.center.y + coreWidth * 0.56f - curb;
+                DrawRect(new Rect(startX, top, spanWidth, curb), curbColor);
+                DrawRect(new Rect(startX, bottom, spanWidth, curb), curbColor);
+                if (exploreWideView || noise % 3 == 0) return;
+                float firstX = Mathf.Lerp(startX, Mathf.Max(startX, endX - curb), 0.24f + (noise % 4) * 0.09f);
+                float secondX = Mathf.Lerp(startX, Mathf.Max(startX, endX - curb), 0.62f + ((noise / 4) % 3) * 0.08f);
+                DrawRect(new Rect(firstX, rect.center.y - coreWidth * 0.42f, curb, coreWidth * 0.32f), rut.WithAlpha(rut.a * 0.72f));
+                DrawRect(new Rect(secondX, rect.center.y + coreWidth * 0.10f, curb, coreWidth * 0.32f), rut.WithAlpha(rut.a * 0.62f));
+                return;
+            }
+
+            bool north = (mainMask & ExplorationRoadPresentationRules.North) != 0;
+            bool south = (mainMask & ExplorationRoadPresentationRules.South) != 0;
+            float startY = north ? rect.y : rect.center.y;
+            float endY = south ? rect.yMax : rect.center.y;
+            float spanHeight = Mathf.Max(0f, endY - startY);
+            if (spanHeight <= 0f) return;
+            float left = rect.center.x - coreWidth * 0.56f;
+            float right = rect.center.x + coreWidth * 0.56f - curb;
+            DrawRect(new Rect(left, startY, curb, spanHeight), curbColor);
+            DrawRect(new Rect(right, startY, curb, spanHeight), curbColor);
+            if (exploreWideView || noise % 3 == 0) return;
+            float firstY = Mathf.Lerp(startY, Mathf.Max(startY, endY - curb), 0.24f + (noise % 4) * 0.09f);
+            float secondY = Mathf.Lerp(startY, Mathf.Max(startY, endY - curb), 0.62f + ((noise / 4) % 3) * 0.08f);
+            DrawRect(new Rect(rect.center.x - coreWidth * 0.42f, firstY, coreWidth * 0.32f, curb), rut.WithAlpha(rut.a * 0.72f));
+            DrawRect(new Rect(rect.center.x + coreWidth * 0.10f, secondY, coreWidth * 0.32f, curb), rut.WithAlpha(rut.a * 0.62f));
         }
 
         private void DrawOldRoadGroundMark(Rect rect, int x, int y)
@@ -5823,7 +5902,7 @@ namespace AshenHalls
                 color);
         }
 
-        private void DrawExplorePathStroke(Rect rect, int mask, float width, Color color)
+        private void DrawExplorePathStroke(Rect rect, int mask, float width, Color color, bool drawCenterApron)
         {
             width = Mathf.Clamp(width, 1f, Mathf.Min(rect.width, rect.height) * 0.90f);
             float cx = rect.center.x;
@@ -5833,10 +5912,14 @@ namespace AshenHalls
             float armWidth = Mathf.Max(1f, width * 0.90f);
             float armHalf = armWidth * 0.5f;
 
-            // Two crossed rectangles form a restrained octagonal apron. Corners
-            // and junctions read as worn ground instead of stacked square pipes.
-            DrawRect(new Rect(cx - half + chamfer, cy - half, width - chamfer * 2f, width), color);
-            DrawRect(new Rect(cx - half, cy - half + chamfer, width, width - chamfer * 2f), color);
+            // Straight routes are uninterrupted edge-to-edge strips. The
+            // octagonal apron belongs only to an endpoint or a true junction;
+            // painting it on every cell creates a bead/rail rhythm.
+            if (drawCenterApron)
+            {
+                DrawRect(new Rect(cx - half + chamfer, cy - half, width - chamfer * 2f, width), color);
+                DrawRect(new Rect(cx - half, cy - half + chamfer, width, width - chamfer * 2f), color);
+            }
             if ((mask & ExplorationRoadPresentationRules.North) != 0)
                 DrawRect(new Rect(cx - armHalf, rect.y, armWidth, cy - rect.y), color);
             if ((mask & ExplorationRoadPresentationRules.East) != 0)
@@ -6453,8 +6536,9 @@ namespace AshenHalls
             bool backdrop = ShouldUseExploreObjectBackdrop(obj);
             bool gate = IsMidgaardGateType(type);
             float pulse = quiet || state != null && state.ReducedMotion ? 0.35f : 0.35f + Mathf.Sin(Time.time * 3.5f + (int)type) * 0.12f;
+            bool namedNpc = UsesNamedNpcPresentation(type);
             if (gate) DrawMidgaardGateFoundation(cell, rect, type, framed);
-            else DrawExploreObjectPlinth(
+            else if (!namedNpc) DrawExploreObjectPlinth(
                 rect,
                 objectColor,
                 quiet,
