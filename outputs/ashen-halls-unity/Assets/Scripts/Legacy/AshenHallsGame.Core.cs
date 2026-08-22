@@ -3019,6 +3019,7 @@ namespace AshenHalls
         {
             if (state == null) return;
             state.ContentSetId = ContentSetCatalog.NormalizeContentSetId(activeContentSet);
+            EnsureInventoryItemIdentities();
             RepairSignatureItemIdentities();
             NormalizeWeaponEnchantments();
             EnsureInventoryEquipmentLinks();
@@ -3211,9 +3212,10 @@ namespace AshenHalls
             if (state.DiscoveredZones == null) state.DiscoveredZones = new List<string>();
             if (state.RoamingThreats == null) state.RoamingThreats = new List<RoamingThreat>();
             if (state.Inventory == null) state.Inventory = new List<InventoryItem>();
-            RepairSignatureItemIdentities();
-            NormalizeWeaponEnchantments(sourceSaveVersion);
-            EnsureInventoryEquipmentLinks(true);
+            EnsureInventoryItemIdentities();
+            NormalizeWeaponEnchantments(
+                sourceSaveVersion,
+                sourceSaveVersion < InventoryItemIdentityRules.SchemaVersion);
             RepairSignatureItemIdentities();
             state.ExplorationSteps = Mathf.Max(0, state.ExplorationSteps);
             if (state.Map != null && state.Map.Depth <= 0) state.Map.Depth = Mathf.Max(1, state.Depth);
@@ -3267,15 +3269,12 @@ namespace AshenHalls
             foreach (InventoryItem item in state.Inventory)
             {
                 bool changed = SignatureItemCatalog.RepairIdentity(item);
+                bool weapon = item != null && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
                 if (item != null
                     && !string.IsNullOrWhiteSpace(item.SignatureId)
-                    && !string.IsNullOrWhiteSpace(item.EquippedById)
                     && state.Party != null)
                 {
-                    PartyMember owner = state.Party.FirstOrDefault(member =>
-                        member != null
-                        && string.Equals(member.Id, item.EquippedById, StringComparison.Ordinal));
-                    bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+                    PartyMember owner = EquippedMember(item);
                     string equippedName = weapon ? owner?.WeaponName : owner?.ArmorName;
                     SignatureItemDefinition equippedIdentity = SignatureItemCatalog.Identify(equippedName);
                     if (owner != null
@@ -3287,6 +3286,15 @@ namespace AshenHalls
                         else owner.ArmorName = item.DisplayName;
                         changed = true;
                     }
+                }
+                if (changed
+                    && weapon
+                    && (item.EnchantmentBaseCaptured
+                        || !string.IsNullOrWhiteSpace(item.PermanentEnchantmentId)
+                        || !string.IsNullOrWhiteSpace(item.TemporaryEnchantmentId)))
+                {
+                    WeaponEnchantmentRules.Rebuild(item);
+                    SyncEnchantedWeaponToOwner(item);
                 }
                 if (changed) repaired++;
             }

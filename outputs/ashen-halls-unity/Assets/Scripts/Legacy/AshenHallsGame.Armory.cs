@@ -97,7 +97,7 @@ namespace AshenHalls
             if (state == null) return "empty";
             int hash = armoryTab;
             hash = unchecked(hash * 31 + armoryPackFilter);
-            hash = unchecked(hash * 31 + armorySelectedInventoryIndex);
+            hash = unchecked(hash * 31 + (armorySelectedInventoryItemId ?? "").GetHashCode());
             hash = unchecked(hash * 31 + armorySelectedPartyIndex);
             hash = unchecked(hash * 31 + (armoryInventoryTargetPickerOpen ? 1 : 0));
             hash = unchecked(hash * 31 + ArmoryGrowthDraftHash());
@@ -119,6 +119,7 @@ namespace AshenHalls
                 foreach (InventoryItem item in state.Inventory)
                 {
                     if (item == null) continue;
+                    hash = unchecked(hash * 31 + (item.InstanceId ?? "").GetHashCode());
                     hash = unchecked(hash * 31 + (item.DisplayName ?? "").GetHashCode());
                     hash = unchecked(hash * 31 + (item.EquippedById ?? "").GetHashCode());
                     hash = unchecked(hash * 31 + item.Bonus);
@@ -250,8 +251,13 @@ namespace AshenHalls
             else if (armoryTab == (int)ArmoryTab.Pack)
             {
                 if (state?.Inventory == null || key < 0 || key >= state.Inventory.Count) return;
-                if (armorySelectedInventoryIndex != key) armoryInventoryTargetPickerOpen = false;
-                armorySelectedInventoryIndex = key;
+                InventoryItem selected = state.Inventory[key];
+                if (selected == null) return;
+                if (!string.Equals(armorySelectedInventoryItemId, selected.InstanceId, StringComparison.Ordinal))
+                {
+                    armoryInventoryTargetPickerOpen = false;
+                }
+                SelectArmoryInventoryItem(selected);
             }
             else if (armoryTab == (int)ArmoryTab.Journal)
             {
@@ -344,14 +350,13 @@ namespace AshenHalls
                 return;
             }
             if (armoryTab != (int)ArmoryTab.Pack
-                || state?.Inventory == null
-                || armorySelectedInventoryIndex < 0
-                || armorySelectedInventoryIndex >= state.Inventory.Count)
+                || state?.Inventory == null)
             {
                 return;
             }
 
-            InventoryItem item = state.Inventory[armorySelectedInventoryIndex];
+            InventoryItem item = SelectedArmoryInventoryItem();
+            if (item == null) return;
             if (partyIndex == InventoryTargetPickerKey)
             {
                 if (!InventoryEquipmentRules.IsEquippable(item)) return;
@@ -444,7 +449,7 @@ namespace AshenHalls
                     BadgeAccentHex = "",
                     ActionLabel = "",
                     ActionEnabled = true,
-                    Selected = i == armorySelectedInventoryIndex,
+                    Selected = string.Equals(item.InstanceId, armorySelectedInventoryItemId, StringComparison.Ordinal),
                     IconTexture = iconTexture,
                     IconUv = iconUv,
                     IconLabel = LootIconLabel(item)
@@ -482,14 +487,8 @@ namespace AshenHalls
 
         private ArmoryDetailView BuildInventoryItemDetail()
         {
-            if (state?.Inventory == null
-                || armorySelectedInventoryIndex < 0
-                || armorySelectedInventoryIndex >= state.Inventory.Count)
-            {
-                return null;
-            }
-
-            InventoryItem item = state.Inventory[armorySelectedInventoryIndex];
+            if (state?.Inventory == null) return null;
+            InventoryItem item = SelectedArmoryInventoryItem();
             if (item == null) return null;
             TryGetInventoryItemIcon(item, out Texture2D iconTexture, out Rect iconUv);
             bool equippable = InventoryEquipmentRules.IsEquippable(item);
@@ -629,18 +628,22 @@ namespace AshenHalls
 
             if (tab != (int)ArmoryTab.Pack || state?.Inventory == null)
             {
-                if (state?.Inventory == null || state.Inventory.Count == 0) armorySelectedInventoryIndex = -1;
+                if (state?.Inventory == null || state.Inventory.Count == 0) SelectArmoryInventoryItem(null);
                 return;
             }
 
             if (!InventoryCategoryFiltersVisible()) armoryPackFilter = 0;
-            int previousSelection = armorySelectedInventoryIndex;
+            string previousSelection = armorySelectedInventoryItemId;
             List<int> visible = SortedInventoryIndices(armoryPackFilter);
-            if (!visible.Contains(armorySelectedInventoryIndex))
+            int selectedIndex = SelectedArmoryInventoryIndex();
+            if (!visible.Contains(selectedIndex))
             {
-                armorySelectedInventoryIndex = visible.Count > 0 ? visible[0] : -1;
+                SelectArmoryInventoryItem(visible.Count > 0 ? state.Inventory[visible[0]] : null);
             }
-            if (armorySelectedInventoryIndex != previousSelection) armoryInventoryTargetPickerOpen = false;
+            if (!string.Equals(armorySelectedInventoryItemId, previousSelection, StringComparison.Ordinal))
+            {
+                armoryInventoryTargetPickerOpen = false;
+            }
         }
 
         private bool InventoryCategoryFiltersVisible()

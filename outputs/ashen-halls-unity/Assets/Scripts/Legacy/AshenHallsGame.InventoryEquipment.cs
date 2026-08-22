@@ -8,40 +8,163 @@ namespace AshenHalls
     public sealed partial class AshenHallsGame
     {
         private int armoryPackFilter;
-        private int armorySelectedInventoryIndex = -1;
+        private string armorySelectedInventoryItemId = "";
         private int armorySelectedPartyIndex;
+
+        private int EnsureInventoryItemIdentities()
+        {
+            if (state?.Inventory == null) return 0;
+
+            string[] ambiguousIds = InventoryItemIdentityRules.DuplicateInstanceIds(state.Inventory);
+            if (ambiguousIds.Length > 0)
+            {
+                HashSet<string> ambiguous = new HashSet<string>(ambiguousIds, StringComparer.Ordinal);
+                if (state.Party != null)
+                {
+                    foreach (PartyMember member in state.Party)
+                    {
+                        if (member == null) continue;
+                        if (ambiguous.Contains((member.WeaponItemId ?? "").Trim())) member.WeaponItemId = "";
+                        if (ambiguous.Contains((member.ArmorItemId ?? "").Trim())) member.ArmorItemId = "";
+                    }
+                }
+                if (ambiguous.Contains((armorySelectedInventoryItemId ?? "").Trim()))
+                {
+                    armorySelectedInventoryItemId = "";
+                    armoryInventoryTargetPickerOpen = false;
+                }
+            }
+
+            return InventoryItemIdentityRules.NormalizeInstanceIds(state.Inventory, state.Seed);
+        }
+
+        private InventoryItem AddInventoryItem(InventoryItem item)
+        {
+            if (state == null || item == null) return item;
+            EnsureInventoryList();
+            if (state.Inventory.Contains(item))
+            {
+                EnsureInventoryItemIdentities();
+                SignatureItemCatalog.RepairIdentity(item);
+                return item;
+            }
+            EnsureInventoryItemIdentities();
+            InventoryItemIdentityRules.EnsureAdmissionId(item, state.Inventory);
+            SignatureItemCatalog.RepairIdentity(item);
+            state.Inventory.Add(item);
+            return item;
+        }
+
+        private InventoryItem InventoryItemById(string instanceId)
+        {
+            return InventoryItemIdentityRules.FindById(state?.Inventory, instanceId);
+        }
+
+        private static string MemberEquipmentItemId(PartyMember member, bool weapon)
+        {
+            return member == null ? "" : (weapon ? member.WeaponItemId : member.ArmorItemId) ?? "";
+        }
+
+        private static void SetMemberEquipmentItemId(PartyMember member, bool weapon, string instanceId)
+        {
+            if (member == null) return;
+            if (weapon) member.WeaponItemId = instanceId ?? "";
+            else member.ArmorItemId = instanceId ?? "";
+        }
+
+        private void SetInventoryEquipmentLink(PartyMember member, bool weapon, InventoryItem item)
+        {
+            if (member == null) return;
+            InventoryItem previous = InventoryItemById(MemberEquipmentItemId(member, weapon));
+            if (previous != null
+                && previous != item
+                && string.Equals(previous.EquippedById, member.Id, StringComparison.Ordinal))
+            {
+                previous.EquippedById = "";
+            }
+
+            if (item == null)
+            {
+                SetMemberEquipmentItemId(member, weapon, "");
+                return;
+            }
+
+            if (state?.Inventory != null && state.Inventory.Contains(item)) EnsureInventoryItemIdentities();
+            else InventoryItemIdentityRules.EnsureAdmissionId(item, state?.Inventory);
+            if (state?.Party != null)
+            {
+                foreach (PartyMember other in state.Party)
+                {
+                    if (other == null
+                        || other == member
+                        || !string.Equals(MemberEquipmentItemId(other, weapon), item.InstanceId, StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    SetMemberEquipmentItemId(other, weapon, "");
+                }
+            }
+            SetMemberEquipmentItemId(member, weapon, item.InstanceId);
+            item.EquippedById = member.Id ?? "";
+        }
+
+        private InventoryItem SelectedArmoryInventoryItem()
+        {
+            return InventoryItemById(armorySelectedInventoryItemId);
+        }
+
+        private int SelectedArmoryInventoryIndex()
+        {
+            InventoryItem selected = SelectedArmoryInventoryItem();
+            return selected == null || state?.Inventory == null ? -1 : state.Inventory.IndexOf(selected);
+        }
+
+        private void SelectArmoryInventoryItem(InventoryItem item)
+        {
+            if (item != null && state?.Inventory != null && state.Inventory.Contains(item))
+            {
+                EnsureInventoryItemIdentities();
+                armorySelectedInventoryItemId = item.InstanceId;
+                return;
+            }
+            armorySelectedInventoryItemId = "";
+        }
 
         private void EnsureInventoryEquipmentLinks(bool repairMissingLinks = false)
         {
             if (state?.Inventory == null || state.Party == null) return;
 
             EnsurePartyInventoryIds();
-            Dictionary<string, PartyMember> membersById = state.Party
-                .Where(member => member != null && !string.IsNullOrWhiteSpace(member.Id))
-                .GroupBy(member => member.Id)
-                .ToDictionary(group => group.Key, group => group.First());
-            HashSet<string> claimedSlots = new HashSet<string>(StringComparer.Ordinal);
+            EnsureInventoryItemIdentities();
+            Dictionary<InventoryItem, string> legacyOwnerClaims = state.Inventory
+                .Where(item => item != null)
+                .ToDictionary(item => item, item => (item.EquippedById ?? "").Trim());
+            HashSet<string> claimedItemIds = new HashSet<string>(StringComparer.Ordinal);
 
             foreach (InventoryItem item in state.Inventory)
             {
-                if (item == null || string.IsNullOrWhiteSpace(item.EquippedById)) continue;
-                if (!membersById.TryGetValue(item.EquippedById, out PartyMember owner)
-                    || !MemberGearMatchesInventoryItem(owner, item))
-                {
-                    item.EquippedById = "";
-                    continue;
-                }
+                if (item != null) item.EquippedById = "";
+            }
 
-                string claim = EquipmentClaimKey(owner, InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form));
-                if (!claimedSlots.Add(claim)) item.EquippedById = "";
+            foreach (PartyMember member in state.Party)
+            {
+                if (member == null) continue;
+                ValidateInventoryEquipmentLink(member, true, claimedItemIds);
+                ValidateInventoryEquipmentLink(member, false, claimedItemIds);
             }
 
             if (!repairMissingLinks) return;
             foreach (PartyMember member in state.Party)
             {
                 if (member == null) continue;
-                LinkMatchingInventoryItem(member, true, claimedSlots);
-                LinkMatchingInventoryItem(member, false, claimedSlots);
+                LinkMatchingInventoryItem(member, true, claimedItemIds, legacyOwnerClaims, false);
+                LinkMatchingInventoryItem(member, false, claimedItemIds, legacyOwnerClaims, false);
+            }
+            foreach (PartyMember member in state.Party)
+            {
+                if (member == null) continue;
+                LinkMatchingInventoryItem(member, true, claimedItemIds, legacyOwnerClaims, true);
+                LinkMatchingInventoryItem(member, false, claimedItemIds, legacyOwnerClaims, true);
             }
         }
 
@@ -63,33 +186,75 @@ namespace AshenHalls
                     id = $"party-{i + 1}-{stem}";
                     int suffix = 2;
                     while (used.Contains(id)) id = $"party-{i + 1}-{stem}-{suffix++}";
-                    member.Id = id;
                 }
+                member.Id = id;
                 used.Add(id);
             }
         }
 
-        private void LinkMatchingInventoryItem(PartyMember member, bool weapon, HashSet<string> claimedSlots)
+        private void ValidateInventoryEquipmentLink(
+            PartyMember member,
+            bool weapon,
+            HashSet<string> claimedItemIds)
         {
-            if (member == null || state?.Inventory == null) return;
-            string claim = EquipmentClaimKey(member, weapon);
-            if (claimedSlots.Contains(claim)) return;
+            if (member == null) return;
+            string instanceId = (MemberEquipmentItemId(member, weapon) ?? "").Trim();
+            InventoryItem item = InventoryItemById(instanceId);
+            if (item == null
+                || !InventoryEquipmentRules.IsEquippable(item)
+                || InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form) != weapon
+                || !claimedItemIds.Add(item.InstanceId))
+            {
+                SetMemberEquipmentItemId(member, weapon, "");
+                return;
+            }
+
+            SetMemberEquipmentItemId(member, weapon, item.InstanceId);
+            item.EquippedById = member.Id;
+        }
+
+        private void LinkMatchingInventoryItem(
+            PartyMember member,
+            bool weapon,
+            HashSet<string> claimedItemIds,
+            IReadOnlyDictionary<InventoryItem, string> legacyOwnerClaims,
+            bool allowUnclaimed)
+        {
+            if (member == null || state?.Inventory == null || MemberEquipmentItemId(member, weapon).Length > 0) return;
             string equippedName = weapon ? member.WeaponName : member.ArmorName;
             if (string.IsNullOrWhiteSpace(equippedName)) return;
 
-            InventoryItem match = state.Inventory.LastOrDefault(item =>
+            List<InventoryItem> ownerMatches = state.Inventory.Where(item =>
                 item != null
-                && string.IsNullOrWhiteSpace(item.EquippedById)
+                && !claimedItemIds.Contains(item.InstanceId)
                 && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form) == weapon
-                && MemberGearMatchesInventoryItem(member, item));
-            if (match == null) return;
-            match.EquippedById = member.Id;
-            claimedSlots.Add(claim);
-        }
+                && MemberGearMatchesInventoryItem(member, item)
+                && legacyOwnerClaims.TryGetValue(item, out string ownerId)
+                && string.Equals(ownerId, member.Id, StringComparison.Ordinal)).ToList();
+            InventoryItem match = ownerMatches.Count == 1 ? ownerMatches[0] : null;
+            if (ownerMatches.Count > 1) return;
+            if (match == null && !allowUnclaimed) return;
 
-        private static string EquipmentClaimKey(PartyMember member, bool weapon)
-        {
-            return (member?.Id ?? "") + (weapon ? "|weapon" : "|armor");
+            if (match == null)
+            {
+                List<InventoryItem> unclaimedMatches = state.Inventory.Where(item =>
+                    item != null
+                    && !claimedItemIds.Contains(item.InstanceId)
+                    && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form) == weapon
+                    && MemberGearMatchesInventoryItem(member, item)
+                    && legacyOwnerClaims.TryGetValue(item, out string ownerId)
+                    && string.IsNullOrWhiteSpace(ownerId)).ToList();
+                if (unclaimedMatches.Count != 1) return;
+                match = unclaimedMatches[0];
+                int possibleOwners = state.Party.Count(candidate =>
+                    candidate != null
+                    && string.IsNullOrWhiteSpace(MemberEquipmentItemId(candidate, weapon))
+                    && MemberGearMatchesInventoryItem(candidate, match));
+                if (possibleOwners != 1 || !MemberGearMatchesInventoryItem(member, match)) return;
+            }
+
+            claimedItemIds.Add(match.InstanceId);
+            SetInventoryEquipmentLink(member, weapon, match);
         }
 
         private bool MemberGearMatchesInventoryItem(PartyMember member, InventoryItem item)
@@ -103,20 +268,22 @@ namespace AshenHalls
 
         private PartyMember EquippedMember(InventoryItem item)
         {
-            if (item == null || state?.Party == null || string.IsNullOrWhiteSpace(item.EquippedById)) return null;
+            if (item == null || state?.Party == null || string.IsNullOrWhiteSpace(item.InstanceId)) return null;
+            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             return state.Party.FirstOrDefault(member =>
                 member != null
-                && string.Equals(member.Id, item.EquippedById, StringComparison.Ordinal)
-                && MemberGearMatchesInventoryItem(member, item));
+                && string.Equals(MemberEquipmentItemId(member, weapon), item.InstanceId, StringComparison.Ordinal));
         }
 
         private InventoryItem EquippedInventoryItem(PartyMember member, bool weapon)
         {
             if (member == null || state?.Inventory == null) return null;
-            return state.Inventory.LastOrDefault(item =>
-                item != null
-                && string.Equals(item.EquippedById, member.Id, StringComparison.Ordinal)
-                && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form) == weapon);
+            InventoryItem item = InventoryItemById(MemberEquipmentItemId(member, weapon));
+            return item != null
+                && InventoryEquipmentRules.IsEquippable(item)
+                && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form) == weapon
+                ? item
+                : null;
         }
 
         private int EffectiveWeaponRange(InventoryItem item, PartyMember member)
@@ -136,7 +303,6 @@ namespace AshenHalls
                 snapshot = new InventoryItem
                 {
                     Mark = "loadout-snapshot",
-                    EquippedById = member.Id,
                     Material = EnchantmentWeaponMaterial(displayName),
                     Form = EnchantmentWeaponForm(displayName),
                     Trait = EnchantmentWeaponTrait(displayName),
@@ -161,7 +327,6 @@ namespace AshenHalls
                 snapshot = new InventoryItem
                 {
                     Mark = "loadout-snapshot",
-                    EquippedById = member.Id,
                     Material = EnchantmentWeaponMaterial(displayName),
                     Form = "armor",
                     Trait = EnchantmentWeaponTrait(displayName),
@@ -239,6 +404,11 @@ namespace AshenHalls
             }
 
             EnsureInventoryList();
+            if (!state.Inventory.Contains(item))
+            {
+                result = "That exact inventory item is no longer available.";
+                return false;
+            }
             EnsureInventoryEquipmentLinks();
             bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             PartyMember currentOwner = EquippedMember(item);
@@ -263,22 +433,20 @@ namespace AshenHalls
                 InventoryItem linkedReplacement = state.Inventory.Contains(replacement) ? replacement : null;
                 ApplyInventoryItemToLoadout(replacement, currentOwner, weapon);
                 ApplyInventoryItemToLoadout(item, target, weapon);
-                if (linkedReplacement != null) linkedReplacement.EquippedById = currentOwner.Id;
-                item.EquippedById = target.Id;
+                SetInventoryEquipmentLink(currentOwner, weapon, linkedReplacement);
+                SetInventoryEquipmentLink(target, weapon, item);
                 RecalculateMember(currentOwner);
                 RecalculateMember(target);
                 result = $"{target.Name} equips {item.DisplayName}; {currentOwner.Name} receives {replacementName}.";
                 return true;
             }
 
-            InventoryItem previousItem = EquippedInventoryItem(target, weapon);
-            if (previousItem != null && previousItem != item) previousItem.EquippedById = "";
             string old = weapon
                 ? string.IsNullOrWhiteSpace(target.WeaponName) ? "their previous weapon" : target.WeaponName
                 : string.IsNullOrWhiteSpace(target.ArmorName) ? "their previous armor" : target.ArmorName;
 
             ApplyInventoryItemToLoadout(item, target, weapon);
-            item.EquippedById = target.Id;
+            SetInventoryEquipmentLink(target, weapon, item);
             RecalculateMember(target);
             result = weapon
                 ? $"{target.Name} equips {item.DisplayName} over {old}. {ItemBehaviorLine(item, target)}"
@@ -657,7 +825,7 @@ namespace AshenHalls
                 }
             };
 
-            foreach (InventoryItem item in showcase) state.Inventory.Add(item);
+            foreach (InventoryItem item in showcase) AddInventoryItem(item);
             EnsureInventoryEquipmentLinks();
             if (state.Party != null && state.Party.Count > 1)
             {
@@ -665,7 +833,7 @@ namespace AshenHalls
             }
 
             InventoryItem selected = showLoot ? showcase[1] : showcase[0];
-            armorySelectedInventoryIndex = state.Inventory.IndexOf(selected);
+            SelectArmoryInventoryItem(selected);
             if (showLoot)
             {
                 ShowLootPanel(

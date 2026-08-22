@@ -85,7 +85,8 @@ namespace AshenHalls
             int secondsRemaining = lootPanelRequiresDismissal
                 ? -1
                 : Mathf.CeilToInt(Mathf.Max(0f, lootPanelUntil - Time.time));
-            return "loot=" + (lootPanelItem?.DisplayName ?? "").GetHashCode()
+            return "loot=" + (lootPanelItem?.InstanceId ?? "").GetHashCode()
+                + ":" + (lootPanelItem?.DisplayName ?? "").GetHashCode()
                 + ":" + (lootPanelBody ?? "").GetHashCode()
                 + ":" + (lootPanelEquipNote ?? "").GetHashCode()
                 + ":" + (lootPanelItem?.EquippedById ?? "").GetHashCode()
@@ -109,11 +110,15 @@ namespace AshenHalls
             {
                 best = BestLootInventoryFit(item, out _, out bestComparisonScore);
             }
+            bool requiresReview = best != null
+                && InventoryEquipmentRules.RequiresDeliberateReview(
+                    item,
+                    InventoryCurrentEquipment(best, InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form)));
             Texture2D iconTexture = null;
             Rect iconUv = default;
             if (hasItem) TryGetInventoryItemIcon(item, out iconTexture, out iconUv);
             bool canReview = hasItem && state?.Inventory != null && state.Inventory.Contains(item);
-            bool canQuickEquip = canReview && equippable && owner == null && best != null;
+            bool canQuickEquip = canReview && equippable && owner == null && best != null && !requiresReview;
             string comparison = !hasItem
                 ? ""
                 : !equippable
@@ -147,7 +152,7 @@ namespace AshenHalls
                     ? ""
                     : !equippable
                     ? "View in inventory"
-                    : owner != null ? "Review or reassign" : canQuickEquip ? "Compare others" : "Review inventory",
+                    : owner != null ? "Review or reassign" : canQuickEquip ? "Compare others" : requiresReview ? "Review tradeoff" : "Review inventory",
                 QuickEquipActionLabel = canQuickEquip ? "Equip to " + best.Name : "",
                 IconLabel = LootIconLabel(item),
                 AccentHex = hasItem ? InventoryRarityAccent(item.Rarity) : "#d7a84e",
@@ -184,9 +189,17 @@ namespace AshenHalls
             EnsureInventoryEquipmentLinks();
             PartyMember owner = EquippedMember(item);
             PartyMember best = owner == null ? BestLootInventoryFit(item, out _, out _) : null;
+            bool requiresReview = best != null
+                && InventoryEquipmentRules.RequiresDeliberateReview(
+                    item,
+                    InventoryCurrentEquipment(best, InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form)));
             string result = string.Empty;
-            bool equipped = best != null && EquipInventoryItemToMember(item, best, out result);
-            if (best == null)
+            bool equipped = best != null && !requiresReview && EquipInventoryItemToMember(item, best, out result);
+            if (requiresReview)
+            {
+                result = $"Review {item.DisplayName} in Inventory before changing {best.Name}'s strategic gear.";
+            }
+            else if (best == null)
             {
                 result = owner == null
                     ? "No adventurer can equip this item right now."
@@ -204,12 +217,14 @@ namespace AshenHalls
         private void ReviewLootInInventory()
         {
             if (state == null) return;
-            int inventoryIndex = state.Inventory == null || lootPanelItem == null
-                ? -1
-                : state.Inventory.IndexOf(lootPanelItem);
+            InventoryItem item = state.Inventory != null
+                && lootPanelItem != null
+                && state.Inventory.Contains(lootPanelItem)
+                ? lootPanelItem
+                : null;
             SuppressBoardPointer();
             DismissLootPopupSilently();
-            if (inventoryIndex >= 0) armorySelectedInventoryIndex = inventoryIndex;
+            SelectArmoryInventoryItem(item);
             armoryPackFilter = 0;
             armoryInventoryTargetPickerOpen = false;
             armoryTab = (int)ArmoryTab.Pack;

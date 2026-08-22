@@ -27,8 +27,12 @@ namespace AshenHalls.Editor
         {
             ExplicitSlotsOverrideMisleadingForms();
             DuplicateLootCannotMasqueradeAsLoadout();
+            StableInstanceIdentityIsDurable();
+            IdentityMigrationAndSelectionStayVersionGated();
             OwnershipValidationPrecedesEnchantmentSync();
             LootRecommendationsShareOneTargetRule();
+            StrategicLootNeedsDeliberateReview();
+            VendorTransactionsCheckpointAtomically();
             StrategicChangesRequireReview();
             ReassignmentGradesProtectBothRecipients();
             LootActionsFitSupportedResolutions();
@@ -196,6 +200,88 @@ namespace AshenHalls.Editor
             Require(parameters[0].DefaultValue is bool defaultRepair && !defaultRepair, "ordinary Loot and Inventory refreshes validate links without creating them");
         }
 
+        private static void StableInstanceIdentityIsDurable()
+        {
+            InventoryItem first = SignatureItemCatalog.CreateStormglassConductor();
+            InventoryItem second = SignatureItemCatalog.CreateStormglassConductor();
+            InventoryItem quest = new InventoryItem { Slot = "quest", Form = "pelt bundle", DisplayName = "rat pelt" };
+            first.InstanceId = "stable-first";
+            second.InstanceId = "stable-first";
+            InventoryItem[] items = { first, second, quest };
+
+            Require(
+                string.Join(",", InventoryItemIdentityRules.DuplicateInstanceIds(items)) == "stable-first",
+                "duplicate canonical IDs are detectable before deterministic repair");
+            Require(InventoryItemIdentityRules.NormalizeInstanceIds(items, 91) == 2, "blank and duplicate instance IDs migrate exactly once");
+            Require(first.InstanceId == "stable-first", "the first valid instance ID is preserved");
+            Require(second.InstanceId == "legacy-item-0000005b-0002", "the duplicate receives a deterministic legacy identity");
+            Require(quest.InstanceId == "legacy-item-0000005b-0003", "quest materials receive durable identity too");
+            Require(InventoryItemIdentityRules.HasUniqueInstanceIds(items), "identical signature copies remain distinct inventory instances");
+            Require(first.SignatureId == second.SignatureId, "shared signature definition is not mistaken for physical identity");
+
+            string stable = string.Join("|", Array.ConvertAll(items, item => item.InstanceId));
+            Require(InventoryItemIdentityRules.NormalizeInstanceIds(items, 91) == 0, "identity migration is idempotent");
+            Require(stable == string.Join("|", Array.ConvertAll(items, item => item.InstanceId)), "identity migration does not churn on a second pass");
+
+            string beforeRename = second.InstanceId;
+            WeaponEnchantmentRules.ApplyPermanent(second, "fire");
+            SignatureItemCatalog.RepairIdentity(second);
+            Require(second.InstanceId == beforeRename, "enchantment and signature presentation changes preserve physical identity");
+
+            string json = JsonUtility.ToJson(new GameState
+            {
+                SaveVersion = VersionInfo.SaveVersion,
+                Party = new System.Collections.Generic.List<PartyMember>
+                {
+                    new PartyMember
+                    {
+                        Id = "identity-owner",
+                        WeaponItemId = second.InstanceId,
+                        WeaponName = second.DisplayName
+                    }
+                },
+                Inventory = new System.Collections.Generic.List<InventoryItem> { first, second, quest }
+            });
+            GameState roundTrip = JsonUtility.FromJson<GameState>(json);
+            Require(roundTrip.Party[0].WeaponItemId == second.InstanceId, "member slot identity survives JSON");
+            Require(InventoryItemIdentityRules.FindById(roundTrip.Inventory, second.InstanceId)?.PermanentEnchantmentId == "fire", "exact enchanted instance survives JSON");
+        }
+
+        private static void IdentityMigrationAndSelectionStayVersionGated()
+        {
+            string legacyDirectory = Path.Combine(Application.dataPath, "Scripts", "Legacy");
+            string coreSource = File.ReadAllText(Path.Combine(legacyDirectory, "AshenHallsGame.Core.cs"));
+            string loadBoundary = MethodRegion(coreSource, "private void EnsureWorldState(");
+            int identities = loadBoundary.IndexOf("EnsureInventoryItemIdentities();", StringComparison.Ordinal);
+            int enchantments = loadBoundary.IndexOf("NormalizeWeaponEnchantments(", StringComparison.Ordinal);
+            int legacyGate = loadBoundary.IndexOf(
+                "sourceSaveVersion < InventoryItemIdentityRules.SchemaVersion",
+                StringComparison.Ordinal);
+            int signatures = loadBoundary.IndexOf("RepairSignatureItemIdentities();", StringComparison.Ordinal);
+            Require(identities >= 0 && enchantments > identities, "load assigns stable item IDs before enchantment and ownership migration");
+            Require(legacyGate > enchantments, "load passes one explicit pre-v27 repair gate into the ordered normalization transaction");
+            Require(signatures > legacyGate, "legacy equipment references resolve before signature aliases are canonicalized");
+
+            string persistence = MethodRegion(coreSource, "private void PrepareStateForPersistence(");
+            Require(persistence.Contains("EnsureInventoryItemIdentities();"), "every save normalizes instance IDs");
+            Require(persistence.Contains("EnsureInventoryEquipmentLinks();"), "every save validates canonical equipment links without legacy guessing");
+
+            int directAdmissions = 0;
+            foreach (string sourcePath in Directory.GetFiles(legacyDirectory, "AshenHallsGame*.cs"))
+            {
+                directAdmissions += CountOccurrences(File.ReadAllText(sourcePath), "state.Inventory.Add(");
+            }
+            Require(directAdmissions == 1, "all production inventory admissions pass through the identity gateway");
+
+            string inventorySource = File.ReadAllText(Path.Combine(legacyDirectory, "AshenHallsGame.InventoryEquipment.cs"));
+            Require(inventorySource.Contains("private string armorySelectedInventoryItemId = \"\";"), "Pack selection is stored as durable item identity");
+            Require(!inventorySource.Contains("armorySelectedInventoryIndex"), "Pack selection no longer stores a mutable list position");
+            string lootSource = File.ReadAllText(Path.Combine(legacyDirectory, "AshenHallsGame.Loot.cs"));
+            string review = MethodRegion(lootSource, "private void ReviewLootInInventory(");
+            Require(review.Contains("SelectArmoryInventoryItem(item);"), "loot review selects the exact admitted instance");
+            Require(!review.Contains("IndexOf(lootPanelItem)"), "loot review cannot substitute an index-shifted sibling");
+        }
+
         private static void OwnershipValidationPrecedesEnchantmentSync()
         {
             string combatSource = File.ReadAllText(Path.Combine(
@@ -205,7 +291,7 @@ namespace AshenHalls.Editor
                 "AshenHallsGame.Combat.cs"));
             string normalization = MethodRegion(combatSource, "private void NormalizeWeaponEnchantments(");
             int migration = normalization.IndexOf("MigrateLegacyMaudEnchantment();", StringComparison.Ordinal);
-            int validation = normalization.IndexOf("EnsureInventoryEquipmentLinks();", StringComparison.Ordinal);
+            int validation = normalization.IndexOf("EnsureInventoryEquipmentLinks(repairMissingEquipmentLinks);", StringComparison.Ordinal);
             int syncLoop = normalization.IndexOf("foreach (InventoryItem item", StringComparison.Ordinal);
             Require(migration >= 0, "legacy enchantment migration remains inside normalization");
             Require(validation > migration, "ownership claims are validated after the explicit legacy migration");
@@ -225,19 +311,93 @@ namespace AshenHalls.Editor
                 "AshenHallsGame.Core.cs"));
             string loadBoundary = MethodRegion(coreSource, "private void EnsureWorldState(");
             Require(
-                loadBoundary.Contains("EnsureInventoryEquipmentLinks(true);"),
-                "only the load boundary opts into missing-link repair");
+                loadBoundary.Contains("sourceSaveVersion < InventoryItemIdentityRules.SchemaVersion"),
+                "only pre-v27 loads opt into missing-link inference");
             string legacyDirectory = Path.Combine(Application.dataPath, "Scripts", "Legacy");
-            int explicitRepairCalls = 0;
+            int versionGates = 0;
+            int literalRepairCalls = 0;
             foreach (string sourcePath in Directory.GetFiles(legacyDirectory, "AshenHallsGame*.cs"))
             {
-                explicitRepairCalls += CountOccurrences(
-                    File.ReadAllText(sourcePath),
-                    "EnsureInventoryEquipmentLinks(true);");
+                string source = File.ReadAllText(sourcePath);
+                versionGates += CountOccurrences(
+                    source,
+                    "sourceSaveVersion < InventoryItemIdentityRules.SchemaVersion");
+                literalRepairCalls += CountOccurrences(source, "EnsureInventoryEquipmentLinks(true)");
             }
-            Require(
-                explicitRepairCalls == 1,
-                "missing-link repair has one explicit call site");
+            Require(versionGates == 1, "legacy missing-link inference has exactly one source-save-version gate");
+            Require(literalRepairCalls == 0, "ordinary runtime callers cannot bypass the version gate with a literal repair request");
+
+            string legacyMaud = MethodRegion(combatSource, "private void MigrateLegacyMaudEnchantment(");
+            Require(legacyMaud.Contains("if (ownerClaims.Count > 1) return;"), "ambiguous Maud owner claims fail closed");
+            Require(legacyMaud.Contains("if (unclaimed.Count != 1) return;"), "ambiguous unclaimed Maud copies fail closed");
+            Require(legacyMaud.Contains("item == null && candidates.Count == 0"), "Maud synthesizes a backing item only when no legacy candidate exists");
+        }
+
+        private static void StrategicLootNeedsDeliberateReview()
+        {
+            string lootSource = File.ReadAllText(Path.Combine(
+                Application.dataPath,
+                "Scripts",
+                "Legacy",
+                "AshenHallsGame.Loot.cs"));
+            string popup = MethodRegion(lootSource, "private LootPopupView BuildLootPopupView(");
+            string quickEquip = MethodRegion(lootSource, "private void EquipLootToBestFit(");
+            Require(popup.Contains("InventoryEquipmentRules.RequiresDeliberateReview("), "loot popup suppresses quick equip for strategic gear changes");
+            Require(popup.Contains("requiresReview ? \"Review tradeoff\""), "strategic loot routes to an explicit review action");
+            Require(quickEquip.Contains("!requiresReview && EquipInventoryItemToMember("), "quick-equip action rechecks strategic safety at commit time");
+        }
+
+        private static void VendorTransactionsCheckpointAtomically()
+        {
+            string combatSource = File.ReadAllText(Path.Combine(
+                Application.dataPath,
+                "Scripts",
+                "Legacy",
+                "AshenHallsGame.Combat.cs"));
+            AssertTransactionCheckpoint(
+                MethodRegion(combatSource, "private void PurchaseBorinHauberk("),
+                "AddInventoryItem(item);",
+                "SetStoryFlag(StoryFlags.MidgaardBasicArmorBought);",
+                "AutosaveCheckpoint(\"Borin armor purchased\");",
+                "ShowDialogueThenLoot(",
+                "Borin purchase");
+            AssertTransactionCheckpoint(
+                MethodRegion(combatSource, "private void PurchaseTessaWeapon("),
+                "AddInventoryItem(item);",
+                "SetStoryFlag(StoryFlags.MidgaardBasicWeaponBought);",
+                "AutosaveCheckpoint(\"Tessa weapon purchased\");",
+                "ShowDialogueThenLoot(",
+                "Tessa purchase");
+            AssertTransactionCheckpoint(
+                MethodRegion(combatSource, "private void PurchaseMaudEnchantment("),
+                "state.Gold -= price;",
+                "SetStoryFlag(StoryFlags.MidgaardWeaponEnchanted);",
+                "AutosaveCheckpoint(permanent ? \"Maud weapon binding purchased\" : \"Maud weapon temper purchased\");",
+                "PushLog(",
+                "Maud purchase");
+
+            string admission = MethodRegion(
+                File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.InventoryEquipment.cs")),
+                "private InventoryItem AddInventoryItem(");
+            Require(!admission.Contains("AutosaveCheckpoint("), "inventory admission never fragments a larger transaction with its own save");
+        }
+
+        private static void AssertTransactionCheckpoint(
+            string method,
+            string firstMutation,
+            string finalMutation,
+            string checkpoint,
+            string presentation,
+            string label)
+        {
+            int first = method.IndexOf(firstMutation, StringComparison.Ordinal);
+            int final = method.IndexOf(finalMutation, StringComparison.Ordinal);
+            int save = method.IndexOf(checkpoint, StringComparison.Ordinal);
+            int show = method.IndexOf(presentation, StringComparison.Ordinal);
+            Require(first >= 0 && final > first, label + " keeps its related mutations together");
+            Require(save > final, label + " checkpoints after the complete transaction");
+            Require(show > save, label + " checkpoints before transient presentation");
+            Require(CountOccurrences(method, "AutosaveCheckpoint(") == 1, label + " writes one transaction-level checkpoint");
         }
 
         private static void LootRecommendationsShareOneTargetRule()

@@ -1,6 +1,10 @@
-Ash & Brimstone v2.21.0 - Stone, Steel, and Sorcery
+Ash & Brimstone v2.22.0 - Stone, Steel, and Sorcery
 
-Current verified release: v2.21.0. Save schema: v26.
+Current release candidate: v2.22.0. Save schema: v27.
+
+Every physical inventory item now receives a stable identity as soon as it enters the Pack. Equipped weapon and armor links use those exact identities, while older owner labels remain a rebuilt compatibility mirror. Save v27 migrates older campaigns conservatively: unique legacy matches are repaired, but ambiguous identical copies fail closed instead of attaching themselves to the wrong adventurer.
+
+Pack and Loot keep the exact selected item through sorting, equipping, and list changes. If an equipped row moves, keyboard and controller focus follows it. Clear upgrades remain explicit one-click choices; signature, enchanted, or otherwise strategic swaps open Review and recheck the exact item before changing either loadout. Borin, Tessa, and Maud now checkpoint only after their complete inventory transaction has succeeded.
 
 Seven campaign rewards now have stable signature identities, canonical names, truthful intrinsic descriptions, and distinct equipment art: Sword of Unfathomable Darkness, Sluicekeeper Blade, Stormglass Conductor, Ratcatcher’s Roadcoat, Gloam Reliquary Mail, Mirrorweave Road Mantle, and Crownward Emberglass Warblade. Loot and Inventory identify each as Signature gear and account for its strategic behavior without changing the original reward gates or base stats.
 

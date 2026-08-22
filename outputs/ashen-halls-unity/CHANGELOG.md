@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.22.0 - Stone, Steel, and Sorcery
+
+- Added stable per-item identities and canonical weapon/armor item links. New acquisitions receive an opaque identity immediately, ordinary refreshes validate without guessing, and save-v27 migration repairs only unambiguous legacy ownership.
+- Hardened duplicate and legacy equipment handling. Identical copies, duplicate IDs, padded legacy IDs, and ambiguous Maud enchantment candidates now fail closed rather than silently retargeting a party member or synthesizing another item.
+- Kept Pack and Loot attached to the exact selected object through sorting and equipment changes. Keyboard/controller focus follows a selected row when it moves, Review opens the same item instance, and strategic Quick Equip is suppressed and rechecked at commit time.
+- Made Borin, Tessa, and Maud inventory transactions checkpoint only after the complete mutation succeeds. Borin's purchased armor stays in the Pack for an explicit comparison, and no acquisition silently changes a loadout.
+- Runtime/editor compilation plus the focused InventoryLootExperienceSmoke, RuleSmoke, and full RuntimeBoot gates pass on the frozen release candidate. The clean Windows package, clean-extracted boot, and packaged-player visual review are the remaining release gates.
+
 ## v2.21.0 - Stone, Steel, and Sorcery
 
 - Added an exact-pinned 2 by 2 Midgaard road-material atlas with seamless civic cobble and earthen swatches. Topology-aware clipping keeps straight roads continuous, reserves aprons for real joins, and prevents civic endpoint details from spilling onto an absent half.

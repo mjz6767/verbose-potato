@@ -70,9 +70,11 @@ namespace AshenHalls
         public string Spell;
         public SkillSet Skills;
         public string WeaponName;
+        public string WeaponItemId;
         public int WeaponBonus;
         public string WeaponDamageType;
         public string ArmorName;
+        public string ArmorItemId;
         public int ArmorBonus;
         public int WeaponStrengthBonus;
         public int WeaponIntelligenceBonus;
@@ -161,6 +163,7 @@ namespace AshenHalls
     [Serializable]
     public sealed class InventoryItem
     {
+        public string InstanceId;
         public string SignatureId;
         public string Mark;
         public string EquippedById;

@@ -2194,6 +2194,7 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
 
             AssertQuestBoardDialogue(game, state);
+            AssertInventoryInstanceIdentityRuntime(game);
             AssertInventoryEquipmentSwapAndRangeSemantics(game);
 
             InvokePrivate(game, "ToggleArmory", 3);
@@ -2218,6 +2219,19 @@ namespace AshenHalls.Editor
                 AttackSpeed = 10,
                 DamageType = "shock"
             };
+            InventoryItem focusSortAnchor = new InventoryItem
+            {
+                DisplayName = "Smoke-Test Sorting Anchor",
+                Form = "practice knife",
+                Slot = "weapon",
+                Trait = "plain",
+                Rarity = "common",
+                DamageMin = 1,
+                DamageMax = 2,
+                AttackSpeed = 1,
+                DamageType = "physical"
+            };
+            state.Inventory.Add(focusSortAnchor);
             state.Inventory.Add(inventoryProbe);
             InvokePrivate(game, "ToggleArmory", 1);
             InvokePrivate(game, "LateUpdate");
@@ -2295,10 +2309,18 @@ namespace AshenHalls.Editor
                 Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Armory
                     && armory.VisibleDetailActionCountForTest <= 2, "collapsing the target picker keeps Inventory open on the concise recommendation");
             }
+            int inventoryProbeRowBeforeEquip = armory.VisibleRowIndexForKeyForTest(state.Inventory.IndexOf(inventoryProbe));
             InvokePrivate(game, "RunArmoryDetailAction", 0);
             InvokePrivate(game, "LateUpdate");
             Assert(inventoryProbe.EquippedById == state.Party[0].Id, "explicit inventory target action records the exact equipped owner");
+            Assert(state.Party[0].WeaponItemId == inventoryProbe.InstanceId, "explicit inventory target action records the exact equipped item ID");
             Assert(state.Party[0].WeaponName == inventoryProbe.DisplayName, "explicit inventory target action updates that adventurer's loadout");
+            int equippedVisibleRow = armory.VisibleRowIndexForKeyForTest(state.Inventory.IndexOf(inventoryProbe));
+            Assert(equippedVisibleRow != inventoryProbeRowBeforeEquip
+                && equippedVisibleRow == armory.CommittedRowIndexForTest
+                && equippedVisibleRow == armory.FocusedRowIndexForTest
+                && armory.IsRowFullyVisibleForTest(equippedVisibleRow),
+                "equipping the selected item follows its new sorted row with committed keyboard and controller focus");
             InventoryItem identicalInventoryProbe = new InventoryItem
             {
                 DisplayName = inventoryProbe.DisplayName,
@@ -2323,6 +2345,7 @@ namespace AshenHalls.Editor
                 && equippedInventoryDetail.Actions.Any(action => action.Enabled && action.ButtonLabel == "Swap"), "reviewing equipped gear offers a direct same-slot reassignment instead of a dead end");
             InvokePrivate(game, "CloseArmoryOverlay");
             InvokePrivate(game, "LateUpdate");
+            state.Inventory.Remove(focusSortAnchor);
 
             InventoryItem popupProbe = new InventoryItem
             {
@@ -2360,12 +2383,22 @@ namespace AshenHalls.Editor
             Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Armory, "Review equipment opens Inventory on the exact acquired item");
             armory = GetPrivateField<ArmoryOverlayScreen>(game, "armoryOverlayScreen");
             Assert(armory != null && armory.ActiveTabLabelForTest == "Inventory" && armory.HasVisibleDetailForTest, "loot review lands on the inventory comparison pane");
-            Assert(GetPrivateField<int>(game, "armorySelectedInventoryIndex") == state.Inventory.IndexOf(popupProbe), "loot review selects the exact committed inventory item");
+            Assert(GetPrivateField<string>(game, "armorySelectedInventoryItemId") == popupProbe.InstanceId, "loot review selects the exact committed inventory item ID");
             int reviewedVisibleRow = armory.VisibleRowIndexForKeyForTest(state.Inventory.IndexOf(popupProbe));
             Assert(GetPrivateField<int>(game, "armoryPackFilter") == 0
                 && reviewedVisibleRow == armory.CommittedRowIndexForTest
                 && reviewedVisibleRow == armory.FocusedRowIndexForTest
                 && armory.IsRowFullyVisibleForTest(reviewedVisibleRow), "loot review clears stale filters and visibly focuses the exact item reference even when names are duplicated");
+            state.Inventory.Remove(popupDuplicate);
+            InvokePrivate(game, "MarkUiDirty");
+            InvokePrivate(game, "LateUpdate");
+            int remappedReviewedRow = armory.VisibleRowIndexForKeyForTest(state.Inventory.IndexOf(popupProbe));
+            Assert(GetPrivateField<string>(game, "armorySelectedInventoryItemId") == popupProbe.InstanceId
+                && InvokePrivate<ArmoryDetailView>(game, "BuildInventoryItemDetail")?.Title == popupProbe.DisplayName
+                && remappedReviewedRow == armory.CommittedRowIndexForTest
+                && remappedReviewedRow == armory.FocusedRowIndexForTest
+                && armory.IsRowFullyVisibleForTest(remappedReviewedRow),
+                "removing an earlier identical row preserves the selected physical item, detail pane, and visible focus");
             InvokePrivate(game, "CloseArmoryOverlay");
             InvokePrivate(game, "LateUpdate");
 
@@ -2480,6 +2513,7 @@ namespace AshenHalls.Editor
             clearUpgradePopup.InvokeQuickEquipForTest();
             InvokePrivate(game, "LateUpdate");
             Assert(clearUpgrade.EquippedById == expectedBest.Id, "the explicit quick action records the exact recommended owner");
+            Assert(expectedBest.WeaponItemId == clearUpgrade.InstanceId, "the explicit quick action records the exact recommended item ID");
             Assert(state.Party.Count(member => member != null && member.WeaponName == clearUpgrade.DisplayName) == 1
                 && expectedBest.WeaponName == clearUpgrade.DisplayName, "the explicit quick action changes exactly the recommended loadout");
             Assert(state.Party.Where((member, index) => member != null && member != expectedBest)
@@ -2489,6 +2523,28 @@ namespace AshenHalls.Editor
             downedHighestScore.Hp = downedHighestScoreHp;
             InvokePrivate(game, "DismissLootPopup");
             InvokePrivate(game, "LateUpdate");
+
+            state.Inventory.Add(strategicRowProbe);
+            InvokePrivate(game, "ShowLootPanel", strategicRowProbe, 0, 0, 0, "A strategic item needs comparison.", "Strategic Loot");
+            InvokePrivate(game, "LateUpdate");
+            LootPopupView strategicLootView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
+            LootPopupScreen strategicLootPopup = GetPrivateField<LootPopupScreen>(game, "lootPopupScreen");
+            Assert(!strategicLootView.CanQuickEquip
+                && strategicLootView.CanReview
+                && strategicLootView.ReviewActionLabel == "Review tradeoff"
+                && strategicLootPopup != null
+                && !strategicLootPopup.HasQuickEquipActionForTest,
+                "signature and enchanted loot routes to deliberate review instead of one-click replacement");
+            string[] strategicNamesBefore = state.Party.Select(member => member?.WeaponName ?? "").ToArray();
+            string[] strategicItemIdsBefore = state.Party.Select(member => member?.WeaponItemId ?? "").ToArray();
+            InvokePrivate(game, "EquipLootToBestFit");
+            Assert(string.IsNullOrEmpty(strategicRowProbe.EquippedById)
+                && state.Party.Select(member => member?.WeaponName ?? "").SequenceEqual(strategicNamesBefore)
+                && state.Party.Select(member => member?.WeaponItemId ?? "").SequenceEqual(strategicItemIdsBefore),
+                "strategic quick-equip commit recheck fails closed even if invoked directly");
+            InvokePrivate(game, "DismissLootPopup");
+            InvokePrivate(game, "LateUpdate");
+            state.Inventory.Remove(strategicRowProbe);
 
             InventoryItem dialogueReward = new InventoryItem
             {
@@ -8076,7 +8132,9 @@ namespace AshenHalls.Editor
             Assert(temporaryItem.TemporaryEnchantmentId == "fire"
                 && temporaryItem.TemporaryEnchantmentVictoriesRemaining == 3, "temporary fire records its three-victory duration");
             Assert(temporaryTarget.WeaponName == temporaryItem.DisplayName
-                && temporaryTarget.WeaponDamageType == "fire", "temporary fire synchronizes item text and affinity to the party member");
+                && temporaryTarget.WeaponDamageType == "fire"
+                && temporaryTarget.WeaponItemId == temporaryItem.InstanceId,
+                "temporary fire synchronizes item text, affinity, and exact identity to the party member");
             Assert(state.StoryFlags.Contains(StoryFlags.MidgaardWeaponEnchanted), "Maud records completed enchantment work");
 
             GameMode modeBeforeCombatProbe = state.Mode;
@@ -8170,7 +8228,9 @@ namespace AshenHalls.Editor
                 && permanentItem.DamageType == "cold"
                 && permanentItem.PermanentEnchantmentId == "ice", "permanent ice changes and persists the second weapon's text and affinity");
             Assert(permanentTarget.WeaponName == permanentItem.DisplayName
-                && permanentTarget.WeaponDamageType == "cold", "permanent ice synchronizes the item to its party member");
+                && permanentTarget.WeaponDamageType == "cold"
+                && permanentTarget.WeaponItemId == permanentItem.InstanceId,
+                "permanent ice synchronizes the exact item to its party member");
 
             InvokePrivate(game, "CloseDialogue");
             InvokePrivate(game, "LateUpdate");
@@ -8259,12 +8319,15 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             Assert(state.Gold == goldBefore - price, label + " spends the exact advertised price only after explicit confirmation");
             Assert(state.StoryFlags != null && state.StoryFlags.Contains(completionFlag), label + " records its one-time completion flag");
+            Assert(state.Inventory != null && InventoryItemIdentityRules.HasUniqueInstanceIds(state.Inventory), label + " purchase leaves every admitted item with a unique durable ID");
             if (quotedWeapon != null)
             {
                 Assert(state.Inventory != null && state.Inventory.Contains(quotedWeapon),
                     "Tessa delivers the exact weapon shown in her order review");
                 Assert(quotedLead != null && string.Equals(quotedWeapon.EquippedById, quotedLead.Id, StringComparison.Ordinal),
                     "Tessa equips the reviewed weapon on the lead adventurer named in the offer");
+                Assert(quotedLead != null && quotedLead.WeaponItemId == quotedWeapon.InstanceId,
+                    "Tessa records the reviewed weapon's exact item identity on the lead adventurer");
             }
 
             if (InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Dialogue)
@@ -9397,6 +9460,384 @@ namespace AshenHalls.Editor
             };
         }
 
+        private static void AssertInventoryInstanceIdentityRuntime(AshenHallsGame game)
+        {
+            GameState previousState = GetPrivateField<GameState>(game, "state");
+            string previousSelectedItemId = GetPrivateField<string>(game, "armorySelectedInventoryItemId");
+            bool previousTargetPickerOpen = GetPrivateField<bool>(game, "armoryInventoryTargetPickerOpen");
+            try
+            {
+                PartyMember owner = new PartyMember
+                {
+                    Id = " identity-runtime-owner ",
+                    Name = "Identity Owner",
+                    Role = "shield",
+                    WeaponName = "+2 iron broadsword",
+                    WeaponBonus = 2,
+                    WeaponDamageType = "physical",
+                    WeaponDamageMin = 4,
+                    WeaponDamageMax = 8,
+                    WeaponAttackSpeed = 6,
+                    WeaponStrengthBonus = 1,
+                    Range = 1
+                };
+                InventoryItem exactBackingItem = new InventoryItem
+                {
+                    EquippedById = "identity-runtime-owner",
+                    DisplayName = owner.WeaponName,
+                    Slot = "weapon",
+                    Form = "broadsword",
+                    Bonus = owner.WeaponBonus,
+                    DamageMin = owner.WeaponDamageMin,
+                    DamageMax = owner.WeaponDamageMax,
+                    AttackSpeed = owner.WeaponAttackSpeed,
+                    DamageType = owner.WeaponDamageType,
+                    StrengthBonus = owner.WeaponStrengthBonus
+                };
+                InventoryItem differentRoll = new InventoryItem
+                {
+                    DisplayName = owner.WeaponName,
+                    Slot = "weapon",
+                    Form = "broadsword",
+                    Bonus = 3,
+                    DamageMin = 5,
+                    DamageMax = 9,
+                    AttackSpeed = 7,
+                    DamageType = "physical",
+                    AgilityBonus = 1
+                };
+                InventoryItem questProof = new InventoryItem
+                {
+                    Slot = "quest",
+                    Form = "pelt bundle",
+                    DisplayName = "identity proof"
+                };
+                GameState legacyState = new GameState
+                {
+                    SaveVersion = 26,
+                    Seed = 2627,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { owner },
+                    Inventory = new List<InventoryItem> { differentRoll, exactBackingItem, questProof }
+                };
+                SetPrivateField(game, "state", legacyState);
+                InvokePrivate(game, "EnsureWorldState", 26);
+
+                Assert(InventoryItemIdentityRules.HasUniqueInstanceIds(legacyState.Inventory), "v26 migration assigns every inventory entry a unique nonblank instance ID");
+                Assert(owner.Id == "identity-runtime-owner", "legacy party IDs are trimmed before compatibility owner claims are resolved");
+                Assert(owner.WeaponItemId == exactBackingItem.InstanceId, "v26 migration promotes the unique exact legacy owner claim into the member weapon reference");
+                Assert(exactBackingItem.EquippedById == owner.Id && string.IsNullOrEmpty(differentRoll.EquippedById), "v26 migration rebuilds only the exact reciprocal owner mirror");
+                Assert(InventoryItemIdentityRules.FindById(legacyState.Inventory, owner.WeaponItemId) == exactBackingItem, "v26 member reference resolves to the exact backing object, not a same-name roll");
+
+                string firstPass = JsonUtility.ToJson(legacyState);
+                InvokePrivate(game, "EnsureWorldState", 26);
+                Assert(JsonUtility.ToJson(legacyState) == firstPass, "v26 identity and equipment-link migration is idempotent");
+
+                GameState roundTrip = JsonUtility.FromJson<GameState>(firstPass);
+                SetPrivateField(game, "state", roundTrip);
+                InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+                InventoryItem restoredExact = InventoryItemIdentityRules.FindById(roundTrip.Inventory, roundTrip.Party[0].WeaponItemId);
+                Assert(restoredExact != null
+                    && restoredExact.DisplayName == exactBackingItem.DisplayName
+                    && restoredExact.EquippedById == roundTrip.Party[0].Id,
+                    "current-schema normalization preserves the exact equipment reference through JSON round trip");
+
+                PartyMember ambiguousOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                ambiguousOwner.Id = "identity-ambiguous-owner";
+                ambiguousOwner.WeaponItemId = "";
+                InventoryItem ambiguousA = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                InventoryItem ambiguousB = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                ambiguousA.InstanceId = "";
+                ambiguousB.InstanceId = "";
+                ambiguousA.EquippedById = ambiguousOwner.Id;
+                ambiguousB.EquippedById = ambiguousOwner.Id;
+                GameState ambiguousState = new GameState
+                {
+                    SaveVersion = 26,
+                    Seed = 2628,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { ambiguousOwner },
+                    Inventory = new List<InventoryItem> { ambiguousA, ambiguousB }
+                };
+                SetPrivateField(game, "state", ambiguousState);
+                InvokePrivate(game, "EnsureWorldState", 26);
+                Assert(InventoryItemIdentityRules.HasUniqueInstanceIds(ambiguousState.Inventory), "ambiguous identical copies still receive distinct instance IDs");
+                Assert(string.IsNullOrEmpty(ambiguousOwner.WeaponItemId)
+                    && ambiguousState.Inventory.All(item => string.IsNullOrEmpty(item.EquippedById)),
+                    "two indistinguishable legacy owner claims fail closed instead of choosing by list order");
+
+                PartyMember identicalOwnerA = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                PartyMember identicalOwnerB = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                identicalOwnerA.Id = "identity-identical-owner-a";
+                identicalOwnerB.Id = "identity-identical-owner-b";
+                identicalOwnerA.WeaponItemId = "";
+                identicalOwnerB.WeaponItemId = "";
+                InventoryItem oneUnclaimedMatch = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                oneUnclaimedMatch.InstanceId = "";
+                oneUnclaimedMatch.EquippedById = "";
+                GameState ambiguousOwnerState = new GameState
+                {
+                    SaveVersion = 26,
+                    Seed = 2629,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { identicalOwnerA, identicalOwnerB },
+                    Inventory = new List<InventoryItem> { oneUnclaimedMatch }
+                };
+                SetPrivateField(game, "state", ambiguousOwnerState);
+                InvokePrivate(game, "EnsureWorldState", 26);
+                Assert(string.IsNullOrEmpty(identicalOwnerA.WeaponItemId)
+                    && string.IsNullOrEmpty(identicalOwnerB.WeaponItemId)
+                    && string.IsNullOrEmpty(oneUnclaimedMatch.EquippedById),
+                    "one unclaimed legacy item matching two identical loadouts fails closed for both possible owners");
+
+                PartyMember duplicateIdOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                duplicateIdOwner.Id = "identity-duplicate-id-owner";
+                duplicateIdOwner.WeaponItemId = "duplicated-current-id";
+                InventoryItem duplicateIdFirst = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                InventoryItem duplicateIdSecond = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                duplicateIdFirst.InstanceId = "duplicated-current-id";
+                duplicateIdSecond.InstanceId = "duplicated-current-id";
+                duplicateIdFirst.EquippedById = "";
+                duplicateIdSecond.EquippedById = duplicateIdOwner.Id;
+                GameState duplicateIdState = new GameState
+                {
+                    SaveVersion = VersionInfo.SaveVersion,
+                    Seed = 2726,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { duplicateIdOwner },
+                    Inventory = new List<InventoryItem> { duplicateIdFirst, duplicateIdSecond }
+                };
+                SetPrivateField(game, "state", duplicateIdState);
+                SetPrivateField(game, "armorySelectedInventoryItemId", "duplicated-current-id");
+                SetPrivateField(game, "armoryInventoryTargetPickerOpen", true);
+                InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+                Assert(InventoryItemIdentityRules.HasUniqueInstanceIds(duplicateIdState.Inventory), "current-save duplicate IDs receive distinct repaired identities");
+                Assert(string.IsNullOrEmpty(duplicateIdOwner.WeaponItemId)
+                    && duplicateIdState.Inventory.All(item => string.IsNullOrEmpty(item.EquippedById)),
+                    "a canonical reference to a duplicated current-save ID fails closed instead of retargeting by list order");
+                Assert(string.IsNullOrEmpty(GetPrivateField<string>(game, "armorySelectedInventoryItemId"))
+                    && !GetPrivateField<bool>(game, "armoryInventoryTargetPickerOpen"),
+                    "Pack selection and its target picker fail closed when a corrupt ID names multiple physical items");
+
+                PartyMember canonicalOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                canonicalOwner.Id = "identity-canonical-owner";
+                canonicalOwner.WeaponItemId = "canonical-current-item";
+                PartyMember duplicateReferenceOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                duplicateReferenceOwner.Id = "identity-duplicate-reference-owner";
+                duplicateReferenceOwner.WeaponItemId = canonicalOwner.WeaponItemId;
+                InventoryItem canonicalItem = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                canonicalItem.InstanceId = canonicalOwner.WeaponItemId;
+                canonicalItem.EquippedById = "stale-owner";
+                InventoryItem staleMirrorSibling = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                staleMirrorSibling.InstanceId = "canonical-current-sibling";
+                staleMirrorSibling.EquippedById = canonicalOwner.Id;
+                GameState canonicalState = new GameState
+                {
+                    SaveVersion = VersionInfo.SaveVersion,
+                    Seed = 2728,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { canonicalOwner, duplicateReferenceOwner },
+                    Inventory = new List<InventoryItem> { staleMirrorSibling, canonicalItem }
+                };
+                SetPrivateField(game, "state", canonicalState);
+                InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+                Assert(canonicalOwner.WeaponItemId == canonicalItem.InstanceId
+                    && canonicalItem.EquippedById == canonicalOwner.Id,
+                    "a valid current slot reference remains authoritative and rebuilds its stale compatibility mirror");
+                Assert(string.IsNullOrEmpty(duplicateReferenceOwner.WeaponItemId)
+                    && string.IsNullOrEmpty(staleMirrorSibling.EquippedById),
+                    "two members cannot retain the same canonical item reference and stale sibling mirrors are cleared");
+
+                PartyMember armorMember = new PartyMember
+                {
+                    Id = "identity-armor-owner",
+                    Name = "Armor Owner",
+                    Role = "shield",
+                    ArmorName = "worn iron mail",
+                    ArmorBonus = 1,
+                    ArmorItemId = "identity-worn-armor"
+                };
+                InventoryItem wornArmor = new InventoryItem
+                {
+                    InstanceId = armorMember.ArmorItemId,
+                    EquippedById = armorMember.Id,
+                    DisplayName = armorMember.ArmorName,
+                    Slot = "armor",
+                    Form = "mail",
+                    Bonus = armorMember.ArmorBonus
+                };
+                InventoryItem replacementArmor = new InventoryItem
+                {
+                    InstanceId = "identity-replacement-armor",
+                    DisplayName = "reinforced road mail",
+                    Slot = "armor",
+                    Form = "mail",
+                    Bonus = 3,
+                    HealthBonus = 4
+                };
+                GameState armorState = new GameState
+                {
+                    SaveVersion = VersionInfo.SaveVersion,
+                    Seed = 2729,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { armorMember },
+                    Inventory = new List<InventoryItem> { wornArmor, replacementArmor }
+                };
+                SetPrivateField(game, "state", armorState);
+                InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+                Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", replacementArmor, armorMember, null), "direct armor equip succeeds through the exact-item transaction");
+                Assert(armorMember.ArmorItemId == replacementArmor.InstanceId
+                    && replacementArmor.EquippedById == armorMember.Id
+                    && string.IsNullOrEmpty(wornArmor.EquippedById),
+                    "direct armor equip atomically replaces both the canonical slot reference and compatibility mirrors");
+                GameState armorRoundTrip = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(armorState));
+                SetPrivateField(game, "state", armorRoundTrip);
+                InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+                InventoryItem restoredArmor = InventoryItemIdentityRules.FindById(armorRoundTrip.Inventory, armorRoundTrip.Party[0].ArmorItemId);
+                InventoryItem restoredWornArmor = InventoryItemIdentityRules.FindById(armorRoundTrip.Inventory, wornArmor.InstanceId);
+                Assert(armorRoundTrip.Party[0].ArmorItemId == replacementArmor.InstanceId
+                    && armorRoundTrip.Party[0].ArmorName == replacementArmor.DisplayName
+                    && restoredArmor != null
+                    && restoredArmor.EquippedById == armorRoundTrip.Party[0].Id
+                    && restoredWornArmor != null
+                    && string.IsNullOrEmpty(restoredWornArmor.EquippedById),
+                    "current-schema normalization preserves the exact armor reference and reciprocal mirrors through JSON round trip");
+
+                PartyMember currentOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                currentOwner.Id = "identity-current-owner";
+                currentOwner.WeaponItemId = "";
+                InventoryItem currentClaim = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                currentClaim.InstanceId = "current-schema-item";
+                currentClaim.EquippedById = currentOwner.Id;
+                GameState currentState = new GameState
+                {
+                    SaveVersion = VersionInfo.SaveVersion,
+                    Seed = 2727,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { currentOwner },
+                    Inventory = new List<InventoryItem> { currentClaim }
+                };
+                SetPrivateField(game, "state", currentState);
+                InvokePrivate(game, "EnsureWorldState", VersionInfo.SaveVersion);
+                Assert(currentClaim.InstanceId == "current-schema-item", "current saves preserve valid instance IDs");
+                Assert(string.IsNullOrEmpty(currentOwner.WeaponItemId) && string.IsNullOrEmpty(currentClaim.EquippedById), "current saves validate missing references without recreating them from compatibility mirrors");
+
+                InventoryItem admitted = new InventoryItem { Slot = "quest", Form = "seal", DisplayName = "new runtime admission" };
+                InvokePrivate<InventoryItem>(game, "AddInventoryItem", admitted);
+                Assert(!string.IsNullOrWhiteSpace(admitted.InstanceId)
+                    && currentState.Inventory.Count == 2
+                    && InventoryItemIdentityRules.FindById(currentState.Inventory, admitted.InstanceId) == admitted,
+                    "new runtime acquisition receives a resolvable ID at admission time");
+                InvokePrivate<InventoryItem>(game, "AddInventoryItem", admitted);
+                Assert(currentState.Inventory.Count == 2
+                    && currentState.Inventory.Count(item => ReferenceEquals(item, admitted)) == 1,
+                    "repeating admission of the same object is idempotent and cannot create an unrepairable duplicate reference");
+
+                PartyMember paddedMaudOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                paddedMaudOwner.Id = " padded-maud-owner ";
+                paddedMaudOwner.WeaponItemId = "";
+                paddedMaudOwner.WeaponName = "enchanted iron broadsword";
+                InventoryItem paddedMaudCandidate = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                paddedMaudCandidate.InstanceId = "";
+                paddedMaudCandidate.DisplayName = "iron broadsword";
+                paddedMaudCandidate.EquippedById = " padded-maud-owner ";
+                paddedMaudCandidate.PermanentEnchantmentId = "";
+                GameState paddedMaudState = new GameState
+                {
+                    SaveVersion = 23,
+                    Seed = 2326,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { paddedMaudOwner },
+                    Inventory = new List<InventoryItem> { paddedMaudCandidate },
+                    StoryFlags = new List<string> { StoryFlags.MidgaardWeaponEnchanted }
+                };
+                SetPrivateField(game, "state", paddedMaudState);
+                InvokePrivate(game, "EnsureWorldState", 23);
+                Assert(paddedMaudState.Inventory.Count == 1
+                    && paddedMaudOwner.Id == "padded-maud-owner"
+                    && paddedMaudOwner.WeaponItemId == paddedMaudCandidate.InstanceId
+                    && paddedMaudCandidate.EquippedById == paddedMaudOwner.Id
+                    && paddedMaudCandidate.PermanentEnchantmentId == "storm",
+                    "pre-v24 Maud migration trims a unique owner claim before linking and enchanting that exact item");
+
+                PartyMember maudOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(owner));
+                maudOwner.Id = "identity-maud-ambiguous-owner";
+                maudOwner.WeaponItemId = "";
+                maudOwner.WeaponName = "enchanted iron broadsword";
+                InventoryItem maudCandidateA = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                InventoryItem maudCandidateB = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                maudCandidateA.InstanceId = "";
+                maudCandidateB.InstanceId = "";
+                maudCandidateA.DisplayName = "iron broadsword";
+                maudCandidateB.DisplayName = "iron broadsword";
+                maudCandidateA.EquippedById = maudOwner.Id;
+                maudCandidateB.EquippedById = maudOwner.Id;
+                maudCandidateA.PermanentEnchantmentId = "";
+                maudCandidateB.PermanentEnchantmentId = "";
+                GameState maudAmbiguousState = new GameState
+                {
+                    SaveVersion = 23,
+                    Seed = 2327,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { maudOwner },
+                    Inventory = new List<InventoryItem> { maudCandidateA, maudCandidateB },
+                    StoryFlags = new List<string> { StoryFlags.MidgaardWeaponEnchanted }
+                };
+                SetPrivateField(game, "state", maudAmbiguousState);
+                InvokePrivate(game, "EnsureWorldState", 23);
+                Assert(maudAmbiguousState.Inventory.Count == 2
+                    && string.IsNullOrEmpty(maudOwner.WeaponItemId)
+                    && maudAmbiguousState.Inventory.All(item => string.IsNullOrEmpty(item.EquippedById))
+                    && maudAmbiguousState.Inventory.All(item => string.IsNullOrEmpty(item.PermanentEnchantmentId)),
+                    "pre-v24 Maud migration leaves ambiguous identical candidates untouched instead of choosing or synthesizing a third copy");
+
+                PartyMember unclaimedMaudOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(maudOwner));
+                unclaimedMaudOwner.Id = "identity-maud-unclaimed-owner";
+                InventoryItem unclaimedMaudA = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                InventoryItem unclaimedMaudB = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(exactBackingItem));
+                unclaimedMaudA.InstanceId = "";
+                unclaimedMaudB.InstanceId = "";
+                unclaimedMaudA.DisplayName = "iron broadsword";
+                unclaimedMaudB.DisplayName = "iron broadsword";
+                unclaimedMaudA.EquippedById = "";
+                unclaimedMaudB.EquippedById = "";
+                unclaimedMaudA.PermanentEnchantmentId = "";
+                unclaimedMaudB.PermanentEnchantmentId = "";
+                GameState unclaimedMaudState = new GameState
+                {
+                    SaveVersion = 23,
+                    Seed = 2328,
+                    Mode = GameMode.Tavern,
+                    Depth = 1,
+                    Party = new List<PartyMember> { unclaimedMaudOwner },
+                    Inventory = new List<InventoryItem> { unclaimedMaudA, unclaimedMaudB },
+                    StoryFlags = new List<string> { StoryFlags.MidgaardWeaponEnchanted }
+                };
+                SetPrivateField(game, "state", unclaimedMaudState);
+                InvokePrivate(game, "EnsureWorldState", 23);
+                Assert(unclaimedMaudState.Inventory.Count == 2
+                    && string.IsNullOrEmpty(unclaimedMaudOwner.WeaponItemId)
+                    && unclaimedMaudState.Inventory.All(item => string.IsNullOrEmpty(item.EquippedById))
+                    && unclaimedMaudState.Inventory.All(item => string.IsNullOrEmpty(item.PermanentEnchantmentId)),
+                    "pre-v24 Maud migration also fails closed for multiple unclaimed identical candidates");
+            }
+            finally
+            {
+                SetPrivateField(game, "state", previousState);
+                SetPrivateField(game, "armorySelectedInventoryItemId", previousSelectedItemId);
+                SetPrivateField(game, "armoryInventoryTargetPickerOpen", previousTargetPickerOpen);
+            }
+        }
+
         private static void AssertSignatureItemMigrationRuntime(AshenHallsGame game)
         {
             string[] expectedIds =
@@ -9492,6 +9933,8 @@ namespace AshenHalls.Editor
                     && legacyItems.Select(item => item.SignatureId).SequenceEqual(expectedIds)
                     && expectedIds.Distinct(StringComparer.Ordinal).Count() == expectedIds.Length,
                     "save-v25 migration assigns every exact signature ID once");
+                Assert(InventoryItemIdentityRules.HasUniqueInstanceIds(migrationState.Inventory),
+                    "save-v25 signature migration also assigns every physical item a unique instance ID");
                 Assert(string.IsNullOrEmpty(proceduralLookalike.SignatureId),
                     "save-v25 migration does not misclassify a similarly named procedural staff");
                 Assert(Enumerable.Range(0, legacyItems.Length).All(index =>
@@ -9506,13 +9949,15 @@ namespace AshenHalls.Editor
                     && capturedWeapon.EnchantmentBaseDamageType == "shock"
                     && capturedWeapon.DisplayName == "flamebound +2 Stormglass Conductor"
                     && capturedWeapon.EquippedById == owner.Id
+                    && owner.WeaponItemId == capturedWeapon.InstanceId
                     && owner.WeaponName == capturedWeapon.DisplayName,
-                    "save-v25 migration preserves enchantment state and owner while canonicalizing its captured base identity");
+                    "save-v25 migration preserves enchantment state and exact item reference while canonicalizing its captured base identity");
                 Assert(equippedLegacyArmor.SignatureId == SignatureItemCatalog.RatcatcherRoadcoatId
                     && equippedLegacyArmor.DisplayName == "+3 Ratcatcher’s Roadcoat"
                     && equippedLegacyArmor.EquippedById == armorOwner.Id
+                    && armorOwner.ArmorItemId == equippedLegacyArmor.InstanceId
                     && armorOwner.ArmorName == equippedLegacyArmor.DisplayName,
-                    "save-v25 migration preserves equipped armor ownership while canonicalizing its loadout name");
+                    "save-v25 migration preserves exact equipped armor identity while canonicalizing its loadout name");
 
                 string firstPass = JsonUtility.ToJson(migrationState);
                 InvokePrivate(game, "EnsureWorldState", 25);
@@ -9543,6 +9988,7 @@ namespace AshenHalls.Editor
                     Hp = 30,
                     MaxHp = 30,
                     WeaponName = "Cinder Longbow",
+                    WeaponItemId = "swap-cinder-bow",
                     WeaponBonus = 4,
                     WeaponDamageType = "fire",
                     WeaponDamageMin = 7,
@@ -9569,6 +10015,7 @@ namespace AshenHalls.Editor
                     Hp = 34,
                     MaxHp = 34,
                     WeaponName = "Iron Broadsword",
+                    WeaponItemId = "swap-broadsword",
                     WeaponBonus = 2,
                     WeaponDamageType = "physical",
                     WeaponDamageMin = 5,
@@ -9584,6 +10031,7 @@ namespace AshenHalls.Editor
                 };
                 InventoryItem cinderBow = new InventoryItem
                 {
+                    InstanceId = "swap-cinder-bow",
                     EquippedById = arden.Id,
                     DisplayName = arden.WeaponName,
                     Form = "longbow",
@@ -9601,6 +10049,7 @@ namespace AshenHalls.Editor
                 };
                 InventoryItem broadsword = new InventoryItem
                 {
+                    InstanceId = "swap-broadsword",
                     EquippedById = brann.Id,
                     DisplayName = brann.WeaponName,
                     Form = "broadsword",
@@ -9627,6 +10076,7 @@ namespace AshenHalls.Editor
                 Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", cinderBow, brann, null), "equipped weapon can be reassigned through one atomic swap");
                 Assert(linkedState.Inventory.Count == 2, "linked equipment swap preserves inventory membership");
                 Assert(cinderBow.EquippedById == brann.Id && broadsword.EquippedById == arden.Id, "linked equipment swap exchanges both exact owner IDs");
+                Assert(brann.WeaponItemId == cinderBow.InstanceId && arden.WeaponItemId == broadsword.InstanceId, "linked equipment swap atomically exchanges both canonical item references");
                 Assert(arden.WeaponName == broadsword.DisplayName
                     && arden.WeaponBonus == broadsword.Bonus
                     && arden.WeaponDamageMin == broadsword.DamageMin
@@ -9652,23 +10102,30 @@ namespace AshenHalls.Editor
                 GameState roundTrip = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(linkedState));
                 SetPrivateField(game, "state", roundTrip);
                 InvokePrivate(game, "EnsureInventoryEquipmentLinks", false);
-                InventoryItem restoredBow = roundTrip.Inventory.Single(item => item.DisplayName == cinderBow.DisplayName);
-                InventoryItem restoredSword = roundTrip.Inventory.Single(item => item.DisplayName == broadsword.DisplayName);
-                Assert(restoredBow.EquippedById == brann.Id && restoredSword.EquippedById == arden.Id, "equipment swap ownership survives save round-trip and link repair");
+                InventoryItem restoredBow = InventoryItemIdentityRules.FindById(roundTrip.Inventory, roundTrip.Party.Single(member => member.Id == brann.Id).WeaponItemId);
+                InventoryItem restoredSword = InventoryItemIdentityRules.FindById(roundTrip.Inventory, roundTrip.Party.Single(member => member.Id == arden.Id).WeaponItemId);
+                Assert(restoredBow?.InstanceId == cinderBow.InstanceId
+                    && restoredSword?.InstanceId == broadsword.InstanceId
+                    && restoredBow.EquippedById == brann.Id
+                    && restoredSword.EquippedById == arden.Id,
+                    "equipment swap exact references survive save round-trip and validation");
 
                 PartyMember syntheticOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(arden));
                 syntheticOwner.Id = "synthetic-owner";
                 syntheticOwner.Name = "Synthetic Owner";
                 syntheticOwner.WeaponName = "Cinder Longbow";
+                syntheticOwner.WeaponItemId = "synthetic-bow";
                 PartyMember legacyTarget = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(brann));
                 legacyTarget.Id = "legacy-target";
                 legacyTarget.Name = "Legacy Target";
                 legacyTarget.WeaponName = "Iron Broadsword";
+                legacyTarget.WeaponItemId = "";
                 legacyTarget.WeaponBonus = 2;
                 legacyTarget.WeaponDamageMin = 5;
                 legacyTarget.WeaponDamageMax = 9;
                 legacyTarget.WeaponAttackSpeed = 7;
                 InventoryItem syntheticBow = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(cinderBow));
+                syntheticBow.InstanceId = syntheticOwner.WeaponItemId;
                 syntheticBow.EquippedById = syntheticOwner.Id;
                 InvokePrivate(game, "ApplyInventoryItemToLoadout", syntheticBow, syntheticOwner, true);
                 InvokePrivate(game, "ApplyInventoryItemToLoadout", broadsword, legacyTarget, true);
@@ -9681,15 +10138,19 @@ namespace AshenHalls.Editor
                 SetPrivateField(game, "state", syntheticState);
                 Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", syntheticBow, legacyTarget, null), "inventory-backed gear swaps safely with a legacy loadout");
                 Assert(syntheticState.Inventory.Count == 1 && syntheticBow.EquippedById == legacyTarget.Id, "legacy-loadout swap creates no duplicate inventory object");
+                Assert(string.IsNullOrEmpty(syntheticOwner.WeaponItemId) && legacyTarget.WeaponItemId == syntheticBow.InstanceId, "legacy-loadout swap clears the synthetic slot reference and assigns the exact admitted item");
                 Assert(syntheticOwner.WeaponName == "Iron Broadsword" && legacyTarget.WeaponName == syntheticBow.DisplayName, "legacy-loadout swap preserves both equipped weapons");
 
                 PartyMember failedOwner = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(syntheticOwner));
                 failedOwner.Id = "failed-owner";
                 failedOwner.WeaponName = syntheticBow.DisplayName;
+                failedOwner.WeaponItemId = "failed-bow";
                 PartyMember failedTarget = JsonUtility.FromJson<PartyMember>(JsonUtility.ToJson(legacyTarget));
                 failedTarget.Id = "failed-target";
                 failedTarget.WeaponName = "";
+                failedTarget.WeaponItemId = "";
                 InventoryItem failedBow = JsonUtility.FromJson<InventoryItem>(JsonUtility.ToJson(syntheticBow));
+                failedBow.InstanceId = failedOwner.WeaponItemId;
                 failedBow.EquippedById = failedOwner.Id;
                 InvokePrivate(game, "ApplyInventoryItemToLoadout", failedBow, failedOwner, true);
                 GameState failedState = new GameState

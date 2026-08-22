@@ -273,6 +273,7 @@ namespace AshenHalls
         private bool lastCompactRows;
         private int lastDetailActionCount = -1;
         private int lastSelectedRowKey = int.MinValue;
+        private int lastSelectedRowIndex = -1;
         private bool lastRefreshSucceeded;
         private int visibleRowCount;
         private int visibleFilterCount;
@@ -381,15 +382,18 @@ namespace AshenHalls
             bool navigationChanged = lastTab != view.ActiveTab || lastFilter != view.ActiveFilter;
             bool detailFocusChanged = lastPrioritizeDetailActions != prioritizeDetailActions;
             int selectedRowKey = int.MinValue;
+            int selectedRowIndex = -1;
             for (int i = 0; i < view.Rows.Count; i++)
             {
                 if (view.Rows[i].Selected)
                 {
                     selectedRowKey = view.Rows[i].Key;
+                    selectedRowIndex = i;
                     break;
                 }
             }
             bool selectionChanged = lastSelectedRowKey != selectedRowKey;
+            bool selectedRowMoved = lastSelectedRowIndex != selectedRowIndex;
             if (!Mathf.Approximately(lastWidth, Screen.width)
                 || !Mathf.Approximately(lastHeight, Screen.height)
                 || lastTab != view.ActiveTab
@@ -440,10 +444,11 @@ namespace AshenHalls
             lastDetailActionCount = detailActionCount;
             lastCompactRows = view.CompactRows;
             lastSelectedRowKey = selectedRowKey;
+            lastSelectedRowIndex = selectedRowIndex;
             lastRefreshSucceeded = true;
             EventSystem refreshEventSystem = EventSystem.current;
             bool focusNeedsRecovery = CanvasSelectionNeedsRecovery(refreshEventSystem);
-            if (navigationChanged || selectionChanged || detailFocusChanged || focusNeedsRecovery)
+            if (navigationChanged || selectionChanged || selectedRowMoved || detailFocusChanged || focusNeedsRecovery)
             {
                 ClearTransientRowContext();
                 if (refreshEventSystem != null && IsCanvasSelection(refreshEventSystem.currentSelectedGameObject))

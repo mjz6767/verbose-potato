@@ -209,6 +209,7 @@ namespace AshenHalls.Editor
             SignatureItemCatalogAndAtlasMatchRuntimeContract();
             PartyGrowthRulesStageAndApplyCampaignPointsSafely();
             InventoryEquipmentRulesMakeOwnershipAndComparisonsExplicit();
+            InventoryItemIdentityRulesAreStableAndConservative();
             WeaponEnchantmentRulesPreserveAffinityAndDuration();
             PresentationRefreshKeysAreStableUntilStateChanges();
             BoardPointerRoutingBlocksHudAndModalClicks();
@@ -241,6 +242,7 @@ namespace AshenHalls.Editor
             SupercoverLineIncludesCornerTouchCells();
             LineOfSightUsesSupercoverBlockers();
             ContentSetNormalSaveRoundTrip();
+            InventoryIdentitySaveRoundTrip();
             LegacyV17SaveMigratesToFullPrototype();
             UnknownContentSetRepairsToSewerSlice();
             LabSaveDoesNotWriteCampaignFile();
@@ -3384,7 +3386,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.21.0", VersionInfo.PackageVersion, "package version matches the integrated v2.21 candidate");
+            AssertEqual("v2.22.0", VersionInfo.PackageVersion, "package version marks the stable inventory identity release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -9381,6 +9383,60 @@ namespace AshenHalls.Editor
                 "clear unequipped upgrade sorts ahead of equipped tradeoff");
         }
 
+        private static void InventoryItemIdentityRulesAreStableAndConservative()
+        {
+            InventoryItem firstSignature = SignatureItemCatalog.CreateStormglassConductor();
+            InventoryItem secondSignature = SignatureItemCatalog.CreateStormglassConductor();
+            InventoryItem duplicateId = new InventoryItem
+            {
+                InstanceId = " keep-me ",
+                Slot = "weapon",
+                Form = "broadsword",
+                DisplayName = "duplicate ID probe"
+            };
+            InventoryItem questItem = new InventoryItem
+            {
+                Slot = "quest",
+                Form = "pelt bundle",
+                DisplayName = "proof bundle"
+            };
+            firstSignature.InstanceId = "keep-me";
+            List<InventoryItem> inventory = new List<InventoryItem>
+            {
+                firstSignature,
+                secondSignature,
+                duplicateId,
+                questItem
+            };
+
+            AssertEqual("keep-me", string.Join(",", InventoryItemIdentityRules.DuplicateInstanceIds(inventory)), "identity rules expose ambiguous canonical IDs before repairing them");
+            int repaired = InventoryItemIdentityRules.NormalizeInstanceIds(inventory, 123);
+            AssertEqual(3, repaired, "identity normalization repairs blanks and the later duplicate without touching the first valid ID");
+            AssertEqual("keep-me", firstSignature.InstanceId, "identity normalization preserves the first valid ID");
+            AssertEqual("legacy-item-0000007b-0002", secondSignature.InstanceId, "legacy identity is deterministic from campaign seed and original position");
+            AssertEqual("legacy-item-0000007b-0003", duplicateId.InstanceId, "duplicate identity receives its own deterministic replacement");
+            AssertEqual("legacy-item-0000007b-0004", questItem.InstanceId, "non-equipment inventory receives the same durable identity contract");
+            AssertEqual(true, InventoryItemIdentityRules.HasUniqueInstanceIds(inventory), "all non-null inventory entries have unique nonblank IDs");
+            AssertEqual(firstSignature.SignatureId, secondSignature.SignatureId, "signature identity remains shared definition metadata");
+            AssertEqual(false, string.Equals(firstSignature.InstanceId, secondSignature.InstanceId, StringComparison.Ordinal), "identical signature copies remain distinct physical items");
+
+            string stableIds = string.Join("|", inventory.Select(item => item.InstanceId));
+            AssertEqual(0, InventoryItemIdentityRules.NormalizeInstanceIds(inventory, 123), "identity normalization is idempotent");
+            AssertEqual(stableIds, string.Join("|", inventory.Select(item => item.InstanceId)), "a second normalization does not churn IDs");
+            AssertEqual(secondSignature, InventoryItemIdentityRules.FindById(inventory, secondSignature.InstanceId), "identity lookup returns the exact duplicate instance");
+
+            string signatureIdBeforeRepair = secondSignature.InstanceId;
+            SignatureItemCatalog.RepairIdentity(secondSignature);
+            WeaponEnchantmentRules.ApplyPermanent(secondSignature, "storm");
+            AssertEqual(signatureIdBeforeRepair, secondSignature.InstanceId, "signature repair and enchantment naming never change physical identity");
+
+            InventoryItem admitted = new InventoryItem { Slot = "armor", Form = "mail", DisplayName = "new admission" };
+            string admissionId = InventoryItemIdentityRules.EnsureAdmissionId(admitted, inventory);
+            AssertEqual(true, admissionId.StartsWith("item-", StringComparison.Ordinal), "new admissions receive opaque IDs rather than content-derived IDs");
+            AssertEqual(false, inventory.Any(item => item.InstanceId == admissionId), "new admission ID does not collide with existing inventory");
+            AssertEqual(InventoryItemIdentityRules.SchemaVersion, VersionInfo.SaveVersion, "save schema tracks the canonical inventory identity migration");
+        }
+
         private static void WeaponEnchantmentRulesPreserveAffinityAndDuration()
         {
             WeaponEnchantmentDefinition[] definitions = WeaponEnchantmentRules.All.ToArray();
@@ -10468,7 +10524,7 @@ namespace AshenHalls.Editor
             int visiblePriority = EnemyTacticsRules.TargetPriorityAdjustment(caster, exposedMage);
             exposedMage.Stealthed = 2;
             AssertEqual(true, EnemyTacticsRules.TargetPriorityAdjustment(caster, exposedMage) > visiblePriority, "stealth lowers enemy target priority");
-            AssertEqual(26, VersionInfo.SaveVersion, "current save schema persists signature identity, weapon enchantments, and the route waypoint");
+            AssertEqual(27, VersionInfo.SaveVersion, "current save schema persists exact inventory identity and equipment links");
         }
 
         private static CombatUnit TacticalEnemy(string id, string rank = "")
@@ -10591,7 +10647,7 @@ namespace AshenHalls.Editor
             AssertEqual("threat: 1 can hit", CombatThreatRules.MovementDestinationLabel(1, 0), "one direct movement threat is explicit");
             AssertEqual("threat: 2 can reach", CombatThreatRules.MovementDestinationLabel(0, 2), "closing movement threats are distinguished from direct attacks");
             AssertEqual("threat: 1 can hit + 2 can reach", CombatThreatRules.MovementDestinationLabel(1, 2), "mixed destination threats retain both responsible groups");
-            AssertEqual(26, VersionInfo.SaveVersion, "current save schema persists signature identity, weapon enchantments, and the route waypoint");
+            AssertEqual(27, VersionInfo.SaveVersion, "current save schema persists exact inventory identity and equipment links");
         }
 
         private static void CombatControllerOwnsTurnAndActionLifecycle()
@@ -11571,6 +11627,94 @@ namespace AshenHalls.Editor
                 AssertEqual(false, wasRepaired, "normal content-set does not repair");
                 AssertEqual("", note, "normal content-set repair note");
                 AssertEqual(ContentSetCatalog.SewerSlice, repaired, "normal content-set remains sewer slice");
+            }
+            finally
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
+        private static void InventoryIdentitySaveRoundTrip()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "AshenHallsInventoryIdentityRoundTrip-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                string path = SaveService.SavePath(root);
+                InventoryItem exactWeapon = new InventoryItem
+                {
+                    InstanceId = "item-roundtrip-weapon",
+                    EquippedById = "party-roundtrip",
+                    Slot = "weapon",
+                    Form = "broadsword",
+                    DisplayName = "stormbound round-trip blade",
+                    PermanentEnchantmentId = "storm",
+                    DamageMin = 4,
+                    DamageMax = 9,
+                    AttackSpeed = 7
+                };
+                InventoryItem identicalSibling = new InventoryItem
+                {
+                    InstanceId = "item-roundtrip-sibling",
+                    Slot = "weapon",
+                    Form = exactWeapon.Form,
+                    DisplayName = exactWeapon.DisplayName,
+                    PermanentEnchantmentId = exactWeapon.PermanentEnchantmentId,
+                    DamageMin = exactWeapon.DamageMin,
+                    DamageMax = exactWeapon.DamageMax,
+                    AttackSpeed = exactWeapon.AttackSpeed
+                };
+                InventoryItem exactArmor = new InventoryItem
+                {
+                    InstanceId = "item-roundtrip-armor",
+                    EquippedById = "party-roundtrip",
+                    Slot = "armor",
+                    Form = "mail",
+                    DisplayName = "round-trip road mail",
+                    Bonus = 3,
+                    HealthBonus = 5
+                };
+                GameState state = new GameState
+                {
+                    SaveVersion = VersionInfo.SaveVersion,
+                    ContentSetId = ContentSetCatalog.SewerSlice,
+                    Seed = 727,
+                    Party = new List<PartyMember>
+                    {
+                        new PartyMember
+                        {
+                            Id = "party-roundtrip",
+                            Name = "Round Trip",
+                            WeaponItemId = exactWeapon.InstanceId,
+                            WeaponName = exactWeapon.DisplayName,
+                            ArmorItemId = exactArmor.InstanceId,
+                            ArmorName = exactArmor.DisplayName
+                        }
+                    },
+                    Inventory = new List<InventoryItem> { identicalSibling, exactWeapon, exactArmor }
+                };
+
+                SaveService.SaveGameState(path, state);
+                GameState loaded = SaveService.LoadGameState(path, out bool usedBackup);
+                AssertEqual(false, usedBackup, "inventory identity round trip uses the primary save");
+                AssertEqual(3, loaded.Inventory.Count, "inventory identity round trip preserves duplicate-looking items and exact armor");
+                AssertEqual("item-roundtrip-weapon", loaded.Party[0].WeaponItemId, "member weapon reference survives save round trip");
+                AssertEqual("item-roundtrip-armor", loaded.Party[0].ArmorItemId, "member armor reference survives save round trip");
+                InventoryItem loadedWeapon = InventoryItemIdentityRules.FindById(loaded.Inventory, loaded.Party[0].WeaponItemId);
+                InventoryItem loadedArmor = InventoryItemIdentityRules.FindById(loaded.Inventory, loaded.Party[0].ArmorItemId);
+                AssertEqual(true, loadedWeapon != null, "member reference resolves after save round trip");
+                AssertEqual(true, loadedArmor != null && loadedArmor.EquippedById == "party-roundtrip", "member armor reference resolves to the exact reciprocal item after save round trip");
+                AssertEqual("party-roundtrip", loadedWeapon.EquippedById, "compatibility owner mirror survives save round trip");
+                AssertEqual("storm", loadedWeapon.PermanentEnchantmentId, "enchantment identity stays attached to the exact physical item");
+                AssertEqual("", InventoryItemIdentityRules.FindById(loaded.Inventory, "item-roundtrip-sibling").EquippedById ?? "", "identical sibling remains unowned after save round trip");
+                AssertEqual(true, InventoryItemIdentityRules.HasUniqueInstanceIds(loaded.Inventory), "save round trip keeps IDs unique");
+
+                GameState v26Candidate = new GameState
+                {
+                    SaveVersion = 26,
+                    Party = new List<PartyMember> { new PartyMember { Id = "legacy-party", Name = "Legacy" } },
+                    Inventory = new List<InventoryItem> { new InventoryItem { DisplayName = "legacy item" } }
+                };
+                AssertEqual(true, SaveCandidateRules.IsLoadable(v26Candidate, VersionInfo.SaveVersion), "v26 saves remain eligible for identity migration before strict validation");
             }
             finally
             {

@@ -8401,7 +8401,7 @@ namespace AshenHalls
                 state.Gold += foundGold;
                 state.Elixirs += foundElixirs;
                 state.Supplies += foundSupplies;
-                state.Inventory.Add(item);
+                AddInventoryItem(item);
                 string equipNote = AutoEquipItem(item);
                 ShowLootPanel(item, foundGold, foundSupplies, foundElixirs, equipNote);
                 RemoveObject(obj);
@@ -8818,7 +8818,7 @@ namespace AshenHalls
                 {
                     EnsureInventoryList();
                     InventoryItem mail = CreateWorldSiteQuarryMail();
-                    state.Inventory.Add(mail);
+                    AddInventoryItem(mail);
                     ShowLootPanel(mail, 0, 0, 0, "Added to the pack for deliberate equipping.", "Quarry Forge");
                     detail = profile.RewardSummary;
                     return true;
@@ -9001,7 +9001,7 @@ namespace AshenHalls
                     {
                         EnsureInventoryList();
                         InventoryItem item = MakeRouteScaffoldItem(def);
-                        state.Inventory.Add(item);
+                        AddInventoryItem(item);
                         string equipNote = AutoEquipItem(item);
                         ShowLootPanel(item, 0, 0, 0, equipNote);
                         PushLog($"The forge scaffold yields {item.DisplayName}. {equipNote}", Tone.Good);
@@ -10190,19 +10190,19 @@ namespace AshenHalls
         {
             bool bought = HasStoryFlag(StoryFlags.MidgaardBasicArmorBought);
             bool canBuy = !bought && state.Gold >= 28;
-            string serviceLabel = bought ? "Mail already fitted" : "Fit a hauberk - 28 gold";
+            string serviceLabel = bought ? "Hauberk already purchased" : "Buy a hauberk - 28 gold";
             string serviceHint = bought
-                ? "Borin has already fitted this serviceable hauberk."
+                ? "Borin has already placed this serviceable hauberk in the Pack."
                 : canBuy
-                    ? "Buy one serviceable hauberk and fit it to the best wearer."
+                    ? "Buy one serviceable hauberk for the Pack, then compare every wearer."
                     : $"Need {Mathf.Max(0, 28 - state.Gold)} more gold.";
             ShowDialogueChoices(
                 "Midgaard Armorer",
                 "Borin",
                 string.IsNullOrWhiteSpace(greeting)
                     ? bought
-                        ? "The rings are settling well. Bring it back if a strap bites or a rivet lifts."
-                        : $"Plain iron, good rings, fitted to the wearer—twenty-eight gold. You've got {state.Gold}."
+                        ? "The hauberk is in your Pack. Compare the fit before choosing who will wear it."
+                        : $"Plain iron, good rings—twenty-eight gold. I'll place it in the Pack until you choose the wearer. You've got {state.Gold}."
                     : greeting,
                 ObjectType.Armorer,
                 stone,
@@ -10246,13 +10246,14 @@ namespace AshenHalls
             state.Gold -= 28;
             EnsureInventoryList();
             InventoryItem item = MakeTownArmor();
-            state.Inventory.Add(item);
+            AddInventoryItem(item);
             string equipNote = AutoEquipItem(item);
             SetStoryFlag(StoryFlags.MidgaardBasicArmorBought);
+            AutosaveCheckpoint("Borin armor purchased");
             ShowDialogueThenLoot(
                 "Midgaard Armorer",
                 "Borin",
-                "Walk the square in it before you go below. Lift your arms, kneel, and check the straps. You should find a bad fit here, not when something is trying to kill you.",
+                "Try it from Inventory before you go below. Compare every wearer, then lift the arms, kneel, and check the straps. You should find a bad fit here, not when something is trying to kill you.",
                 ObjectType.Armorer,
                 stone,
                 item,
@@ -10261,8 +10262,8 @@ namespace AshenHalls
                 0,
                 equipNote,
                 "Borin's Armor Fitting");
-            PushLog($"The armorer fits {item.DisplayName}. {equipNote}", Tone.Good);
-            ShowBanner("Armor Fitted");
+            PushLog($"The armorer prepares {item.DisplayName}. {equipNote}", Tone.Good);
+            ShowBanner("Armor Bought");
             PlaySfx("servicecoin", 0.50f);
             QueueSfx("servicearmor", 0.08f, 0.70f);
         }
@@ -10332,7 +10333,7 @@ namespace AshenHalls
             string role = quotedLead?.Role ?? "shield";
             EnsureInventoryList();
             InventoryItem item = TakeTessaWeaponQuote(role);
-            state.Inventory.Add(item);
+            AddInventoryItem(item);
             string equipNote;
             if (quotedLead != null && EquipInventoryItemToMember(item, quotedLead, out string quotedEquipNote))
             {
@@ -10343,6 +10344,7 @@ namespace AshenHalls
                 equipNote = AutoEquipItem(item);
             }
             SetStoryFlag(StoryFlags.MidgaardBasicWeaponBought);
+            AutosaveCheckpoint("Tessa weapon purchased");
             ShowDialogueThenLoot(
                 "Weapon Vendor",
                 "Tessa",
@@ -10551,6 +10553,7 @@ namespace AshenHalls
             state.Gold -= price;
             SyncEnchantedWeaponToOwner(item);
             SetStoryFlag(StoryFlags.MidgaardWeaponEnchanted);
+            AutosaveCheckpoint(permanent ? "Maud weapon binding purchased" : "Maud weapon temper purchased");
             string duration = permanent
                 ? "The binding is permanent and will follow the weapon between wielders."
                 : $"The temper will hold through {WeaponEnchantmentRules.TemporaryVictories} victories.";
@@ -10583,7 +10586,8 @@ namespace AshenHalls
                 target.WeaponDamageMin,
                 target.WeaponDamageMax,
                 target.WeaponDamageType);
-            state.Inventory.Add(item);
+            AddInventoryItem(item);
+            SetInventoryEquipmentLink(target, true, item);
             return item;
         }
 
@@ -10599,7 +10603,6 @@ namespace AshenHalls
             InventoryItem item = new InventoryItem
             {
                 Mark = "party-carried",
-                EquippedById = target?.Id ?? "",
                 Material = EnchantmentWeaponMaterial(name),
                 Form = EnchantmentWeaponForm(name),
                 Trait = EnchantmentWeaponTrait(name),
@@ -10693,11 +10696,8 @@ namespace AshenHalls
 
         private void SyncEnchantedWeaponToOwner(InventoryItem item)
         {
-            if (item == null
-                || state?.Party == null
-                || string.IsNullOrWhiteSpace(item.EquippedById)) return;
-            PartyMember owner = state.Party.FirstOrDefault(member =>
-                member != null && string.Equals(member.Id, item.EquippedById, StringComparison.Ordinal));
+            if (item == null || state?.Party == null) return;
+            PartyMember owner = EquippedMember(item);
             if (owner == null) return;
 
             owner.WeaponName = item.DisplayName;
@@ -10711,13 +10711,15 @@ namespace AshenHalls
             RecalculateMember(owner);
         }
 
-        private void NormalizeWeaponEnchantments(int sourceSaveVersion = SaveVersion)
+        private void NormalizeWeaponEnchantments(
+            int sourceSaveVersion = SaveVersion,
+            bool repairMissingEquipmentLinks = false)
         {
             if (state == null) return;
             EnsureInventoryList();
             EnsurePartyInventoryIds();
             if (sourceSaveVersion < 24) MigrateLegacyMaudEnchantment();
-            EnsureInventoryEquipmentLinks();
+            EnsureInventoryEquipmentLinks(repairMissingEquipmentLinks);
 
             foreach (InventoryItem item in state.Inventory.Where(item =>
                 item != null && InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form)))
@@ -10737,11 +10739,24 @@ namespace AshenHalls
             if (target == null) return;
 
             string baseName = target.WeaponName.Substring("enchanted ".Length).Trim();
-            InventoryItem item = state.Inventory.LastOrDefault(candidate =>
+            List<InventoryItem> candidates = state.Inventory.Where(candidate =>
                 candidate != null
                 && InventoryEquipmentRules.IsWeaponSlot(candidate.Slot, candidate.Form)
-                && string.Equals(candidate.DisplayName, baseName, StringComparison.Ordinal));
-            if (item == null)
+                && string.Equals(candidate.DisplayName, baseName, StringComparison.Ordinal)).ToList();
+            List<InventoryItem> ownerClaims = candidates.Where(candidate =>
+                string.Equals((candidate.EquippedById ?? "").Trim(), target.Id, StringComparison.Ordinal)).ToList();
+            if (ownerClaims.Count > 1) return;
+
+            InventoryItem item = ownerClaims.Count == 1 ? ownerClaims[0] : null;
+            if (item == null && candidates.Count > 0)
+            {
+                List<InventoryItem> unclaimed = candidates
+                    .Where(candidate => string.IsNullOrWhiteSpace(candidate.EquippedById))
+                    .ToList();
+                if (unclaimed.Count != 1) return;
+                item = unclaimed[0];
+            }
+            if (item == null && candidates.Count == 0)
             {
                 string baseType = StartingWeaponDamageType(target.Role);
                 item = CreateEnchantmentWeaponItem(
@@ -10751,16 +10766,17 @@ namespace AshenHalls
                     target.WeaponDamageMin,
                     target.WeaponDamageMax,
                     baseType);
-                state.Inventory.Add(item);
+                AddInventoryItem(item);
             }
-            else
+            else if (item != null)
             {
                 item.Bonus = target.WeaponBonus;
                 item.DamageMin = Mathf.Max(1, target.WeaponDamageMin);
                 item.DamageMax = Mathf.Max(item.DamageMin + 1, target.WeaponDamageMax);
                 item.AttackSpeed = Mathf.Max(1, target.WeaponAttackSpeed);
             }
-            item.EquippedById = target.Id;
+            if (item == null) return;
+            SetInventoryEquipmentLink(target, true, item);
 
             string affinityId;
             switch ((target.WeaponDamageType ?? "").ToLowerInvariant())
@@ -11275,7 +11291,7 @@ namespace AshenHalls
             EnsureInventoryList();
             if (state.StoryFlags == null) state.StoryFlags = new List<string>();
             ContentSetCatalog.MarkSewerSafeRoomChoice(state.StoryFlags, takeFocus ? "focus" : "blade");
-            state.Inventory.Add(item);
+            AddInventoryItem(item);
             string equipNote = AutoEquipItem(item);
             state.ActiveStory = SewerSliceObjectiveLine(2);
 
@@ -11387,7 +11403,7 @@ namespace AshenHalls
                     return false;
                 }
 
-                state.Inventory.Add(sewerReward);
+                AddInventoryItem(sewerReward);
                 string sewerEquipNote = AutoEquipItem(sewerReward);
                 state.Gold += 10;
                 SetStoryFlag(StoryFlags.MidgaardRatPeltArmorMade);
@@ -11424,7 +11440,7 @@ namespace AshenHalls
             RemoveRatPelts(Mathf.Min(4, pelts));
             EnsureInventoryList();
             InventoryItem item = MakeRatPeltArmor();
-            state.Inventory.Add(item);
+            AddInventoryItem(item);
             string equipNote = AutoEquipItem(item);
             state.Gold += 10;
             SetStoryFlag(StoryFlags.MidgaardRatPeltArmorMade);
@@ -11474,14 +11490,14 @@ namespace AshenHalls
                 if (cleared >= ContentSetCatalog.SewerSliceEncounters.Count)
                 {
                     EnsureInventoryList();
-                    if (firstClear) state.Inventory.Add(MakeRatPelt());
+                    if (firstClear) AddInventoryItem(MakeRatPelt());
                     state.ActiveStory = "Chapter I: The Midgaard Cisterns. Return sewer proof to the Midgaard armorer for the first equipment reward.";
                     PushLog("The Cistern Den is broken. The party has three proof bundles for the armorer's reward.", Tone.Good);
                 }
                 else
                 {
                     EnsureInventoryList();
-                    if (firstClear) state.Inventory.Add(MakeRatPelt());
+                    if (firstClear) AddInventoryItem(MakeRatPelt());
                     state.ActiveStory = SewerSliceObjectiveLine(cleared);
                     PushLog(state.ActiveStory, Tone.Good);
                 }
@@ -11491,7 +11507,7 @@ namespace AshenHalls
             if (encounterStyle != "ratsewer") return;
             int pelts = HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade) ? 2 : 4;
             EnsureInventoryList();
-            for (int i = 0; i < pelts; i++) state.Inventory.Add(MakeRatPelt());
+            for (int i = 0; i < pelts; i++) AddInventoryItem(MakeRatPelt());
             SetStoryFlag(StoryFlags.MidgaardRatPeltsCollected);
             if (!HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade))
             {
@@ -13744,7 +13760,7 @@ namespace AshenHalls
             if (battleLoot != null)
             {
                 EnsureInventoryList();
-                state.Inventory.Add(battleLoot);
+                AddInventoryItem(battleLoot);
                 string equipNote = AutoEquipItem(battleLoot);
                 ShowLootPanel(battleLoot, foundGold, 0, foundElixirs, string.IsNullOrEmpty(equipNote) ? "Recovered from the defeated mob." : equipNote, "Battle loot");
                 PushLog($"The field is won. {foundGold} gold, {xp} XP, and {battleLoot.DisplayName} recovered.", Tone.Good);
@@ -13848,7 +13864,7 @@ namespace AshenHalls
 
             EnsureInventoryList();
             InventoryItem reward = MakeGloamReliquaryMail();
-            state.Inventory.Add(reward);
+            AddInventoryItem(reward);
             string equipNote = AutoEquipItem(reward);
             state.Supplies += 1;
             ShowLootPanel(
@@ -13908,7 +13924,7 @@ namespace AshenHalls
 
             EnsureInventoryList();
             InventoryItem reward = ContentSetCatalog.CreateAshglassRoadMantle();
-            state.Inventory.Add(reward);
+            AddInventoryItem(reward);
             state.Supplies += 2;
             string equipNote = AutoEquipItem(reward);
             ShowLootPanel(
@@ -13965,7 +13981,7 @@ namespace AshenHalls
 
             EnsureInventoryList();
             InventoryItem reward = ContentSetCatalog.CreateCrownwardEmberglassWarblade();
-            state.Inventory.Add(reward);
+            AddInventoryItem(reward);
             state.Supplies += 2;
             string equipNote = AutoEquipItem(reward);
             ShowLootPanel(
@@ -13999,7 +14015,7 @@ namespace AshenHalls
             state.Elixirs++;
             InventoryItem trophy = MakeSwordOfUnfathomableDarkness();
             EnsureInventoryList();
-            state.Inventory.Add(trophy);
+            AddInventoryItem(trophy);
             string equipNote = AutoEquipItem(trophy);
             string swordNote = "Taken from a fallen adventurer in the king's hoard. " + (string.IsNullOrEmpty(equipNote) ? "It goes into the pack." : equipNote);
             int totalGold = foundGold + bonusGold;
@@ -14026,7 +14042,7 @@ namespace AshenHalls
             if (relic != null)
             {
                 EnsureInventoryList();
-                state.Inventory.Add(relic);
+                AddInventoryItem(relic);
                 string equipNote = AutoEquipItem(relic);
                 ShowLootPanel(relic, foundGold, 0, foundElixirs, string.IsNullOrEmpty(equipNote) ? "A future art pass can give this final relic unique artwork." : equipNote, "Final Gate Relic");
             }
