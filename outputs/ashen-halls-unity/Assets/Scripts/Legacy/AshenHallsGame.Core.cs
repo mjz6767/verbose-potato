@@ -1662,7 +1662,14 @@ namespace AshenHalls
             string captureSummary = $"{VersionInfo.ProductName} visual smoke capture: path={capturePath}, complete={captured}, requested={requestedWidth}x{requestedHeight}, screen={screenWidth}x{screenHeight}, {acceptanceDetail}.";
             if (captured) Debug.Log(captureSummary);
             else Debug.LogError(captureSummary);
-            if (quitAfterCapture) Application.Quit(captured ? 0 : 2);
+            if (quitAfterCapture)
+            {
+                // Let the screenshot submission and renderer cleanup cross a stable frame boundary.
+                // Quitting on the exact acceptance frame can race D3D11 teardown in a retail player.
+                yield return new WaitForEndOfFrame();
+                yield return new WaitForSecondsRealtime(1f);
+                Application.Quit(captured ? 0 : 2);
+            }
         }
 
         private static int RequestedCaptureDimension(string[] args, string option, int fallback)
