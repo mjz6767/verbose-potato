@@ -326,6 +326,30 @@ namespace AshenHalls
             .Count(button => button != null && button.gameObject.activeInHierarchy);
         public int VisibleCompactManaRowsForTest => partyRows.Count(row =>
             row.ManaBg != null && row.ManaBg.gameObject.activeInHierarchy);
+        public bool HasContextualActionForTest => actionButton != null && actionButton.interactable;
+        public string ContextualActionLabelForTest => actionLabelText == null ? "" : actionLabelText.text;
+        public string ContextualActionTargetForTest => actionTargetText == null ? "" : actionTargetText.text;
+        public string FocusTextForTest => focusText == null ? "" : focusText.text;
+        public string HereTextForTest => lookText == null ? "" : lookText.text;
+        public GameObject ContextualActionObjectForTest => actionButton == null ? null : actionButton.gameObject;
+        public GameObject MapControlObjectForTest => mapButton == null ? null : mapButton.gameObject;
+
+        public bool OwnsSelection(GameObject selected)
+        {
+            if (!IsVisible || selected == null || canvas == null) return false;
+            Transform selectedTransform = selected.transform;
+            Transform canvasTransform = canvas.transform;
+            return selectedTransform == canvasTransform || selectedTransform.IsChildOf(canvasTransform);
+        }
+
+        public void InvokeContextualActionForTest()
+        {
+            if (actionButton == null || !actionButton.interactable)
+            {
+                throw new InvalidOperationException("Exploration contextual action is not ready.");
+            }
+            actionButton.onClick.Invoke();
+        }
 
         public void Bind(ExplorationHudScreenBindings screenBindings)
         {
@@ -384,13 +408,20 @@ namespace AshenHalls
             waypointTitleText.text = "NEXT";
             nearbyTitleText.text = view.DetailsOpen ? "HERE" : "NEARBY";
             sideDetailText.text = view.WaypointLine ?? "";
+            bool regionMap = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase);
             lookText.text = view.DetailsOpen
-                ? ((view.ZoneDetail ?? "") + "\n" + (view.LookLine ?? "")).Trim()
+                ? regionMap
+                    ? (view.ZoneDetail ?? "").Trim()
+                    : ((view.ZoneDetail ?? "") + "\n" + (view.LookLine ?? "")).Trim()
                 : view.NearbyLine ?? "";
             objectiveText.text = view.DetailsOpen ? view.ObjectiveLine ?? "" : view.ObjectiveSummary ?? "";
             growthText.text = view.GrowthLine ?? "";
-            actionLabelText.text = view.HasAction ? view.ActionLabel ?? "Use" : "No Action";
-            actionTargetText.text = view.HasAction ? view.ActionTarget ?? "" : "Nothing nearby";
+            actionLabelText.text = string.IsNullOrEmpty(view.ActionLabel)
+                ? view.HasAction ? "Use" : "No Action"
+                : view.ActionLabel;
+            actionTargetText.text = string.IsNullOrEmpty(view.ActionTarget)
+                ? "Nothing nearby"
+                : view.ActionTarget;
             actionButton.interactable = view.HasAction;
             detailsButtonText.text = view.DetailsOpen ? "Close" : "Details";
             mapButtonText.text = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase)

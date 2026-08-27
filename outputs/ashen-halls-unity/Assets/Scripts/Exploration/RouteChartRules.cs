@@ -61,6 +61,26 @@ namespace AshenHalls
         }
     }
 
+    public readonly struct RegionMapRouteAction
+    {
+        public readonly RouteChartTarget Target;
+        public readonly string WaypointKey;
+        public readonly bool Clearing;
+
+        public RegionMapRouteAction(
+            RouteChartTarget target,
+            string waypointKey,
+            bool clearing)
+        {
+            Target = target;
+            WaypointKey = waypointKey ?? "";
+            Clearing = clearing;
+        }
+
+        public bool HasAction => Target.Kind != RouteChartTargetKind.None
+            && !string.IsNullOrWhiteSpace(WaypointKey);
+    }
+
     public static class RouteChartRules
     {
         public static string DiscoveryKey(int depth, string junctionId)
@@ -183,6 +203,97 @@ namespace AshenHalls
 
             target = default;
             return false;
+        }
+
+        public static bool TryResolveTargetAt(
+            WorldMapJunction[] junctions,
+            WorldMapSite[] sites,
+            IEnumerable<string> discoveries,
+            IEnumerable<string> storyFlags,
+            int depth,
+            int x,
+            int y,
+            out RouteChartTarget target)
+        {
+            if (sites != null)
+            {
+                foreach (WorldMapSite site in sites)
+                {
+                    if (site.X != x || site.Y != y) continue;
+                    if (!IsSiteCharted(storyFlags, depth, site.Id)) continue;
+                    target = new RouteChartTarget(site);
+                    return true;
+                }
+            }
+
+            if (junctions != null)
+            {
+                foreach (WorldMapJunction junction in junctions)
+                {
+                    if (junction.X != x || junction.Y != y) continue;
+                    if (!IsCharted(discoveries, depth, junction.Id)) continue;
+                    target = new RouteChartTarget(junction);
+                    return true;
+                }
+            }
+
+            bool foundSite = false;
+            int bestSiteDistance = int.MaxValue;
+            WorldMapSite bestSite = default;
+            if (sites != null)
+            {
+                foreach (WorldMapSite site in sites)
+                {
+                    if (!IsSiteCharted(storyFlags, depth, site.Id)) continue;
+                    int dx = Math.Abs(site.X - x);
+                    int dy = Math.Abs(site.Y - y);
+                    if (Math.Max(dx, dy) > Math.Max(0, site.Radius)) continue;
+                    int distance = dx + dy;
+                    if (foundSite && distance >= bestSiteDistance) continue;
+                    foundSite = true;
+                    bestSiteDistance = distance;
+                    bestSite = site;
+                }
+            }
+            if (foundSite)
+            {
+                target = new RouteChartTarget(bestSite);
+                return true;
+            }
+
+            target = default;
+            return false;
+        }
+
+        public static RegionMapRouteAction ResolveRegionMapAction(
+            WorldMapJunction[] junctions,
+            WorldMapSite[] sites,
+            IEnumerable<string> discoveries,
+            IEnumerable<string> storyFlags,
+            int depth,
+            int x,
+            int y,
+            string activeWaypointKey)
+        {
+            if (!TryResolveTargetAt(
+                    junctions,
+                    sites,
+                    discoveries,
+                    storyFlags,
+                    depth,
+                    x,
+                    y,
+                    out RouteChartTarget target))
+            {
+                return default;
+            }
+
+            string waypointKey = WaypointKey(depth, target);
+            bool clearing = string.Equals(
+                activeWaypointKey?.Trim(),
+                waypointKey,
+                StringComparison.OrdinalIgnoreCase);
+            return new RegionMapRouteAction(target, waypointKey, clearing);
         }
 
         public static string RepairWaypointKey(

@@ -143,6 +143,7 @@ namespace AshenHalls.Editor
             WorldSitePresentationRulesDefineDistinctAudioIdentity();
             MidgaardDistrictRulesDefineAuthoredWards();
             RouteChartRulesTrackDiscoveredJunctionsAndBearings();
+            ExplorationMapPolishSmoke.RunOrThrow();
             ExplorationChartRulesTrackDurableTerrainDiscovery();
             ExplorationReadabilityRulesKeepGroundBehindSprites();
             WorldMapAtlasPixelMetricsShareTopDownSnapshots();
@@ -3386,7 +3387,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.22.0", VersionInfo.PackageVersion, "package version marks the stable inventory identity release");
+            AssertEqual("v2.23.0", VersionInfo.PackageVersion, "package version marks the Wayfinder's Atlas release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -8668,6 +8669,8 @@ namespace AshenHalls.Editor
             AssertEqual(true, tavern.Lines.Any(line => line.Contains("broader combat, martial, and route testing panel")), "developer tavern help retains the broader testing-panel route");
             AssertEqual(false, retailTavern.Lines.Any(line => line.Contains("Beta Lab") || line.Contains("testing panel")), "retail tavern help does not advertise hidden developer routes");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Space / E")), "exploration help mentions contextual use");
+            AssertEqual(true, explore.Lines.Any(line => line.Contains("Space/E/A") && line.Contains("Home / gamepad X")), "exploration help explains Region route marking and party recenter controls");
+            AssertEqual(true, explore.Lines.Any(line => line.Contains("Space/E/A beside it")), "exploration blocked-path help includes controller A");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Growth tab")), "exploration help points earned progression to I > Growth");
             AssertEqual(true, explore.Lines.Any(line => line.IndexOf("east and west gates", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help mentions pass-through gates");
             AssertEqual(

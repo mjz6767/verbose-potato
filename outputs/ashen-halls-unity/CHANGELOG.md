@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.23.0 - The Wayfinder's Atlas
+
+- Turned Region Map focus into a deliberate planning tool. Charted landmarks expose exact `Mark Route` and `Clear Route` actions, overlapping sites resolve to their real center or junction before broad footprints, and browsing never dispatches a nearby Local interaction.
+- Hardened keyboard, controller, and pointer ownership. Submit follows the focused Region action, Local movement and use remain separate, clicks survive ordinary pointer jitter without becoming drags, and wheel, recenter, navigation, controller input, or map replacement invalidates stale gestures.
+- Rebuilt strategic map readability with a distinct landmark-glyph atlas, neutral known-through-fog summaries, restrained fog wisps and frontiers, stronger party/focus silhouettes, dashed Region routes, continuous Local routes, and compact edge cues. Hidden danger remains unknown until legitimately revealed.
+- Tightened route guidance and responsive copy. Region bearings are input-free, Local keeps actionable movement keys, interiors guide through their exit, HERE and focus summaries fit the supported layouts, and the Grand Hearth ambience layer is clipped to the map viewport.
+- Added focused deterministic map contracts plus live RuntimeBoot coverage for routing precedence, mutation-free browsing and waypoint-only actions, input ownership, fog privacy, local interaction dispatch, viewport recovery, and save-blocked visual staging. Save schema remains v27.
+
 ## v2.22.0 - Stone, Steel, and Sorcery
 
 - Added stable per-item identities and canonical weapon/armor item links. New acquisitions receive an opaque identity immediately, ordinary refreshes validate without guessing, and save-v27 migration repairs only unambiguous legacy ownership.

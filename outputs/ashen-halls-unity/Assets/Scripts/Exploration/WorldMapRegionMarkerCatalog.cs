@@ -62,5 +62,21 @@ namespace AshenHalls
                     return false;
             }
         }
+
+        public static int SiteMarkerIndex(ObjectType type)
+        {
+            switch (type)
+            {
+                case ObjectType.TrainingGround: return 17;
+                case ObjectType.ForgeSite: return 2;
+                case ObjectType.DeepCrypt: return 13;
+                case ObjectType.LoreLibrary: return 3;
+                case ObjectType.FactionCamp: return 8;
+                case ObjectType.PortalSeal: return 19;
+                case ObjectType.DungeonGate: return 6;
+                case ObjectType.AncientGrove: return 11;
+                default: return 4;
+            }
+        }
     }
 }

@@ -410,6 +410,7 @@ namespace AshenHalls
             explorationController = null;
             explorationControllerState = null;
             explorationControllerMap = null;
+            ResetRegionMapPointerGesture();
             RequireExploreMovementNeutral();
         }
 
@@ -1214,15 +1215,44 @@ namespace AshenHalls
         {
             bool pannedRegionSmoke = args != null
                 && args.Any(arg => string.Equals(arg, "-ashen-region-pan-smoke", StringComparison.OrdinalIgnoreCase));
+            bool siteFocusSmoke = args != null
+                && args.Any(arg => string.Equals(arg, "-ashen-region-site-smoke", StringComparison.OrdinalIgnoreCase));
             exploreWideView = args != null
                 && (pannedRegionSmoke
+                    || siteFocusSmoke
                     || args.Any(arg => string.Equals(arg, "-ashen-region-smoke", StringComparison.OrdinalIgnoreCase)));
             exploreHudCollapsed = args == null
                 || !args.Any(arg => string.Equals(arg, "-ashen-details-smoke", StringComparison.OrdinalIgnoreCase));
             if (exploreWideView)
             {
                 ResetRegionMapFocusToParty();
-                if (pannedRegionSmoke)
+                if (siteFocusSmoke)
+                {
+                    WorldMapSite site = WorldMapGenerationRules.RegionalSites(
+                            state.Map.Width,
+                            state.Map.Height,
+                            state.Map.StartX,
+                            state.Map.StartY)
+                        .Where(candidate => state.Map.FindObjectById(RegionalSiteObjectId(candidate)) != null)
+                        .OrderBy(candidate => RouteChartRules.IsSiteCharted(
+                                state.StoryFlags,
+                                state.Depth,
+                                candidate.Id)
+                            ? 0
+                            : 1)
+                        .ThenBy(candidate => Math.Abs(candidate.X - state.PlayerX) + Math.Abs(candidate.Y - state.PlayerY))
+                        .FirstOrDefault();
+                    if (string.IsNullOrWhiteSpace(site.Id))
+                    {
+                        throw new InvalidOperationException("Region site visual smoke could not find a live regional landmark.");
+                    }
+                    if (!RouteChartRules.IsSiteCharted(state.StoryFlags, state.Depth, site.Id))
+                    {
+                        state.StoryFlags.Add(WorldSiteInteractionRules.ChartFlag(state.Depth, site.Id));
+                    }
+                    SetRegionMapFocus(site.X, site.Y);
+                }
+                else if (pannedRegionSmoke)
                 {
                     PanRegionMapFocus(
                         Mathf.Max(3, ExploreViewportWidth() / 2 + 2),
@@ -1233,12 +1263,16 @@ namespace AshenHalls
             {
                 ResetRegionMapNavigationInput();
             }
+            bannerText = "";
+            bannerUntil = 0f;
+            MarkUiDirty();
             Point browseFocus = exploreWideView ? EnsureRegionMapFocus() : new Point(state.PlayerX, state.PlayerY);
             Debug.Log(
                 VersionInfo.ProductName
                 + " visual smoke exploration view: "
                 + (exploreWideView ? "Region Map" : "Local Map")
-                + (pannedRegionSmoke ? $" panned to {browseFocus.X},{browseFocus.Y}" : "")
+                + (pannedRegionSmoke ? $" panned to {browseFocus.X},{browseFocus.Y}"
+                    : siteFocusSmoke ? $" focused on charted site {browseFocus.X},{browseFocus.Y}" : "")
                 + ", Details "
                 + (exploreHudCollapsed ? "closed" : "open")
                 + ", target "

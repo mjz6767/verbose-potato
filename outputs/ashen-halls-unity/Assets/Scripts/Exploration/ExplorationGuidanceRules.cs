@@ -75,6 +75,35 @@ namespace AshenHalls
                 " | " + DirectionName(direction) + " | " + distance);
         }
 
+        public static string OverviewRoute(
+            string targetName,
+            string firstDirection,
+            int stepCount,
+            bool markedWaypoint = false,
+            bool routeBlocked = false)
+        {
+            string target = Clean(targetName);
+            if (target.Length == 0) return "No guided route is available";
+
+            string prefix = markedWaypoint ? "Marked: " : "";
+            string direction = NormalizeDirection(firstDirection);
+            if (routeBlocked || stepCount < 0 || direction.Length == 0 && stepCount > 0)
+            {
+                return Compose(prefix, target, " | Route blocked");
+            }
+
+            if (stepCount == 0)
+            {
+                return Compose(prefix, target, " | Here");
+            }
+
+            string distance = stepCount == 1 ? "1 step" : stepCount + " steps";
+            return Compose(
+                prefix,
+                target,
+                " | " + DirectionName(direction) + " | " + distance);
+        }
+
         public static string PreferredRoute(
             ExplorationGuidanceRoute objectiveRoute,
             ExplorationGuidanceRoute markedRoute)

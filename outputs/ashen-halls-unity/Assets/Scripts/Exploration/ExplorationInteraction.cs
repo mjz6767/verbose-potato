@@ -34,7 +34,7 @@ namespace AshenHalls
 
         public bool HasTarget => Available && Target != null;
         public bool IsUnderfoot => StepX == 0 && StepY == 0;
-        public string ActionLine => HasTarget ? $"Space/E {Verb}: {TargetName}" : "";
+        public string ActionLine => HasTarget ? $"Space/E/A {Verb}: {TargetName}" : "";
 
         public static ExplorationInteraction None => new ExplorationInteraction(false, null, 0, 0, "", "", "target");
     }

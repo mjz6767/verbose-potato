@@ -232,79 +232,88 @@ namespace AshenHalls
             RectInt viewport = new RectInt(origin.X, origin.Y, viewW, viewH);
             if (!room.Overlaps(viewport)) return;
 
-            float wideScale = exploreWideView ? 0.82f : 1f;
-            DrawGrandHearthAmbienceCell(
-                GrandHearthScreenRect(
-                    grid,
-                    cell,
-                    origin,
-                    room.xMin + 0.10f,
-                    room.yMin + 0.55f,
-                    5.00f,
-                    4.30f),
-                GrandHearthArtCatalog.HearthLightCell,
-                0.28f * wideScale);
+            GUI.BeginGroup(grid);
+            try
+            {
+                grid = new Rect(0f, 0f, grid.width, grid.height);
+                float wideScale = exploreWideView ? 0.82f : 1f;
+                DrawGrandHearthAmbienceCell(
+                    GrandHearthScreenRect(
+                        grid,
+                        cell,
+                        origin,
+                        room.xMin + 0.10f,
+                        room.yMin + 0.55f,
+                        5.00f,
+                        4.30f),
+                    GrandHearthArtCatalog.HearthLightCell,
+                    0.28f * wideScale);
 
-            DrawGrandHearthAmbienceCellRotated(
-                GrandHearthScreenRect(
-                    grid,
-                    cell,
-                    origin,
-                    room.xMax - 4.65f,
-                    MidgaardInteriorRules.GrandHearthAisleY(state.Map) - 1.35f,
-                    4.85f,
-                    2.75f),
-                GrandHearthArtCatalog.StormDoorLightCell,
-                0.26f * wideScale,
-                90f);
+                DrawGrandHearthAmbienceCellRotated(
+                    GrandHearthScreenRect(
+                        grid,
+                        cell,
+                        origin,
+                        room.xMax - 4.65f,
+                        MidgaardInteriorRules.GrandHearthAisleY(state.Map) - 1.35f,
+                        4.85f,
+                        2.75f),
+                    GrandHearthArtCatalog.StormDoorLightCell,
+                    0.26f * wideScale,
+                    90f);
 
-            DrawGrandHearthAmbienceCell(
-                GrandHearthScreenRect(
-                    grid,
-                    cell,
-                    origin,
-                    room.xMax - 4.15f,
-                    room.yMin + 0.10f,
-                    2.35f,
-                    3.70f),
-                GrandHearthArtCatalog.WindowReflectionCell,
-                0.18f * wideScale);
+                DrawGrandHearthAmbienceCell(
+                    GrandHearthScreenRect(
+                        grid,
+                        cell,
+                        origin,
+                        room.xMax - 4.15f,
+                        room.yMin + 0.10f,
+                        2.35f,
+                        3.70f),
+                    GrandHearthArtCatalog.WindowReflectionCell,
+                    0.18f * wideScale);
 
-            float sconceAlpha = exploreWideView ? 0.48f : 0.65f;
-            DrawGrandHearthAmbienceCell(
-                GrandHearthScreenRect(
-                    grid,
-                    cell,
-                    origin,
-                    room.xMin - 0.05f,
-                    room.yMin + 2.45f,
-                    1.05f,
-                    1.35f),
-                GrandHearthArtCatalog.WallSconceCell,
-                sconceAlpha);
-            DrawGrandHearthAmbienceCell(
-                GrandHearthScreenRect(
-                    grid,
-                    cell,
-                    origin,
-                    room.xMax - 1.00f,
-                    room.yMin + 5.40f,
-                    1.05f,
-                    1.35f),
-                GrandHearthArtCatalog.WallSconceCell,
-                sconceAlpha);
+                float sconceAlpha = exploreWideView ? 0.48f : 0.65f;
+                DrawGrandHearthAmbienceCell(
+                    GrandHearthScreenRect(
+                        grid,
+                        cell,
+                        origin,
+                        room.xMin - 0.05f,
+                        room.yMin + 2.45f,
+                        1.05f,
+                        1.35f),
+                    GrandHearthArtCatalog.WallSconceCell,
+                    sconceAlpha);
+                DrawGrandHearthAmbienceCell(
+                    GrandHearthScreenRect(
+                        grid,
+                        cell,
+                        origin,
+                        room.xMax - 1.00f,
+                        room.yMin + 5.40f,
+                        1.05f,
+                        1.35f),
+                    GrandHearthArtCatalog.WallSconceCell,
+                    sconceAlpha);
 
-            DrawGrandHearthAmbienceCell(
-                GrandHearthScreenRect(
-                    grid,
-                    cell,
-                    origin,
-                    room.xMin + 1.20f,
-                    room.yMin + 0.15f,
-                    2.20f,
-                    3.25f),
-                GrandHearthArtCatalog.EmberMotesCell,
-                exploreWideView ? 0.52f : 0.72f);
+                DrawGrandHearthAmbienceCell(
+                    GrandHearthScreenRect(
+                        grid,
+                        cell,
+                        origin,
+                        room.xMin + 1.20f,
+                        room.yMin + 0.15f,
+                        2.20f,
+                        3.25f),
+                    GrandHearthArtCatalog.EmberMotesCell,
+                    exploreWideView ? 0.52f : 0.72f);
+            }
+            finally
+            {
+                GUI.EndGroup();
+            }
         }
     }
 }

@@ -1,6 +1,12 @@
-Ash & Brimstone v2.22.0 - Stone, Steel, and Sorcery
+Ash & Brimstone v2.23.0 - The Wayfinder's Atlas
 
-Current verified release: v2.22.0. Save schema: v27.
+Current release candidate: v2.23.0. Save schema: v27.
+
+The Region Map is now a deliberate route-planning surface. Focus a charted landmark with pointer, keyboard, or controller and choose Mark Route; focus the marked destination to Clear Route. Exact site centers and named junctions take precedence over broad overlapping footprints, while uncharted ground stays non-actionable. Region browsing never moves the party, advances time, or activates a nearby Local interaction.
+
+Strategic landmarks use distinct glyphs, compact underplates, and explicit focus treatment. Fog keeps known identities readable without leaking hidden danger; frontiers and wisps are quieter; the party marker stays visually separate from destinations; Region routes are dashed while Local travel remains continuous; and edge cues keep offscreen context compact. Region guidance uses bearings instead of movement-key instructions, while Local Map retains the actionable next-step key.
+
+Pointer and focus ownership now recover predictably across click, drag, wheel, recenter, keyboard, controller, and map replacement. HERE and focus summaries fit supported layouts, an interior route guides through its exit, and Grand Hearth ambience is clipped inside the map viewport. These presentation and interaction changes do not alter map topology, campaign progress, or save schema; Mark/Clear writes only the established route-waypoint field.
 
 Every physical inventory item now receives a stable identity as soon as it enters the Pack. Equipped weapon and armor links use those exact identities, while older owner labels remain a rebuilt compatibility mirror. Save v27 migrates older campaigns conservatively: unique legacy matches are repaired, but ambiguous identical copies fail closed instead of attaching themselves to the wrong adventurer.
 
@@ -46,11 +52,13 @@ Mage/warlock, support/hex, class-skill, travel, and aftermath art now stage auth
 
 The v2.20 signature sheet plus the v2.21 road-material pin bring the exact runtime manifest to 58 pins and the packaged art inventory to 92 PNGs. Earlier v2.12.1, v2.13, v2.14, v2.15, and title-atlas filenames retain their historical provenance labels.
 
-The Red Gate v2.12.0 campaign remains the production story baseline inside v2.22. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
+The Red Gate v2.12.0 campaign remains the production story baseline inside v2.23. After completing Glass and Ash, return to Scout Yara in Midgaard. Review and explicitly accept her crownward plan, then follow the exact Old Road, Bone Road, and Glass Road back to the far Red Gate Seal. The copied Emberglass key opens the inner war road only after that briefing; backing out changes nothing.
 
 Chapter V crosses three authored sites in order. Break the Red Gate Vanguard at the inner seal, carry its tally north to Gloam Deep Crypt for the Ossuary Road Seal, then take that seal south to Salt Cistern Gate and defeat the named Crownroad Marshal. Three matching patrol bands occupy the road. The later encounters remain locked until their required tally or seal has been recovered.
 
 Marshal victory grants exactly one +6 Crownward Emberglass Warblade and two supplies. Inspect Salt Cistern Gate again to chart the sealed Meteor Crown threshold and complete the chapter. Recall, retry, save/load repair, and depth-five re-entry preserve progress without duplicating rewards or arrival progression. Production exposes no generic depth-six stair or final-boss trigger.
+
+v2.23 candidate validation status: zero-diagnostic runtime/editor response compilation, ExplorationMapPolishSmoke, InventoryLootExperienceSmoke, RuleSmoke, SpriteArtRuntimeSmoke, focused combat UI, and full RuntimeBoot pass on the exact source snapshot. The committed clean retail build/package, canonical integrity check, clean-extracted boot, and final v2.23 packaged-player Local/Region capture matrix remain before promotion.
 
 v2.22 validation status: zero-diagnostic runtime/editor compilation, InventoryLootExperienceSmoke, RuleSmoke, SpriteArtRuntimeSmoke, focused combat UI, full RuntimeBoot, the clean retail Windows build/package, canonical integrity checks, clean-extracted player boot, and six accepted packaged-player Inventory/Loot captures all pass from release source commit `700cd4cf496ff1f97d2e6370b57b42927bb0c262`. The 229,948,882-byte retail ZIP SHA-256 is `b4120012d888bedab594dbeca19a12ee46908a384d9ea634243b4a69d9658338`; executable SHA-256 is `e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3`; managed-assembly SHA-256 is `2bec25f9e0c1841e59ec02328757e8e25046fb51aae1adba82a3459dfc2ef683`; and the accepted capture-set SHA-256 is `d87d21819860897dba396f36257e45421cde8aa0823f97321138603314810e7e`. The integrity record reports clean source, save v27, player exit 0, and 92 packaged PNGs. v2.21 remains preserved as rollback history. Physical-controller feel and a complete human Chapter I-V playthrough remain manual follow-ups.
 

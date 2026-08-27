@@ -52,6 +52,7 @@ namespace AshenHalls
         public const float AxisThreshold = 0.60f;
         public const float InitialRepeatDelay = 0.34f;
         public const float RepeatInterval = 0.10f;
+        public const float PointerDragThreshold = 7f;
 
         public static Point ClampFocus(int focusX, int focusY, int mapWidth, int mapHeight)
         {
@@ -140,6 +141,22 @@ namespace AshenHalls
         {
             int direction = scrollY > 0f ? 1 : scrollY < 0f ? -1 : 0;
             return horizontal ? new Point(direction, 0) : new Point(0, direction);
+        }
+
+        public static bool IsPointerDrag(float accumulatedX, float accumulatedY, float interfaceScale = 1f)
+        {
+            float threshold = PointerDragThreshold * Mathf.Max(0.75f, interfaceScale);
+            return accumulatedX * accumulatedX + accumulatedY * accumulatedY >= threshold * threshold;
+        }
+
+        public static bool ShouldRouteSubmitToWorld(bool explorationHudOwnsSelection)
+        {
+            return !explorationHudOwnsSelection;
+        }
+
+        public static bool ShouldShowMovementKeycap(bool regionMap)
+        {
+            return !regionMap;
         }
 
         private static int AxisDirection(float axis)

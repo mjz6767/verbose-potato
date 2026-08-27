@@ -375,7 +375,7 @@ namespace AshenHalls
             created.Bind(new ExplorationHudScreenBindings
             {
                 View = BuildExplorationHudView,
-                UseContextual = UseNearbyExploreObject,
+                UseContextual = UseExploreHudContextualAction,
                 OpenParty = () => ToggleArmory(ArmoryTab.Party),
                 OpenJournal = () => ToggleArmory(ArmoryTab.Journal),
                 ToggleDetails = ToggleExploreHud,
@@ -454,8 +454,11 @@ namespace AshenHalls
             float contentBottom = detailsButton.y - 8f * scale;
             float cursor = geometry.Side.y + 66f * scale;
             int partyCount = Mathf.Min(4, view.Party == null ? 0 : view.Party.Count);
+            bool regionMap = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase);
             string secondaryCopy = view.DetailsOpen
-                ? ((view.ZoneDetail ?? "") + "\n" + (view.LookLine ?? "")).Trim()
+                ? regionMap
+                    ? (view.ZoneDetail ?? "").Trim()
+                    : ((view.ZoneDetail ?? "") + "\n" + (view.LookLine ?? "")).Trim()
                 : view.NearbyLine;
             ExplorationHudFallbackRailLayout rail = ExplorationHudFallbackLayoutRules.CalculateRail(
                 view.DetailsOpen,
@@ -547,7 +550,7 @@ namespace AshenHalls
                 if (view.HasAction && rail.ActionHeight > 0f)
                 {
                     Rect ready = new Rect(sideInnerX, cursor, sideInnerW, rail.ActionHeight);
-                    if (DrawExploreFallbackAction(ready, view.ActionLabel, view.ActionTarget, true)) UseNearbyExploreObject();
+                    if (DrawExploreFallbackAction(ready, view.ActionLabel, view.ActionTarget, true)) UseExploreHudContextualAction();
                     cursor += ready.height + rail.PostActionGap;
                 }
 
@@ -574,7 +577,7 @@ namespace AshenHalls
             DrawExploreFallbackGroupSeparator(geometry.Command, commandLayout.SeparatorX, teal);
             bool oldEnabled = GUI.enabled;
             GUI.enabled = oldEnabled && view.HasAction;
-            if (DrawExploreFallbackAction(commandLayout.Action, view.HasAction ? view.ActionLabel : "Explore", view.HasAction ? view.ActionTarget : "No nearby action", view.HasAction)) UseNearbyExploreObject();
+            if (DrawExploreFallbackAction(commandLayout.Action, view.ActionLabel, view.ActionTarget, view.HasAction)) UseExploreHudContextualAction();
             GUI.enabled = oldEnabled;
             if (DrawExploreFallbackCommand(commandLayout.Map, exploreWideView ? "Local" : "Region", "Tab", "scroll", true)) ToggleExploreView();
             if (DrawExploreFallbackCommand(commandLayout.Journal, "Journal", "J", "timeline", true)) ToggleArmory(ArmoryTab.Journal);
@@ -866,18 +869,30 @@ namespace AshenHalls
 
             ExplorationInteraction interaction = CurrentExploreInteraction();
             Point focus = exploreWideView ? EnsureRegionMapFocus() : new Point(state.PlayerX, state.PlayerY);
-            bool focusCharted = state.Map != null && (!exploreWideView || IsExploreCellCharted(focus.X, focus.Y));
+            bool focusTerrainCharted = state.Map != null && IsExploreCellCharted(focus.X, focus.Y);
+            bool focusCharted = state.Map != null
+                && (!exploreWideView || IsRegionMapCellKnown(focus.X, focus.Y));
+            bool focusDangerKnown = !exploreWideView || focusTerrainCharted;
+            RegionMapRouteAction regionAction = exploreWideView
+                ? CurrentRegionMapRouteAction()
+                : default;
+            bool focusIsExactJunction = regionAction.HasAction
+                && regionAction.Target.Kind == RouteChartTargetKind.Junction
+                && regionAction.Target.X == focus.X
+                && regionAction.Target.Y == focus.Y;
             WorldZone zone = state.Map == null ? null : ZoneAt(focus.X, focus.Y);
             MapObject obj = focusCharted ? ObjectAt(state.Map, focus.X, focus.Y) : null;
             WorldMapSite regionalSite = default;
-            bool hasRegionalSite = focusCharted && TryRegionalSiteAt(
-                state.Map,
-                focus.X,
-                focus.Y,
-                out regionalSite);
+            bool hasRegionalSite = focusCharted
+                && !focusIsExactJunction
+                && TryRegionalSiteAt(
+                    state.Map,
+                    focus.X,
+                    focus.Y,
+                    out regionalSite);
             string nearbyAction = ExploreNearbyActionLine();
             string lookLine;
-            if (!string.IsNullOrEmpty(exploreHoverLookLine))
+            if (!exploreWideView && !string.IsNullOrEmpty(exploreHoverLookLine))
             {
                 lookLine = "Look: " + exploreHoverLookLine.Replace("\n", " / ");
             }
@@ -912,21 +927,37 @@ namespace AshenHalls
                 Elixirs = state.Elixirs.ToString(),
                 DetailsOpen = !exploreHudCollapsed,
                 ViewLabel = ExploreViewLabel(),
-                ZoneName = !focusCharted ? "Uncharted" : hasRegionalSite ? regionalSite.Name : zone?.Name ?? HomeTownName,
+                ZoneName = !focusCharted
+                    ? "Uncharted"
+                    : regionAction.HasAction
+                        ? regionAction.Target.Name
+                        : hasRegionalSite ? regionalSite.Name : zone?.Name ?? HomeTownName,
                 ZoneDetail = !focusCharted
                     ? $"BROWSE FOCUS {focus.X},{focus.Y} / travel closer to reveal"
+                    : focusIsExactJunction
+                        ? $"CHARTED JUNCTION {focus.X},{focus.Y} / Space, E, or A marks the route"
+                    : exploreWideView && !focusTerrainCharted
+                        ? $"CHARTED LANDMARK {focus.X},{focus.Y} / Space, E, or A marks the route"
                     : ExploreLocationDetailAt(zone, focus.X, focus.Y, hasRegionalSite),
-                DangerLabel = zone == null ? "" : focusCharted ? TravelDangerLabel(zone) : "UNKNOWN",
-                DangerColorHex = zone == null || !focusCharted ? "8da6b2" : ColorHtml(ZoneDangerColor(zone)),
+                DangerLabel = zone == null ? "" : focusDangerKnown ? TravelDangerLabel(zone) : "UNKNOWN",
+                DangerColorHex = zone == null || !focusDangerKnown ? "8da6b2" : ColorHtml(ZoneDangerColor(zone)),
                 LookLine = lookLine,
                 ObjectiveLine = string.IsNullOrEmpty(state.ActiveStory) ? "Follow the road and mark what the party learns." : state.ActiveStory,
                 ObjectiveSummary = ExploreObjectiveSummaryLine(),
                 WaypointLine = ExploreWaypointLine(),
                 NearbyLine = ExploreNearbySummaryLine(),
                 GrowthLine = PartyGrowthLine(),
-                HasAction = interaction.HasTarget,
-                ActionLabel = interaction.HasTarget ? interaction.Verb : "No Action",
-                ActionTarget = interaction.HasTarget ? interaction.TargetName : "Nothing nearby",
+                HasAction = exploreWideView ? regionAction.HasAction : interaction.HasTarget,
+                ActionLabel = exploreWideView
+                    ? regionAction.HasAction
+                        ? regionAction.Clearing ? "Clear Route" : "Mark Route"
+                        : "No Route"
+                    : interaction.HasTarget ? interaction.Verb : "No Action",
+                ActionTarget = exploreWideView
+                    ? regionAction.HasAction
+                        ? regionAction.Target.Name + " · Space / E / A"
+                        : "Choose a charted landmark"
+                    : interaction.HasTarget ? interaction.TargetName : "Nothing nearby",
                 Party = BuildExplorationHudPartyViews(),
                 Logs = BuildExplorationHudLogViews()
             };
@@ -1054,11 +1085,22 @@ namespace AshenHalls
             ExploreGuidancePlan plan = CurrentExploreGuidancePlan();
             if (!plan.HasTarget)
             {
-                return ExplorationGuidanceRules.Route("", "", -1);
+                return exploreWideView
+                    ? ExplorationGuidanceRules.OverviewRoute("", "", -1)
+                    : ExplorationGuidanceRules.Route("", "", -1);
             }
 
             if (plan.Immediate)
             {
+                if (exploreWideView)
+                {
+                    return ExplorationGuidanceRules.OverviewRoute(
+                        plan.TargetName,
+                        "",
+                        0,
+                        plan.MarkedWaypoint,
+                        plan.RouteBlocked);
+                }
                 return ExplorationGuidanceRules.UseNow(
                     plan.TargetName,
                     plan.Verb,
@@ -1069,12 +1111,19 @@ namespace AshenHalls
             int stepCount = plan.Path == null || plan.Path.Count == 0
                 ? -1
                 : Mathf.Max(0, plan.Path.Count - 1);
-            return ExplorationGuidanceRules.Route(
-                plan.TargetName,
-                direction,
-                stepCount,
-                plan.MarkedWaypoint,
-                plan.RouteBlocked);
+            return exploreWideView
+                ? ExplorationGuidanceRules.OverviewRoute(
+                    plan.TargetName,
+                    direction,
+                    stepCount,
+                    plan.MarkedWaypoint,
+                    plan.RouteBlocked)
+                : ExplorationGuidanceRules.Route(
+                    plan.TargetName,
+                    direction,
+                    stepCount,
+                    plan.MarkedWaypoint,
+                    plan.RouteBlocked);
         }
 
         private ExploreGuidancePlan CurrentExploreGuidancePlan()
@@ -1135,6 +1184,15 @@ namespace AshenHalls
             if (TryActiveRouteTarget(out RouteChartTarget activeWaypoint))
             {
                 IReadOnlyList<Point> waypointPath = ActiveRouteWaypointPath();
+                if ((waypointPath == null || waypointPath.Count == 0)
+                    && ActiveRouteWaypointIsOutsideCurrentInterior(activeWaypoint)
+                    && TryCurrentInteriorExit(out MapObject routeExit, out IReadOnlyList<Point> routeExitPath))
+                {
+                    ExploreGuidancePlan exitPlan = TravelExploreGuidancePlan(routeExit, routeExitPath);
+                    exitPlan.TargetName = activeWaypoint.Name + " via " + exitPlan.TargetName;
+                    exitPlan.MarkedWaypoint = true;
+                    return exitPlan;
+                }
                 return new ExploreGuidancePlan
                 {
                     TargetName = activeWaypoint.Name,
@@ -1638,6 +1696,15 @@ namespace AshenHalls
                     currentInterior,
                     MidgaardInteriorIdAt(target.X, target.Y, state.Map, state.Depth),
                     StringComparison.Ordinal));
+        }
+
+        private bool ActiveRouteWaypointIsOutsideCurrentInterior(RouteChartTarget waypoint)
+        {
+            if (state?.Map == null || waypoint.Kind == RouteChartTargetKind.None) return false;
+            string currentInterior = MidgaardInteriorIdAt(state.PlayerX, state.PlayerY, state.Map, state.Depth);
+            if (string.IsNullOrWhiteSpace(currentInterior)) return false;
+            string targetInterior = MidgaardInteriorIdAt(waypoint.X, waypoint.Y, state.Map, state.Depth);
+            return !string.Equals(currentInterior, targetInterior, StringComparison.Ordinal);
         }
 
         private bool TryCurrentInteriorExit(out MapObject exit, out IReadOnlyList<Point> path)

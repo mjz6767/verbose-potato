@@ -350,8 +350,15 @@ namespace AshenHalls.Editor
                 ExplorationHudView firstPlayDetailsView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
                 Assert(firstPlayDetailsView.DetailsOpen
                     && explorationHud.HasVisibleGoldenThreadForTest
-                    && explorationHud.GoldenThreadTextForTest == firstPlayView.WaypointLine,
-                    "Details keeps the same persistent Golden Thread visible");
+                    && explorationHud.GoldenThreadTextForTest == firstPlayDetailsView.WaypointLine
+                    && firstPlayDetailsView.WaypointLine.IndexOf(
+                        ExplorationGuidanceRules.DirectionName(firstPlayDirection),
+                        StringComparison.OrdinalIgnoreCase) >= 0
+                    && firstPlayDetailsView.WaypointLine.IndexOf("W / Up", StringComparison.Ordinal) < 0
+                    && firstPlayDetailsView.WaypointLine.IndexOf("S / Down", StringComparison.Ordinal) < 0
+                    && firstPlayDetailsView.WaypointLine.IndexOf("A / Left", StringComparison.Ordinal) < 0
+                    && firstPlayDetailsView.WaypointLine.IndexOf("D / Right", StringComparison.Ordinal) < 0,
+                    "Region Details keeps the persistent Golden Thread visible as a bearing rather than a Local movement command");
                 InvokePrivate(
                     game,
                     "ApplyVisualSmokeExploreView",
@@ -909,6 +916,12 @@ namespace AshenHalls.Editor
             int originalHeldY = GetPrivateField<int>(game, "exploreRegionHeldAxisY");
             float originalRepeatAt = GetPrivateField<float>(game, "exploreRegionNextRepeatAt");
             bool originalPointerDragging = GetPrivateField<bool>(game, "exploreRegionPointerDragging");
+            bool originalPointerMoved = GetPrivateField<bool>(game, "exploreRegionPointerMoved");
+            float originalPointerAccumulatedX = GetPrivateField<float>(game, "exploreRegionPointerAccumulatedX");
+            float originalPointerAccumulatedY = GetPrivateField<float>(game, "exploreRegionPointerAccumulatedY");
+            MapData originalPointerDownMap = GetPrivateField<MapData>(game, "exploreRegionPointerDownMap");
+            int originalPointerDownMapX = GetPrivateField<int>(game, "exploreRegionPointerDownMapX");
+            int originalPointerDownMapY = GetPrivateField<int>(game, "exploreRegionPointerDownMapY");
             float originalDragRemainderX = GetPrivateField<float>(game, "exploreRegionDragRemainderX");
             float originalDragRemainderY = GetPrivateField<float>(game, "exploreRegionDragRemainderY");
             int playerX = state.PlayerX;
@@ -925,6 +938,20 @@ namespace AshenHalls.Editor
             try
             {
                 SetPrivateField(game, "exploreWideView", true);
+                SetPrivateField(game, "exploreRegionPointerDragging", true);
+                SetPrivateField(game, "exploreRegionPointerMoved", true);
+                SetPrivateField(game, "exploreRegionPointerAccumulatedX", 5f);
+                SetPrivateField(game, "exploreRegionPointerAccumulatedY", -4f);
+                SetPrivateField(game, "exploreRegionPointerDownMap", state.Map);
+                SetPrivateField(game, "exploreRegionPointerDownMapX", playerX);
+                SetPrivateField(game, "exploreRegionPointerDownMapY", playerY);
+                InvokePrivate(game, "InvalidateExplorationController");
+                Assert(!GetPrivateField<bool>(game, "exploreRegionPointerDragging")
+                    && !GetPrivateField<bool>(game, "exploreRegionPointerMoved")
+                    && GetPrivateField<MapData>(game, "exploreRegionPointerDownMap") == null
+                    && GetPrivateField<int>(game, "exploreRegionPointerDownMapX") == -1
+                    && GetPrivateField<int>(game, "exploreRegionPointerDownMapY") == -1,
+                    "load/controller invalidation cancels a pending Region Map pointer gesture before map coordinates can be reused");
                 InvokePrivate(game, "ResetRegionMapFocusToParty");
                 Assert(GetPrivateField<int>(game, "exploreRegionFocusX") == playerX
                     && GetPrivateField<int>(game, "exploreRegionFocusY") == playerY,
@@ -940,9 +967,13 @@ namespace AshenHalls.Editor
                 Assert(pannedX != playerX || pannedY != playerY, "Region Map keeps a focus distinct from the party after panning");
                 Assert(pannedOrigin.X != partyOrigin.X || pannedOrigin.Y != partyOrigin.Y, "Region Map panning moves the live viewport origin");
                 ExplorationHudView pannedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                int pannedDistance = Math.Abs(pannedX - playerX) + Math.Abs(pannedY - playerY);
+                string pannedDirection = RouteChartRules.DirectionLabel(playerX, playerY, pannedX, pannedY);
                 Assert(pannedView.Title == "Region Map"
-                    && pannedView.FocusHint.IndexOf($"{pannedX},{pannedY}", StringComparison.Ordinal) >= 0,
-                    "Region Map HUD exposes the browsed coordinates without replacing the exploration HUD owner");
+                    && pannedView.FocusHint.IndexOf(
+                        $"Inspect {pannedDirection} {pannedDistance}",
+                        StringComparison.Ordinal) >= 0,
+                    "Region Map HUD exposes the browsed bearing and party distance without replacing the exploration HUD owner");
 
                 Assert(InvokePrivate<bool>(game, "IsExploreCellCharted", playerX, playerY), "party cell is charted for Region Map focus comparison");
                 InvokePrivate<bool>(game, "SetRegionMapFocus", playerX, playerY);
@@ -959,8 +990,23 @@ namespace AshenHalls.Editor
                 InvokePrivate<bool>(game, "SetRegionMapFocus", fogProbe.X, fogProbe.Y);
                 ExplorationHudView foggedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
                 Assert(foggedView.ZoneName == "Uncharted"
-                    && foggedView.ZoneDetail.IndexOf("travel closer", StringComparison.OrdinalIgnoreCase) >= 0,
+                    && foggedView.ZoneDetail.IndexOf("travel closer", StringComparison.OrdinalIgnoreCase) >= 0
+                    && foggedView.DangerLabel == "UNKNOWN"
+                    && foggedView.DangerColorHex == "8da6b2"
+                    && !foggedView.HasAction
+                    && foggedView.ActionLabel == "No Route"
+                    && foggedView.ActionTarget == "Choose a charted landmark",
                     "fogged Region Map focus gives bounded unknown-terrain feedback without revealing travel state");
+                InvokePrivate(game, "MarkUiDirty");
+                InvokePrivate(game, "LateUpdate");
+                Canvas.ForceUpdateCanvases();
+                ExplorationHudScreen fogHud = GetPrivateField<ExplorationHudScreen>(game, "explorationHudScreen");
+                Assert(fogHud != null, "fogged Region Map focus retains its live exploration HUD");
+                fogHud.Refresh();
+                Assert(!fogHud.HasContextualActionForTest
+                    && fogHud.ContextualActionLabelForTest == "No Route"
+                    && fogHud.ContextualActionTargetForTest == "Choose a charted landmark",
+                    "fogged Region Map HUD disables party-local use and explains how to find a strategic route target");
 
                 InvokePrivate(
                     game,
@@ -1008,6 +1054,267 @@ namespace AshenHalls.Editor
                         "synchronized Region Map browsing preserves usable uGUI geometry without emergency fallback at a supported viewport ("
                         + hudDiagnostics + ")");
                 }
+
+                WorldMapJunction[] routeProbeJunctions = WorldMapGenerationRules.RegionalJunctions(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY);
+                WorldMapSite[] routeProbeSites = WorldMapGenerationRules.RegionalSites(
+                    state.Map.Width,
+                    state.Map.Height,
+                    state.Map.StartX,
+                    state.Map.StartY);
+                WorldMapJunction routeProbe = routeProbeJunctions.FirstOrDefault(candidate => !routeProbeSites.Any(site =>
+                    Math.Max(Math.Abs(site.X - candidate.X), Math.Abs(site.Y - candidate.Y)) <= site.Radius));
+                Assert(!string.IsNullOrEmpty(routeProbe.Id),
+                    "regional route catalog retains a junction outside authored site footprints for an isolated live probe");
+                string routeProbeDiscovery = RouteChartRules.DiscoveryKey(state.Depth, routeProbe.Id);
+                bool addedRouteProbeDiscovery = !RouteChartRules.IsCharted(
+                    state.DiscoveredZones,
+                    state.Depth,
+                    routeProbe.Id);
+                List<LogEntry> logsBeforeRouteProbe = state.Log == null
+                    ? null
+                    : state.Log.ToList();
+                string bannerBeforeRouteProbe = GetPrivateField<string>(game, "bannerText");
+                float bannerUntilBeforeRouteProbe = GetPrivateField<float>(game, "bannerUntil");
+                try
+                {
+                    if (addedRouteProbeDiscovery) state.DiscoveredZones.Add(routeProbeDiscovery);
+                    state.ActiveRouteWaypointKey = "";
+                    InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+                    string storyGuidanceBeforeMark = InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName");
+                    string storyWaypointBeforeMark = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView").WaypointLine;
+                    InvokePrivate<bool>(game, "SetRegionMapFocus", routeProbe.X, routeProbe.Y);
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                    hud.Refresh();
+
+                    ExplorationHudView markView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                    Assert(markView.ZoneName == routeProbe.Name
+                        && markView.HasAction
+                        && markView.ActionLabel == "Mark Route"
+                        && markView.ActionTarget.IndexOf(routeProbe.Name, StringComparison.Ordinal) >= 0,
+                        "charted Region Map focus owns one explicit Mark Route action instead of a party-local command");
+                    if (!InvokePrivate<bool>(game, "IsExploreCellCharted", routeProbe.X, routeProbe.Y))
+                    {
+                        Assert(markView.DangerLabel == "UNKNOWN" && markView.DangerColorHex == "8da6b2",
+                            "a known route marker in fog reveals its identity without leaking the underlying zone danger");
+                    }
+                    Assert(hud.HasContextualActionForTest
+                        && hud.ContextualActionLabelForTest == "Mark Route"
+                        && hud.ContextualActionTargetForTest.IndexOf(routeProbe.Name, StringComparison.Ordinal) >= 0,
+                        "live exploration HUD publishes the focused route action and target");
+
+                    hud.InvokeContextualActionForTest();
+                    string expectedWaypoint = RouteChartRules.WaypointKey(state.Depth, routeProbe.Id);
+                    Assert(state.ActiveRouteWaypointKey == expectedWaypoint,
+                        "invoking the live Region Map action writes only the canonical focused waypoint");
+                    Assert(InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName").StartsWith(routeProbe.Name, StringComparison.Ordinal),
+                        "new Region Map waypoint invalidates route caches and immediately owns NEXT guidance");
+                    IReadOnlyList<Point> markedPath = InvokePrivate<IReadOnlyList<Point>>(game, "CurrentExploreGuidancePath");
+                    ExplorationHudView markedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                    Assert(InvokePrivate<bool>(game, "CurrentExploreGuidanceIsMarked")
+                        && markedPath != null
+                        && markedPath.Count > 0
+                        && markedPath[0].X == playerX
+                        && markedPath[0].Y == playerY
+                        && markedView.WaypointLine.IndexOf("Marked:", StringComparison.OrdinalIgnoreCase) >= 0,
+                        "marked Region route owns a rooted path and explicit marked NEXT copy");
+                    Assert(state.PlayerX == playerX && state.PlayerY == playerY
+                        && state.ExplorationSteps == explorationSteps,
+                        "marking a route never moves the party or advances exploration time");
+
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                    hud.Refresh();
+                    Assert(hud.HasContextualActionForTest
+                        && hud.ContextualActionLabelForTest == "Clear Route",
+                        "focused active waypoint immediately changes the live action to Clear Route");
+                    hud.InvokeContextualActionForTest();
+                    Assert(string.IsNullOrEmpty(state.ActiveRouteWaypointKey),
+                        "invoking Clear Route removes the focused waypoint without another screen");
+                    ExplorationHudView clearedView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                    Assert(!InvokePrivate<bool>(game, "CurrentExploreGuidanceIsMarked")
+                        && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName") == storyGuidanceBeforeMark
+                        && clearedView.WaypointLine == storyWaypointBeforeMark,
+                        "clearing a Region route immediately restores the prior story NEXT guidance");
+                }
+                finally
+                {
+                    state.ActiveRouteWaypointKey = activeWaypoint;
+                    InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+                    if (addedRouteProbeDiscovery) state.DiscoveredZones.Remove(routeProbeDiscovery);
+                    if (logsBeforeRouteProbe != null && state.Log != null)
+                    {
+                        state.Log.Clear();
+                        state.Log.AddRange(logsBeforeRouteProbe);
+                    }
+                    SetPrivateField(game, "bannerText", bannerBeforeRouteProbe);
+                    SetPrivateField(game, "bannerUntil", bannerUntilBeforeRouteProbe);
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                }
+
+                WorldMapSite routeSiteProbe = routeProbeSites.FirstOrDefault(site => !string.IsNullOrEmpty(site.Id));
+                Assert(!string.IsNullOrEmpty(routeSiteProbe.Id) && routeSiteProbe.Radius > 0,
+                    "regional route catalog retains a site with an authored strategic footprint");
+                Point routeSiteFocus = null;
+                for (int dx = -routeSiteProbe.Radius; dx <= routeSiteProbe.Radius && routeSiteFocus == null; dx++)
+                {
+                    for (int dy = -routeSiteProbe.Radius; dy <= routeSiteProbe.Radius; dy++)
+                    {
+                        int x = routeSiteProbe.X + dx;
+                        int y = routeSiteProbe.Y + dy;
+                        if (Math.Max(Math.Abs(dx), Math.Abs(dy)) != routeSiteProbe.Radius) continue;
+                        if (x < 0 || y < 0 || x >= state.Map.Width || y >= state.Map.Height) continue;
+                        if (routeProbeJunctions.Any(junction => junction.X == x && junction.Y == y)) continue;
+                        routeSiteFocus = new Point(x, y);
+                        break;
+                    }
+                }
+                Assert(routeSiteFocus != null, "charted site live probe has a non-junction footprint edge");
+                WorldMapJunction overlappingRouteJunction = routeProbeJunctions.FirstOrDefault(junction =>
+                    Math.Max(
+                        Math.Abs(routeSiteProbe.X - junction.X),
+                        Math.Abs(routeSiteProbe.Y - junction.Y)) <= routeSiteProbe.Radius);
+                Assert(!string.IsNullOrEmpty(overlappingRouteJunction.Id),
+                    "production site footprint retains its authored overlapping junction presentation fixture");
+                string routeSiteChartFlag = WorldSiteInteractionRules.ChartFlag(state.Depth, routeSiteProbe.Id);
+                bool addedRouteSiteChartFlag = !state.StoryFlags.Contains(routeSiteChartFlag);
+                string overlapDiscovery = RouteChartRules.DiscoveryKey(state.Depth, overlappingRouteJunction.Id);
+                bool addedOverlapDiscovery = !RouteChartRules.IsCharted(
+                    state.DiscoveredZones,
+                    state.Depth,
+                    overlappingRouteJunction.Id);
+                List<LogEntry> logsBeforeRouteSiteProbe = state.Log == null ? null : state.Log.ToList();
+                string bannerBeforeRouteSiteProbe = GetPrivateField<string>(game, "bannerText");
+                float bannerUntilBeforeRouteSiteProbe = GetPrivateField<float>(game, "bannerUntil");
+                try
+                {
+                    if (addedRouteSiteChartFlag) state.StoryFlags.Add(routeSiteChartFlag);
+                    if (addedOverlapDiscovery) state.DiscoveredZones.Add(overlapDiscovery);
+                    state.ActiveRouteWaypointKey = "";
+                    InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+                    InvokePrivate<bool>(game, "SetRegionMapFocus", overlappingRouteJunction.X, overlappingRouteJunction.Y);
+                    ExplorationHudView overlapView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                    Assert(overlapView.ZoneName == overlappingRouteJunction.Name
+                        && overlapView.ActionTarget.IndexOf(overlappingRouteJunction.Name, StringComparison.Ordinal) >= 0
+                        && overlapView.ZoneDetail.IndexOf("CHARTED JUNCTION", StringComparison.OrdinalIgnoreCase) >= 0
+                        && overlapView.ZoneDetail.IndexOf(routeSiteProbe.Name, StringComparison.OrdinalIgnoreCase) < 0
+                        && overlapView.ZoneDetail.IndexOf("SERVICE", StringComparison.OrdinalIgnoreCase) < 0,
+                        "exact production junction presentation beats its enclosing site's name and service detail");
+                    InvokePrivate<bool>(game, "SetRegionMapFocus", routeSiteFocus.X, routeSiteFocus.Y);
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                    hud.Refresh();
+
+                    ExplorationHudView siteMarkView = InvokePrivate<ExplorationHudView>(game, "BuildExplorationHudView");
+                    Assert(siteMarkView.ZoneName == routeSiteProbe.Name
+                        && siteMarkView.HasAction
+                        && siteMarkView.ActionLabel == "Mark Route"
+                        && siteMarkView.ActionTarget.IndexOf(routeSiteProbe.Name, StringComparison.Ordinal) >= 0,
+                        "charted site footprint edge owns one explicit live Region route action");
+                    if (!InvokePrivate<bool>(game, "IsExploreCellCharted", routeSiteFocus.X, routeSiteFocus.Y))
+                    {
+                        Assert(siteMarkView.DangerLabel == "UNKNOWN" && siteMarkView.DangerColorHex == "8da6b2",
+                            "charted site identity remains visible through fog without revealing zone danger");
+                    }
+                    hud.InvokeContextualActionForTest();
+                    Assert(state.ActiveRouteWaypointKey == RouteChartRules.SiteWaypointKey(state.Depth, routeSiteProbe.Id)
+                        && InvokePrivate<bool>(game, "CurrentExploreGuidanceIsMarked")
+                        && InvokePrivate<string>(game, "CurrentExploreGuidanceTargetName").StartsWith(routeSiteProbe.Name, StringComparison.Ordinal),
+                        "live site Mark Route writes the canonical site key and refreshes strategic guidance");
+
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                    hud.Refresh();
+                    Assert(hud.ContextualActionLabelForTest == "Clear Route",
+                        "active site route changes the live footprint action to Clear Route");
+                    hud.InvokeContextualActionForTest();
+                    Assert(string.IsNullOrEmpty(state.ActiveRouteWaypointKey)
+                        && !InvokePrivate<bool>(game, "CurrentExploreGuidanceIsMarked"),
+                        "live site Clear Route restores unmarked story guidance");
+                }
+                finally
+                {
+                    state.ActiveRouteWaypointKey = activeWaypoint;
+                    InvokePrivate(game, "InvalidateActiveRouteWaypointPath");
+                    if (addedRouteSiteChartFlag) state.StoryFlags.Remove(routeSiteChartFlag);
+                    if (addedOverlapDiscovery) state.DiscoveredZones.Remove(overlapDiscovery);
+                    if (logsBeforeRouteSiteProbe != null && state.Log != null)
+                    {
+                        state.Log.Clear();
+                        state.Log.AddRange(logsBeforeRouteSiteProbe);
+                    }
+                    SetPrivateField(game, "bannerText", bannerBeforeRouteSiteProbe);
+                    SetPrivateField(game, "bannerUntil", bannerUntilBeforeRouteSiteProbe);
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                }
+
+                int localProbeFacingX = GetPrivateField<int>(game, "exploreFacingX");
+                int localProbeFacingY = GetPrivateField<int>(game, "exploreFacingY");
+                GameState localProbeState = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(state));
+                Assert(localProbeState?.Map != null, "Local contextual-action probe clones campaign state for isolation");
+                SetPrivateField(game, "state", localProbeState);
+                try
+                {
+                    InvokePrivate(game, "InvalidateExplorationController");
+                    MapObject localProbe = FindAdjacentProbeTarget(
+                        game,
+                        localProbeState,
+                        out int localProbeStandX,
+                        out int localProbeStandY);
+                    Assert(localProbe != null && IsPreferredProbeObject(localProbe),
+                        "live map retains a benign dialogue target for Local contextual-action routing");
+                    localProbeState.PlayerX = localProbeStandX;
+                    localProbeState.PlayerY = localProbeStandY;
+                    SetPrivateField(game, "exploreFacingX", localProbe.X - localProbeStandX);
+                    SetPrivateField(game, "exploreFacingY", localProbe.Y - localProbeStandY);
+                    SetPrivateField(game, "exploreWideView", false);
+                    InvokePrivate(game, "InvalidateExplorationController");
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                    hud.Refresh();
+
+                    ExplorationInteraction localInteraction = InvokePrivate<ExplorationInteraction>(game, "CurrentExploreInteraction");
+                    Assert(localInteraction.HasTarget
+                        && ReferenceEquals(localInteraction.Target, localProbe)
+                        && hud.HasContextualActionForTest
+                        && hud.ContextualActionLabelForTest == localInteraction.Verb,
+                        "Local HUD publishes the same nearby interaction resolved by world context");
+                    hud.InvokeContextualActionForTest();
+                    InvokePrivate(game, "LateUpdate");
+                    Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Dialogue,
+                        "the shared HUD contextual binding dispatches the Local nearby action exactly once");
+                    InvokePrivate(game, "CloseDialogue");
+                    InvokePrivate(game, "LateUpdate");
+                }
+                finally
+                {
+                    if (InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") == UiOverlay.Dialogue)
+                    {
+                        InvokePrivate(game, "CloseDialogue");
+                    }
+                    SetPrivateField(game, "state", state);
+                    SetPrivateField(game, "exploreFacingX", localProbeFacingX);
+                    SetPrivateField(game, "exploreFacingY", localProbeFacingY);
+                    SetPrivateField(game, "exploreWideView", true);
+                    InvokePrivate(game, "InvalidateExplorationController");
+                    InvokePrivate(game, "MarkUiDirty");
+                    InvokePrivate(game, "LateUpdate");
+                    Canvas.ForceUpdateCanvases();
+                }
+
                 FieldInfo mapButtonField = typeof(ExplorationHudScreen).GetField(
                     "mapButton",
                     BindingFlags.Instance | BindingFlags.NonPublic);
@@ -1053,6 +1360,12 @@ namespace AshenHalls.Editor
                 SetPrivateField(game, "exploreRegionHeldAxisY", originalHeldY);
                 SetPrivateField(game, "exploreRegionNextRepeatAt", originalRepeatAt);
                 SetPrivateField(game, "exploreRegionPointerDragging", originalPointerDragging);
+                SetPrivateField(game, "exploreRegionPointerMoved", originalPointerMoved);
+                SetPrivateField(game, "exploreRegionPointerAccumulatedX", originalPointerAccumulatedX);
+                SetPrivateField(game, "exploreRegionPointerAccumulatedY", originalPointerAccumulatedY);
+                SetPrivateField(game, "exploreRegionPointerDownMap", originalPointerDownMap);
+                SetPrivateField(game, "exploreRegionPointerDownMapX", originalPointerDownMapX);
+                SetPrivateField(game, "exploreRegionPointerDownMapY", originalPointerDownMapY);
                 SetPrivateField(game, "exploreRegionDragRemainderX", originalDragRemainderX);
                 SetPrivateField(game, "exploreRegionDragRemainderY", originalDragRemainderY);
                 InvokePrivate(game, "MarkUiDirty");

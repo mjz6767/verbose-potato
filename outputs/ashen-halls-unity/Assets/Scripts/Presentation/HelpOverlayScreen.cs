@@ -102,14 +102,14 @@ namespace AshenHalls
                     Lines = new[]
                     {
                         "Local Map: hold WASD / arrows / left stick to keep walking; tap for one tile. Click adjacent tiles to walk.",
-                        "Space / E: use the highlighted nearby target: talk, loot, enter, recall, or descend.",
-                        "Q: Details. Tab / gamepad Y: Local/Region. Region Map: WASD/arrows/left stick, drag, or wheel pan; Home/gamepad X finds the party.",
+                        "Space / E / controller A: use the highlighted nearby target: talk, loot, enter, recall, or descend.",
+                        "Q: Details. Tab / gamepad Y: Local/Region. Region Map: pan with keys, stick, drag, or wheel; Space/E/A marks a charted route marker; Home / gamepad X finds the party.",
                         "I: Armory. Its Growth tab previews and spends earned points. J: Journal. C: spell reference.",
                         "P or Esc: Menu for save, load, settings, return, or new game.",
                         "You begin among the patrons in Town Hall's Grand Hearth: follow NEXT to leave through its storm doors and begin the journey.",
                         "Midgaard begins the sewer contract: speak with the king, gather supplies, then clear the rat den.",
                         "East and west gates are pass-through roads. North and south gates are sealed for now.",
-                        "If a path feels blocked, bump the object or use Space/E beside it."
+                        "If a path feels blocked, bump the object or use Space/E/A beside it."
                     }
                 };
             }
