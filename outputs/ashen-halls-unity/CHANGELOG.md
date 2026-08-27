@@ -9,6 +9,8 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Rebuilt strategic map readability with a distinct landmark-glyph atlas, neutral known-through-fog summaries, restrained fog wisps and frontiers, stronger party/focus silhouettes, dashed Region routes, continuous Local routes, and compact edge cues. Hidden danger remains unknown until legitimately revealed.
 - Tightened route guidance and responsive copy. Region bearings are input-free, Local keeps actionable movement keys, interiors guide through their exit, HERE and focus summaries fit the supported layouts, and the Grand Hearth ambience layer is clipped to the map viewport.
 - Added focused deterministic map contracts plus live RuntimeBoot coverage for routing precedence, mutation-free browsing and waypoint-only actions, input ownership, fog privacy, local interaction dispatch, viewport recovery, and save-blocked visual staging. Save schema remains v27.
+- Hardened final-player visual capture teardown with a bounded renderer-settle frame so accepted D3D11 screenshots auto-exit cleanly instead of racing retail shutdown.
+- Final zero-diagnostic runtime/editor compilation, ExplorationMapPolishSmoke, InventoryLootExperienceSmoke, RuleSmoke, SpriteArtRuntimeSmoke, focused combat UI, full RuntimeBoot, clean retail packaging, canonical integrity, clean-extracted boot, and eight supported-resolution Local/Region captures pass from release source commit `814a676f3e41c97611af7321b0d8a1dba1831557`. The 229,955,904-byte ZIP SHA-256 is `5caeb235378e5d8d518553d64878139658419518a240e0a28bac40f2d4bdec18`; the accepted capture-set SHA-256 is `6700d3cb7a907f5c15b9d800f4425eee9b9027fb27da1d0728e9eed31d684e6f`.
 
 ## v2.22.0 - Stone, Steel, and Sorcery
 

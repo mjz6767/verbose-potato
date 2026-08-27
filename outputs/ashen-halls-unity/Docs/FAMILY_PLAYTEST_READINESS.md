@@ -2,7 +2,15 @@
 
 ## Current Release
 
-`v2.22.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It keeps the accepted v2.21 art/content package while adding stable physical-item identity, canonical equipment links, conservative save-v27 migration, exact Pack/Loot selection, and focus recovery after equipped rows reorder. Runtime/editor compilation, all integrated Unity smoke gates, clean retail packaging and clean-extracted boot, and a six-capture Inventory/Loot matrix pass from release source commit `700cd4cf496ff1f97d2e6370b57b42927bb0c262`. The verified v2.21.0 and v2.19.0 packages remain preserved as rollback history.
+`v2.23.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It preserves v2.22 stable inventory identity and save v27 while turning Region Map focus into exact charted-landmark route planning, hardening pointer/controller ownership and fog privacy, and rebuilding strategic map hierarchy across the supported resolutions. Runtime/editor compilation, all integrated Unity smoke gates, clean retail packaging and clean-extracted boot, and an eight-capture Local/Region matrix pass from release source commit `814a676f3e41c97611af7321b0d8a1dba1831557`. The verified v2.22.0, v2.21.0, and v2.19.0 packages remain preserved as rollback history.
+
+## The Wayfinder's Atlas v2.23 - Release Gates Pass
+
+- Region Map focus offers exact Mark Route and Clear Route actions for charted landmarks. Site centers and named junctions outrank broad overlapping footprints, while browsing stays separate from Local movement and nearby-use dispatch.
+- Known identities can remain readable through fog without revealing hidden danger. Distinct landmark glyphs, party/focus silhouettes, dashed Region paths, continuous Local paths, quiet frontiers, and compact edge cues remain legible from 960x600 through 1920x1080.
+- Pointer gestures invalidate across wheel, recenter, navigation, controller, and map replacement; Region guidance uses bearings without movement keys, Local retains actionable keys, interiors guide through exits, and Grand Hearth ambience stays clipped to the viewport.
+- Zero-diagnostic compilation, ExplorationMapPolishSmoke, InventoryLootExperienceSmoke, RuleSmoke, SpriteArtRuntimeSmoke, focused combat UI, full RuntimeBoot, clean package/integrity/clean-extract gates, and eight supported-resolution captures pass. The 229,955,904-byte retail ZIP has SHA-256 `5caeb235378e5d8d518553d64878139658419518a240e0a28bac40f2d4bdec18`; the capture set has SHA-256 `6700d3cb7a907f5c15b9d800f4425eee9b9027fb27da1d0728e9eed31d684e6f`.
+- Physical-controller feel and a complete human Chapter I-V playthrough remain manual follow-ups.
 
 ## Stable Inventory Identity v2.22 - Release Gates Pass
 
