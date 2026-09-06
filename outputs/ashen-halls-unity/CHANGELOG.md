@@ -19,6 +19,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Rejected zero/negative combat path costs, clamped external movement-budget results, and stopped route guidance from steering toward inert blocking scenery.
 - Restored `InventoryLootExperienceSmoke` to the Windows build gate and added regression contracts for all of the above. Save schema remains v27.
 - Added a tracked, sanitized v2.23 release-evidence summary because the full local logs and capture folders are intentionally ignored.
+- Full Unity audit, all embedded build gates, clean-source Windows packaging, and clean-extracted boot pass from `a12cb8babc90e9190301d23c2f68fb27ec88eb92`. The v2.24 evidence summary records archive hashes and the pending final-player visual/live-input checks explicitly; the hidden-window capture was rejected and is not counted as a visual pass.
 
 ## v2.23.0 - The Wayfinder's Atlas
 

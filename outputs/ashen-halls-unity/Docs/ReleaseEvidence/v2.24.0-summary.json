@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.24.0",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-09-06T18:45:40.9113480Z",
+  "reviewModel": "gpt-6-astra",
+  "sourceCommit": "a12cb8babc90e9190301d23c2f68fb27ec88eb92",
+  "sourceDirty": false,
+  "package": {
+    "file": "AshAndBrimstone-Windows-v2.24.0.zip",
+    "bytes": 229972808,
+    "sha256": "ab6cb675f31bb5abbaf51c089c2697e44c0950888e2bdf178ceecb64b7ea63cf",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "2bc74cd7115594a03d32286e4835298661c7e23d8adbdb80842a610b74e0b129",
+    "cleanExtractLaunch": true,
+    "playerExitCode": 0,
+    "packagedArtCount": 92
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "exitCode": 0,
+    "passed": [
+      "Rules, including combat status lifecycle, resume, input ownership, and drain outcomes",
+      "Inventory and loot",
+      "Sprite art",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "rejectsLoggedErrors": true,
+    "repeatedDuringWindowsBuild": true
+  },
+  "visualQa": {
+    "status": "pending-visible-player-review",
+    "captureCount": 0,
+    "deterministicPassed": false,
+    "aiReviewPerformed": false,
+    "rejectedAttempt": {
+      "mode": "combat-overview",
+      "resolution": "960x600",
+      "windowStyle": "Hidden",
+      "failure": "NearUniformBlack",
+      "accepted": false
+    },
+    "note": "The hidden-window capture was rejected by the pixel acceptance gate. No final-player visual pass is claimed; visible test-window approval was requested but not received before this evidence record. Earlier editor UI evidence remains in audit-2026-09-05.json and is not a substitute for final-player acceptance."
+  },
+  "inputReview": {
+    "automatedRuntimeHandlerTestsPassed": true,
+    "liveKeyboardPointerPerformed": false,
+    "physicalControllerPerformed": false
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/v2.24.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "fe8ec066075d152b8e8d7b6ac4ae4ac8b4bc6e07c6118de344a0db621377b94b",
+      "tracked": false
+    },
+    {
+      "path": "QA/project-audit/20260906-183530-5cfa9b13/unity.log",
+      "sha256": "08f5e016ce585521baeebb90ad53390086355dc90e56762b9a492bf608fcca9d",
+      "tracked": false
+    },
+    {
+      "path": "build-v2.24.0.log",
+      "sha256": "70ef40d632212b6781423cffc6108e81a4356c46b86557a6d2923c6c9bb5d9f3",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.24.0-release-visuals-a12cb8b/combat-overview-960x600.log",
+      "sha256": "2a05bbcd8c1f9d419979b9085eeacec2853a40d73dfbcb781a240a47083c03aa",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "This compact tracked file indexes retained local evidence; raw logs, manifests, captures, and the ZIP remain local and ignored.",
+    "This evidence commit follows the immutable package build; the archive retains its pre-verification documentation snapshot.",
+    "Final-player visual and live keyboard/pointer checks remain pending. Physical-controller feel, subjective sound/Reduced Motion assessment, and a complete human Chapter I-V playthrough are not certified."
+  ]
+}

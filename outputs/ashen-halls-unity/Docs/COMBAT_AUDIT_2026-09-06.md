@@ -20,6 +20,8 @@ Three Astra reviews covered status/damage resolution, combat input ownership, an
 
 ## Release evidence
 
-The canonical packaging workflow requires a committed clean source tree, builds the Windows player, checks package-selected art against source, and boots a clean extraction before promoting the archive. The post-verification summary in `Docs/ReleaseEvidence/v2.24.0-summary.json` records the source commit, archive/assembly hashes, capture evidence, and input-review result. Its evidence commit follows the immutable package build, as in prior releases.
+The full Unity audit and all five embedded Windows build gates passed. The canonical packaging workflow built clean source commit `a12cb8babc90e9190301d23c2f68fb27ec88eb92`, checked all 92 selected art PNGs, and booted a clean extraction with exit 0. The 229,972,808-byte archive has SHA-256 `ab6cb675f31bb5abbaf51c089c2697e44c0950888e2bdf178ceecb64b7ea63cf`.
+
+The summary in `Docs/ReleaseEvidence/v2.24.0-summary.json` records those passes and their local evidence hashes. Its documentation-only evidence commit follows the immutable package build, as in prior releases. The first final-player screenshot was correctly rejected as uniformly black with the window hidden. Visible-window approval was requested; final-player visual and live keyboard/pointer review remain pending and are not claimed as passes.
 
 Physical-controller feel, subjective sound/Reduced Motion assessment, and a complete human Chapter I-V playthrough remain manual checks. The focused automated and keyboard/pointer checks do not claim those broader experiences.
