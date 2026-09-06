@@ -55,6 +55,9 @@ namespace AshenHalls
 
     public static class CombatPowerOutcomeRules
     {
+        // StatusValues stores harmful effects first, followed by beneficial ones.
+        private const int AilmentStatusCount = 6;
+
         public static CombatPowerOutcomeSnapshot Capture(CombatState combat)
         {
             CombatPowerOutcomeSnapshot snapshot = new CombatPowerOutcomeSnapshot();
@@ -126,7 +129,7 @@ namespace AshenHalls
                     }
                     else if (prior.Statuses[i] > 0 && next.Statuses[i] < prior.Statuses[i])
                     {
-                        ailmentsCleared++;
+                        if (i < AilmentStatusCount) ailmentsCleared++;
                         affected.Add(pair.Key);
                     }
                 }
@@ -206,9 +209,9 @@ namespace AshenHalls
                 unit.Stunned,
                 unit.Sleeping,
                 unit.Webbed,
+                unit.Hexed,
                 unit.Shielded,
                 unit.Regenerating,
-                unit.Hexed,
                 unit.Stealthed
             };
         }

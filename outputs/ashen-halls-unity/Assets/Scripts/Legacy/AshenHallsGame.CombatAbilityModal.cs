@@ -831,6 +831,7 @@ namespace AshenHalls
                 {
                     SuppressBoardPointer();
                     showSpellbook = false;
+                    ActivateCombatBoardCursor(active, false, true);
                     SyncCombatAbilityModalScreen();
                     SyncCombatHudScreen();
                     PlaySfx("ui", 0.45f);
@@ -883,6 +884,7 @@ namespace AshenHalls
             {
                 SuppressBoardPointer();
                 showAbilityPanel = false;
+                ActivateCombatBoardCursor(active, false, true);
                 SyncCombatAbilityModalScreen();
                 SyncCombatHudScreen();
                 PlaySfx("ui", 0.45f);

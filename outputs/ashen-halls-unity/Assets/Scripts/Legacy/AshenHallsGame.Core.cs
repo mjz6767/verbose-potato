@@ -476,6 +476,7 @@ namespace AshenHalls
                 ValidateContentCatalogs();
                 musicSource.clip = tavernMusicClip;
                 NewMuster();
+                RestoreGameSettingsPreferences();
                 ApplyAudioSettings();
                 InitializePresentationScreens();
                 ApplyVisualSmokeLaunchMode(commandLineArgs);
@@ -2217,6 +2218,9 @@ namespace AshenHalls
                     : state.MusicMuted
                         ? "Music Muted"
                         : $"Music {state.MusicVolumePercent}%",
+                MotionLine = state != null && state.ReducedMotion
+                    ? "Reduced Motion: On"
+                    : "Reduced Motion: Off",
                 SettingsOpen = pauseSettingsOpen,
                 ShowRetreat = showRetreat,
                 RetreatEnabled = showRetreat && CombatRetreatRules.CanAfford(state),
@@ -2613,6 +2617,10 @@ namespace AshenHalls
             }
             if (IsStartupSplashVisible()) return;
 
+            // Let the selected native name field own typing and submission.
+            // In particular B, M, minus, and Return must not dispatch shortcuts.
+            if (UiRuntime.HasTextInputFocus()) return;
+
             if (Input.GetKeyDown(KeyCode.F5)) SaveGame();
             if (Input.GetKeyDown(KeyCode.F9)) LoadGame();
             if (Input.GetKeyDown(KeyCode.F1))
@@ -2658,7 +2666,7 @@ namespace AshenHalls
             if (state != null && state.Mode == GameMode.Explore && CanAcceptGameplayInput() && Input.GetKeyDown(KeyCode.C)) ToggleArmory(ArmoryTab.Spells);
 
             if (state == null) return;
-            if (state.Mode == GameMode.Tavern)
+            if (state.Mode == GameMode.Tavern && CanAcceptGameplayInput())
             {
                 if (DeveloperTestingHotkeyPressed())
                 {
@@ -2670,9 +2678,13 @@ namespace AshenHalls
                 if (Input.GetKeyDown(KeyCode.S)) ToggleTavernSettings();
                 if (Input.GetKeyDown(KeyCode.T)) ToggleTavernTesting();
             }
-            else if (state.Mode == GameMode.Muster)
+            else if (state.Mode == GameMode.Muster && CanAcceptGameplayInput())
             {
-                if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter)) QuickStart();
+                GameObject selectedControl = UnityEngine.EventSystems.EventSystem.current == null
+                    ? null : UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
+                bool nativeSubmit = selectedControl != null && selectedControl.activeInHierarchy
+                    && selectedControl.GetComponent<UnityEngine.UI.Selectable>() != null;
+                if (!nativeSubmit && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))) QuickStart();
                 if (Input.GetKeyDown(KeyCode.B)) BeginGame();
                 if (Input.GetKeyDown(KeyCode.Escape)) state.Mode = GameMode.Tavern;
             }
@@ -2684,7 +2696,7 @@ namespace AshenHalls
             }
             if (inputMode == GameMode.Combat)
             {
-                if (CurrentUiOverlay() != UiOverlay.Pause) HandleCombatTimers();
+                HandleCombatTimers(Time.time);
                 if (state.Mode != GameMode.Combat) return;
                 if (CanAcceptGameplayInput()) HandleCombatHotkeys();
             }
@@ -3146,6 +3158,7 @@ namespace AshenHalls
                 CloseTransientOverlays();
                 state = loaded;
                 InvalidateControllerCaches();
+                RestoreGameSettingsPreferences();
                 NormalizeGameSettings();
                 EnsurePartyCustomization();
                 EnsureWorldState(sourceSaveVersion);
@@ -3168,6 +3181,7 @@ namespace AshenHalls
                 betaLabMode = false;
                 labSaveBlocked = false;
                 ClearTransientCombatPresentation();
+                SeedGameSettingsPreferencesIfMissing();
             }
             catch
             {

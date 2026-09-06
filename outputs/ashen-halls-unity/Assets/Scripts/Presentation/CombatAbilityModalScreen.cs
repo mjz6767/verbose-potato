@@ -1391,11 +1391,9 @@ namespace AshenHalls
                 ActivateFromNavigation();
                 return;
             }
-            if (Input.GetKeyDown(KeyCode.JoystickButton1))
-            {
-                bindings?.Close?.Invoke();
-                return;
-            }
+            // Escape and controller Back share the game's global Cancel route.
+            // Handling Back here too would dispatch it again against the board
+            // after closing this modal, depending on MonoBehaviour Update order.
 
             if (navigation.Direction != 0) MoveSelection(navigation.Direction);
         }

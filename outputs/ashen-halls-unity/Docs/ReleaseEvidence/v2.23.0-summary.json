@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.23.0",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-08-27T06:45:35.1430065Z",
+  "sourceCommit": "814a676f3e41c97611af7321b0d8a1dba1831557",
+  "sourceDirty": false,
+  "package": {
+    "file": "AshAndBrimstone-Windows-v2.23.0.zip",
+    "bytes": 229955904,
+    "sha256": "5caeb235378e5d8d518553d64878139658419518a240e0a28bac40f2d4bdec18",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "04f8e760dd215133f5bb803cc2701547c350e00a6a028714a1e43b60c189baaa",
+    "cleanExtractLaunch": true,
+    "playerExitCode": 0,
+    "packagedArtCount": 92
+  },
+  "visualQa": {
+    "captureCount": 8,
+    "captureSetSha256": "6700d3cb7a907f5c15b9d800f4425eee9b9027fb27da1d0728e9eed31d684e6f",
+    "deterministicPassed": true,
+    "aiReviewPerformed": false,
+    "aiReviewAdvisoryOnly": true
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/v2.23.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "723d4bfad77de55ac7029378e475a5a61c655518acf6d112e832d42dc0672d8b",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.23.0-release-visuals-814a676/visual-qa-packet/visual-qa-packet.json",
+      "sha256": "db727c9a97474a1ac5083dcfd08f6697d31cff177a505f81a16fb9ab5444813f",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "This compact tracked file is an index of the retained local evidence, not a replacement for the ignored raw logs, manifests, captures, or package.",
+    "The deterministic visual packet records no AI visual review; any human visual acceptance remains documented outside this summary."
+  ]
+}

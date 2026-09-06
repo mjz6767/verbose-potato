@@ -12748,8 +12748,11 @@ namespace AshenHalls
             }
         }
 
-        private void HandleCombatTimers()
+        private void HandleCombatTimers(float now)
         {
+            if (state?.Mode != GameMode.Combat
+                || state.Combat == null
+                || !ScreenInputRules.CanAcceptGameplayInput(CurrentUiOverlay())) return;
             if (combatAdvancePending)
             {
                 CompletePendingCombatAdvance();
@@ -12757,7 +12760,7 @@ namespace AshenHalls
             }
             CombatUnit active = CurrentUnit();
             if (active == null) return;
-            if (active.Side == UnitSide.Enemy && aiActAt > 0 && Time.time >= aiActAt)
+            if (active.Side == UnitSide.Enemy && aiActAt > 0 && now >= aiActAt)
             {
                 aiActAt = -1f;
                 EnemyAct(active);
@@ -14226,7 +14229,8 @@ namespace AshenHalls
             // Expire effects that were already active before this turn, then let
             // the current terrain grant a fresh duration that survives the turn.
             if (active.Shielded > 0) active.Shielded = Mathf.Max(0, active.Shielded - 1);
-            if (active.Webbed > 0) active.Webbed = Mathf.Max(0, active.Webbed - 1);
+            // Web lasts through the affected unit's turn and expires on completion.
+            // A one-turn pin must still prevent movement after budget repair.
 
             Point terrain = ObstacleAt(active.X, active.Y);
             if (terrain != null && active.Hp > 0)
@@ -15440,6 +15444,7 @@ namespace AshenHalls
                 return;
             }
 
+            if (active != null && active.Webbed > 0) active.Webbed--;
             TickSummonBindingEndOfTurn(active);
             SyncPartyFromCombat();
             NextTurn();
@@ -16051,9 +16056,11 @@ namespace AshenHalls
         private bool UseSoulRend(CombatUnit active, CombatUnit target)
         {
             if (!RollMartialHit(active, target, 14, "soul rend", "hex")) return true;
+            int targetHpBefore = Mathf.Max(0, target.Hp);
             int damage = DealDamage(target, SoulRendRawDamage(active), "death", violet);
+            int drainedHealth = Mathf.Min(damage, targetHpBefore);
             int missing = Mathf.Max(0, active.MaxHp - active.Hp);
-            int healed = Mathf.Min(missing, Mathf.Max(1, damage / 2));
+            int healed = Mathf.Min(missing, Mathf.Max(1, drainedHealth / 2));
             active.Hp += healed;
             AddBeamDelayed(target.X, target.Y, active.X, active.Y, violet, "death", combatVfxImpactDelay);
             AddFloat(target.X, target.Y, "SOUL REND", violet);
@@ -17511,13 +17518,16 @@ namespace AshenHalls
                 int damage = FormulaDamage(formula, caster, target);
                 AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, FormulaColor(formula), FormulaBeamKind(formula, caster, target.X, target.Y));
                 AddTileGlyph(target.X, target.Y, formula, "impact", FormulaColor(formula));
+                int targetHpBefore = Mathf.Max(0, target.Hp);
                 int dealt = DealDamage(target, damage, formula.DamageType, FormulaColor(formula));
                 string resonance = ApplyFormulaStatusResonance(formula, caster, target);
-                int heal = Mathf.Max(2, dealt / 2);
-                caster.Hp = Mathf.Min(caster.MaxHp, caster.Hp + heal);
-                AddFloat(caster.X, caster.Y, "+" + heal, violet);
+                int heal = Mathf.Min(Mathf.Max(0, caster.MaxHp - caster.Hp), Mathf.Max(2, Mathf.Min(dealt, targetHpBefore) / 2));
+                caster.Hp += heal;
+                if (heal > 0) AddFloat(caster.X, caster.Y, "+" + heal, violet);
+                string terrainReaction = ApplyFormulaHitTerrainReaction(formula, caster, target);
                 PushLog($"{caster.Name} casts {formula.Name}. Life pulls loose from {target.Name}.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
                 if (!string.IsNullOrEmpty(resonance)) PushLog(resonance, Tone.Good);
+                if (!string.IsNullOrEmpty(terrainReaction)) PushLog(terrainReaction, Tone.Good);
                 if (target.Hp <= 0) PushLog($"{target.Name} is down.", Tone.Good);
                 if (target.Hp <= 0) AddFlash(target.X, target.Y, gold);
                 return true;
@@ -18670,7 +18680,8 @@ namespace AshenHalls
                 AddBurst(x, y, frost);
                 foreach (CombatUnit unit in UnitsAround(x, y, 1))
                 {
-                    TryApplyStatus(unit, "stun", 1, caster, 0.24f, unit.Side != caster.Side);
+                    // Steam is harmful to both sides; allies also roll resistance.
+                    TryApplyStatus(unit, "stun", 1, caster, 0.24f, true);
                 }
                 return "Ice quenches the fire into blinding steam.";
             }

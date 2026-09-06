@@ -306,7 +306,12 @@ namespace AshenHalls
             if (motionW >= 76f)
             {
                 string motionLabel = motionW < 116f ? " Motion" : " Reduced Motion";
-                state.ReducedMotion = GUI.Toggle(new Rect(motionX, y, motionW, 24), state.ReducedMotion, motionLabel);
+                bool reducedMotion = state.ReducedMotion;
+                bool nextReducedMotion = GUI.Toggle(new Rect(motionX, y, motionW, 24), reducedMotion, motionLabel);
+                if (nextReducedMotion != reducedMotion)
+                {
+                    ToggleReducedMotionSetting();
+                }
             }
             if (showPulse) DrawSfxPulse(new Rect(x, y + 29f, Mathf.Min(maxWidth, 220f), 18f));
         }

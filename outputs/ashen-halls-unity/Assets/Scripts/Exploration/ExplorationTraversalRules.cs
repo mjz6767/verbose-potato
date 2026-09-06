@@ -162,6 +162,7 @@ namespace AshenHalls
         {
             if (map == null || obj == null || canStand == null) return new List<Point>();
             if (CanStandOnObject(obj)) return FindPath(map, startX, startY, obj.X, obj.Y, canStand);
+            if (!CanUseFromAdjacent(obj)) return new List<Point>();
             List<Point> best = null;
             int[] dx = { 0, -1, 1, 0 };
             int[] dy = { -1, 0, 0, 1 };

@@ -80,8 +80,79 @@ namespace AshenHalls
         }
     }
 
+    public readonly struct PartySetupEditorFlowGeometry
+    {
+        public readonly bool Compact;
+        public readonly Rect IdentityControls;
+        public readonly Rect StatControls;
+        public readonly Rect SkillControls;
+        public readonly Rect Details;
+        public readonly Rect Note;
+
+        public PartySetupEditorFlowGeometry(
+            bool compact,
+            Rect identityControls,
+            Rect statControls,
+            Rect skillControls,
+            Rect details,
+            Rect note)
+        {
+            Compact = compact;
+            IdentityControls = identityControls;
+            StatControls = statControls;
+            SkillControls = skillControls;
+            Details = details;
+            Note = note;
+        }
+
+        public bool Fits(Rect editor)
+        {
+            return FitsLocal(IdentityControls, editor)
+                && FitsLocal(StatControls, editor)
+                && FitsLocal(SkillControls, editor)
+                && FitsLocal(Details, editor)
+                && FitsLocal(Note, editor);
+        }
+
+        public bool HasNoOverlaps()
+        {
+            Rect[] regions = { IdentityControls, StatControls, SkillControls, Details, Note };
+            for (int i = 0; i < regions.Length; i++)
+            {
+                for (int other = i + 1; other < regions.Length; other++)
+                {
+                    if (regions[i].Overlaps(regions[other])) return false;
+                }
+            }
+            return true;
+        }
+
+        private static bool FitsLocal(Rect rect, Rect editor)
+        {
+            return rect.xMin >= 0f
+                && rect.yMin >= 0f
+                && rect.xMax <= editor.width
+                && rect.yMax <= editor.height;
+        }
+    }
+
     public static class PartySetupScreenLayout
     {
+        public static readonly IReadOnlyList<string> TalentKeys = Array.AsReadOnly(new[]
+        {
+            "arms", "missile", "mend", "ember", "hex", "guard"
+        });
+
+        private const float EditorSideInset = 18f;
+        private const float DetailsControlGap = 12f;
+        private const float ExpandedIdentityControlsRight = 748f;
+        private const float ExpandedStatY = 186f;
+        private const float ExpandedStatStep = 40f;
+        private const float ExpandedSkillY = 386f;
+        private const float CompactStatY = 238f;
+        private const float CompactStatStep = 34f;
+        private const float CompactSkillY = 376f;
+
         public static PartySetupScreenGeometry Calculate(float width, float height)
         {
             Rect top = new Rect(18f, 16f, width - 36f, 68f);
@@ -95,6 +166,46 @@ namespace AshenHalls
         public static Rect RosterRow(Rect roster, int index)
         {
             return new Rect(12f, 48f + index * 71f, roster.width - 24f, 64f);
+        }
+
+        public static bool UseCompactIdentityLayout(Rect localDetails)
+        {
+            return localDetails.x < ExpandedIdentityControlsRight + DetailsControlGap;
+        }
+
+        public static float CompactIdentityControlsRight(Rect localDetails)
+        {
+            return Mathf.Max(EditorSideInset, localDetails.x - DetailsControlGap);
+        }
+
+        public static PartySetupEditorFlowGeometry CalculateEditorFlow(Rect editor, Rect localDetails, int skillCount)
+        {
+            bool compact = UseCompactIdentityLayout(localDetails);
+            float identityRight = compact ? CompactIdentityControlsRight(localDetails) : ExpandedIdentityControlsRight;
+            Rect identity = new Rect(
+                EditorSideInset,
+                94f,
+                Mathf.Max(1f, identityRight - EditorSideInset),
+                compact ? 138f : 78f);
+            float statY = compact ? CompactStatY : ExpandedStatY;
+            float statStep = compact ? CompactStatStep : ExpandedStatStep;
+            Rect stats = new Rect(EditorSideInset, statY, 242f, statStep * 3f + 30f);
+            float skillY = compact ? CompactSkillY : ExpandedSkillY;
+            float skillWidth = skillCount <= 0 ? 1f : (skillCount - 1) * 78f + 72f;
+            Rect skills = new Rect(EditorSideInset, skillY, skillWidth, 30f);
+            float minimumNoteY = Mathf.Max(localDetails.yMax + 2f, skills.yMax + 6f);
+            float noteY = Mathf.Max(editor.height - 106f, minimumNoteY);
+            Rect note = new Rect(
+                EditorSideInset,
+                noteY,
+                Mathf.Max(1f, editor.width - EditorSideInset * 2f),
+                Mathf.Max(1f, editor.height - noteY - 28f));
+            return new PartySetupEditorFlowGeometry(compact, identity, stats, skills, localDetails, note);
+        }
+
+        public static float StatRowY(bool compact, int index)
+        {
+            return (compact ? CompactStatY : ExpandedStatY) + Mathf.Max(0, index) * (compact ? CompactStatStep : ExpandedStatStep);
         }
     }
 
@@ -241,6 +352,7 @@ namespace AshenHalls
             nameField = AddInput("Name Field", editorPanel);
             nameField.onEndEdit.AddListener(value =>
             {
+                UiRuntime.NotifyTextInputEnded();
                 if (!suppressNameEvent) bindings?.SetName?.Invoke(value);
             });
             classButton = AddButton("Class", editorPanel, "Class", bindings?.CycleClass, false);
@@ -265,10 +377,9 @@ namespace AshenHalls
                 AddButton("Stat Up " + i, editorPanel, "+", () => bindings?.ChangeStat?.Invoke(statCode, 1), false);
             }
 
-            string[] skills = { "arms", "missile", "mend", "ember", "hex", "guard" };
-            for (int i = 0; i < skills.Length; i++)
+            for (int i = 0; i < PartySetupScreenLayout.TalentKeys.Count; i++)
             {
-                string key = skills[i];
+                string key = PartySetupScreenLayout.TalentKeys[i];
                 skillButtons.Add(AddButton("Skill " + key, editorPanel, key, () => bindings?.BoostTalent?.Invoke(key), false));
             }
 
@@ -307,38 +418,70 @@ namespace AshenHalls
 
             SetLocalRect(editorTitle.rectTransform, new Rect(18f, 14f, 320f, 28f));
             SetLocalRect(editorHint.rectTransform, new Rect(18f, 45f, geometry.Editor.width - 36f, 42f));
-            SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(100f, 94f, 210f, 30f));
-            AddOrMoveLabel("Name Label", "Name", new Rect(18f, 98f, 80f, 24f));
-            SetLocalRect(classButton.GetComponent<RectTransform>(), new Rect(326f, 94f, 76f, 30f));
-            SetLocalRect(raceButton.GetComponent<RectTransform>(), new Rect(410f, 94f, 76f, 30f));
-            SetLocalRect(originButton.GetComponent<RectTransform>(), new Rect(494f, 94f, 76f, 30f));
-            SetLocalRect(sigilButton.GetComponent<RectTransform>(), new Rect(578f, 94f, 76f, 30f));
-            SetLocalRect(randomNameButton.GetComponent<RectTransform>(), new Rect(662f, 94f, 86f, 30f));
-            SetLocalRect(selectedRaceClass.rectTransform, new Rect(100f, 128f, 220f, 44f));
-            SetLocalRect(rerollGearButton.GetComponent<RectTransform>(), new Rect(326f, 128f, 94f, 28f));
-            SetLocalRect(rerollLookButton.GetComponent<RectTransform>(), new Rect(430f, 128f, 92f, 28f));
-            SetLocalRect(colorButton.GetComponent<RectTransform>(), new Rect(532f, 128f, 78f, 28f));
+            Rect localDetails = new Rect(geometry.Editor.width - geometry.Details.width - 18f, 116f, geometry.Details.width, geometry.Details.height);
+            PartySetupEditorFlowGeometry flow = PartySetupScreenLayout.CalculateEditorFlow(geometry.Editor, localDetails, skillButtons.Count);
+            bool compactIdentityLayout = flow.Compact;
+            if (compactIdentityLayout)
+            {
+                float controlsLeft = 18f;
+                float controlsRight = PartySetupScreenLayout.CompactIdentityControlsRight(localDetails);
+                float controlsWidth = Mathf.Max(1f, controlsRight - controlsLeft);
 
-            float statY = 186f;
+                const float controlGap = 8f;
+                const float randomNameWidth = 86f;
+                const float nameFieldX = 100f;
+                float randomNameX = controlsRight - randomNameWidth;
+                float compactNameWidth = Mathf.Max(120f, randomNameX - controlGap - nameFieldX);
+                AddOrMoveLabel("Name Label", "Name", new Rect(controlsLeft, 98f, 80f, 24f));
+                SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(nameFieldX, 94f, compactNameWidth, 30f));
+                SetLocalRect(randomNameButton.GetComponent<RectTransform>(), new Rect(randomNameX, 94f, randomNameWidth, 30f));
+
+                float identityWidth = (controlsWidth - controlGap * 3f) / 4f;
+                SetLocalRect(classButton.GetComponent<RectTransform>(), new Rect(controlsLeft, 130f, identityWidth, 30f));
+                SetLocalRect(raceButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (identityWidth + controlGap), 130f, identityWidth, 30f));
+                SetLocalRect(originButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (identityWidth + controlGap) * 2f, 130f, identityWidth, 30f));
+                SetLocalRect(sigilButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (identityWidth + controlGap) * 3f, 130f, identityWidth, 30f));
+
+                float rerollWidth = (controlsWidth - controlGap * 2f) / 3f;
+                SetLocalRect(rerollGearButton.GetComponent<RectTransform>(), new Rect(controlsLeft, 166f, rerollWidth, 28f));
+                SetLocalRect(rerollLookButton.GetComponent<RectTransform>(), new Rect(controlsLeft + rerollWidth + controlGap, 166f, rerollWidth, 28f));
+                SetLocalRect(colorButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (rerollWidth + controlGap) * 2f, 166f, rerollWidth, 28f));
+                SetLocalRect(selectedRaceClass.rectTransform, new Rect(nameFieldX, 200f, Mathf.Max(1f, controlsRight - nameFieldX), 32f));
+            }
+            else
+            {
+                SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(100f, 94f, 210f, 30f));
+                AddOrMoveLabel("Name Label", "Name", new Rect(18f, 98f, 80f, 24f));
+                SetLocalRect(classButton.GetComponent<RectTransform>(), new Rect(326f, 94f, 76f, 30f));
+                SetLocalRect(raceButton.GetComponent<RectTransform>(), new Rect(410f, 94f, 76f, 30f));
+                SetLocalRect(originButton.GetComponent<RectTransform>(), new Rect(494f, 94f, 76f, 30f));
+                SetLocalRect(sigilButton.GetComponent<RectTransform>(), new Rect(578f, 94f, 76f, 30f));
+                SetLocalRect(randomNameButton.GetComponent<RectTransform>(), new Rect(662f, 94f, 86f, 30f));
+                SetLocalRect(selectedRaceClass.rectTransform, new Rect(100f, 128f, 220f, 44f));
+                SetLocalRect(rerollGearButton.GetComponent<RectTransform>(), new Rect(326f, 128f, 94f, 28f));
+                SetLocalRect(rerollLookButton.GetComponent<RectTransform>(), new Rect(430f, 128f, 92f, 28f));
+                SetLocalRect(colorButton.GetComponent<RectTransform>(), new Rect(532f, 128f, 78f, 28f));
+
+            }
+
             for (int i = 0; i < 4; i++)
             {
-                SetLocalRect(editorPanel.Find("Stat " + new[] { "Strength", "Intelligence", "Agility", "Health" }[i]).GetComponent<RectTransform>(), new Rect(18f, statY + i * 40f + 4f, 116f, 24f));
-                SetLocalRect(editorPanel.Find("Stat Down " + i).GetComponent<RectTransform>(), new Rect(140f, statY + i * 40f, 32f, 30f));
-                SetLocalRect(statValues[i].rectTransform, new Rect(182f, statY + i * 40f + 4f, 42f, 24f));
-                SetLocalRect(editorPanel.Find("Stat Up " + i).GetComponent<RectTransform>(), new Rect(228f, statY + i * 40f, 32f, 30f));
+                float rowY = PartySetupScreenLayout.StatRowY(compactIdentityLayout, i);
+                SetLocalRect(editorPanel.Find("Stat " + new[] { "Strength", "Intelligence", "Agility", "Health" }[i]).GetComponent<RectTransform>(), new Rect(18f, rowY + 3f, 116f, 24f));
+                SetLocalRect(editorPanel.Find("Stat Down " + i).GetComponent<RectTransform>(), new Rect(140f, rowY, 32f, 30f));
+                SetLocalRect(statValues[i].rectTransform, new Rect(182f, rowY + 3f, 42f, 24f));
+                SetLocalRect(editorPanel.Find("Stat Up " + i).GetComponent<RectTransform>(), new Rect(228f, rowY, 32f, 30f));
             }
 
-            float skillY = 386f;
             for (int i = 0; i < skillButtons.Count; i++)
             {
-                SetLocalRect(skillButtons[i].GetComponent<RectTransform>(), new Rect(18f + i * 78f, skillY, 72f, 30f));
+                SetLocalRect(skillButtons[i].GetComponent<RectTransform>(), new Rect(18f + i * 78f, flow.SkillControls.y, 72f, 30f));
             }
 
-            Rect localDetails = new Rect(geometry.Editor.width - geometry.Details.width - 18f, 116f, geometry.Details.width, geometry.Details.height);
             SetLocalRect(detailsPanel, localDetails);
             SetLocalRect(detailsName.rectTransform, new Rect(18f, 14f, localDetails.width - 36f, 26f));
             SetLocalRect(detailsBody.rectTransform, new Rect(18f, 48f, localDetails.width - 36f, localDetails.height - 64f));
-            SetLocalRect(noteText.rectTransform, new Rect(18f, geometry.Editor.height - 106f, geometry.Editor.width - 36f, 78f));
+            SetLocalRect(noteText.rectTransform, flow.Note);
         }
 
         private void EnsureRosterRows(int count)

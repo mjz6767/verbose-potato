@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
@@ -9,6 +10,7 @@ namespace AshenHalls
         public static bool IsLoadable(GameState candidate, int maximumSaveVersion)
         {
             if (candidate == null || candidate.SaveVersion < 17 || candidate.SaveVersion > maximumSaveVersion) return false;
+            if (!Enum.IsDefined(typeof(GameMode), candidate.Mode)) return false;
             if (candidate.Party == null || candidate.Party.Count == 0) return false;
             for (int i = 0; i < candidate.Party.Count; i++)
             {
@@ -19,11 +21,86 @@ namespace AshenHalls
             if (candidate.Mode == GameMode.Explore && !hasMapPayload) return false;
             if (hasMapPayload
                 && !ExplorationSurfaceRules.IsLoadableMap(candidate.Map, candidate.SaveVersion >= 19)) return false;
-            if (candidate.Mode == GameMode.Combat
-                && (candidate.Combat == null
-                    || candidate.Combat.Units == null
-                    || candidate.Combat.Units.Count == 0)) return false;
+            if (candidate.Mode == GameMode.Combat && !HasLoadableCombat(candidate)) return false;
             return true;
+        }
+
+        private static bool HasLoadableCombat(GameState candidate)
+        {
+            CombatState combat = candidate.Combat;
+            if (combat == null
+                || combat.Units == null
+                || combat.Units.Count == 0
+                || combat.Obstacles == null
+                || !Enum.IsDefined(typeof(CombatPhase), combat.Phase))
+            {
+                return false;
+            }
+
+            HashSet<string> unitIds = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<int> partyIndexes = new HashSet<int>();
+            int adoptablePartyCount = Math.Min(candidate.Party.Count, StarterPartyCatalog.ExpectedPartySize);
+            HashSet<string> partyIds = new HashSet<string>(StringComparer.Ordinal);
+            for (int i = 0; i < adoptablePartyCount; i++)
+            {
+                string partyId = candidate.Party[i].Id;
+                if (string.IsNullOrWhiteSpace(partyId)
+                    || !string.Equals(partyId, partyId.Trim(), StringComparison.Ordinal)
+                    || !partyIds.Add(partyId))
+                {
+                    return false;
+                }
+            }
+
+            bool hasLivingUnit = false;
+            for (int i = 0; i < combat.Units.Count; i++)
+            {
+                CombatUnit unit = combat.Units[i];
+                if (unit == null
+                    || string.IsNullOrWhiteSpace(unit.Id)
+                    || !string.Equals(unit.Id, unit.Id.Trim(), StringComparison.Ordinal)
+                    || !unitIds.Add(unit.Id)
+                    || !Enum.IsDefined(typeof(UnitSide), unit.Side)
+                    || unit.Skills == null)
+                {
+                    return false;
+                }
+
+                if (unit.Side == UnitSide.Party)
+                {
+                    if (unit.Summoned)
+                    {
+                        if (unit.PartyIndex >= 0) return false;
+                    }
+                    else if (unit.PartyIndex < 0
+                        || unit.PartyIndex >= adoptablePartyCount
+                        || !partyIndexes.Add(unit.PartyIndex)
+                        || !string.Equals(unit.Id, candidate.Party[unit.PartyIndex].Id, StringComparison.Ordinal))
+                    {
+                        return false;
+                    }
+                }
+
+                if (unit.Hp > 0) hasLivingUnit = true;
+            }
+
+            for (int i = 0; i < combat.Obstacles.Count; i++)
+            {
+                if (combat.Obstacles[i] == null) return false;
+            }
+
+            if (combat.InitiativeQueue != null)
+            {
+                HashSet<string> queuedIds = new HashSet<string>(StringComparer.Ordinal);
+                foreach (string id in combat.InitiativeQueue)
+                {
+                    // Advancement locates the active unit's first queue entry.
+                    // A duplicate would repeatedly return that same unit's turn.
+                    if (!string.IsNullOrEmpty(id) && !queuedIds.Add(id)) return false;
+                }
+            }
+
+            return hasLivingUnit;
         }
 
         private static bool HasMapPayload(MapData map)
@@ -38,6 +115,14 @@ namespace AshenHalls
 
     public static class SaveService
     {
+        private enum CandidateReadStatus
+        {
+            Missing,
+            Loadable,
+            Invalid,
+            FutureVersion
+        }
+
         private const string SaveFileName = "AshAndBrimstoneSaveV2.json";
         private const string LegacySaveFileName = "AshenHallsSaveV2.json";
 
@@ -80,7 +165,16 @@ namespace AshenHalls
         public static void SaveGameState(string path, GameState state)
         {
             if (state == null) throw new ArgumentNullException(nameof(state));
-            WriteAllTextAtomic(path, JsonUtility.ToJson(state, true));
+            CandidateReadStatus primaryStatus = ReadCampaignCandidate(path);
+            CandidateReadStatus backupStatus = ReadCampaignCandidate(path + ".bak");
+            if (primaryStatus == CandidateReadStatus.FutureVersion
+                || backupStatus == CandidateReadStatus.FutureVersion)
+            {
+                throw new InvalidDataException("Saved campaign was written by a newer version and was left unchanged.");
+            }
+            bool preserveBackup = primaryStatus == CandidateReadStatus.Invalid
+                && backupStatus == CandidateReadStatus.Loadable;
+            WriteAllTextAtomic(path, JsonUtility.ToJson(state, true), preserveBackup);
         }
 
         public static bool TrySaveCampaignState(string path, GameState state, bool blockedByDeveloperLab, out string blockedReason)
@@ -113,6 +207,18 @@ namespace AshenHalls
             if (TryLoadGameState(backupPath, validator, out loaded, out Exception backupFailure))
             {
                 usedBackup = true;
+                if (loaded.SaveVersion <= VersionInfo.SaveVersion
+                    && ReadCampaignCandidate(path) != CandidateReadStatus.FutureVersion)
+                {
+                    try
+                    {
+                        WriteAllTextAtomic(path, JsonUtility.ToJson(loaded, true), true);
+                    }
+                    catch
+                    {
+                        // In-memory recovery remains usable even when on-disk healing fails.
+                    }
+                }
                 return loaded;
             }
 
@@ -152,7 +258,20 @@ namespace AshenHalls
             }
         }
 
-        private static void WriteAllTextAtomic(string path, string contents)
+        private static CandidateReadStatus ReadCampaignCandidate(string path)
+        {
+            if (!File.Exists(path)) return CandidateReadStatus.Missing;
+            if (!TryLoadGameState(path, null, out GameState candidate, out _))
+            {
+                return CandidateReadStatus.Invalid;
+            }
+            if (candidate.SaveVersion > VersionInfo.SaveVersion) return CandidateReadStatus.FutureVersion;
+            return SaveCandidateRules.IsLoadable(candidate, VersionInfo.SaveVersion)
+                ? CandidateReadStatus.Loadable
+                : CandidateReadStatus.Invalid;
+        }
+
+        internal static void WriteAllTextAtomic(string path, string contents, bool preserveBackup = false)
         {
             string directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
@@ -166,11 +285,11 @@ namespace AshenHalls
                 {
                     try
                     {
-                        File.Replace(tempPath, path, backupPath, true);
+                        File.Replace(tempPath, path, preserveBackup ? null : backupPath, true);
                     }
                     catch
                     {
-                        File.Copy(path, backupPath, true);
+                        if (!preserveBackup) File.Copy(path, backupPath, true);
                         File.Copy(tempPath, path, true);
                         File.Delete(tempPath);
                     }

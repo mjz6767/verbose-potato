@@ -18,6 +18,7 @@ namespace AshenHalls
         private static Font titleFont;
         private static readonly Dictionary<string, Sprite> atlasSprites = new Dictionary<string, Sprite>();
         private static EventSystem ensuredEventSystem;
+        private static int textInputSuppressedThroughFrame = -1;
 
         public static Font DefaultFont
         {
@@ -162,6 +163,28 @@ namespace AshenHalls
         {
             return IsEventSystemReady(EventSystem.current)
                 || (!Application.isPlaying && IsEventSystemReady(ensuredEventSystem));
+        }
+
+        public static bool HasTextInputFocus()
+        {
+            return HasTextInputFocus(Time.frameCount);
+        }
+
+        public static bool HasTextInputFocus(int frame)
+        {
+            if (frame <= textInputSuppressedThroughFrame) return true;
+            EventSystem eventSystem = EventSystem.current ?? (!Application.isPlaying ? ensuredEventSystem : null);
+            GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
+            if (selected == null) return false;
+            InputField field = selected.GetComponent<InputField>();
+            return field != null && field.IsActive() && field.IsInteractable() && field.isFocused;
+        }
+
+        public static void NotifyTextInputEnded()
+        {
+            // Native Return/Escape may end editing before the game's Update.
+            // Consume that frame only; selection itself can persist afterward.
+            textInputSuppressedThroughFrame = Time.frameCount;
         }
 
         public static bool SetCanvasVisible(Canvas canvas, bool visible)

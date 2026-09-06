@@ -210,6 +210,7 @@ namespace AshenHalls
             if (canStandAt == null || !canStandAt(active, x, y)) return CombatCommandResult.Failed(CombatCommandFailure.Blocked, active, x, y);
 
             int moveCost = moveCostTo == null ? distance : moveCostTo(active, x, y);
+            if (moveCost <= 0) return CombatCommandResult.Failed(CombatCommandFailure.PathBlocked, active, x, y);
             if (moveCost >= unreachableMoveCost) return CombatCommandResult.Failed(CombatCommandFailure.PathBlocked, active, x, y);
             if (moveCost > combat.MovePoints) return CombatCommandResult.Failed(CombatCommandFailure.TooFar, active, x, y);
 
@@ -336,7 +337,9 @@ namespace AshenHalls
             CombatState combat = state?.Combat;
             if (combat == null) return;
             combat.Moved = moved;
-            combat.MovePoints = Mathf.Max(0, moveBudget - spentMove);
+            int safeBudget = Mathf.Max(0, moveBudget);
+            int safeSpentMove = Mathf.Clamp(spentMove, 0, safeBudget);
+            combat.MovePoints = safeBudget - safeSpentMove;
         }
 
         public void CompleteAction(CombatUnit active, bool endMovement)

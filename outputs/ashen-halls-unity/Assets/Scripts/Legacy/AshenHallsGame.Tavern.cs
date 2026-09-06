@@ -426,6 +426,7 @@ namespace AshenHalls
             if (state == null) return;
             state.ReducedMotion = !state.ReducedMotion;
             if (state.ReducedMotion) ClearCombatMotionForReducedMotion();
+            PersistGameSettingsPreferences();
             ShowBanner(state.ReducedMotion ? "Reduced motion on" : "Reduced motion off");
             PlaySfx("ui", 0.45f);
         }
@@ -1287,11 +1288,72 @@ namespace AshenHalls
         private void NormalizeGameSettings()
         {
             if (state == null) return;
-            if (state.SfxVolumePercent <= 0) state.SfxVolumePercent = 100;
-            state.SfxVolumePercent = Mathf.Clamp(state.SfxVolumePercent, 25, 100);
-            if (state.MusicVolumePercent <= 0) state.MusicVolumePercent = 65;
-            state.MusicVolumePercent = Mathf.Clamp(state.MusicVolumePercent, 25, 100);
+            GameSettingsRules.Apply(GameSettingsRules.Capture(state), state);
             ApplyAudioSettings();
+        }
+
+        private bool CanUseGameSettingsPreferences()
+        {
+            return !Application.isBatchMode && !visualSmokeSaveBlocked;
+        }
+
+        private void RestoreGameSettingsPreferences()
+        {
+            if (state == null || !CanUseGameSettingsPreferences()) return;
+            try
+            {
+                string path = GameSettingsService.SettingsPath(Application.persistentDataPath);
+                if (GameSettingsService.TryLoad(path, out GameSettingsData settings, out bool usedBackup))
+                {
+                    GameSettingsRules.Apply(settings, state);
+                    if (usedBackup)
+                    {
+                        Debug.LogWarning(VersionInfo.ProductName + " restored application settings from backup.");
+                    }
+                    return;
+                }
+
+                if (GameSettingsService.Exists(path))
+                {
+                    Debug.LogWarning(VersionInfo.ProductName + " application settings are present but unreadable; preserving them for recovery.");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(VersionInfo.ProductName + " could not restore application settings: " + ex.Message);
+            }
+        }
+
+        private void SeedGameSettingsPreferencesIfMissing()
+        {
+            if (state == null || !CanUseGameSettingsPreferences()) return;
+            try
+            {
+                string path = GameSettingsService.SettingsPath(Application.persistentDataPath);
+                if (!GameSettingsService.Exists(path))
+                {
+                    GameSettingsService.Save(path, GameSettingsRules.Capture(state));
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(VersionInfo.ProductName + " could not initialize application settings: " + ex.Message);
+            }
+        }
+
+        private void PersistGameSettingsPreferences()
+        {
+            if (state == null || !CanUseGameSettingsPreferences()) return;
+            try
+            {
+                GameSettingsService.Save(
+                    GameSettingsService.SettingsPath(Application.persistentDataPath),
+                    GameSettingsRules.Capture(state));
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning(VersionInfo.ProductName + " could not save application settings: " + ex.Message);
+            }
         }
 
         private Color MemberColor(PartyMember member)

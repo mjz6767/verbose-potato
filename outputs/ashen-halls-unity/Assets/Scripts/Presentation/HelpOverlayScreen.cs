@@ -164,7 +164,7 @@ namespace AshenHalls
                 "Continue stays visible and becomes available when a campaign save exists.",
                 "New Game opens the four-person muster before Town Hall's Grand Hearth.",
                 "Quick Start accepts the default company; Begin uses the current muster choices.",
-                "Settings controls audio volume and reduced motion.",
+                "Settings controls audio volume and reduced motion for the whole app, independently of campaign saves.",
                 "F5 saves and F9 loads during gameplay. Esc opens the gameplay menu."
             };
 
@@ -186,6 +186,9 @@ namespace AshenHalls
         private RectTransform backdrop;
         private RectTransform panel;
         private RectTransform bodyPanel;
+        private RectTransform bodyViewport;
+        private ScrollRect bodyScroll;
+        private Scrollbar bodyScrollbar;
         private Button closeButton;
         private Text titleText;
         private Text subtitleText;
@@ -195,6 +198,8 @@ namespace AshenHalls
         private float lastWidth = -1f;
         private float lastHeight = -1f;
         private bool lastRefreshSucceeded;
+        private string lastBody = "";
+        private GameObject previousSelection;
 
         public bool IsReady => canvas != null && panel != null && closeButton != null && bodyPanel != null;
         public bool IsVisible => IsReady && UiRuntime.IsCanvasVisible(canvas);
@@ -213,7 +218,21 @@ namespace AshenHalls
         public void SetVisible(bool visible)
         {
             if (visible) UiRuntime.EnsureEventSystemReady();
+            bool wasVisible = IsVisible;
+            if (visible && !wasVisible && EventSystem.current != null)
+                previousSelection = EventSystem.current.currentSelectedGameObject;
             UiRuntime.SetCanvasVisible(canvas, visible);
+            if (visible && !wasVisible)
+            {
+                bodyScroll.verticalNormalizedPosition = 1f;
+                if (EventSystem.current != null && !EventSystem.current.alreadySelecting)
+                    EventSystem.current.SetSelectedGameObject(closeButton.gameObject);
+            }
+            else if (!visible && wasVisible && EventSystem.current != null && !EventSystem.current.alreadySelecting)
+            {
+                EventSystem.current.SetSelectedGameObject(previousSelection != null && previousSelection.activeInHierarchy ? previousSelection : null);
+                previousSelection = null;
+            }
         }
 
         public void Refresh()
@@ -229,10 +248,35 @@ namespace AshenHalls
 
             titleText.text = string.IsNullOrWhiteSpace(view.Title) ? "Help" : view.Title;
             subtitleText.text = view.Subtitle ?? "";
-            bodyText.text = string.Join("\n", (view.Lines ?? Array.Empty<string>()).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => "- " + line));
-            hintText.text = "Esc, F1, or Close";
+            string body = string.Join("\n\n", (view.Lines ?? Array.Empty<string>()).Where(line => !string.IsNullOrWhiteSpace(line)).Select(line => "- " + line));
+            bool contentChanged = body != lastBody;
+            bodyText.text = body;
+            lastBody = body;
+            bodyText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(bodyViewport.rect.height, bodyText.preferredHeight));
+            if (contentChanged) bodyScroll.verticalNormalizedPosition = 1f;
+            hintText.text = "Wheel / PgUp / PgDn to scroll. Esc / F1 closes.";
             Canvas.ForceUpdateCanvases();
             lastRefreshSucceeded = true;
+        }
+
+        private void Update()
+        {
+            if (!IsVisible || bodyScroll == null) return;
+            if (Input.GetKeyDown(KeyCode.Home)) bodyScroll.verticalNormalizedPosition = 1f;
+            else if (Input.GetKeyDown(KeyCode.End)) bodyScroll.verticalNormalizedPosition = 0f;
+            else
+            {
+                float pixels = 0f;
+                bool scrollbarSelected = EventSystem.current != null
+                    && EventSystem.current.currentSelectedGameObject == bodyScrollbar.gameObject;
+                if (Input.GetKeyDown(KeyCode.PageDown)) pixels = bodyViewport.rect.height * 0.85f;
+                else if (Input.GetKeyDown(KeyCode.PageUp)) pixels = -bodyViewport.rect.height * 0.85f;
+                else if (!scrollbarSelected && Input.GetKeyDown(KeyCode.DownArrow)) pixels = 36f;
+                else if (!scrollbarSelected && Input.GetKeyDown(KeyCode.UpArrow)) pixels = -36f;
+                float overflow = bodyText.rectTransform.rect.height - bodyViewport.rect.height;
+                if (overflow > 0f && pixels != 0f)
+                    bodyScroll.verticalNormalizedPosition = Mathf.Clamp01(bodyScroll.verticalNormalizedPosition - pixels / overflow);
+            }
         }
 
         private void Build()
@@ -252,22 +296,51 @@ namespace AshenHalls
             titleText = AddText("Title", panel, "Help", 24, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             subtitleText = AddText("Subtitle", panel, "", 12, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
             bodyPanel = AddPanel("Body", panel, Hex("080b0d", 0.78f), Hex("3c4544", 0.88f));
-            bodyText = AddText("Body Text", bodyPanel, "", 13, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
+            bodyViewport = AddImage("Body Viewport", bodyPanel, Color.clear).rectTransform;
+            bodyViewport.gameObject.AddComponent<RectMask2D>();
+            bodyText = AddText("Body Text", bodyViewport, "", 13, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
+            bodyScroll = bodyPanel.gameObject.AddComponent<ScrollRect>();
+            bodyScroll.viewport = bodyViewport;
+            bodyScroll.content = bodyText.rectTransform;
+            bodyScroll.horizontal = false;
+            bodyScroll.vertical = true;
+            bodyScroll.movementType = ScrollRect.MovementType.Clamped;
+            bodyScroll.inertia = false;
+            bodyScroll.scrollSensitivity = 36f;
+            Image scrollTrack = AddImage("Help Scrollbar", bodyPanel, Hex("172126", 1f));
+            bodyScrollbar = scrollTrack.gameObject.AddComponent<Scrollbar>();
+            Image scrollHandle = AddImage("Handle", scrollTrack.transform, Hex("58b7a5", 0.92f));
+            Stretch(scrollHandle.rectTransform);
+            bodyScrollbar.handleRect = scrollHandle.rectTransform;
+            bodyScrollbar.targetGraphic = scrollHandle;
+            bodyScrollbar.direction = Scrollbar.Direction.BottomToTop;
+            bodyScroll.verticalScrollbar = bodyScrollbar;
             hintText = AddText("Hint", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
             closeButton = AddButton("Close", panel, "Close", () => bindings?.Close?.Invoke());
+            Navigation closeNavigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = bodyScrollbar };
+            closeButton.navigation = closeNavigation;
+            Navigation scrollNavigation = new Navigation { mode = Navigation.Mode.Explicit, selectOnRight = closeButton };
+            bodyScrollbar.navigation = scrollNavigation;
         }
 
         private void ApplyLayout()
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
-            HelpOverlayGeometry geometry = HelpOverlayLayout.Calculate(Screen.width, Screen.height);
+            ApplyLayout(Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
+            HelpOverlayGeometry geometry = HelpOverlayLayout.Calculate(width, height);
             SetScreenRect(backdrop, geometry.Backdrop);
             SetScreenRect(panel, geometry.Panel);
             SetLocalRect(titleText.rectTransform, new Rect(26f, 20f, geometry.Panel.width - 52f, 30f));
             SetLocalRect(subtitleText.rectTransform, new Rect(28f, 54f, geometry.Panel.width - 56f, 22f));
             SetLocalRect(bodyPanel, geometry.Body);
-            SetLocalRect(bodyText.rectTransform, new Rect(14f, 12f, geometry.Body.width - 28f, geometry.Body.height - 24f));
+            SetLocalRect(bodyViewport, new Rect(14f, 12f, geometry.Body.width - 54f, geometry.Body.height - 24f));
+            SetLocalRect(bodyText.rectTransform, new Rect(0f, 0f, bodyViewport.rect.width, bodyViewport.rect.height));
+            SetLocalRect(bodyScrollbar.GetComponent<RectTransform>(), new Rect(geometry.Body.width - 30f, 12f, 18f, geometry.Body.height - 24f));
             SetLocalRect(hintText.rectTransform, new Rect(28f, geometry.Panel.height - 44f, geometry.CloseButton.x - 42f, 20f));
             SetLocalRect(closeButton.GetComponent<RectTransform>(), geometry.CloseButton);
         }

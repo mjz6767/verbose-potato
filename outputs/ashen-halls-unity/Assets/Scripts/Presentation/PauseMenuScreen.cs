@@ -13,6 +13,7 @@ namespace AshenHalls
         public string AudioLine;
         public string SfxLine;
         public string MusicLine;
+        public string MotionLine;
         public bool SettingsOpen;
         public bool ShowRetreat;
         public bool RetreatEnabled;
@@ -73,19 +74,35 @@ namespace AshenHalls
         public static PauseMenuGeometry Calculate(float width, float height, bool settingsOpen)
         {
             float panelW = Mathf.Clamp(width * 0.30f, 360f, 480f);
-            float panelH = settingsOpen ? 610f : 390f;
+            float panelH = settingsOpen ? 610f : 410f;
             panelH = Mathf.Min(panelH, height - 72f);
             Rect panel = new Rect((width - panelW) * 0.5f, (height - panelH) * 0.5f, panelW, panelH);
             return new PauseMenuGeometry(new Rect(0f, 0f, width, height), panel);
         }
 
-        public static Rect ButtonRect(float panelWidth, int index)
+        public static Rect ButtonRect(float panelWidth, int index, bool compact = false)
         {
             const float x = 22f;
             const float y = 104f;
-            const float h = 34f;
-            const float gap = 8f;
+            float h = compact ? 28f : 34f;
+            float gap = compact ? 4f : 8f;
             return new Rect(x, y + index * (h + gap), panelWidth - x * 2f, h);
+        }
+
+        public static bool UseCompactSettings(Rect panel, bool settingsOpen)
+        {
+            return settingsOpen && panel.height < 610f;
+        }
+
+        public static Rect SettingsRect(Rect panel)
+        {
+            bool compact = UseCompactSettings(panel, true);
+            return new Rect(22f, compact ? 304f : 356f, panel.width - 44f, compact ? 160f : 184f);
+        }
+
+        public static Rect StatusRect(Rect panel)
+        {
+            return new Rect(24f, panel.height - 52f, panel.width - 48f, 34f);
         }
     }
 
@@ -143,7 +160,9 @@ namespace AshenHalls
         public void SetVisible(bool visible)
         {
             if (visible) UiRuntime.EnsureEventSystemReady();
-            UiRuntime.SetCanvasVisible(canvas, visible);
+            bool changed = UiRuntime.SetCanvasVisible(canvas, visible);
+            if (visible && changed && EventSystem.current != null && !EventSystem.current.alreadySelecting)
+                EventSystem.current.SetSelectedGameObject(continueButton.gameObject);
         }
 
         public void Refresh()
@@ -182,7 +201,7 @@ namespace AshenHalls
             audioText.text = view.AudioLine ?? "";
             sfxText.text = view.SfxLine ?? "";
             musicText.text = view.MusicLine ?? "";
-            reducedMotionText.text = view.SettingsOpen ? "Reduced Motion" : "";
+            reducedMotionText.text = view.SettingsOpen ? view.MotionLine ?? "Reduced Motion" : "";
             Canvas.ForceUpdateCanvases();
             lastRefreshSucceeded = true;
         }
@@ -256,26 +275,31 @@ namespace AshenHalls
 
         private void ApplyLayout(bool settingsOpen)
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
+            ApplyLayout(settingsOpen, Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(bool settingsOpen, float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
             lastSettingsOpen = settingsOpen;
-            PauseMenuGeometry geometry = PauseMenuScreenLayout.Calculate(Screen.width, Screen.height, settingsOpen);
+            PauseMenuGeometry geometry = PauseMenuScreenLayout.Calculate(width, height, settingsOpen);
             SetScreenRect(scrim, geometry.Scrim);
             SetScreenRect(panel, geometry.Panel);
             SetLocalRect(titleText.rectTransform, new Rect(22f, 18f, geometry.Panel.width - 44f, 30f));
             SetLocalRect(routeText.rectTransform, new Rect(24f, 50f, geometry.Panel.width - 48f, 18f));
             SetLocalRect(saveText.rectTransform, new Rect(24f, 72f, geometry.Panel.width - 48f, 18f));
 
-            SetLocalRect(continueButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 0));
-            SetLocalRect(saveButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 1));
-            SetLocalRect(loadButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 2));
-            SetLocalRect(settingsButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 3));
-            SetLocalRect(returnButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 4));
-            SetLocalRect(newButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 5));
+            bool compact = PauseMenuScreenLayout.UseCompactSettings(geometry.Panel, settingsOpen);
+            SetLocalRect(continueButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 0, compact));
+            SetLocalRect(saveButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 1, compact));
+            SetLocalRect(loadButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 2, compact));
+            SetLocalRect(settingsButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 3, compact));
+            SetLocalRect(returnButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 4, compact));
+            SetLocalRect(newButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 5, compact));
 
-            float statusY = settingsOpen ? geometry.Panel.height - 58f : geometry.Panel.height - 52f;
-            SetLocalRect(statusText.rectTransform, new Rect(24f, statusY, geometry.Panel.width - 48f, 34f));
-            SetLocalRect(settingsPanel, new Rect(22f, 356f, geometry.Panel.width - 44f, 184f));
+            SetLocalRect(statusText.rectTransform, PauseMenuScreenLayout.StatusRect(geometry.Panel));
+            SetLocalRect(settingsPanel, PauseMenuScreenLayout.SettingsRect(geometry.Panel));
             SetLocalRect(audioButton.GetComponent<RectTransform>(), new Rect(12f, 12f, settingsPanel.rect.width - 24f, 28f));
             float sideW = 82f;
             float valueW = Mathf.Max(90f, settingsPanel.rect.width - sideW * 2f - 40f);

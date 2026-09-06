@@ -128,6 +128,8 @@ namespace AshenHalls.Editor
             ValidateApprovedRuntimeArtIsLatest(projectRoot);
             RuleSmokeTests.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build rule smoke tests passed.");
+            InventoryLootExperienceSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build inventory/loot experience smoke passed.");
             SpriteArtRuntimeSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build sprite-art runtime smoke passed.");
             RuntimeBootSmoke.RunCombatUiOrThrow();

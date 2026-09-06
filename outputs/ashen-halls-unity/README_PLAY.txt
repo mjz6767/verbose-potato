@@ -1,6 +1,10 @@
-Ash & Brimstone v2.23.0 - The Wayfinder's Atlas
+Ash & Brimstone v2.24.0 - Battle Discipline
 
-Current verified release: v2.23.0. Save schema: v27.
+Release version: v2.24.0. Save schema: v27.
+
+Battle Discipline tightens combat timing and input: Help and other modal screens suspend enemy decisions and turn transitions, web effects restrict movement for their full authored duration, steam stun uses consistent chance and resistance, and closing a power book with controller Cancel performs one action.
+
+Life drain heals from health actually removed, and losing beneficial effects no longer reports a cure. Campaign backup recovery preserves the healthy checkpoint; audio and Reduced Motion preferences persist independently of campaign saves. Party Setup text entry, compact pause settings, and long Help pages have also been corrected. Existing v27 campaigns remain compatible.
 
 The Region Map is now a deliberate route-planning surface. Focus a charted landmark with pointer, keyboard, or controller and choose Mark Route; focus the marked destination to Clear Route. Exact site centers and named junctions take precedence over broad overlapping footprints, while uncharted ground stays non-actionable. Region browsing never moves the party, advances time, or activates a nearby Local interaction.
 

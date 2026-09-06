@@ -125,14 +125,20 @@ namespace AshenHalls.Editor
             CombatRoundPresentationCopyAndTimingStayBounded();
             TavernMenuRulesKeepNormalOpeningPlayerFacing();
             CampaignCheckpointRulesProtectPlayerProgress();
+            PersistenceRecoverySmokeTests.RunOrThrow();
             VisualSmokeLaunchRulesProtectPlayerProgress();
             CombatRetreatRequiresCampaignAndSupply();
+            CombatDrainOutcomeSmoke.RunOrThrow();
+            CombatStatusLifecycleSmoke.RunOrThrow();
+            CombatResumeSmoke.RunOrThrow();
+            CombatInputSmoke.RunOrThrow();
             TavernScreenLayoutFitsSupportedResolutions();
             TavernStormRegionsStayOutsideTheRoom();
             TavernTitleAnimationIsReadableAndMotionSafe();
             GrandHearthTitlePresentationIsDeterministicAndMotionSafe();
             TitleAudioRulesKeepMusicAndMenuFeedbackLegible();
             PartySetupScreenLayoutFitsSupportedResolutions();
+            PresentationAccessibilitySmoke.RunOrThrow();
             ExplorationHudScreenLayoutFitsSupportedResolutions();
             ExplorationGuidanceRulesKeepTheGoldenThreadActionable();
             WorldMapGenerationRulesDefineModestExpansion();
@@ -247,6 +253,7 @@ namespace AshenHalls.Editor
             LegacyV17SaveMigratesToFullPrototype();
             UnknownContentSetRepairsToSewerSlice();
             LabSaveDoesNotWriteCampaignFile();
+            GameSettingsPersistIndependentlyFromCampaignSaves();
             SaveServiceWritesAndFallsBackToBackup();
         }
 
@@ -1484,12 +1491,32 @@ namespace AshenHalls.Editor
             {
                 PartySetupScreenGeometry geometry = PartySetupScreenLayout.Calculate(size.x, size.y);
                 AssertEqual(true, geometry.Fits(size.x, size.y), $"party setup layout fits {size.x}x{size.y}");
+                Rect localDetails = new Rect(
+                    geometry.Editor.width - geometry.Details.width - 18f,
+                    116f,
+                    geometry.Details.width,
+                    geometry.Details.height);
+                PartySetupEditorFlowGeometry flow = PartySetupScreenLayout.CalculateEditorFlow(
+                    geometry.Editor,
+                    localDetails,
+                    PartySetupScreenLayout.TalentKeys.Count);
+                AssertEqual(true, flow.Fits(geometry.Editor), $"party setup editor controls fit {size.x}x{size.y}");
+                AssertEqual(true, flow.HasNoOverlaps(), $"party setup editor controls do not overlap at {size.x}x{size.y}");
+                AssertEqual(true, flow.Note.height >= 32f, $"party setup footer keeps two readable lines at {size.x}x{size.y}");
                 for (int i = 0; i < StarterPartyCatalog.ExpectedPartySize; i++)
                 {
                     Rect row = PartySetupScreenLayout.RosterRow(geometry.Roster, i);
                     AssertEqual(true, row.xMin >= 0f && row.yMin >= 0f && row.xMax <= geometry.Roster.width && row.yMax <= geometry.Roster.height, $"party setup roster row {i} fits {size.x}x{size.y}");
                 }
             }
+
+            PartySetupScreenGeometry lastCompact = PartySetupScreenLayout.Calculate(1517f, 900f);
+            PartySetupScreenGeometry firstExpanded = PartySetupScreenLayout.Calculate(1518f, 900f);
+            Rect compactDetails = new Rect(lastCompact.Editor.width - lastCompact.Details.width - 18f, 116f, lastCompact.Details.width, lastCompact.Details.height);
+            Rect expandedDetails = new Rect(firstExpanded.Editor.width - firstExpanded.Details.width - 18f, 116f, firstExpanded.Details.width, firstExpanded.Details.height);
+            AssertEqual(6, PartySetupScreenLayout.TalentKeys.Count, "party setup keeps the complete authored talent row");
+            AssertEqual(true, PartySetupScreenLayout.CalculateEditorFlow(lastCompact.Editor, compactDetails, PartySetupScreenLayout.TalentKeys.Count).Compact, "party setup uses compact identity controls below the safe breakpoint");
+            AssertEqual(false, PartySetupScreenLayout.CalculateEditorFlow(firstExpanded.Editor, expandedDetails, PartySetupScreenLayout.TalentKeys.Count).Compact, "party setup restores expanded identity controls at the safe breakpoint");
         }
 
         private static void ExplorationHudScreenLayoutFitsSupportedResolutions()
@@ -3387,7 +3414,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.23.0", VersionInfo.PackageVersion, "package version marks the Wayfinder's Atlas release");
+            AssertEqual("v2.24.0", VersionInfo.PackageVersion, "package version marks the Battle Discipline release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -8668,6 +8695,7 @@ namespace AshenHalls.Editor
             AssertEqual(true, tavern.Lines.Any(line => line.Contains("Beta Lab")), "developer tavern help names the direct Beta Lab row");
             AssertEqual(true, tavern.Lines.Any(line => line.Contains("broader combat, martial, and route testing panel")), "developer tavern help retains the broader testing-panel route");
             AssertEqual(false, retailTavern.Lines.Any(line => line.Contains("Beta Lab") || line.Contains("testing panel")), "retail tavern help does not advertise hidden developer routes");
+            AssertEqual(true, retailTavern.Lines.Any(line => line.Contains("whole app") && line.Contains("independently of campaign saves")), "tavern help explains app-wide settings persistence");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Space / E")), "exploration help mentions contextual use");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Space/E/A") && line.Contains("Home / gamepad X")), "exploration help explains Region route marking and party recenter controls");
             AssertEqual(true, explore.Lines.Any(line => line.Contains("Space/E/A beside it")), "exploration blocked-path help includes controller A");
@@ -9763,6 +9791,21 @@ namespace AshenHalls.Editor
             AssertEqual(true, cachePath.Count > 0, "path guidance reaches an adjacent interaction tile");
             Point cacheApproach = cachePath[cachePath.Count - 1];
             AssertEqual(1, Mathf.Abs(cacheApproach.X - cache.X) + Mathf.Abs(cacheApproach.Y - cache.Y), "blocking target route ends adjacent");
+
+            MapObject inertWall = new MapObject(4, 3, ObjectType.CityWall);
+            map.Objects.Add(inertWall);
+            reachable = ExplorationTraversalRules.ReachableMask(map, 1, 2);
+            AssertEqual(false, ExplorationTraversalRules.CanReachObject(reachable, map, inertWall), "inert blockers are not advertised as usable from an adjacent tile");
+            AssertEqual(0, ExplorationTraversalRules.FindPathToObject(map, 1, 2, inertWall).Count, "default route guidance ignores inert blockers");
+            AssertEqual(
+                0,
+                ExplorationTraversalRules.FindPathToObject(
+                    map,
+                    1,
+                    2,
+                    inertWall,
+                    (x, y) => x >= 0 && x < map.Width && y >= 0 && y < map.Height && map.Tiles[y * map.Width + x] == 1).Count,
+                "custom route guidance ignores inert blockers");
         }
 
         private static void MidgaardInteriorPortalsRemainPaired()
@@ -10662,6 +10705,47 @@ namespace AshenHalls.Editor
             AssertEqual(hero.Id, state.Combat.ActiveId, "begin turn active id");
             AssertEqual(3, state.Combat.MovePoints, "begin turn movement");
             AssertEqual(true, state.Combat.ActionAvailable, "begin turn action");
+
+            GameState invalidCostState = TestCombatState(out CombatUnit invalidCostHero, out _);
+            int reportedMoveCost = -1;
+            int moveCostCalls = 0;
+            CombatController invalidCostController = new CombatController(
+                invalidCostState,
+                999,
+                unit => 3,
+                (unit, x, y) => true,
+                (unit, x, y) =>
+                {
+                    moveCostCalls++;
+                    return reportedMoveCost;
+                },
+                unit => unit != null && unit.Side == UnitSide.Party);
+            invalidCostController.BeginTurn(invalidCostHero, false);
+            CombatCommandResult sameTile = invalidCostController.TryMove(invalidCostHero, invalidCostHero.X, invalidCostHero.Y);
+            AssertEqual(CombatCommandFailure.SameTile, sameTile.Failure, "same-tile movement remains a distinct rejection");
+            AssertEqual(0, moveCostCalls, "same-tile movement never requests a path cost");
+            CombatCommandResult negativeCostMove = invalidCostController.TryMove(invalidCostHero, 2, 1);
+            AssertEqual(CombatCommandFailure.PathBlocked, negativeCostMove.Failure, "negative path cost is rejected");
+            AssertEqual(1, invalidCostHero.X, "negative path cost preserves x");
+            AssertEqual(1, invalidCostHero.Y, "negative path cost preserves y");
+            AssertEqual(3, invalidCostState.Combat.MovePoints, "negative path cost cannot manufacture movement points");
+            AssertEqual(false, invalidCostState.Combat.Moved, "negative path cost preserves movement state");
+            AssertEqual(true, invalidCostState.Combat.ActionAvailable, "negative path cost preserves the action");
+            AssertEqual(CombatPhase.ChooseAction, invalidCostState.Combat.Phase, "negative path cost preserves the command phase");
+            reportedMoveCost = 0;
+            CombatCommandResult zeroCostMove = invalidCostController.TryMove(invalidCostHero, 2, 1);
+            AssertEqual(CombatCommandFailure.PathBlocked, zeroCostMove.Failure, "zero path cost is rejected for a distinct tile");
+            AssertEqual(3, invalidCostState.Combat.MovePoints, "zero path cost preserves movement points");
+            AssertEqual(false, invalidCostState.Combat.Moved, "zero path cost preserves movement state");
+            invalidCostController.ApplyMovementBudgetResult(false, 3, -2);
+            AssertEqual(3, invalidCostState.Combat.MovePoints, "negative reported spend is clamped to zero");
+            AssertEqual(false, invalidCostState.Combat.Moved, "movement budget result preserves its normalized moved flag");
+            invalidCostController.ApplyMovementBudgetResult(true, 3, 8);
+            AssertEqual(0, invalidCostState.Combat.MovePoints, "reported overspend is clamped to the movement budget");
+            AssertEqual(true, invalidCostState.Combat.Moved, "movement budget result applies its moved flag");
+            invalidCostController.ApplyMovementBudgetResult(false, -3, 1);
+            AssertEqual(0, invalidCostState.Combat.MovePoints, "negative movement budget is normalized to zero");
+            AssertEqual(false, invalidCostState.Combat.Moved, "normalized negative budget still applies the requested moved flag");
 
             state.Combat.Phase = CombatPhase.Resolving;
             AssertEqual(false, controller.ActionEnabled(ActionMode.Move, hero, false, false, 0), "resolving phase blocks commands");
@@ -11783,6 +11867,160 @@ namespace AshenHalls.Editor
             }
         }
 
+        private static void GameSettingsPersistIndependentlyFromCampaignSaves()
+        {
+            string root = Path.Combine(Path.GetTempPath(), "AshenHallsGameSettingsSmoke-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                string settingsPath = GameSettingsService.SettingsPath(root);
+                string campaignPath = SaveService.SavePath(root);
+                GameSettingsData defaults = GameSettingsRules.Normalize(null);
+                AssertEqual(GameSettingsService.CurrentVersion, defaults.SettingsVersion, "null application settings normalize to the current schema");
+                AssertEqual(GameSettingsRules.DefaultSfxVolumePercent, defaults.SfxVolumePercent, "null application settings restore the default SFX volume");
+                AssertEqual(GameSettingsRules.DefaultMusicVolumePercent, defaults.MusicVolumePercent, "null application settings restore the default music volume");
+                GameSettingsData normalizedBounds = GameSettingsRules.Normalize(new GameSettingsData
+                {
+                    SfxVolumePercent = 1,
+                    MusicVolumePercent = 500
+                });
+                AssertEqual(GameSettingsRules.MinimumVolumePercent, normalizedBounds.SfxVolumePercent, "application SFX volume clamps to the supported minimum");
+                AssertEqual(GameSettingsRules.MaximumVolumePercent, normalizedBounds.MusicVolumePercent, "application music volume clamps to the supported maximum");
+                AssertEqual(false, GameSettingsService.TryLoad(settingsPath, out _, out bool missingUsedBackup), "missing application settings report no load");
+                AssertEqual(false, missingUsedBackup, "missing application settings never report backup recovery");
+                AssertEqual(false, GameSettingsService.Exists(settingsPath), "missing application settings report no persisted file");
+                GameState source = new GameState
+                {
+                    ReducedMotion = true,
+                    SfxMuted = true,
+                    MusicMuted = false,
+                    SfxVolumePercent = 50,
+                    MusicVolumePercent = 75
+                };
+
+                GameSettingsService.Save(settingsPath, GameSettingsRules.Capture(source));
+                AssertEqual(true, File.Exists(settingsPath), "application settings create their own file");
+                AssertEqual(true, GameSettingsService.Exists(settingsPath), "application settings report their persisted file");
+                AssertEqual(false, SaveService.SaveExists(campaignPath), "saving application settings does not create a campaign save");
+                AssertEqual(true, GameSettingsService.TryLoad(settingsPath, out GameSettingsData loaded, out bool usedBackup), "application settings reload from the primary file");
+                AssertEqual(false, usedBackup, "primary application settings do not report backup recovery");
+
+                GameState target = new GameState
+                {
+                    ReducedMotion = false,
+                    SfxMuted = false,
+                    MusicMuted = true,
+                    SfxVolumePercent = 100,
+                    MusicVolumePercent = 25
+                };
+                GameSettingsRules.Apply(loaded, target);
+                AssertEqual(true, target.ReducedMotion, "application settings restore reduced motion independently of campaign state");
+                AssertEqual(true, target.SfxMuted, "application settings restore SFX mute independently of campaign state");
+                AssertEqual(false, target.MusicMuted, "application settings restore music mute independently of campaign state");
+                AssertEqual(50, target.SfxVolumePercent, "application settings restore SFX volume independently of campaign state");
+                AssertEqual(75, target.MusicVolumePercent, "application settings restore music volume independently of campaign state");
+
+                GameSettingsService.Save(settingsPath, new GameSettingsData
+                {
+                    SfxVolumePercent = 25,
+                    MusicVolumePercent = 100
+                });
+                File.WriteAllText(settingsPath, "{}");
+                AssertEqual(true, GameSettingsService.TryLoad(settingsPath, out GameSettingsData recovered, out usedBackup), "application settings fall back when the primary file is corrupt");
+                AssertEqual(true, usedBackup, "application settings report backup recovery");
+                AssertEqual(50, recovered.SfxVolumePercent, "application settings backup preserves the prior SFX volume");
+                AssertEqual(75, recovered.MusicVolumePercent, "application settings backup preserves the prior music volume");
+                AssertEqual(true, GameSettingsService.TryLoad(settingsPath, out GameSettingsData repairedPrimary, out usedBackup), "backup recovery repairs the primary settings file");
+                AssertEqual(false, usedBackup, "repaired primary settings no longer depend on backup recovery");
+                AssertEqual(50, repairedPrimary.SfxVolumePercent, "repaired primary preserves recovered SFX volume");
+                GameSettingsService.Save(settingsPath, new GameSettingsData
+                {
+                    SfxVolumePercent = 25,
+                    MusicVolumePercent = 100
+                });
+                File.WriteAllText(settingsPath, "not valid settings json");
+                AssertEqual(true, GameSettingsService.TryLoad(settingsPath, out GameSettingsData recoveredAgain, out usedBackup), "a save after recovery retains a loadable backup");
+                AssertEqual(true, usedBackup, "a second corrupt primary still reports backup recovery");
+                AssertEqual(50, recoveredAgain.SfxVolumePercent, "a save after recovery does not rotate corrupt primary data into the backup");
+
+                string preserveBackupPath = Path.Combine(root, "preserve-backup-settings.json");
+                GameSettingsService.Save(preserveBackupPath, GameSettingsRules.Capture(source));
+                GameSettingsService.Save(preserveBackupPath, new GameSettingsData
+                {
+                    SfxVolumePercent = 25,
+                    MusicVolumePercent = 100
+                });
+                File.WriteAllText(preserveBackupPath, "{}");
+                GameSettingsService.Save(preserveBackupPath, new GameSettingsData
+                {
+                    SfxVolumePercent = 100,
+                    MusicVolumePercent = 25
+                });
+                File.WriteAllText(preserveBackupPath, "not valid settings json");
+                AssertEqual(true, GameSettingsService.TryLoad(preserveBackupPath, out GameSettingsData preservedBackup, out usedBackup), "saving over an invalid primary preserves a compatible settings backup");
+                AssertEqual(true, usedBackup, "preserved compatible settings backup remains the recovery source");
+                AssertEqual(50, preservedBackup.SfxVolumePercent, "invalid primary is never rotated over a compatible settings backup");
+
+                string futurePath = Path.Combine(root, "future-settings.json");
+                GameSettingsService.Save(futurePath, GameSettingsRules.Capture(source));
+                GameSettingsService.Save(futurePath, new GameSettingsData
+                {
+                    SfxVolumePercent = 25,
+                    MusicVolumePercent = 100
+                });
+                string futureJson = JsonUtility.ToJson(new GameSettingsData
+                {
+                    SettingsVersion = GameSettingsService.CurrentVersion + 1
+                });
+                File.WriteAllText(futurePath, futureJson);
+                AssertEqual(true, GameSettingsService.TryLoad(futurePath, out GameSettingsData futureFallback, out usedBackup), "future application settings schema can use a compatible backup");
+                AssertEqual(true, usedBackup, "future primary application settings report compatible backup use");
+                AssertEqual(50, futureFallback.SfxVolumePercent, "future application settings fallback preserves the compatible backup");
+                AssertEqual(futureJson, File.ReadAllText(futurePath), "future primary application settings are preserved for a newer build");
+                string futureBackupJson = File.ReadAllText(futurePath + ".bak");
+                AssertThrows<InvalidDataException>(
+                    () => GameSettingsService.Save(futurePath, GameSettingsRules.Capture(source)),
+                    "older build cannot overwrite future application settings");
+                AssertEqual(futureJson, File.ReadAllText(futurePath), "rejected settings save leaves future primary bytes unchanged");
+                AssertEqual(futureBackupJson, File.ReadAllText(futurePath + ".bak"), "rejected settings save leaves the compatible backup unchanged");
+
+                string futureBackupOnlyPath = Path.Combine(root, "future-backup-only-settings.json");
+                File.WriteAllText(futureBackupOnlyPath + ".bak", futureJson);
+                AssertThrows<InvalidDataException>(
+                    () => GameSettingsService.Save(futureBackupOnlyPath, GameSettingsRules.Capture(source)),
+                    "older build cannot shadow future backup-only application settings");
+                AssertEqual(false, File.Exists(futureBackupOnlyPath), "rejected settings save does not create a downgraded primary beside a future backup");
+                AssertEqual(futureJson, File.ReadAllText(futureBackupOnlyPath + ".bak"), "rejected settings save leaves future backup bytes unchanged");
+
+                string coreSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Core.cs"));
+                string tavernSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Tavern.cs"));
+                string audioSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.ArtAudio.cs"));
+                string presentationSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Legacy", "AshenHallsGame.Presentation.cs"));
+                string pauseMenuSource = File.ReadAllText(Path.Combine(Application.dataPath, "Scripts", "Presentation", "PauseMenuScreen.cs"));
+                int adoptionAssignment = coreSource.IndexOf("state = loaded;", StringComparison.Ordinal);
+                int adoptionRestore = adoptionAssignment < 0
+                    ? -1
+                    : coreSource.IndexOf("RestoreGameSettingsPreferences();", adoptionAssignment, StringComparison.Ordinal);
+                int adoptionSeed = adoptionRestore < 0
+                    ? -1
+                    : coreSource.IndexOf("SeedGameSettingsPreferencesIfMissing();", adoptionRestore, StringComparison.Ordinal);
+                AssertEqual(true, adoptionAssignment >= 0 && adoptionRestore > adoptionAssignment, "campaign adoption restores app settings after assigning loaded state");
+                AssertEqual(true, adoptionSeed > adoptionRestore, "campaign adoption seeds missing settings only after restoration and validation");
+                AssertEqual(true, tavernSource.Contains("bool reducedMotion = state != null && state.ReducedMotion;"), "New Game preserves the active Reduced Motion preference");
+                AssertEqual(true, tavernSource.Contains("SfxVolumePercent = sfxVolumePercent"), "New Game preserves active audio levels");
+                AssertEqual(true, tavernSource.Contains("PersistGameSettingsPreferences();"), "Reduced Motion changes persist app settings");
+                AssertEqual(true, CountOccurrences(audioSource, "PersistGameSettingsPreferences();") >= 6, "all audio setting actions persist app settings");
+                AssertEqual(true, presentationSource.Contains("ToggleReducedMotionSetting();"), "legacy preference chrome routes Reduced Motion through persistence");
+                AssertEqual(false, presentationSource.Contains("state.ReducedMotion = GUI.Toggle"), "legacy preference chrome cannot bypass app settings persistence");
+                AssertEqual(true, coreSource.Contains("Reduced Motion: On") && coreSource.Contains("Reduced Motion: Off"), "pause settings view reports the current Reduced Motion state");
+                AssertEqual(true, pauseMenuSource.Contains("view.MotionLine"), "pause settings button renders the current Reduced Motion state");
+                AssertThrows<ArgumentException>(() => GameSettingsService.SettingsPath(" "), "application settings require a persistent data root");
+            }
+            finally
+            {
+                if (Directory.Exists(root)) Directory.Delete(root, true);
+            }
+        }
+
         private static void SaveServiceWritesAndFallsBackToBackup()
         {
             string root = Path.Combine(Path.GetTempPath(), "AshenHallsSaveServiceSmoke-" + Guid.NewGuid().ToString("N"));
@@ -11843,6 +12081,111 @@ namespace AshenHalls.Editor
                 AssertEqual(true, usedBackup, "empty-party primary falls back to deeply valid backup");
                 AssertEqual(505, repairedParty.Seed, "deep candidate validation restores valid party backup");
 
+                string modePath = Path.Combine(root, "mode-save.json");
+                SaveService.SaveGameState(modePath, new GameState
+                {
+                    SaveVersion = VersionInfo.SaveVersion,
+                    Mode = GameMode.Muster,
+                    Seed = 707,
+                    Party = new List<PartyMember> { new PartyMember { Name = "Maer" } }
+                });
+                SaveService.SaveGameState(modePath, new GameState
+                {
+                    SaveVersion = VersionInfo.SaveVersion,
+                    Mode = (GameMode)999,
+                    Seed = 717,
+                    Party = new List<PartyMember> { new PartyMember { Name = "Maer" } }
+                });
+                GameState repairedMode = SaveService.LoadGameState(
+                    modePath,
+                    candidate => SaveCandidateRules.IsLoadable(candidate, VersionInfo.SaveVersion),
+                    out usedBackup);
+                AssertEqual(true, usedBackup, "undefined game mode falls back to a valid backup");
+                AssertEqual(707, repairedMode.Seed, "game mode validation restores the valid backup state");
+
+                string combatPath = Path.Combine(root, "combat-save.json");
+                SaveService.SaveGameState(combatPath, LoadableCombatSaveState(808));
+                GameState malformedCombat = LoadableCombatSaveState(818);
+                malformedCombat.Combat.Units[1] = null;
+                SaveService.SaveGameState(combatPath, malformedCombat);
+                GameState repairedCombat = SaveService.LoadGameState(
+                    combatPath,
+                    candidate => SaveCandidateRules.IsLoadable(candidate, VersionInfo.SaveVersion),
+                    out usedBackup);
+                AssertEqual(true, usedBackup, "null combat unit falls back to a structurally valid backup");
+                AssertEqual(808, repairedCombat.Seed, "combat validation restores the valid backup state");
+
+                GameState duplicateCombatIds = LoadableCombatSaveState(828);
+                duplicateCombatIds.Combat.Units[1].Id = duplicateCombatIds.Combat.Units[0].Id;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(duplicateCombatIds, VersionInfo.SaveVersion), "duplicate combat unit ids are rejected before adoption");
+                GameState invalidPartyLink = LoadableCombatSaveState(838);
+                invalidPartyLink.Combat.Units[0].PartyIndex = invalidPartyLink.Party.Count;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(invalidPartyLink, VersionInfo.SaveVersion), "out-of-range combat party link is rejected before adoption");
+                GameState missingObstacles = LoadableCombatSaveState(848);
+                missingObstacles.Combat.Obstacles = null;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(missingObstacles, VersionInfo.SaveVersion), "missing combat obstacle collection is rejected before adoption");
+                GameState invalidCombatPhase = LoadableCombatSaveState(858);
+                invalidCombatPhase.Combat.Phase = (CombatPhase)999;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(invalidCombatPhase, VersionInfo.SaveVersion), "undefined combat phase is rejected before adoption");
+                GameState invalidUnitSide = LoadableCombatSaveState(868);
+                invalidUnitSide.Combat.Units[1].Side = (UnitSide)999;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(invalidUnitSide, VersionInfo.SaveVersion), "undefined combat unit side is rejected before adoption");
+                GameState blankUnitId = LoadableCombatSaveState(878);
+                blankUnitId.Combat.Units[1].Id = " ";
+                AssertEqual(false, SaveCandidateRules.IsLoadable(blankUnitId, VersionInfo.SaveVersion), "blank combat unit id is rejected before adoption");
+                GameState duplicatePartyIndex = LoadableCombatSaveState(888);
+                duplicatePartyIndex.Party.Add(new PartyMember { Id = "party-second", Name = "Borin", Skills = new SkillSet() });
+                duplicatePartyIndex.Combat.Units.Add(new CombatUnit
+                {
+                    Id = "party-second",
+                    PartyIndex = 0,
+                    Side = UnitSide.Party,
+                    Name = "Borin",
+                    Hp = 18,
+                    MaxHp = 18,
+                    Skills = new SkillSet()
+                });
+                AssertEqual(false, SaveCandidateRules.IsLoadable(duplicatePartyIndex, VersionInfo.SaveVersion), "duplicate non-summoned combat party index is rejected before adoption");
+                GameState missingCombatSkills = LoadableCombatSaveState(898);
+                missingCombatSkills.Combat.Units[0].Skills = null;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(missingCombatSkills, VersionInfo.SaveVersion), "missing combat party skills are rejected before adoption");
+                GameState missingEnemySkills = LoadableCombatSaveState(903);
+                missingEnemySkills.Combat.Units[1].Skills = null;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(missingEnemySkills, VersionInfo.SaveVersion), "missing enemy combat skills are rejected before adoption");
+                GameState missingSummonSkills = LoadableCombatSaveState(906);
+                missingSummonSkills.Combat.Units.Add(new CombatUnit
+                {
+                    Id = "summoned-imp",
+                    PartyIndex = -1,
+                    Side = UnitSide.Party,
+                    Summoned = true,
+                    Name = "Bound Imp",
+                    Hp = 8,
+                    MaxHp = 8,
+                    Skills = null
+                });
+                AssertEqual(false, SaveCandidateRules.IsLoadable(missingSummonSkills, VersionInfo.SaveVersion), "missing summoned combat skills are rejected before adoption");
+                GameState nullObstacle = LoadableCombatSaveState(908);
+                nullObstacle.Combat.Obstacles.Add(null);
+                AssertEqual(false, SaveCandidateRules.IsLoadable(nullObstacle, VersionInfo.SaveVersion), "null combat obstacle is rejected before adoption");
+                GameState defeatedCombat = LoadableCombatSaveState(918);
+                foreach (CombatUnit unit in defeatedCombat.Combat.Units) unit.Hp = 0;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(defeatedCombat, VersionInfo.SaveVersion), "combat payload with no living unit is rejected before adoption");
+                GameState mismatchedPartyId = LoadableCombatSaveState(928);
+                mismatchedPartyId.Combat.Units[0].Id = "party-other";
+                AssertEqual(false, SaveCandidateRules.IsLoadable(mismatchedPartyId, VersionInfo.SaveVersion), "combat unit id must match its linked party member");
+                GameState unstablePartyId = LoadableCombatSaveState(938);
+                unstablePartyId.Party[0].Id = " party-hero ";
+                AssertEqual(false, SaveCandidateRules.IsLoadable(unstablePartyId, VersionInfo.SaveVersion), "combat party ids must already be stable and trimmed");
+                GameState truncatedPartyLink = LoadableCombatSaveState(948);
+                for (int i = 1; i <= StarterPartyCatalog.ExpectedPartySize; i++)
+                {
+                    truncatedPartyLink.Party.Add(new PartyMember { Id = "party-extra-" + i, Name = "Extra " + i, Skills = new SkillSet() });
+                }
+                truncatedPartyLink.Combat.Units[0].PartyIndex = StarterPartyCatalog.ExpectedPartySize;
+                truncatedPartyLink.Combat.Units[0].Id = truncatedPartyLink.Party[StarterPartyCatalog.ExpectedPartySize].Id;
+                AssertEqual(false, SaveCandidateRules.IsLoadable(truncatedPartyLink, VersionInfo.SaveVersion), "combat party links cannot target a member removed during adoption normalization");
+
                 string legacyRoot = Path.Combine(root, VersionInfo.LegacyProductName);
                 string renamedRoot = Path.Combine(root, VersionInfo.ProductName);
                 string legacyPath = SaveService.LegacySavePath(legacyRoot);
@@ -11858,6 +12201,51 @@ namespace AshenHalls.Editor
             {
                 if (Directory.Exists(root)) Directory.Delete(root, true);
             }
+        }
+
+        private static GameState LoadableCombatSaveState(int seed)
+        {
+            PartyMember member = new PartyMember
+            {
+                Id = "party-hero",
+                Name = "Maer",
+                Skills = new SkillSet()
+            };
+            CombatUnit hero = new CombatUnit
+            {
+                Id = member.Id,
+                PartyIndex = 0,
+                Side = UnitSide.Party,
+                Name = member.Name,
+                Hp = 20,
+                MaxHp = 20,
+                Skills = new SkillSet()
+            };
+            CombatUnit enemy = new CombatUnit
+            {
+                Id = "enemy-guard",
+                PartyIndex = -1,
+                Side = UnitSide.Enemy,
+                Name = "Guard",
+                Hp = 12,
+                MaxHp = 12,
+                Skills = new SkillSet()
+            };
+            return new GameState
+            {
+                SaveVersion = VersionInfo.SaveVersion,
+                Mode = GameMode.Combat,
+                Seed = seed,
+                Party = new List<PartyMember> { member },
+                Combat = new CombatState
+                {
+                    ActiveId = hero.Id,
+                    Phase = CombatPhase.ChooseAction,
+                    InitiativeQueue = new List<string> { hero.Id, enemy.Id },
+                    Units = new List<CombatUnit> { hero, enemy },
+                    Obstacles = new List<Point>()
+                }
+            };
         }
 
         private static void AssertEqual<T>(T expected, T actual, string label)

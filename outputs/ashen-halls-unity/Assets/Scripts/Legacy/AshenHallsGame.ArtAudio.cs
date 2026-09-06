@@ -3235,6 +3235,7 @@ namespace AshenHalls
             NormalizeGameSettings();
             state.SfxMuted = false;
             ApplyAudioSettings();
+            PersistGameSettingsPreferences();
             PlaySfx("ui", 0.85f);
             PlaySfx("attack", 0.75f);
             PlaySfx("castember", 0.72f);
@@ -3248,6 +3249,7 @@ namespace AshenHalls
             NormalizeGameSettings();
             state.SfxMuted = !state.SfxMuted;
             ApplyAudioSettings();
+            PersistGameSettingsPreferences();
             if (!state.SfxMuted) PlaySfx("ui", 0.7f);
             ShowBanner(state.SfxMuted ? "SFX muted" : "SFX on");
         }
@@ -3258,6 +3260,7 @@ namespace AshenHalls
             NormalizeGameSettings();
             state.MusicMuted = !state.MusicMuted;
             ApplyAudioSettings();
+            PersistGameSettingsPreferences();
             if (!state.MusicMuted) PlaySfx("ui", 0.55f);
             ShowBanner(state.MusicMuted ? "Music muted" : "Music on");
         }
@@ -3269,6 +3272,7 @@ namespace AshenHalls
             if (state.SfxVolumePercent >= 100) state.SfxVolumePercent = 25;
             else state.SfxVolumePercent += 25;
             ApplyAudioSettings();
+            PersistGameSettingsPreferences();
             PlaySfx("ui", 0.7f);
             ShowBanner($"Audio {state.SfxVolumePercent}%");
         }
@@ -3280,6 +3284,7 @@ namespace AshenHalls
             state.SfxMuted = false;
             state.SfxVolumePercent = Mathf.Clamp(state.SfxVolumePercent + delta, 25, 100);
             ApplyAudioSettings();
+            PersistGameSettingsPreferences();
             PlaySfx("ui", 0.7f);
             ShowBanner($"SFX {state.SfxVolumePercent}%");
         }
@@ -3291,6 +3296,7 @@ namespace AshenHalls
             state.MusicMuted = false;
             state.MusicVolumePercent = Mathf.Clamp(state.MusicVolumePercent + delta, 25, 100);
             ApplyAudioSettings();
+            PersistGameSettingsPreferences();
             PlaySfx("ui", 0.55f);
             ShowBanner($"Music {state.MusicVolumePercent}%");
         }

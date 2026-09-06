@@ -2,6 +2,24 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.24.0 - Battle Discipline
+
+- Combat Help and other modal screens suspend enemy decisions and pending turn transitions until the board regains input. Controller Cancel has one owner when a power book is open.
+- Resuming an already armed spell or skill consumes the submission frame, preventing that same press from immediately firing the power. Malformed saved initiative queues fall back to a healthy checkpoint instead of repeating one actor indefinitely.
+- Web effects last through their authored affected turns, and steam reactions apply harmful stun chance and resistance consistently to both sides.
+- Drain's hit now resolves the sanctuary interaction promised by its preview, alongside the corrected health-based healing.
+
+- Protected Party Setup text entry from gameplay shortcuts and native button submission from duplicate Quick Start dispatch. Help now owns modal input and provides a scrollable body; compact pause settings and confirmation text fit the supported resolutions.
+- Campaign recovery now heals a damaged primary without sacrificing the good backup. Saving directly over a malformed primary retains the healthy backup; newer campaign schemas in either file are preserved against older writes.
+- Drain spells and Soul Rend now heal from health actually removed, preventing excess healing from overkill. Drain popups report actual recovery, and consuming stealth or losing beneficial effects no longer claims an ailment cure.
+- Added `Tools/InvokeProjectAudit.ps1` to run the complete existing verification suite without packaging, with unique logs, exact editor-process waiting, and failure on logged Unity errors as well as thrown exceptions.
+- Moved Reduced Motion, SFX mute/volume, and Music mute/volume into a versioned application-preferences file with atomic writes and backup recovery. Campaign saves retain their existing fields for compatibility, but loading an older campaign no longer silently replaces the player's current app-wide choices; the pause menu also reports the current Reduced Motion state explicitly.
+- Added a compact Party Setup identity layout below the safe 1518-pixel breakpoint, keeping Name, Class, Race, Origin, Sigil, reroll, and color controls clear of Details at 960x600 and 1280x720.
+- Hardened campaign candidate validation so undefined modes and malformed combat collections, unit identities, or party links fall back to a valid backup before the state is adopted.
+- Rejected zero/negative combat path costs, clamped external movement-budget results, and stopped route guidance from steering toward inert blocking scenery.
+- Restored `InventoryLootExperienceSmoke` to the Windows build gate and added regression contracts for all of the above. Save schema remains v27.
+- Added a tracked, sanitized v2.23 release-evidence summary because the full local logs and capture folders are intentionally ignored.
+
 ## v2.23.0 - The Wayfinder's Atlas
 
 - Turned Region Map focus into a deliberate planning tool. Charted landmarks expose exact `Mark Route` and `Clear Route` actions, overlapping sites resolve to their real center or junction before broad footprints, and browsing never dispatches a nearby Local interaction.
