@@ -90,6 +90,26 @@ namespace AshenHalls
         }
     }
 
+    public readonly struct ExplorationRegionStripGeometry
+    {
+        public readonly bool Compact;
+        public readonly Rect Location;
+        public readonly Rect Danger;
+        public readonly Rect Context;
+        public readonly Rect View;
+        public readonly Rect Details;
+
+        public ExplorationRegionStripGeometry(bool compact, Rect location, Rect danger, Rect context, Rect view, Rect details)
+        {
+            Compact = compact;
+            Location = location;
+            Danger = danger;
+            Context = context;
+            View = view;
+            Details = details;
+        }
+    }
+
     public static class ExplorationHudScreenLayout
     {
         public const float DetailsBoardGap = 10f;
@@ -99,6 +119,7 @@ namespace AshenHalls
         public const int MinimumBodyFontSize = 12;
         public const int MinimumCommandFontSize = 13;
         public const int MinimumTitleFontSize = 18;
+        public const int MinimumLocationTitleFontSize = 15;
 
         public static float InterfaceScale(float width, float height)
         {
@@ -191,6 +212,41 @@ namespace AshenHalls
                 32f * scale);
         }
 
+        // Two readable lines fit inside the existing rail header; neither long
+        // landmark names nor their danger label steal room from party readiness.
+        public static Rect LocationTitle(float sideWidth, float scale)
+        {
+            return new Rect(14f * scale, 4f * scale, sideWidth - 28f * scale, 36f * scale);
+        }
+
+        public static Rect LocationDanger(float sideWidth, float scale)
+        {
+            return new Rect(14f * scale, 40f * scale, sideWidth - 28f * scale, 14f * scale);
+        }
+
+        public static ExplorationRegionStripGeometry RegionStrip(Rect strip, float scale)
+        {
+            float y = strip.y + 5f * scale;
+            float h = 27f * scale;
+            float textX = strip.x + 43f * scale;
+            float gap = 10f * scale;
+            Rect view = new Rect(strip.xMax - 212f * scale, y, 112f * scale, h);
+            Rect details = new Rect(view.xMax + 6f * scale, y, 86f * scale, h);
+            bool compact = strip.width < 900f * scale;
+            if (compact)
+            {
+                // Danger and inspection/action copy are already in the rail
+                // and footer. Give the scarce board-heading space to identity.
+                return new ExplorationRegionStripGeometry(true,
+                    new Rect(textX, y, Mathf.Max(0f, view.xMin - gap - textX), h),
+                    Rect.zero, Rect.zero, view, details);
+            }
+            Rect location = new Rect(textX, y, Mathf.Clamp(strip.width * 0.25f, 220f * scale, 320f * scale), h);
+            Rect danger = new Rect(location.xMax + gap, y, 96f * scale, h);
+            Rect context = new Rect(danger.xMax + gap, y, Mathf.Max(0f, view.xMin - danger.xMax - gap * 2f), h);
+            return new ExplorationRegionStripGeometry(false, location, danger, context, view, details);
+        }
+
         public static Rect[] PartyRows(float sideWidth, float scale, bool detailsOpen, int count)
         {
             count = Mathf.Max(0, count);
@@ -237,6 +293,7 @@ namespace AshenHalls
         private Text latestTitleText;
         private Text actionLabelText;
         private Text actionTargetText;
+        private Text actionKeyText;
         private Text detailsButtonText;
         private Button actionButton;
         private Button mapButton;
@@ -423,7 +480,8 @@ namespace AshenHalls
                 ? "Nothing nearby"
                 : view.ActionTarget;
             actionButton.interactable = view.HasAction;
-            detailsButtonText.text = view.DetailsOpen ? "Close" : "Details";
+            actionKeyText.text = view.HasAction ? "E" : "";
+            detailsButtonText.text = view.DetailsOpen ? "Close · Q" : "Details · Q";
             mapButtonText.text = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase)
                 ? "Local\nTab / Y"
                 : "Region\nTab / Y";
@@ -482,6 +540,7 @@ namespace AshenHalls
 
             sidePanel = AddPanel("Location Panel", canvas.transform, Hex("080b0d", 0.86f), Hex("58b7a5", 0.72f));
             sideTitleText = AddText("Location Title", sidePanel, "Location", ExplorationHudScreenLayout.MinimumTitleFontSize, Hex("e3ba63", 1f), TextAnchor.MiddleLeft);
+            sideTitleText.resizeTextForBestFit = true;
             sideDangerText = AddText("Danger", sidePanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleLeft);
             waypointTitleText = AddText("Waypoint Title", sidePanel, "NEXT", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("e3ba63", 1f), TextAnchor.MiddleLeft);
             objectiveTitleText = AddText("Objective Title", sidePanel, "OBJECTIVE", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleLeft);
@@ -502,6 +561,7 @@ namespace AshenHalls
             actionButton = AddButton("Use Action", commandPanel, "", bindings?.UseContextual, true);
             actionLabelText = actionButton.GetComponentInChildren<Text>();
             actionTargetText = AddText("Use Target", actionButton.transform, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("d0c5ae", 1f), TextAnchor.LowerCenter);
+            actionKeyText = AddText("Use Key", actionButton.transform, "", ExplorationHudScreenLayout.MinimumCommandFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleCenter);
             mapButton = AddButton("Map View", commandPanel, "Region\nTab", bindings?.ToggleView, false);
             mapButtonText = mapButton.GetComponentInChildren<Text>();
             journalButton = AddButton("Journal", commandPanel, "Journal\nJ", bindings?.OpenJournal, false);
@@ -514,15 +574,20 @@ namespace AshenHalls
 
         private void ApplyLayout(bool detailsOpen)
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
+            ApplyLayout(detailsOpen, Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(bool detailsOpen, float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
             lastDetailsOpen = detailsOpen;
-            ExplorationHudGeometry geometry = ExplorationHudScreenLayout.Calculate(Screen.width, Screen.height, detailsOpen);
-            float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
+            ExplorationHudGeometry geometry = ExplorationHudScreenLayout.Calculate(width, height, detailsOpen);
+            float scale = ExplorationHudScreenLayout.InterfaceScale(width, height);
             SetScreenRect(topPanel, geometry.Top);
             SetScreenRect(sidePanel, geometry.Side);
             SetScreenRect(commandPanel, geometry.Command);
-            ApplyResponsiveTypography();
+            ApplyResponsiveTypography(width, height);
 
             float resourceW = 78f * scale;
             float resourceGap = 6f * scale;
@@ -541,8 +606,8 @@ namespace AshenHalls
 
             float sidePad = 14f * scale;
             float innerW = geometry.Side.width - sidePad * 2f;
-            SetLocalRect(sideTitleText.rectTransform, new Rect(sidePad, 8f * scale, innerW, 25f * scale));
-            SetLocalRect(sideDangerText.rectTransform, new Rect(sidePad, 35f * scale, innerW, 18f * scale));
+            SetLocalRect(sideTitleText.rectTransform, ExplorationHudScreenLayout.LocationTitle(geometry.Side.width, scale));
+            SetLocalRect(sideDangerText.rectTransform, ExplorationHudScreenLayout.LocationDanger(geometry.Side.width, scale));
             if (detailsOpen)
             {
                 SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 54f * scale, innerW, 14f * scale));
@@ -598,21 +663,22 @@ namespace AshenHalls
 
             Rect[] buttons = ExplorationHudScreenLayout.CommandButtons(geometry.Command.width);
             SetLocalRect(actionButton.GetComponent<RectTransform>(), buttons[0]);
-            SetLocalRect(actionLabelText.rectTransform, new Rect(12f * scale, 5f * scale, buttons[0].width - 24f * scale, 24f * scale));
+            SetLocalRect(actionLabelText.rectTransform, new Rect(12f * scale, 5f * scale, buttons[0].width - 62f * scale, 24f * scale));
             actionLabelText.alignment = TextAnchor.MiddleCenter;
-            SetLocalRect(actionTargetText.rectTransform, new Rect(12f * scale, 29f * scale, buttons[0].width - 24f * scale, 18f * scale));
+            SetLocalRect(actionTargetText.rectTransform, new Rect(12f * scale, 29f * scale, buttons[0].width - 62f * scale, 18f * scale));
+            SetLocalRect(actionKeyText.rectTransform, new Rect(buttons[0].width - 44f * scale, 10f * scale, 32f * scale, 32f * scale));
             SetLocalRect(mapButton.GetComponent<RectTransform>(), buttons[1]);
             SetLocalRect(journalButton.GetComponent<RectTransform>(), buttons[2]);
             SetLocalRect(partyButton.GetComponent<RectTransform>(), buttons[3]);
             SetLocalRect(menuButton.GetComponent<RectTransform>(), buttons[4]);
         }
 
-        private void ApplyResponsiveTypography()
+        private void ApplyResponsiveTypography(float width, float height)
         {
-            int titleSize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumTitleFontSize, Screen.width, Screen.height);
-            int bodySize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumBodyFontSize, Screen.width, Screen.height);
-            int eyebrowSize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumEyebrowFontSize, Screen.width, Screen.height);
-            int commandSize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumCommandFontSize, Screen.width, Screen.height);
+            int titleSize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumTitleFontSize, width, height);
+            int bodySize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumBodyFontSize, width, height);
+            int eyebrowSize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumEyebrowFontSize, width, height);
+            int commandSize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumCommandFontSize, width, height);
             titleText.fontSize = titleSize;
             titleText.resizeTextMinSize = Mathf.Max(14, titleSize - 4);
             titleText.resizeTextMaxSize = titleSize;
@@ -622,6 +688,8 @@ namespace AshenHalls
             suppliesText.fontSize = eyebrowSize;
             elixirsText.fontSize = eyebrowSize;
             sideTitleText.fontSize = titleSize;
+            sideTitleText.resizeTextMinSize = ExplorationHudScreenLayout.FontSize(ExplorationHudScreenLayout.MinimumLocationTitleFontSize, width, height);
+            sideTitleText.resizeTextMaxSize = titleSize;
             sideDangerText.fontSize = eyebrowSize;
             waypointTitleText.fontSize = eyebrowSize;
             objectiveTitleText.fontSize = eyebrowSize;
@@ -635,6 +703,7 @@ namespace AshenHalls
             detailsButtonText.fontSize = commandSize;
             actionLabelText.fontSize = commandSize + 1;
             actionTargetText.fontSize = eyebrowSize;
+            actionKeyText.fontSize = commandSize + 1;
             mapButtonText.fontSize = commandSize;
             journalButtonText.fontSize = commandSize;
             partyButtonText.fontSize = commandSize;

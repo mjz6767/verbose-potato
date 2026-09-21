@@ -482,6 +482,7 @@ namespace AshenHalls
         private int CountLegalAbilityTargets(MartialAbility ability, CombatUnit active)
         {
             if (ability == null || active == null || state?.Combat?.Units == null) return 0;
+            if (!AbilityUsableNow(active, ability, out _)) return 0;
             if (!ability.Targeted) return 1;
             int count = 0;
             foreach (CombatUnit target in state.Combat.Units)

@@ -2,6 +2,24 @@ using UnityEngine;
 
 namespace AshenHalls
 {
+    public readonly struct ExplorationMapPointerInput
+    {
+        public readonly EventType Type;
+        public readonly int Button;
+        public readonly Vector2 Position;
+        public readonly Vector2 Delta;
+        public readonly bool HorizontalScroll;
+
+        public ExplorationMapPointerInput(EventType type, int button, Vector2 position, Vector2 delta, bool horizontalScroll)
+        {
+            Type = type;
+            Button = button;
+            Position = position;
+            Delta = delta;
+            HorizontalScroll = horizontalScroll;
+        }
+    }
+
     public readonly struct RegionMapNavigationStep
     {
         public readonly int DeltaX;
@@ -139,8 +157,18 @@ namespace AshenHalls
 
         public static Point ScrollDelta(float scrollY, bool horizontal)
         {
-            int direction = scrollY > 0f ? 1 : scrollY < 0f ? -1 : 0;
-            return horizontal ? new Point(direction, 0) : new Point(0, direction);
+            return ScrollDelta(0f, scrollY, horizontal);
+        }
+
+        public static Point ScrollDelta(float scrollX, float scrollY, bool horizontal)
+        {
+            int directionX = ScrollDirection(scrollX);
+            int directionY = ScrollDirection(scrollY);
+            // Shift remaps a conventional wheel while a native horizontal
+            // trackpad gesture continues to work without a modifier.
+            return horizontal
+                ? new Point(directionY != 0 ? directionY : directionX, 0)
+                : new Point(directionX, directionY);
         }
 
         public static bool IsPointerDrag(float accumulatedX, float accumulatedY, float interfaceScale = 1f)
@@ -164,6 +192,12 @@ namespace AshenHalls
             if (axis >= AxisThreshold) return 1;
             if (axis <= -AxisThreshold) return -1;
             return 0;
+        }
+
+        private static int ScrollDirection(float delta)
+        {
+            if (float.IsNaN(delta) || float.IsInfinity(delta)) return 0;
+            return delta > 0f ? 1 : delta < 0f ? -1 : 0;
         }
     }
 }

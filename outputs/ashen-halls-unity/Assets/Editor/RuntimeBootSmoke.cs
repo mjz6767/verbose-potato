@@ -5853,6 +5853,14 @@ namespace AshenHalls.Editor
                 SetPrivateField(game, "combatMusicBaseKey", MusicDirectorRules.CombatSewer);
                 SetPrivateField(game, "combatAmbienceEncounter", combatState.Combat);
                 SetPrivateField(game, "combatAmbienceSequence", 0);
+                // Earlier assertions dispatch real cues while editor Time.time remains zero.
+                // Simulate the quiet window in the voice pool as well as the scheduler;
+                // ambience must not steal a still-playing combat impact to satisfy this fixture.
+                foreach (AudioSource voice in sfxVoices)
+                {
+                    if (voice != null) voice.Stop();
+                }
+                Assert(sfxVoices.All(voice => voice == null || !voice.isPlaying), "combat ambience fixture clears prior audible combat tails");
                 SetPrivateField(game, "lastCombatForegroundSfxAt", Time.time - 10f);
                 // Time.time is zero in editor smoke runs; zero is due now, while any negative value is the scheduler's uninitialized sentinel.
                 SetPrivateField(game, "nextCombatAmbienceAt", Mathf.Max(0f, Time.time));
@@ -9115,7 +9123,8 @@ namespace AshenHalls.Editor
             state.PlayerX = chartProbe.X + 1;
             state.PlayerY = chartProbe.Y;
             string chartLine = InvokePrivate<string>(game, "RegionalRouteChartCompactLine");
-            Assert(chartLine.Contains(chartProbe.Name) && chartLine.Contains("W 1 step"), "location readout turns a discovered junction into useful bearing and distance guidance");
+            Assert(chartLine.Contains(chartProbe.Name) && chartLine.Contains("W / grid range 1 tile"),
+                "location readout gives the discovered junction's bearing and grid range without promising a walkable route");
             string originalWaypointKey = state.ActiveRouteWaypointKey;
             state.ActiveRouteWaypointKey = RouteChartRules.WaypointKey(state.Depth, chartProbe.Id);
             InvokePrivate(game, "InvalidateActiveRouteWaypointPath");

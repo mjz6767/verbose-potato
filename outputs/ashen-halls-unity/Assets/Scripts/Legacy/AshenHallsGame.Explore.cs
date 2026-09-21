@@ -2750,6 +2750,9 @@ namespace AshenHalls
         {
             if (obj == null || state == null) return;
             if (!ShouldShowNearbyExploreCue(obj)) return;
+            // Named actors already receive a grounded focus cue in their art
+            // pass. Do not stack another box over their face and equipment.
+            if (UsesNamedNpcPresentation(obj.Type)) return;
 
             int distance = Distance(obj.X, obj.Y, state.PlayerX, state.PlayerY);
             bool currentWork = IsCurrentMidgaardObjective(obj);
@@ -2778,6 +2781,15 @@ namespace AshenHalls
             Rect tile = new Rect(grid.x + (obj.X - origin.X) * cell, grid.y + (obj.Y - origin.Y) * cell, cell, cell);
             Color accent = IsCurrentMidgaardObjective(obj) ? MidgaardObjectiveColor() : ObjectColor(obj.Type);
             float pulse = state.ReducedMotion ? 0.78f : 0.78f + Mathf.Sin(Time.time * 5.4f) * 0.18f;
+            if (UsesNamedNpcPresentation(obj.Type))
+            {
+                DrawExploreContactFootprint(tile, accent.WithAlpha(Mathf.Clamp01(pulse)), true);
+                Rect key = ExplorationNpcPresentationRules.ContactUseKey(tile);
+                DrawRect(key, Hex("030405", 0.94f));
+                DrawBorder(key, accent.WithAlpha(0.92f), 1);
+                GUI.Label(key, "E", CenterStyle(Mathf.RoundToInt(Mathf.Clamp(cell * 0.14f, 9f, 12f)), ink));
+                return;
+            }
             Rect ring = Pad(tile, cell * 0.045f);
             DrawCornerBrackets(ring, accent.WithAlpha(Mathf.Clamp01(pulse)), 3f, cell * 0.22f);
             DrawBorder(Pad(ring, cell * 0.055f), cursorWhite.WithAlpha(0.30f), 1);
@@ -3465,12 +3477,7 @@ namespace AshenHalls
             {
                 DrawTinyUiIcon(zoneIcon, "scroll", contextTerrainCharted ? ZoneDangerColor(zone) : frost);
             }
-            float textStart = zoneIcon.xMax + 9f * scale;
-            float leftW = Mathf.Clamp(strip.width * 0.23f, 154f * scale, 300f * scale);
-            float dangerW = Mathf.Clamp(strip.width * 0.13f, 92f * scale, 150f * scale);
-            float rightW = Mathf.Clamp(strip.width * 0.24f, 224f * scale, 340f * scale);
-            float midX = textStart + leftW + dangerW;
-            float midW = Mathf.Max(100f * scale, strip.xMax - rightW - midX - 8f * scale);
+            ExplorationRegionStripGeometry columns = ExplorationHudScreenLayout.RegionStrip(strip, scale);
             string nearbyAction = exploreWideView ? "" : ExploreNearbyActionLine();
             string nearbyThreat = exploreWideView ? "" : ExploreNearbyThreatLine();
             string regionFocusLine = exploreWideView ? ExploreLookLine(context.X, context.Y) ?? "" : "";
@@ -3500,21 +3507,19 @@ namespace AshenHalls
             int regionSize = ExplorationHudScreenLayout.FontSize(regionBaseSize, Screen.width, Screen.height);
             int bodySize = ExplorationHudScreenLayout.FontSize(12, Screen.width, Screen.height);
             int statusSize = ExplorationHudScreenLayout.FontSize(11, Screen.width, Screen.height);
-            float lineY = strip.y + 5f * scale;
-            float lineH = 27f * scale;
-            GUI.Label(new Rect(textStart, lineY, leftW, lineH), FitText(region, leftW, CenterLeftStyle(regionSize, Hex("e3ba63"))), CenterLeftStyle(regionSize, Hex("e3ba63")));
+            GUI.Label(columns.Location, FitText(region, columns.Location.width, CenterLeftStyle(regionSize, Hex("e3ba63"))), CenterLeftStyle(regionSize, Hex("e3ba63")));
             string dangerLabel = contextTerrainCharted ? TravelDangerLabel(zone) : "UNKNOWN";
             Color dangerColor = contextTerrainCharted ? ZoneDangerColor(zone) : frost;
-            GUI.Label(new Rect(textStart + leftW, lineY, dangerW, lineH), FitText(dangerLabel, dangerW, CenterLeftStyle(statusSize, dangerColor)), CenterLeftStyle(statusSize, dangerColor));
-            GUI.Label(new Rect(midX, lineY, midW, lineH), FitText(centerLine, midW, CenterLeftStyle(bodySize, centerEmphasis ? ink : Hex("d0c5ae"))), CenterLeftStyle(bodySize, centerEmphasis ? ink : Hex("d0c5ae")));
-            float viewW = rightW * 0.50f;
-            Rect viewRect = new Rect(strip.xMax - rightW, lineY, viewW, lineH);
-            Rect detailsRect = new Rect(viewRect.xMax + 6f * scale, lineY, rightW - viewW - 6f * scale, lineH);
+            if (!columns.Compact)
+            {
+                GUI.Label(columns.Danger, FitText(dangerLabel, columns.Danger.width, CenterLeftStyle(statusSize, dangerColor)), CenterLeftStyle(statusSize, dangerColor));
+                GUI.Label(columns.Context, FitText(centerLine, columns.Context.width, CenterLeftStyle(bodySize, centerEmphasis ? ink : Hex("d0c5ae"))), CenterLeftStyle(bodySize, centerEmphasis ? ink : Hex("d0c5ae")));
+            }
             string viewLabel = exploreWideView
                 ? RegionMapFocusIsParty() ? "PARTY HERE" : $"INSPECT {context.X},{context.Y}"
                 : ExploreViewLabel();
-            GUI.Label(viewRect, FitText(viewLabel, viewRect.width, CenterRightStyle(statusSize, exploreWideView ? frost : teal)), CenterRightStyle(statusSize, exploreWideView ? frost : teal));
-            GUI.Label(detailsRect, FitText(exploreHudCollapsed ? "Q  DETAILS" : "Q  CLOSE", detailsRect.width, CenterRightStyle(statusSize, exploreHudCollapsed ? teal : Hex("d0c5ae"))), CenterRightStyle(statusSize, exploreHudCollapsed ? teal : Hex("d0c5ae")));
+            GUI.Label(columns.View, FitText(viewLabel, columns.View.width, CenterRightStyle(statusSize, exploreWideView ? frost : teal)), CenterRightStyle(statusSize, exploreWideView ? frost : teal));
+            GUI.Label(columns.Details, FitText(exploreHudCollapsed ? "Q  DETAILS" : "Q  CLOSE", columns.Details.width, CenterRightStyle(statusSize, exploreHudCollapsed ? teal : Hex("d0c5ae"))), CenterRightStyle(statusSize, exploreHudCollapsed ? teal : Hex("d0c5ae")));
         }
 
         private void UpdateExploreHoverLook(Rect grid, float cell, Point origin, int viewW, int viewH)
@@ -3998,14 +4003,7 @@ namespace AshenHalls
 
         private int ExploreGuidanceChartedPrefixCount(IReadOnlyList<Point> path)
         {
-            if (path == null) return 0;
-            int count = 0;
-            foreach (Point point in path)
-            {
-                if (point == null || !IsExploreCellCharted(point.X, point.Y)) break;
-                count++;
-            }
-            return count;
+            return ExplorationMapGuidanceRules.ChartedPrefixCount(path, IsExploreCellCharted);
         }
 
         private string ExploreChartProgressLabel()
@@ -4096,7 +4094,7 @@ namespace AshenHalls
 
             string bearing = nearest.Distance == 0
                 ? "here"
-                : nearest.Direction + " " + RouteChartRules.DistanceLabel(nearest.Distance);
+                : nearest.Direction + " / " + RouteChartRules.GridDistanceLabel(nearest.Distance);
             return $"Chart: {nearest.Junction.Name} {bearing} / {charted}/{junctions.Length} markers.";
         }
 
@@ -5152,50 +5150,68 @@ namespace AshenHalls
         {
             Event e = Event.current;
             if (e == null) return;
+            ExplorationMapPointerInput pointer = new ExplorationMapPointerInput(
+                e.type, e.button, e.mousePosition, e.delta,
+                e.shift || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift));
+            if (HandleExplorePointerInput(pointer, grid, cell, origin, viewW, viewH)) e.Use();
+        }
+
+        private bool HandleExplorePointerInput(ExplorationMapPointerInput pointer, Rect grid, float cell, Point origin, int viewW, int viewH)
+        {
+            if (state?.Map == null
+                || state.Mode != GameMode.Explore
+                || !ScreenInputRules.CanAcceptGameplayInput(CurrentUiOverlay()))
+            {
+                ResetRegionMapPointerGesture();
+                return false;
+            }
             if (IsBoardPointerSuppressed())
             {
                 if (exploreRegionPointerDragging) ResetRegionMapNavigationInput();
-                return;
+                return false;
             }
             if (exploreWideView && exploreRegionPointerDragging)
             {
                 if (!ReferenceEquals(exploreRegionPointerDownMap, state?.Map))
                 {
-                    bool consumePointerGesture = e.button == 0
-                        && (e.type == EventType.MouseDrag || e.type == EventType.MouseUp);
+                    bool consumePointerGesture = pointer.Button == 0
+                        && (pointer.Type == EventType.MouseDrag || pointer.Type == EventType.MouseUp);
                     ResetRegionMapPointerGesture();
-                    if (consumePointerGesture) e.Use();
-                    return;
+                    return consumePointerGesture;
                 }
-                if (e.type == EventType.MouseUp && e.button == 0)
+                if (pointer.Type == EventType.MouseUp && pointer.Button == 0)
                 {
-                    bool commitFocus = !exploreRegionPointerMoved;
+                    bool commitFocus = !exploreRegionPointerMoved
+                        && ScreenInputRules.ShouldRouteBoardPointer(
+                            CurrentUiOverlay(),
+                            UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(),
+                            grid.Contains(pointer.Position),
+                            SidePanelRect().Contains(pointer.Position),
+                            ExploreCommandBarRect().Contains(pointer.Position));
                     int clickX = exploreRegionPointerDownMapX;
                     int clickY = exploreRegionPointerDownMapY;
                     ResetRegionMapPointerGesture();
                     if (commitFocus) SetRegionMapFocus(clickX, clickY);
-                    e.Use();
-                    return;
+                    return true;
                 }
-                if (e.type == EventType.MouseDrag && e.button == 0)
+                if (pointer.Type == EventType.MouseDrag && pointer.Button == 0)
                 {
                     ReleaseRegionMapHudSelection();
-                    exploreRegionPointerAccumulatedX += e.delta.x;
-                    exploreRegionPointerAccumulatedY += e.delta.y;
+                    exploreRegionPointerAccumulatedX += pointer.Delta.x;
+                    exploreRegionPointerAccumulatedY += pointer.Delta.y;
                     if (!exploreRegionPointerMoved
                         && !RegionMapNavigationRules.IsPointerDrag(
                             exploreRegionPointerAccumulatedX,
                             exploreRegionPointerAccumulatedY,
                             ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height)))
                     {
-                        e.Use();
-                        return;
+                        return true;
                     }
                     float pointerDeltaX = exploreRegionPointerMoved
-                        ? e.delta.x
+                        ? pointer.Delta.x
                         : exploreRegionPointerAccumulatedX;
                     float pointerDeltaY = exploreRegionPointerMoved
-                        ? e.delta.y
+                        ? pointer.Delta.y
                         : exploreRegionPointerAccumulatedY;
                     exploreRegionPointerMoved = true;
                     exploreRegionPointerAccumulatedX = 0f;
@@ -5209,29 +5225,28 @@ namespace AshenHalls
                     exploreRegionDragRemainderX = pan.RemainderX;
                     exploreRegionDragRemainderY = pan.RemainderY;
                     PanRegionMapFocus(pan.DeltaX, pan.DeltaY);
-                    e.Use();
-                    return;
+                    return true;
                 }
             }
-            if (e.type != EventType.MouseDown && e.type != EventType.ScrollWheel) return;
+            if (pointer.Type != EventType.MouseDown && pointer.Type != EventType.ScrollWheel) return false;
             if (!ScreenInputRules.ShouldRouteBoardPointer(
                     CurrentUiOverlay(),
                     UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(),
-                    grid.Contains(e.mousePosition),
-                    SidePanelRect().Contains(e.mousePosition),
-                    ExploreCommandBarRect().Contains(e.mousePosition))) return;
-            if (exploreWideView && e.type == EventType.ScrollWheel)
+                    grid.Contains(pointer.Position),
+                    SidePanelRect().Contains(pointer.Position),
+                    ExploreCommandBarRect().Contains(pointer.Position))) return false;
+            if (exploreWideView && pointer.Type == EventType.ScrollWheel)
             {
                 ResetRegionMapPointerGesture();
                 ReleaseRegionMapHudSelection();
-                bool horizontal = e.shift || Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift);
-                Point delta = RegionMapNavigationRules.ScrollDelta(e.delta.y, horizontal);
+                Point delta = RegionMapNavigationRules.ScrollDelta(pointer.Delta.x, pointer.Delta.y, pointer.HorizontalScroll);
                 PanRegionMapFocus(delta.X, delta.Y);
-                e.Use();
-                return;
+                return true;
             }
-            if (e.button != 0) return;
-            if (!TryExploreGridToMap(grid, cell, origin, viewW, viewH, e.mousePosition, out int x, out int y)) return;
+            // A wheel event reports button zero too. Only an explicit left
+            // press may travel or interact in Local Map.
+            if (pointer.Type != EventType.MouseDown || pointer.Button != 0) return false;
+            if (!TryExploreGridToMap(grid, cell, origin, viewW, viewH, pointer.Position, out int x, out int y)) return false;
             if (exploreWideView)
             {
                 ReleaseRegionMapHudSelection();
@@ -5244,16 +5259,16 @@ namespace AshenHalls
                 exploreRegionPointerDownMapY = y;
                 exploreRegionDragRemainderX = 0f;
                 exploreRegionDragRemainderY = 0f;
-                e.Use();
-                return;
+                return true;
             }
             int dx = x - state.PlayerX;
             int dy = y - state.PlayerY;
             if (Mathf.Abs(dx) + Mathf.Abs(dy) == 1)
             {
                 TryMoveOrUseExplore(dx, dy);
-                e.Use();
+                return true;
             }
+            return false;
         }
 
         private Color ExploreTileBaseColor(int x, int y, int tile, bool visible)
@@ -6053,7 +6068,11 @@ namespace AshenHalls
             }
 
             Color accent = gold;
-            DrawExploreGuidanceNextStepCue(grid, cell, origin, viewW, viewH, path, accent, plan.MarkedWaypoint);
+            int chartedPrefix = exploreWideView ? ExploreGuidanceChartedPrefixCount(path) : path.Count;
+            if (ExplorationMapGuidanceRules.ShouldShowNextStepCue(path, exploreWideView, chartedPrefix))
+            {
+                DrawExploreGuidanceNextStepCue(grid, cell, origin, viewW, viewH, path, accent, plan.MarkedWaypoint);
+            }
             int visiblePointLimit = ExplorationMapGuidanceRules.VisiblePointLimit(
                 exploreWideView,
                 plan.MarkedWaypoint);
@@ -6061,7 +6080,7 @@ namespace AshenHalls
             {
                 visiblePointLimit = Mathf.Min(
                     visiblePointLimit,
-                    ExploreGuidanceChartedPrefixCount(path));
+                    chartedPrefix);
             }
             if (ExplorationMapGuidanceRules.TryFindViewportExit(
                     path,
@@ -6902,6 +6921,7 @@ namespace AshenHalls
                     TryDrawWorldObjectIcon(artRect, type, obj, Color.white.WithAlpha(0.62f));
                 }
                 if (gate) DrawMidgaardGateFrame(rect, objectColor, framed);
+                else if (namedNpc) DrawExploreNamedContactCue(cell, obj, objectColor, framed);
                 else DrawExploreObjectFrame(rect, objectColor, quiet, framed, pulse);
                 return;
             }
@@ -7013,6 +7033,33 @@ namespace AshenHalls
                     else if (IsRouteScaffoldObject(type)) DrawRouteScaffoldPlaceholder(inner, type);
                     break;
             }
+            if (namedNpc) DrawExploreNamedContactCue(cell, obj, objectColor, framed);
+        }
+
+        private void DrawExploreNamedContactCue(Rect cell, MapObject obj, Color accent, bool focused)
+        {
+            if (!focused || obj == null) return;
+            if (!ReferenceEquals(exploreFrameInteractionTarget, obj))
+                DrawExploreContactFootprint(cell, accent.WithAlpha(0.84f), false);
+            if (!ExplorationNpcPresentationRules.ShouldShowContactBadge(exploreWideView, cell.width, focused)) return;
+            Rect badge = ExplorationNpcPresentationRules.ContactBadge(cell);
+            DrawRect(badge, Hex("030405", 0.92f));
+            DrawBorder(badge, accent.WithAlpha(0.90f), 1);
+            if (!TryDrawWorldMapRegionMarkerAtlasIcon(Pad(badge, 1f), WorldMapRegionMarkerCatalog.ActorMarkerIndex(obj.Type), Color.white))
+                DrawTinyUiIcon(Pad(badge, 1f), "scroll", accent);
+        }
+
+        private void DrawExploreContactFootprint(Rect cell, Color accent, bool current)
+        {
+            Rect ground = ExplorationNpcPresentationRules.ContactFootprint(cell, exploreWideView);
+            float stroke = current ? 2f : 1f;
+            float arm = ground.width * 0.20f;
+            // Open ground brackets follow the feet; the center and upper body
+            // remain unobscured, including the sheet's own contact shadow.
+            DrawRect(new Rect(ground.x, ground.y, stroke, ground.height), accent);
+            DrawRect(new Rect(ground.xMax - stroke, ground.y, stroke, ground.height), accent);
+            DrawRect(new Rect(ground.x, ground.yMax - stroke, arm, stroke), accent);
+            DrawRect(new Rect(ground.xMax - arm, ground.yMax - stroke, arm, stroke), accent);
         }
 
         private bool ShouldReinforceExploreObjectAlpha(ObjectType type)
@@ -7021,6 +7068,7 @@ namespace AshenHalls
             // exported with soft internal alpha. Walkable gates, camps, bridges,
             // stairs, and recall features retain their open-ground presentation.
             return type != ObjectType.CityWall
+                && !UsesNamedNpcPresentation(type)
                 && !ExplorationTraversalRules.CanStandOnObject(type);
         }
 
@@ -7840,7 +7888,7 @@ namespace AshenHalls
 
         private string ExploreUnderfootLine(int x, int y)
         {
-            RoamingThreat threat = RoamingThreatAt(x, y);
+            RoamingThreat threat = VisibleExploreThreatAt(x, y);
             if (threat != null) return $"{threat.Name} / moving enemy / {(threat.Alerted ? "pursuing" : "watching the road")}";
             MapObject obj = ObjectAt(state.Map, x, y);
             if (obj != null) return ObjectName(obj) + ": " + ObjectHint(obj);
@@ -7876,12 +7924,14 @@ namespace AshenHalls
                 return "Uncharted ground / beyond the party's sight\nMove closer to add this terrain to the World Map";
             }
             HashSet<int> guidanceCells = BuildCurrentExploreGuidanceCellSet();
-            RoamingThreat threat = RoamingThreatAt(x, y);
+            RoamingThreat threat = VisibleExploreThreatAt(x, y);
             if (threat != null)
             {
                 int threatDistance = Distance(x, y, state.PlayerX, state.PlayerY);
                 string intent = threat.Alerted ? "pursuing the party" : "prowling";
-                string action = threatDistance == 1 ? "click or move toward it to engage" : $"range {threatDistance}";
+                string action = exploreWideView
+                    ? $"range {threatDistance} / inspect only / Tab for Local travel"
+                    : threatDistance == 1 ? "click or move toward it to engage" : $"range {threatDistance}";
                 return $"{threat.Name} / {region} / {intent}\nEnemy occupies this tile / {action}";
             }
             MapObject obj = ObjectAt(state.Map, x, y);
@@ -7890,7 +7940,15 @@ namespace AshenHalls
             {
                 WorldMapCellAccessKind access = ExploreCellAccessAt(x, y, guidanceCells);
                 string step;
-                if (ExplorationReadabilityRules.IsWalkableAccess(access))
+                if (exploreWideView)
+                {
+                    step = ExplorationReadabilityRules.IsWalkableAccess(access)
+                        ? "walkable / inspect only / Tab for Local travel"
+                        : access == WorldMapCellAccessKind.UseFromBeside
+                            ? "blocks movement / use from beside in Local Map"
+                            : "blocks movement / inspect only";
+                }
+                else if (ExplorationReadabilityRules.IsWalkableAccess(access))
                 {
                     step = distance == 0
                         ? "walkable / underfoot"
@@ -7965,10 +8023,23 @@ namespace AshenHalls
                 return $"{ExploreGroundName(x, y)} / {region}\nblocks movement / {zone.Title}";
             }
 
-            string move = distance == 0 ? "current position" : distance == 1 ? "click to move" : $"range {distance}";
+            string move = distance == 0 ? "current position"
+                : exploreWideView ? $"range {distance} / inspect only / Tab for Local travel"
+                : distance == 1 ? "click to move" : $"range {distance}";
             WorldMapCellAccessKind groundAccess = ExploreCellAccessAt(x, y, guidanceCells);
             string scenery = groundAccess == WorldMapCellAccessKind.SoftScenery ? "scenery yields the path / " : "";
             return $"{ExploreGroundName(x, y)} / {region} / {ZoneDangerText(zone)}\n{scenery}walkable / {move} / {zone.Summary}";
+        }
+
+        private RoamingThreat VisibleExploreThreatAt(int x, int y)
+        {
+            RoamingThreat threat = RoamingThreatAt(x, y);
+            // Remembered terrain is not live knowledge of a distant patrol.
+            // Inspection must use the same visibility rule as the map markers.
+            return threat != null && ExplorationMiniMapPresentationRules.ShouldShowPatrol(
+                threat.Active, threat.Depth, state.Depth, threat.Alerted,
+                Distance(x, y, state.PlayerX, state.PlayerY), ExploreRevealRadius)
+                ? threat : null;
         }
 
         private string ExploreLegendLine()

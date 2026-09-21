@@ -52,6 +52,26 @@ namespace AshenHalls
         public const float ScheduledSfxCoalesceWindow = 0.032f;
         public const float ScheduledSfxCoalescePanDistance = 0.20f;
 
+        public const float PrimaryImpactTransientProtectionSeconds = 0.090f;
+        public const float SupportingTransientProtectionSeconds = 0.045f;
+
+        public static bool CanReplacePlayingVoice(int activePriority, float elapsedSeconds, int incomingPriority)
+        {
+            if (incomingPriority < activePriority) return false;
+            if (incomingPriority > activePriority) return true;
+            float protectedSeconds = activePriority >= ScheduledSfxPriorityPrimaryImpact
+                ? PrimaryImpactTransientProtectionSeconds
+                : SupportingTransientProtectionSeconds;
+            return elapsedSeconds >= protectedSeconds;
+        }
+
+        public static float VoiceCongestionGain(int activeVoiceCount, int priority)
+        {
+            if (priority >= ScheduledSfxPriorityPrimaryImpact) return 1f;
+            int crowdedVoices = Math.Max(0, Math.Min(SfxVoiceCount, activeVoiceCount) - 4);
+            return 1f - crowdedVoices * (priority == ScheduledSfxPriorityAuxiliary ? 0.10f : 0.055f);
+        }
+
         // Exact-name semantic cues keep authored masters and procedural fallbacks interchangeable.
         public static CombatAudioCueProfile DirectCue(string requestedKey, float fallbackVolume)
         {

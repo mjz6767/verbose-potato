@@ -209,6 +209,14 @@ namespace AshenHalls
 
         private readonly List<AudioSource> sfxVoices = new List<AudioSource>();
 
+        private readonly Dictionary<AudioSource, SfxVoicePlayback> sfxVoicePlayback = new Dictionary<AudioSource, SfxVoicePlayback>();
+
+        private struct SfxVoicePlayback
+        {
+            public int Priority;
+            public float StartedAt;
+        }
+
         private int nextSfxVoice;
 
         private int sfxPlaybackSerial;
@@ -491,6 +499,7 @@ namespace AshenHalls
             soundClips["mark"] = MakeSkillSound("mark", "mark", 680f, 920f, 0.12f, 0.20f);
             soundClips["castshimmer"] = MakeSound("castshimmer", 760f, 1320f, 0.16f, 0.20f, "chime");
             soundClips["impactlow"] = MakeSound("impactlow", 88f, 46f, 0.22f, 0.34f, "boom");
+            soundClips[CombatPowerSfxRules.RumbleCue] = MakeSound(CombatPowerSfxRules.RumbleCue, 92f, 42f, 0.38f, 0.26f, "rumble");
             soundClips["resonance"] = MakeSound("resonance", 460f, 170f, 0.24f, 0.26f, "sine");
             soundClips["riftpounce"] = MakeSkillSound("riftpounce", "charge", 118f, 940f, 0.30f, 0.32f);
             soundClips["riftpounceimpact"] = MakeSkillSound("riftpounceimpact", "charge-impact", 136f, 42f, 0.40f, 0.40f);
@@ -531,6 +540,14 @@ namespace AshenHalls
             soundClips["woodcontact"] = MakeSound("woodcontact", 236f, 72f, 0.14f, 0.28f, "thud");
             soundClips["stonecontact"] = MakeSound("stonecontact", 148f, 48f, 0.17f, 0.32f, "thud");
             soundClips["spellrelease"] = MakeSound("spellrelease", 520f, 1260f, 0.14f, 0.22f, "chime");
+            soundClips["releaseember"] = MakeSpellSound("releaseember", "fire", 190f, 740f, 0.14f, 0.24f);
+            soundClips["releasefrost"] = MakeSpellSound("releasefrost", "frost", 1360f, 630f, 0.13f, 0.21f);
+            soundClips["releaseshock"] = MakeSpellSound("releaseshock", "shock", 1620f, 380f, 0.10f, 0.23f);
+            soundClips["releasenature"] = MakeSpellSound("releasenature", "nature", 138f, 390f, 0.17f, 0.25f);
+            soundClips["releaseholy"] = MakeSpellSound("releaseholy", "holy", 520f, 1040f, 0.16f, 0.22f);
+            soundClips["releasehex"] = MakeSpellSound("releasehex", "death", 360f, 96f, 0.16f, 0.24f);
+            soundClips["releasepact"] = MakeSpellSound("releasepact", "rift", 96f, 460f, 0.18f, 0.25f);
+            soundClips["releaseveil"] = MakeSpellSound("releaseveil", "rift", 860f, 210f, 0.13f, 0.21f);
             soundClips["impactflesh"] = MakeMaterialImpact("impactflesh", "flesh");
             soundClips["impactleather"] = MakeMaterialImpact("impactleather", "leather");
             soundClips["impactmail"] = MakeMaterialImpact("impactmail", "mail");
@@ -1056,6 +1073,10 @@ namespace AshenHalls
                 {
                     body = sub * 0.50f + Mathf.Sin(subPhase * 0.51f) * 0.20f + sine * 0.17f + smoothNoise * 0.13f;
                 }
+                else if (voice == "rumble")
+                {
+                    body = sine * 0.38f + sub * 0.32f + deepNoise * 0.24f + bandNoise * 0.06f;
+                }
                 else if (voice == "chime")
                 {
                     body = sine * 0.48f + overtone * 0.25f + Mathf.Sin(phase * 3.01f) * 0.15f + sub * 0.08f + bandNoise * 0.04f;
@@ -1121,6 +1142,13 @@ namespace AshenHalls
 
                 float tail = (sine * 0.10f + overtone * 0.07f)
                     * Mathf.Exp(-progress * (voice == "chime" ? 2.2f : 4.8f));
+                if (voice == "rumble")
+                {
+                    // The low tail blooms after contact without sounding like a second strike.
+                    envelope = Mathf.SmoothStep(0f, 1f, t / 0.038f) * Mathf.Pow(1f - progress, 1.35f);
+                    transient = 0f;
+                    tail = 0f;
+                }
                 float mixed = (body * envelope + transient + secondary + tail) * releaseEdge * volume * 1.32f;
                 data[i] = SoftLimitAudio(mixed);
             }
@@ -1587,6 +1615,7 @@ namespace AshenHalls
             float midNoise = 0f;
             float airNoise = 0f;
             bool isCast = cue.StartsWith("cast", StringComparison.Ordinal);
+            bool isRelease = cue.StartsWith("release", StringComparison.Ordinal);
             bool isDeathBurst = cue.Contains("deathburst");
             bool isGreaterSummon = cue.Contains("greatersummon");
             bool isAscendance = cue.Contains("ascendance");
@@ -1765,7 +1794,7 @@ namespace AshenHalls
                 if (isVeil)
                 {
                     signature += (airyNoise * 0.19f + detuned * 0.12f)
-                        * Mathf.Pow(Mathf.Sin(progress * Mathf.PI), 0.58f);
+                        * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(progress * Mathf.PI)), 0.58f);
                 }
 
                 float attackSeconds = isCast
@@ -1787,11 +1816,20 @@ namespace AshenHalls
                 }
 
                 float releaseEdge = Mathf.Clamp01((safeDuration - t) / (isCast ? 0.014f : 0.010f));
+                if (isRelease)
+                {
+                    // Short family-specific travel swishes leave the sharp transient to contact.
+                    envelope = Mathf.Clamp01(t / 0.004f) * Mathf.Pow(Mathf.Max(0f, Mathf.Sin(progress * Mathf.PI)), 0.60f);
+                    body = body * 0.62f + airyNoise * (element == "holy" || element == "frost" ? 0.16f : 0.38f);
+                    transient *= 0.12f;
+                    signature *= 0.20f;
+                    tail *= 0.15f;
+                }
                 float mixed = (body * envelope + transient + signature + tail)
                     * releaseEdge
                     * volume
                     * (isCast ? 1.48f : 1.58f);
-                data[i] = SoftLimitAudio(mixed);
+                data[i] = SoftLimitAudio(mixed * Mathf.Clamp01(t / 0.001f));
             }
 
             AudioClip clip = AudioClip.Create(name, sampleCount, 1, sampleRate, false);
@@ -2323,8 +2361,10 @@ namespace AshenHalls
 
         private void EnsureSfxVoicePool()
         {
-            sfxVoices.Clear();
-            if (audioSource != null) sfxVoices.Add(audioSource);
+            sfxVoices.RemoveAll(voice => voice == null);
+            sfxVoicePlayback.Clear();
+            foreach (AudioSource existingVoice in sfxVoices) existingVoice.Stop();
+            if (audioSource != null && !sfxVoices.Contains(audioSource)) sfxVoices.Insert(0, audioSource);
             for (int i = sfxVoices.Count; i < CombatAudioMixRules.SfxVoiceCount; i++)
             {
                 AudioSource voice = gameObject.AddComponent<AudioSource>();
@@ -2356,7 +2396,8 @@ namespace AshenHalls
             PlaySfxSpatial(key, volume, 0f, 1f);
         }
 
-        private void PlaySfxSpatial(string key, float volume, float pan, float pitch)
+        private void PlaySfxSpatial(string key, float volume, float pan, float pitch,
+            int priority = CombatAudioMixRules.ScheduledSfxPrioritySupporting)
         {
             if (audioSource == null || string.IsNullOrEmpty(key) || !soundClips.ContainsKey(key)) return;
             if (state != null && state.SfxMuted) return;
@@ -2370,10 +2411,28 @@ namespace AshenHalls
             {
                 ApplyAudioSettings();
                 float clamped = Mathf.Clamp(volume, 0f, 1.4f);
-                AudioSource voice = AcquireSfxVoice();
+                if (clamped <= 0f) return;
+                priority = Mathf.Clamp(priority, CombatAudioMixRules.ScheduledSfxPriorityAuxiliary, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
+                if (CombatAudioMixRules.IsCombatAmbienceCue(key)
+                    || key.StartsWith("amb", StringComparison.Ordinal) && !key.StartsWith("ambush", StringComparison.Ordinal))
+                {
+                    priority = CombatAudioMixRules.ScheduledSfxPriorityAuxiliary;
+                }
+                int activeVoices = 0;
+                foreach (AudioSource source in sfxVoices)
+                {
+                    if (source != null && source.isPlaying) activeVoices++;
+                }
+                clamped *= CombatAudioMixRules.VoiceCongestionGain(activeVoices, priority);
+                AudioSource voice = AcquireSfxVoice(priority);
                 if (voice == null) return;
+                // PlayOneShot can overlap indefinitely on one source and later pan/pitch
+                // changes affect those old sounds. Own exactly one cue on each voice.
+                voice.Stop();
                 voice.panStereo = Mathf.Clamp(pan, -0.85f, 0.85f);
                 voice.pitch = Mathf.Clamp(pitch * SfxPlaybackPitchVariation(key, sfxPlaybackSerial++), 0.90f, 1.10f);
+                voice.priority = 64 - priority * 16;
+                sfxVoicePlayback[voice] = new SfxVoicePlayback { Priority = priority, StartedAt = Time.unscaledTime };
                 lastSfxKey = key;
                 lastSfxAt = Time.realtimeSinceStartup;
                 lastSfxVolume = clamped;
@@ -2409,9 +2468,12 @@ namespace AshenHalls
             }
         }
 
-        private AudioSource AcquireSfxVoice()
+        private AudioSource AcquireSfxVoice(int priority)
         {
-            if (sfxVoices.Count == 0) return audioSource;
+            if (sfxVoices.Count == 0)
+            {
+                return CanReplaceSfxVoice(audioSource, priority) ? audioSource : null;
+            }
             for (int offset = 0; offset < sfxVoices.Count; offset++)
             {
                 int index = (nextSfxVoice + offset) % sfxVoices.Count;
@@ -2421,9 +2483,32 @@ namespace AshenHalls
                 return voice;
             }
 
-            AudioSource fallback = sfxVoices[nextSfxVoice % sfxVoices.Count];
-            nextSfxVoice = (nextSfxVoice + 1) % sfxVoices.Count;
-            return fallback;
+            AudioSource replacement = null;
+            int replacementIndex = -1;
+            int lowestPriority = int.MaxValue;
+            float oldestStart = float.MaxValue;
+            for (int i = 0; i < sfxVoices.Count; i++)
+            {
+                AudioSource candidate = sfxVoices[i];
+                if (!CanReplaceSfxVoice(candidate, priority)) continue;
+                sfxVoicePlayback.TryGetValue(candidate, out SfxVoicePlayback playback);
+                if (playback.Priority > lowestPriority
+                    || playback.Priority == lowestPriority && playback.StartedAt >= oldestStart) continue;
+                replacement = candidate;
+                replacementIndex = i;
+                lowestPriority = playback.Priority;
+                oldestStart = playback.StartedAt;
+            }
+            if (replacementIndex >= 0) nextSfxVoice = (replacementIndex + 1) % sfxVoices.Count;
+            return replacement;
+        }
+
+        private bool CanReplaceSfxVoice(AudioSource voice, int incomingPriority)
+        {
+            if (voice == null) return false;
+            if (!voice.isPlaying || !sfxVoicePlayback.TryGetValue(voice, out SfxVoicePlayback playback)) return true;
+            return CombatAudioMixRules.CanReplacePlayingVoice(
+                playback.Priority, Time.unscaledTime - playback.StartedAt, incomingPriority);
         }
 
         private void ApplyAudioSettings()
@@ -4900,7 +4985,8 @@ namespace AshenHalls
             if (reduced)
             {
                 string compactKey = !string.IsNullOrEmpty(profile.ImpactSfx) ? profile.ImpactSfx : profile.CastSfx;
-                PlaySfxSpatial(compactKey, Mathf.Min(0.88f, profile.ImpactVolume), impactPan, impactPitch);
+                PlaySfxSpatial(compactKey, Mathf.Min(0.88f, profile.ImpactVolume), impactPan, impactPitch,
+                    CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact);
                 BeginCombatMusicDuck(profile, reactionCount, 0f);
                 return;
             }
@@ -5365,7 +5451,7 @@ namespace AshenHalls
             if (string.IsNullOrEmpty(key) || !soundClips.ContainsKey(key)) return;
             if (delay <= 0.005f)
             {
-                PlaySfxSpatial(key, volume, pan, pitch);
+                PlaySfxSpatial(key, volume, pan, pitch, priority);
                 return;
             }
 
@@ -5465,16 +5551,15 @@ namespace AshenHalls
             if (due == null) return;
             due.Sort((left, right) =>
             {
-                int priorityOrder = left.Priority.CompareTo(right.Priority);
+                int priorityOrder = right.Priority.CompareTo(left.Priority);
                 if (priorityOrder != 0) return priorityOrder;
                 int timeOrder = left.PlayAt.CompareTo(right.PlayAt);
                 return timeOrder != 0 ? timeOrder : left.Serial.CompareTo(right.Serial);
             });
             foreach (ScheduledSfxCue cue in due)
             {
-                // Supporting layers play first; primary impacts are the final voices
-                // requested in a saturated frame and therefore survive voice stealing.
-                PlaySfxSpatial(cue.Key, cue.Volume, cue.Pan, cue.Pitch);
+                // Reserve impact voices first; supporting tails cannot steal their transients.
+                PlaySfxSpatial(cue.Key, cue.Volume, cue.Pan, cue.Pitch, cue.Priority);
             }
         }
 

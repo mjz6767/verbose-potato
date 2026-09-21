@@ -132,6 +132,10 @@ namespace AshenHalls.Editor
             CombatStatusLifecycleSmoke.RunOrThrow();
             CombatResumeSmoke.RunOrThrow();
             CombatInputSmoke.RunOrThrow();
+            CombatEffectsQualitySmoke.RunOrThrow();
+            CombatAudioPolishSmoke.RunOrThrow();
+            CombatImpactReadabilitySmoke.RunOrThrow();
+            CombatDecisionPolishSmoke.RunOrThrow();
             TavernScreenLayoutFitsSupportedResolutions();
             TavernStormRegionsStayOutsideTheRoom();
             TavernTitleAnimationIsReadableAndMotionSafe();
@@ -140,6 +144,11 @@ namespace AshenHalls.Editor
             PartySetupScreenLayoutFitsSupportedResolutions();
             PresentationAccessibilitySmoke.RunOrThrow();
             ExplorationHudScreenLayoutFitsSupportedResolutions();
+            WorldMapHudAuditSmoke.RunOrThrow();
+            WorldMapNavigationAuditSmoke.RunOrThrow();
+            WorldMapGuidanceAuditSmoke.RunOrThrow();
+            WorldMapInspectionAuditSmoke.RunOrThrow();
+            WorldMapSpritePolishSmoke.RunOrThrow();
             ExplorationGuidanceRulesKeepTheGoldenThreadActionable();
             WorldMapGenerationRulesDefineModestExpansion();
             WorldMapGenerationRulesDefineNamedJunctionCircuit();

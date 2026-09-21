@@ -388,6 +388,13 @@ namespace AshenHalls
             return safeDistance == 1 ? "1 step" : safeDistance + " steps";
         }
 
+        public static string GridDistanceLabel(int distance)
+        {
+            int safeDistance = Math.Max(0, distance);
+            if (safeDistance == 0) return "here";
+            return "grid range " + safeDistance + (safeDistance == 1 ? " tile" : " tiles");
+        }
+
         private static string NormalizeId(string id)
         {
             return (id ?? "").Trim().ToLowerInvariant();

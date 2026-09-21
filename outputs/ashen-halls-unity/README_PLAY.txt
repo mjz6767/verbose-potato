@@ -1,6 +1,14 @@
-Ash & Brimstone v2.24.0 - Battle Discipline
+Ash & Brimstone v2.25.0 candidate - Steel & Streets
 
-Release version: v2.24.0. Save schema: v27.
+Candidate version: v2.25.0. Save schema: v27.
+
+UNPUBLISHED CANDIDATE: source compilation passes, but licensed Unity tests and a new Windows build are blocked by the missing active Editor license. A source push is not a playable release. Existing published Windows packages remain unchanged; see Docs/POLISH_AUDIT_2026-09-20.md.
+
+Steel & Streets polishes combat decisions and the people of Midgaard. Movement and skill previews respect the same restrictions as execution, blocked actions explain why they cannot proceed, and healing feedback reflects health actually recovered. Spell and skill impacts have a clearer contact beat, more distinct release/travel accents, and a controlled layered sound mix. Reduced Motion keeps compact static impacts.
+
+Named NPCs now render once, with open foot-level focus brackets instead of boxes covering their bodies. Nearby services use compact badges where space allows, the interaction key stays separate, and ambient citizens share a consistent ground line. The established artwork, collisions, dialogue identities, campaign balance and save schema are preserved.
+
+The map also incorporates safer scrolling and drag cancellation, discovery-safe patrol/route inspection, grid-range labels for uncomputed bearings, and more readable compact location headings and shortcuts. Existing v27 campaigns remain compatible. See Docs/RELEASE_CHECKLIST.md and KNOWN_ISSUES.txt for verification scope and manual follow-ups.
 
 Battle Discipline tightens combat timing and input: Help and other modal screens suspend enemy decisions and turn transitions, web effects restrict movement for their full authored duration, steam stun uses consistent chance and resistance, and closing a power book with controller Cancel performs one action.
 

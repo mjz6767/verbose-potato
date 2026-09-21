@@ -1438,6 +1438,9 @@ namespace AshenHalls
 
                 bannerText = "";
                 bannerUntil = 0f;
+                // Contact staging repositions the party after the view mode is
+                // selected. Keep a Region close-up centered on that contact.
+                if (exploreWideView) ResetRegionMapFocusToParty();
                 if (openDialogue)
                 {
                     UseNearbyExploreObject();
@@ -1576,9 +1579,52 @@ namespace AshenHalls
 
         private IEnumerator CaptureVisualSmoke(string capturePath, bool quitAfterCapture)
         {
+            float previousTimeScale = Time.timeScale;
+            IEnumerator capture = CaptureVisualSmokeFrame(capturePath, quitAfterCapture);
+            try
+            {
+                while (true)
+                {
+                    bool hasNext;
+                    try
+                    {
+                        hasNext = capture.MoveNext();
+                    }
+                    catch (Exception exception)
+                    {
+                        Debug.LogError(VersionInfo.ProductName + " visual smoke capture failed: " + exception);
+                        if (quitAfterCapture) Application.Quit(2);
+                        hasNext = false;
+                    }
+                    if (!hasNext) break;
+                    yield return capture.Current;
+                }
+            }
+            finally
+            {
+                (capture as IDisposable)?.Dispose();
+                Time.timeScale = previousTimeScale;
+            }
+        }
+
+        private IEnumerator CaptureVisualSmokeFrame(string capturePath, bool quitAfterCapture)
+        {
             string[] captureArgs = Environment.GetCommandLineArgs();
             bool feedbackCapture = captureArgs.Any(arg => string.Equals(arg, "-ashen-feedback-smoke", StringComparison.OrdinalIgnoreCase));
-            if (feedbackCapture)
+            bool selectedFeedback = feedbackCapture && FindCommandLineOption(captureArgs, "-ashen-feedback-power") >= 0;
+            if (selectedFeedback)
+            {
+                yield return new WaitForSecondsRealtime(2f);
+                float captureAt = StageSelectedCombatFeedbackCapture(captureArgs, out float phaseEndAt);
+                float waitDeadline = Time.realtimeSinceStartup + 4f;
+                while (Time.time < captureAt && Time.realtimeSinceStartup < waitDeadline) yield return null;
+                if (Time.time < captureAt)
+                    throw new InvalidOperationException("Selected feedback capture timed out before its requested phase.");
+                if (Time.time >= phaseEndAt)
+                    throw new InvalidOperationException("Selected feedback capture skipped its requested phase during a slow frame.");
+                Time.timeScale = 0f;
+            }
+            else if (feedbackCapture)
             {
                 PowerImpactEcho showcase = powerImpactEchoes
                     .Where(echo => echo != null)

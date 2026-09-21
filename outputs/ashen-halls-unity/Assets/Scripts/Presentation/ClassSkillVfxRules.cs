@@ -382,7 +382,7 @@ namespace AshenHalls
                     phaseScale = 0.72f + (float)Math.Sin(t * Math.PI) * 0.18f;
                     break;
                 case ClassSkillVfxPhase.Impact:
-                    phaseScale = 0.84f + (float)Math.Sin(t * Math.PI) * 0.36f;
+                    phaseScale = 0.84f + CombatPowerVisualRules.ImpactSnap(t) * 0.36f;
                     break;
                 default:
                     phaseScale = 1f;
@@ -400,7 +400,8 @@ namespace AshenHalls
             int tier = ClampIntensity(intensity);
             float t = Clamp01(progress);
             float pulse = 0.82f + (float)Math.Sin(t * Math.PI) * 0.18f;
-            float phaseOpacity = phase == ClassSkillVfxPhase.Travel ? 0.94f : pulse;
+            float phaseOpacity = phase == ClassSkillVfxPhase.Travel ? 0.94f
+                : phase == ClassSkillVfxPhase.Impact ? 0.80f + CombatPowerVisualRules.ImpactSnap(t) * 0.20f : pulse;
             return Clamp01(profile.BaseOpacity * phaseOpacity + (tier - 1) * 0.025f);
         }
 
@@ -463,8 +464,8 @@ namespace AshenHalls
                 scale,
                 opacity,
                 secondaryCell,
-                secondaryCell < 0 ? 0f : Clamp(scale * (phase == ClassSkillVfxPhase.Impact ? 1.28f : 1.14f), 0.50f, 2.55f),
-                secondaryCell < 0 ? 0f : Clamp01(opacity * 0.42f),
+                secondaryCell < 0 ? 0f : Clamp(scale * 1.14f, 0.50f, 2.55f),
+                secondaryCell < 0 ? 0f : Clamp01(opacity * 0.24f),
                 duration,
                 BurstCount(profile, phase, tier, reducedMotion));
         }

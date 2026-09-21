@@ -33,11 +33,32 @@ namespace AshenHalls
         public static string BlockedBadge(string reason)
         {
             string value = (reason ?? "").Trim().ToLowerInvariant();
+            if (value.Contains("web")) return "WEB";
+            if (value.Contains("stun") || value.Contains("sleep")) return "HELD";
+            if (value.Contains("action already") || value.Contains("resolving")) return "WAIT";
+            if (value.Contains("no movement")) return "MOVE";
+            if (value.Contains("current tile")) return "HERE";
+            if (value.Contains("path") || value.Contains("lane") || value.Contains("landing")) return "PATH";
+            if (value.Contains("occupied")) return "FULL";
+            if (value.Contains("35%")) return "HP";
             if (value.Contains("line of sight") || value.Contains("covered") || value.Contains("blocked")) return "LOS";
-            if (value.Contains("range") || value.Contains("reach") || value.Contains("far")) return "RANGE";
-            if (value.Contains("mana") || value.Contains("mp")) return "MANA";
-            if (value.Contains("target")) return "TARGET";
+            if (value.Contains("range") || value.Contains("reach") || value.Contains("far") || value.Contains("adjacent")) return "RANGE";
+            if (value.Contains("mana") || HasWord(value, "mp")) return "MANA";
+            if (value.Contains("target") || value.Contains("enemy") || value.Contains("empty tile")) return "TARGET";
             return "REQ";
+        }
+
+        private static bool HasWord(string value, string word)
+        {
+            for (int index = value.IndexOf(word, StringComparison.Ordinal); index >= 0;
+                index = value.IndexOf(word, index + word.Length, StringComparison.Ordinal))
+            {
+                bool startsWord = index == 0 || !char.IsLetterOrDigit(value[index - 1]);
+                int end = index + word.Length;
+                bool endsWord = end == value.Length || !char.IsLetterOrDigit(value[end]);
+                if (startsWord && endsWord) return true;
+            }
+            return false;
         }
 
         public static bool ShouldDrawTargetHighlights(

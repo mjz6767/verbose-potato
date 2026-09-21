@@ -236,6 +236,47 @@ namespace AshenHalls
 
     public static class ExplorationMapGuidanceRules
     {
+        public static int ChartedPrefixCount(
+            IReadOnlyList<Point> path,
+            Func<int, int, bool> isCharted)
+        {
+            if (path == null || isCharted == null) return 0;
+            int count = 0;
+            foreach (Point point in path)
+            {
+                if (point == null
+                    || point.X < 0
+                    || point.Y < 0
+                    || count > 0 && !AreCardinalNeighbours(path[count - 1], point)
+                    || !isCharted(point.X, point.Y))
+                {
+                    break;
+                }
+                count++;
+            }
+            return count;
+        }
+
+        public static bool ShouldShowNextStepCue(
+            IReadOnlyList<Point> path,
+            bool regionMap,
+            int chartedPrefixCount)
+        {
+            return path != null
+                && path.Count > 1
+                && AreCardinalNeighbours(path[0], path[1])
+                && (!regionMap || chartedPrefixCount >= 2);
+        }
+
+        private static bool AreCardinalNeighbours(Point first, Point second)
+        {
+            return first != null
+                && second != null
+                && first.X >= 0 && first.Y >= 0
+                && second.X >= 0 && second.Y >= 0
+                && Math.Abs((long)first.X - second.X) + Math.Abs((long)first.Y - second.Y) == 1;
+        }
+
         public static int VisiblePointLimit(bool regionMap, bool markedWaypoint)
         {
             if (markedWaypoint) return regionMap ? 25 : 14;

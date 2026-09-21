@@ -403,7 +403,7 @@ namespace AshenHalls
                     phaseScale = 0.72f + (float)Math.Sin(t * Math.PI) * 0.14f;
                     break;
                 case MageWarlockSpellVfxPhase.Impact:
-                    phaseScale = 0.84f + (float)Math.Sin(t * Math.PI) * 0.38f;
+                    phaseScale = 0.84f + CombatPowerVisualRules.ImpactSnap(t) * 0.38f;
                     break;
                 default:
                     phaseScale = 1f;
@@ -421,7 +421,8 @@ namespace AshenHalls
             int tier = ClampIntensity(intensity);
             float t = Clamp01(progress);
             float pulse = 0.82f + (float)Math.Sin(t * Math.PI) * 0.18f;
-            float phaseOpacity = phase == MageWarlockSpellVfxPhase.Projectile ? 0.94f : pulse;
+            float phaseOpacity = phase == MageWarlockSpellVfxPhase.Projectile ? 0.94f
+                : phase == MageWarlockSpellVfxPhase.Impact ? 0.80f + CombatPowerVisualRules.ImpactSnap(t) * 0.20f : pulse;
             return Clamp01(profile.BaseOpacity * phaseOpacity + (tier - 1) * 0.025f);
         }
 

@@ -2,6 +2,16 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.25.0 - Steel & Streets
+
+- Combat movement and armed-skill previews now share the restrictions enforced by execution, including web, resource and action availability. Rejected keyboard/controller targets explain the blocking condition instead of only saying they are illegal.
+- Healing and life-drain forecasts/results report recoverable health rather than implying overkill or capped healing can restore extra HP. Combat balance and save schema remain unchanged.
+- Integrated the reviewed combat-effects pass: impacts crest at contact, spell and martial accents retain distinct identities, projectile timing aligns with sound, and an eight-voice priority mix protects primary impacts. Reduced Motion and mute remain respected.
+- Named NPCs render in one pass without stacked shadows or dark fringes. Open foot-level focus brackets, separated interaction keys and compact service badges keep characters readable. Ambient citizens and interior patrons use a consistent ground baseline.
+- Local wheel events cannot move the party; Region gestures cancel safely across modals/off-board release and support horizontal trackpads. Inspection no longer advertises Local actions or exposes hidden distant patrols. Route cues stop at fog boundaries.
+- Uncomputed bearings are labeled grid range, while true routes retain steps. Responsive map headers, wrapped location names and consistent E/Q/Tab shortcuts improve compact layouts.
+- Added focused combat-decision and world-sprite regressions, repeatable NPC/landmark captures and art-complete isolated audit players. Final package and capture evidence is recorded separately after validation; save schema stays v27.
+
 ## v2.24.0 - Battle Discipline
 
 - Combat Help and other modal screens suspend enemy decisions and pending turn transitions until the board regains input. Controller Cancel has one owner when a power book is open.

@@ -151,8 +151,30 @@ namespace AshenHalls
 
         public const string GenericSpellReleaseCue = "spellrelease";
         public const string LowHitCue = "impactlow";
-        public const string RumbleCue = "impactlow";
+        public const string RumbleCue = "powerrumble";
         public const string ShimmerCue = "castshimmer";
+
+        public static string ReleaseCueForCast(string castCue)
+        {
+            switch ((castCue ?? "").Trim().ToLowerInvariant())
+            {
+                case "castember": return "releaseember";
+                case "castfrost": return "releasefrost";
+                case "castshock":
+                case "casttempest": return "releaseshock";
+                case "castnature": return "releasenature";
+                case "castmend":
+                case "castlight":
+                case "castseal": return "releaseholy";
+                case "casthex":
+                case "castdeathburst": return "releasehex";
+                case "castpact":
+                case "castgreatersummon":
+                case "castascendance": return "releasepact";
+                case "castveil": return "releaseveil";
+                default: return GenericSpellReleaseCue;
+            }
+        }
 
         public static CombatPowerSfxProfile ProfileForFormula(string formulaCodeOrName)
         {
@@ -245,7 +267,7 @@ namespace AshenHalls
                 case "smokebomb": return Skill("smokebomb", "smoke", "", "smoke", "status", 2, 0.08f, 0.98f, false, false, true);
                 case "hamstring": return Skill("hamstring", "eviscerate", "swing", "blade", "pinning", 1, 0.17f, 1.00f, true, false, false);
                 case "eviscerate": return Skill("eviscerate", "eviscerate", "swingheavy", "eviscerateimpact", "death", 3, 0.18f, 0.94f, true, true, false, 0.04f);
-                case "shadowstep": return Skill("shadowstep", "stealth", GenericSpellReleaseCue, "ambushimpact", "bladecontact", 2, 0.22f, 1.02f, true, false, true);
+                case "shadowstep": return Skill("shadowstep", "stealth", "releaseveil", "ambushimpact", "bladecontact", 2, 0.22f, 1.02f, true, false, true);
 
                 // Ranger.
                 case "aimedshot": return Skill("aimedshot", "aimedshot", "arrowrelease", "arrowcontact", "bow", 1, 0.20f, 1.02f, false, false, false);
@@ -257,10 +279,10 @@ namespace AshenHalls
                 case "quickshot": return Skill("quickshot", "aimedshot", "arrowrelease", "arrowcontact", "bow", 2, 0.24f, 1.06f, true, false, false);
 
                 // Warlock demon-form skills.
-                case "riftpounce": return Skill("riftpounce", "riftpounce", GenericSpellReleaseCue, "riftpounceimpact", "resonance", 3, 0.22f, 0.92f, true, true, true, 0.06f);
+                case "riftpounce": return Skill("riftpounce", "riftpounce", "releasepact", "riftpounceimpact", "resonance", 3, 0.22f, 0.92f, true, true, true, 0.06f);
                 case "abyssalwhirl": return Skill("abyssalwhirl", "abyssalwhirl", "swingheavy", "abyssalwhirlimpact", "resonance", 3, 0.12f, 0.90f, true, true, false, 0.06f);
                 case "soulrend": return Skill("soulrend", "soulrend", "swingheavy", "soulrendimpact", "resonance", 3, 0.18f, 0.90f, true, true, true, 0.06f);
-                case "dreadroar": return Skill("dreadroar", "dreadroar", GenericSpellReleaseCue, "dreadroarimpact", "resonance", 3, 0.12f, 0.88f, true, true, true, 0.08f);
+                case "dreadroar": return Skill("dreadroar", "dreadroar", "releasehex", "dreadroarimpact", "resonance", 3, 0.12f, 0.88f, true, true, true, 0.08f);
                 default: return FallbackAbilityProfile();
             }
         }
@@ -561,6 +583,7 @@ namespace AshenHalls
             int tier = ClampIntensity(intensity);
             float impact = Clamp(impactDelay, 0.08f, 0.52f);
             float release = Math.Max(0.035f, impact * (tier >= 3 ? 0.46f : 0.42f));
+            release = ReleaseBeforeImpact(release, impact);
             float aftershock = string.IsNullOrEmpty(aftershockCue)
                 ? 0f
                 : Math.Min(0.60f, impact + 0.08f + tier * 0.025f);
@@ -568,7 +591,7 @@ namespace AshenHalls
                 key,
                 tier,
                 Cue(CombatPowerSfxPhase.Cast, castCue, 0f, 0.42f + tier * 0.065f + gainBoost * 0.30f, pitch + 0.015f),
-                Cue(CombatPowerSfxPhase.Release, GenericSpellReleaseCue, release, 0.16f + tier * 0.045f, pitch + 0.035f),
+                Cue(CombatPowerSfxPhase.Release, ReleaseCueForCast(castCue), release, 0.16f + tier * 0.045f, pitch + 0.035f),
                 Cue(CombatPowerSfxPhase.Impact, impactCue, impact, 0.70f + tier * 0.12f + gainBoost, pitch),
                 Cue(CombatPowerSfxPhase.Aftershock, aftershockCue, aftershock, 0.20f + tier * 0.075f + gainBoost * 0.25f, pitch - 0.035f),
                 lowHit,
@@ -593,6 +616,7 @@ namespace AshenHalls
             int tier = ClampIntensity(intensity);
             float impact = Clamp(impactDelay, 0.06f, 0.42f);
             float release = string.IsNullOrEmpty(releaseCue) ? 0f : Math.Max(0.025f, impact * 0.42f);
+            release = ReleaseBeforeImpact(release, impact);
             float aftershock = string.IsNullOrEmpty(aftershockCue)
                 ? 0f
                 : Math.Min(0.60f, impact + 0.07f + tier * 0.025f);
@@ -606,6 +630,12 @@ namespace AshenHalls
                 lowHit,
                 rumble,
                 shimmer);
+        }
+
+        private static float ReleaseBeforeImpact(float release, float impact)
+        {
+            // Even the quickest power must leave enough travel time to land on its audible impact.
+            return Math.Min(release, Math.Max(0f, impact - CombatPowerTravelVfxRules.MinimumDurationSeconds));
         }
 
         private static CombatPowerSfxProfile FallbackSpellProfile()

@@ -4,6 +4,18 @@ namespace AshenHalls
 {
     public static class CombatFeedbackRules
     {
+        public static int RecoverableHealth(int hp, int maximumHp, int offeredHealing)
+        {
+            long missing = Math.Max(0L, (long)maximumHp - hp);
+            return (int)Math.Min(missing, Math.Max(0, offeredHealing));
+        }
+
+        public static int DrainRecovery(int hp, int maximumHp, int targetHp, int damage, int minimumHealing)
+        {
+            int removed = Math.Min(Math.Max(0, targetHp), Math.Max(0, damage));
+            return RecoverableHealth(hp, maximumHp, Math.Max(minimumHealing, removed / 2));
+        }
+
         public static int FloatIconIndex(string label, string explicitKind = null)
         {
             string kind = Normalize(explicitKind);

@@ -733,18 +733,7 @@ namespace AshenHalls
             CombatUnit target = UnitAt(x, y);
             if (selectedAction == ActionMode.Move)
             {
-                int distance = Distance(x, y, active.X, active.Y);
-                int moveCost = MoveCostTo(active, x, y);
-                string terrain = TerrainPreviewLine(ObstacleAt(x, y));
-                if (distance <= 0) text = "current tile";
-                else if (!CanStandAt(x, y)) text = "blocked";
-                else if (moveCost >= UnreachableMoveCost) text = $"path blocked{terrain}";
-                else if (moveCost <= state.Combat.MovePoints)
-                {
-                    string threat = ProjectedMoveThreatSummary(active, x, y);
-                    text = $"move {moveCost}, {state.Combat.MovePoints - moveCost} left / {threat}{terrain}";
-                }
-                else text = $"too far by {moveCost - state.Combat.MovePoints}{terrain}";
+                text = CombatMovementPreview(active, x, y);
             }
             else if (selectedAction == ActionMode.Attack && target != null)
             {
@@ -828,10 +817,7 @@ namespace AshenHalls
             }
             if (selectedAction == ActionMode.Move && active != null)
             {
-                int moveCost = MoveCostTo(active, targetX, targetY);
-                if (CanStandAt(targetX, targetY)
-                    && moveCost < UnreachableMoveCost
-                    && moveCost <= state.Combat.MovePoints)
+                if (string.IsNullOrEmpty(CombatMovementBlockReason(active, targetX, targetY)))
                 {
                     IReadOnlyList<Vector2Int> path = ReachableMovePath(
                         active,
@@ -1002,8 +988,8 @@ namespace AshenHalls
         {
             if (selectedAction == ActionMode.Move)
             {
-                int moveCost = MoveCostTo(active, x, y);
-                return CanStandAt(x, y) && moveCost < UnreachableMoveCost && moveCost <= state.Combat.MovePoints ? "Click to move" : "Cannot move there";
+                string reason = CombatMovementBlockReason(active, x, y);
+                return string.IsNullOrEmpty(reason) ? "Click to move" : reason;
             }
             if (selectedAction == ActionMode.Attack)
             {
@@ -1040,7 +1026,7 @@ namespace AshenHalls
                 MartialAbility ability = AbilityDef(pendingAbilityId);
                 string reason;
                 if (ability == null) return "Choose a skill";
-                return CanTargetAbility(active, ability, target, x, y, out reason) ? $"Click to use {ability.Name}" : reason;
+                return IsAbilityActionable(active, ability, target, x, y, out reason) ? $"Click to use {ability.Name}" : reason;
             }
             return "Choose a command";
         }
@@ -1084,15 +1070,15 @@ namespace AshenHalls
             if (selectedAction == ActionMode.Move)
             {
                 int moveCost = MoveCostTo(active, x, y);
-                bool reachable = CanStandAt(x, y) && moveCost < UnreachableMoveCost;
-                bool valid = reachable && moveCost <= state.Combat.MovePoints;
+                string reason = CombatMovementBlockReason(active, x, y);
+                bool valid = string.IsNullOrEmpty(reason);
                 color = valid ? teal : Hex("8a5c35");
                 if (valid)
                 {
                     IReadOnlyList<Vector2Int> path = ReachableMovePath(active, x, y, state.Combat.MovePoints);
                     DrawMovementPathPreview(grid, cell, path, color);
                 }
-                DrawTargetBadge(tile, reachable ? moveCost.ToString() : "X", color, valid);
+                DrawTargetBadge(tile, valid ? moveCost.ToString() : CombatTargetingRules.BlockedBadge(reason), color, valid);
             }
             else if (selectedAction == ActionMode.Attack && target != null)
             {
@@ -1144,7 +1130,7 @@ namespace AshenHalls
             {
                 MartialAbility ability = AbilityDef(pendingAbilityId);
                 string reason = "";
-                bool actionable = ability != null && CanTargetAbility(active, ability, target, x, y, out reason);
+                bool actionable = ability != null && IsAbilityActionable(active, ability, target, x, y, out reason);
                 CombatPowerTargetingProfile profile = CombatPowerTargetingRules.ForAbility(ability);
                 drawLine = actionable && profile.Kind != CombatPowerFootprintKind.ChargeLanding && profile.Kind != CombatPowerFootprintKind.CrossArea;
                 color = actionable && ability != null
@@ -1823,6 +1809,59 @@ namespace AshenHalls
                         new Rect(head.x - fallbackSize * 0.36f, head.y - fallbackSize * 0.36f, fallbackSize * 0.72f, fallbackSize * 0.72f),
                         cursorWhite.WithAlpha(trailColor.a * 0.86f));
                 }
+                DrawPowerTravelAccent(plan, head, tangent.normalized, cell, progress, fade, powerColor);
+            }
+        }
+
+        private void DrawPowerTravelAccent(CombatPowerTravelVfxPlan plan, Vector2 head, Vector2 direction, float cell, float progress, float fade, Color accent)
+        {
+            Vector2 side = new Vector2(-direction.y, direction.x);
+            float alpha = plan.Opacity * fade;
+            float thickness = Mathf.Max(1f, cell * 0.016f);
+            Color core = Color.Lerp(accent, cursorWhite, 0.72f).WithAlpha(alpha * 0.80f);
+            bool fire = plan.AtlasCell == CombatPowerTravelVfxRules.FireballCometCell
+                || plan.AtlasCell == CombatPowerTravelVfxRules.MeteorVerticalStreakCell;
+            if (fire)
+            {
+                DrawPixelLine(head - direction * cell * 0.12f, head + direction * cell * 0.10f, core, thickness * 1.6f);
+                for (int i = 0; i < 3; i++)
+                {
+                    float age = Mathf.Repeat(progress * 1.6f + i / 3f, 1f);
+                    float offset = CombatPowerTravelVfxRules.StableTravelHash(plan.Key, i, 3) % 2 == 0 ? -1f : 1f;
+                    Vector2 emberPoint = head - direction * cell * (0.12f + age * 0.46f) + side * cell * age * offset * 0.15f;
+                    float size = Mathf.Max(1f, cell * 0.035f * (1f - age * 0.6f));
+                    DrawRect(new Rect(emberPoint.x - size * 0.5f, emberPoint.y - size * 0.5f, size, size),
+                        Color.Lerp(accent, gold, 0.55f).WithAlpha(alpha * (1f - age) * 0.70f));
+                }
+                return;
+            }
+            if (plan.AtlasCell == CombatPowerTravelVfxRules.FrostLanceCell
+                || plan.AtlasCell == CombatPowerTravelVfxRules.ThrownKnifeCell
+                || plan.AtlasCell == CombatPowerTravelVfxRules.RangerArrowsVolleyCell)
+            {
+                // One edge glint keeps a fast physical projectile legible without a spell halo.
+                Vector2 tip = head + direction * cell * 0.13f;
+                DrawPixelLine(head - direction * cell * 0.12f, tip, core, thickness);
+                if (plan.AtlasCell == CombatPowerTravelVfxRules.FrostLanceCell)
+                {
+                    DrawPixelLine(head - direction * cell * 0.04f + side * cell * 0.10f, tip, core.WithAlpha(alpha * 0.46f), thickness);
+                    DrawPixelLine(head - direction * cell * 0.04f - side * cell * 0.10f, tip, core.WithAlpha(alpha * 0.46f), thickness);
+                }
+                return;
+            }
+            if (plan.AtlasCell == CombatPowerTravelVfxRules.LightningLeaderCell)
+            {
+                DrawJaggedPixelLine(head - direction * cell * 0.30f, head, accent.WithAlpha(alpha * 0.36f), thickness * 3f, cell * 0.045f);
+                DrawJaggedPixelLine(head - direction * cell * 0.30f, head, core, thickness, cell * 0.045f);
+                return;
+            }
+            if (plan.AtlasCell == CombatPowerTravelVfxRules.RiftBoltCell
+                || plan.AtlasCell == CombatPowerTravelVfxRules.SoulDrainTetherCell)
+            {
+                float radius = cell * 0.13f;
+                DrawPowerPixelArc(head, radius, 0.70f, -30f - progress * 65f, 250f, accent.WithAlpha(alpha * 0.66f), thickness);
+                DrawPixelLine(head - direction * radius * 0.7f, head + direction * radius * 0.7f,
+                    retroBlack.WithAlpha(alpha * 0.64f), thickness * 2f);
             }
         }
 
@@ -2685,7 +2724,7 @@ namespace AshenHalls
 
         private void DrawCombatHighlights(Rect grid, float cell, CombatUnit active)
         {
-            if (selectedAction == ActionMode.Move && state.Combat.MovePoints > 0)
+            if (selectedAction == ActionMode.Move && string.IsNullOrEmpty(CombatMovementReadyReason(active)))
             {
                 int[,] reachable = ReachableMoveCosts(active);
                 for (int y = 0; y < CombatH; y++)
@@ -2844,7 +2883,7 @@ namespace AshenHalls
                 {
                     return CombatTargetHighlightState.None;
                 }
-                return CanTargetAbility(active, ability, unit, x, y, out _)
+                return IsAbilityActionable(active, ability, unit, x, y, out _)
                     ? CombatTargetHighlightState.Legal
                     : CombatTargetHighlightState.Blocked;
             }
@@ -2860,10 +2899,7 @@ namespace AshenHalls
             if (selectedAction == ActionMode.Move
                 && TryCombatHoverCell(grid, cell, out int hoverX, out int hoverY, out _))
             {
-                int moveCost = MoveCostTo(active, hoverX, hoverY);
-                previewsDestination = CanStandAt(hoverX, hoverY)
-                    && moveCost < UnreachableMoveCost
-                    && moveCost <= state.Combat.MovePoints;
+                previewsDestination = string.IsNullOrEmpty(CombatMovementBlockReason(active, hoverX, hoverY));
                 if (previewsDestination)
                 {
                     previewX = hoverX;
@@ -3823,6 +3859,7 @@ namespace AshenHalls
 
                     if (now < echo.ImpactAt)
                     {
+                        if (state != null && state.ReducedMotion) continue;
                         if (!ShouldDrawCombatPowerImpactOmen(echo.Kind, echo.ImpactAt - now)) continue;
                         float travel = Mathf.Max(0.01f, echo.ImpactAt - echo.Start);
                         float t = Mathf.Clamp01((now - echo.Start) / travel);
@@ -3830,7 +3867,7 @@ namespace AshenHalls
                         float size = cell * Mathf.Lerp(1.08f + intensity * 0.08f, 0.30f, eased);
                         float pulse = 0.46f + Mathf.Sin(t * Mathf.PI * (2f + intensity)) * 0.12f;
                         Rect incoming = new Rect(center.x - size * 0.5f, center.y - size * 0.5f, size, size);
-                        DrawBorder(incoming, accent.WithAlpha(pulse * 0.72f), intensity >= 3 ? 2 : 1);
+                        DrawPowerPixelArc(center, size * 0.5f, 0.66f, -90f, 360f, accent.WithAlpha(pulse * 0.52f), intensity >= 3 ? 2f : 1f);
                         if (motif == CombatPowerVisualMotif.Generic)
                         {
                             DrawImpactBrackets(incoming, Color.Lerp(accent, cursorWhite, 0.20f).WithAlpha(Mathf.Min(0.84f, pulse + 0.18f)), Mathf.Max(2f, cell * 0.035f));
@@ -3855,7 +3892,7 @@ namespace AshenHalls
                     float duration = Mathf.Max(0.08f, echo.Duration);
                     float tImpact = Mathf.Clamp01((now - echo.ImpactAt) / duration);
                     float fade = 1f - Mathf.SmoothStep(0f, 1f, tImpact);
-                    if (echo.StaticStamp)
+                    if (echo.StaticStamp || (state != null && state.ReducedMotion))
                     {
                         CombatImpactArtPlan staticArtPlan = CombatPowerVisualRules.ReducedMotionImpactArtPlan(echo.Kind, intensity);
                         AuthoredPowerVfxPlan authoredStaticPlan;
@@ -3999,7 +4036,8 @@ namespace AshenHalls
                         DrawBorder(ring, ringColor.WithAlpha(fade * 0.68f), intensity >= 3 ? 2 : 1);
                     }
 
-                    float semanticOpacity = CombatPowerVisualRules.SemanticImpactOverlayOpacity(
+                    bool classAccentDrawn = DrawClassSkillImpactAccent(echo.Kind, center, cell, tImpact, fade, accent, intensity);
+                    float semanticOpacity = classAccentDrawn ? 0f : CombatPowerVisualRules.SemanticImpactOverlayOpacity(
                         motif,
                         intensity,
                         impactArtDrawn,
@@ -4048,67 +4086,78 @@ namespace AshenHalls
             if (key == "fireball" || key == "meteor")
             {
                 float flash = 1f - Mathf.SmoothStep(0f, key == "fireball" ? 0.14f : 0.20f, t);
-                float coreSize = cell * Mathf.Lerp(0.92f + intensity * 0.16f, 0.30f, Mathf.Min(1f, t * 5f));
+                float coreSize = cell * Mathf.Lerp(0.34f + intensity * 0.04f, 0.12f, Mathf.Min(1f, t * 5f));
                 DrawRect(
                     new Rect(center.x - coreSize * 0.5f, center.y - coreSize * 0.5f, coreSize, coreSize),
-                    Color.Lerp(gold, cursorWhite, 0.72f).WithAlpha(flash * 0.34f));
+                    Color.Lerp(gold, cursorWhite, 0.72f).WithAlpha(flash * 0.62f));
                 float ringT = Mathf.Clamp01(t * 1.65f);
-                float ringSize = cell * Mathf.Lerp(0.44f, key == "meteor" ? 3.05f : 2.75f, ringT);
-                DrawBorder(
-                    new Rect(center.x - ringSize * 0.5f, center.y - ringSize * 0.5f, ringSize, ringSize),
-                    Color.Lerp(ember, gold, 0.42f).WithAlpha(fade * (1f - ringT * 0.42f) * 0.72f),
-                    intensity >= 3 ? 3 : 2);
-                int rays = 8;
-                float inner = cell * Mathf.Lerp(0.12f, 0.42f, ringT);
-                float outer = cell * Mathf.Lerp(0.48f, 1.34f + intensity * 0.08f, ringT);
+                float ringRadius = cell * Mathf.Lerp(0.22f, (key == "meteor" ? 0.95f : 0.78f) + intensity * 0.05f, ringT);
+                DrawPowerPixelArc(center + Vector2.down * cell * 0.12f, ringRadius, 0.60f, 0f, 360f,
+                    Color.Lerp(ember, gold, 0.42f).WithAlpha(fade * (1f - ringT * 0.66f) * 0.56f),
+                    intensity >= 3 ? 2.5f : 1.5f);
+                int rays = 5 + intensity;
+                float inner = cell * Mathf.Lerp(0.20f, 0.82f + intensity * 0.04f, ringT);
+                float outer = inner + cell * Mathf.Lerp(0.18f, 0.035f, ringT);
                 for (int i = 0; i < rays; i++)
                 {
                     float angle = i * Mathf.PI * 2f / rays + (key == "meteor" ? 0.20f : 0f);
                     Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                    DrawPixelLine(center + direction * inner, center + direction * outer, bright.WithAlpha(fade * 0.52f), thickness);
+                    float lift = cell * (i % 2 == 0 ? -0.16f : 0.08f) * ringT;
+                    Vector2 offset = Vector2.up * lift;
+                    DrawPixelLine(center + offset + direction * inner, center + offset + direction * outer,
+                        Color.Lerp(ember, gold, i % 2 == 0 ? 0.80f : 0.36f).WithAlpha(fade * 0.66f), Mathf.Max(1f, thickness * 0.72f));
                 }
                 return;
             }
 
             if (key == "frost")
             {
-                int shards = 8;
-                float length = cell * Mathf.Lerp(0.34f, 1.18f + intensity * 0.08f, Mathf.Min(1f, t * 1.8f));
+                int shards = 6;
+                float length = cell * Mathf.Lerp(0.20f, 0.62f + intensity * 0.045f, Mathf.Min(1f, t * 2.8f));
                 for (int i = 0; i < shards; i++)
                 {
                     float angle = i * Mathf.PI * 2f / shards + t * 0.18f;
                     Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                    DrawPixelLine(center + direction * cell * 0.16f, center + direction * length, bright.WithAlpha(fade * 0.66f), thickness);
+                    Vector2 side = new Vector2(-direction.y, direction.x);
+                    Vector2 tip = center + direction * length;
+                    Vector2 root = center + direction * length * 0.55f;
+                    DrawPixelLine(root, tip, bright.WithAlpha(fade * 0.72f), thickness);
+                    DrawPixelLine(root + side * cell * 0.07f, tip, accent.WithAlpha(fade * 0.50f), Mathf.Max(1f, thickness * 0.65f));
+                    DrawPixelLine(root - side * cell * 0.07f, tip, accent.WithAlpha(fade * 0.50f), Mathf.Max(1f, thickness * 0.65f));
                 }
                 return;
             }
 
             if (key == "tempest")
             {
-                int bolts = 6 + intensity * 2;
-                float radius = cell * Mathf.Lerp(0.32f, 1.24f + intensity * 0.10f, Mathf.Min(1f, t * 1.7f));
+                int bolts = 3 + intensity;
+                float radius = cell * Mathf.Lerp(0.24f, 0.68f + intensity * 0.06f, Mathf.Min(1f, t * 3.4f));
+                float discharge = fade * (1f - Mathf.SmoothStep(0.18f, 0.55f, t));
                 for (int i = 0; i < bolts; i++)
                 {
-                    float angle = i * Mathf.PI * 2f / bolts + t * 0.55f;
+                    float angle = i * Mathf.PI * 2f / bolts + 0.22f;
                     Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
-                    DrawJaggedPixelLine(center, center + direction * radius, Hex("d6f4ff", fade * 0.68f), thickness, cell * 0.045f);
+                    DrawJaggedPixelLine(center + direction * cell * 0.12f, center + direction * radius, accent.WithAlpha(discharge * 0.42f), thickness * 2f, cell * 0.045f);
+                    DrawJaggedPixelLine(center + direction * cell * 0.12f, center + direction * radius, Hex("d6f4ff", discharge * 0.82f), Mathf.Max(1f, thickness * 0.60f), cell * 0.045f);
                 }
                 return;
             }
 
             bool riftForm = key == "riftbolt" || key == "lessersummon" || key == "greatersummon" || key == "ascendance" || key == "pactbrand";
             float inwardT = Mathf.SmoothStep(0f, 1f, t);
-            float outerRadius = cell * Mathf.Lerp(1.28f + intensity * 0.10f, 0.34f, inwardT);
-            int spokes = riftForm ? 9 : 7;
+            float outerRadius = cell * Mathf.Lerp(0.76f + intensity * 0.06f, 0.20f, inwardT);
+            int spokes = riftForm ? 5 : 4;
             for (int i = 0; i < spokes; i++)
             {
                 float angle = i * Mathf.PI * 2f / spokes - t * (riftForm ? 1.20f : 0.52f);
                 Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
                 Vector2 outer = center + direction * outerRadius;
-                Vector2 inner = center + direction * cell * 0.16f;
-                DrawJaggedPixelLine(outer, inner, Color.Lerp(accent, retroBlack, 0.44f).WithAlpha(fade * 0.68f), thickness, cell * 0.035f);
+                Vector2 inner = center + direction * outerRadius * 0.70f;
+                DrawPixelLine(outer, inner, Color.Lerp(accent, cursorWhite, 0.32f).WithAlpha(fade * 0.54f), Mathf.Max(1f, thickness * 0.75f));
             }
-            float voidSize = cell * Mathf.Lerp(0.18f, riftForm ? 0.66f : 0.48f, Mathf.Min(1f, t * 2.4f));
+            DrawPowerPixelArc(center, outerRadius * 0.76f, riftForm ? 0.88f : 0.52f, -36f - t * 38f, 276f,
+                accent.WithAlpha(fade * 0.34f), Mathf.Max(1f, thickness * 0.70f));
+            float voidSize = cell * Mathf.Lerp(0.12f, riftForm ? 0.32f : 0.24f, Mathf.Min(1f, t * 2.4f));
             DrawRect(
                 new Rect(center.x - voidSize * 0.5f, center.y - voidSize * 0.5f, voidSize, voidSize),
                 retroBlack.WithAlpha(fade * 0.52f));
@@ -4365,7 +4414,7 @@ namespace AshenHalls
 
         private void DrawPowerCastAuras(Rect grid, float cell)
         {
-            if (powerCastAuras.Count == 0) return;
+            if (state == null || state.ReducedMotion || powerCastAuras.Count == 0) return;
             float now = Time.time;
             GUI.BeginClip(grid);
             try
@@ -4390,7 +4439,7 @@ namespace AshenHalls
                         float flight = Mathf.Clamp01((now - releaseBoundary) / (aura.ImpactAt - releaseBoundary));
                         fade *= Mathf.Lerp(0.78f, 0.30f, flight);
                     }
-                    float wave = 0.70f + Mathf.Sin((now - aura.Start) * (12f + aura.Intensity * 2f)) * 0.22f;
+                    float wave = Mathf.Lerp(0.58f, 0.88f, Mathf.SmoothStep(0f, 1f, charge));
 
                     AuthoredPowerVfxPlan authoredPlan;
                     bool usesAuthoredArt = TryGetAuthoredPowerCastPlan(
@@ -4409,32 +4458,30 @@ namespace AshenHalls
                     {
                         float outerSize = cell * Mathf.Lerp(0.92f, 0.52f, Mathf.SmoothStep(0f, 1f, charge));
                         float innerSize = cell * Mathf.Lerp(0.24f, 0.70f, Mathf.SmoothStep(0f, 1f, charge));
-                        Rect outer = new Rect(source.x - outerSize * 0.5f, source.y - outerSize * 0.5f, outerSize, outerSize);
                         Rect inner = new Rect(source.x - innerSize * 0.5f, source.y - innerSize * 0.5f, innerSize, innerSize);
-                        DrawBorder(outer, focusColor.WithAlpha(fade * wave * 0.72f), aura.Intensity >= 3 ? 2 : 1);
+                        DrawPowerPixelArc(source, outerSize * 0.5f, 0.72f, -90f, 300f, focusColor.WithAlpha(fade * wave * 0.58f), Mathf.Max(1f, cell * 0.024f));
                         DrawImpactBrackets(inner, focusColor.WithAlpha(fade * 0.82f), Mathf.Max(2f, cell * 0.03f));
                     }
 
                     if (usesAuthoredArt && authoredPlan.HasPrimary)
                     {
                         float artSize = cell * authoredPlan.PrimaryScale;
-                        Rect outerArt = new Rect(
-                            source.x - artSize * 0.60f,
-                            source.y - artSize * 0.60f,
-                            artSize * 1.20f,
-                            artSize * 1.20f);
                         Rect coreArt = new Rect(
                             source.x - artSize * 0.5f,
                             source.y - artSize * 0.5f,
                             artSize,
                             artSize);
-                        DrawRotatedAuthoredPowerVfx(
-                            outerArt,
-                            aura.Kind,
-                            authoredPlan.PrimaryCell,
-                            Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity * 0.24f),
-                            -28f - charge * 82f,
-                            source);
+                        if (ritualPresentation)
+                        {
+                            DrawPowerPixelArc(
+                                source + Vector2.down * cell * 0.20f,
+                                artSize * 0.46f,
+                                0.42f,
+                                -18f + charge * 34f,
+                                300f,
+                                focusColor.WithAlpha(fade * authoredPlan.PrimaryOpacity * 0.42f),
+                                Mathf.Max(1f, cell * 0.023f));
+                        }
                         DrawRotatedAuthoredPowerVfx(
                             coreArt,
                             aura.Kind,
@@ -4470,17 +4517,16 @@ namespace AshenHalls
                     {
                         float releaseProgress = Mathf.Clamp01(releaseAge / 0.14f);
                         float releaseEnvelope = 1f - Mathf.SmoothStep(0f, 1f, releaseProgress);
-                        float releaseSize = cell * Mathf.Lerp(0.28f, 1.06f + aura.Intensity * 0.08f, releaseProgress);
-                        Rect releaseRing = new Rect(
-                            source.x - releaseSize * 0.5f,
-                            source.y - releaseSize * 0.5f,
-                            releaseSize,
-                            releaseSize);
-                        DrawBorder(
-                            releaseRing,
-                            Color.Lerp(focusColor, cursorWhite, 0.44f).WithAlpha(releaseEnvelope * 0.82f),
-                            aura.Intensity >= 3 ? 3 : 2);
-                        float coreSize = cell * Mathf.Lerp(0.24f, 0.08f, releaseProgress);
+                        float releaseRadius = cell * Mathf.Lerp(0.14f, 0.48f + aura.Intensity * 0.035f, releaseProgress);
+                        Vector2 releaseDirection = target - source;
+                        float releaseAngle = releaseDirection.sqrMagnitude > 0.01f
+                            ? Mathf.Atan2(releaseDirection.y, releaseDirection.x) * Mathf.Rad2Deg : -90f;
+                        DrawPowerPixelArc(source, releaseRadius, ritualPresentation ? 0.72f : 1f,
+                            ritualPresentation ? -90f : releaseAngle - 58f,
+                            ritualPresentation ? 360f : 116f,
+                            Color.Lerp(focusColor, cursorWhite, 0.44f).WithAlpha(releaseEnvelope * 0.68f),
+                            Mathf.Max(1.5f, cell * 0.030f));
+                        float coreSize = cell * Mathf.Lerp(0.13f, 0.04f, releaseProgress);
                         DrawRect(
                             new Rect(source.x - coreSize * 0.5f, source.y - coreSize * 0.5f, coreSize, coreSize),
                             cursorWhite.WithAlpha(releaseEnvelope * 0.88f));
@@ -4610,6 +4656,98 @@ namespace AshenHalls
                     DrawBorder(new Rect(source.x - radius, source.y - radius * 0.62f, radius * 2f, radius * 1.24f), dark.WithAlpha(fade * 0.42f), 1);
                     break;
             }
+        }
+
+        private void DrawPowerPixelArc(Vector2 center, float radius, float flatten, float startDegrees, float sweepDegrees, Color color, float thickness)
+        {
+            if (radius <= 0f || color.a <= 0.005f || Mathf.Abs(sweepDegrees) < 0.01f) return;
+            int segments = Mathf.Clamp(Mathf.CeilToInt(Mathf.Abs(sweepDegrees) / 15f), 3, 24);
+            float start = startDegrees * Mathf.Deg2Rad;
+            Vector2 previous = center + new Vector2(Mathf.Cos(start), Mathf.Sin(start) * flatten) * radius;
+            for (int i = 1; i <= segments; i++)
+            {
+                float angle = (startDegrees + sweepDegrees * i / segments) * Mathf.Deg2Rad;
+                Vector2 next = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle) * flatten) * radius;
+                DrawPixelLine(previous, next, color, thickness);
+                previous = next;
+            }
+        }
+
+        private bool DrawClassSkillImpactAccent(string visualKind, Vector2 center, float cell, float progress, float fade, Color accent, int intensity)
+        {
+            if (!ClassSkillVfxRules.IsSupported(visualKind)) return false;
+            string key = ClassSkillVfxRules.NormalizeKey(visualKind);
+            float t = Mathf.Clamp01(progress);
+            float snap = CombatPowerVisualRules.ImpactSnap(t);
+            float detailFade = fade * (1f - Mathf.SmoothStep(0.32f, 0.86f, t));
+            float radius = cell * Mathf.Lerp(0.24f, 0.58f + intensity * 0.035f, snap);
+            float thick = Mathf.Max(1.5f, cell * 0.030f);
+            Color bright = Color.Lerp(accent, cursorWhite, 0.54f).WithAlpha(detailFade * 0.84f);
+            Color shade = Color.Lerp(accent, retroBlack, 0.65f).WithAlpha(detailFade * 0.46f);
+            Vector2 direction = new Vector2(0.82f, -0.57f);
+            for (int i = powerCastAuras.Count - 1; i >= 0; i--)
+            {
+                PowerCastAura aura = powerCastAuras[i];
+                if (ClassSkillVfxRules.NormalizeKey(aura.Kind) != key) continue;
+                Vector2 facing = new Vector2(aura.TargetX - aura.SourceX, aura.TargetY - aura.SourceY);
+                if (facing.sqrMagnitude > 0.01f) direction = facing.normalized;
+                break;
+            }
+            Vector2 side = new Vector2(-direction.y, direction.x);
+            float aim = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+
+            if (key == "whirlwind" || key == "abyssalwhirl")
+            {
+                float sweep = Mathf.Lerp(44f, 286f, Mathf.Clamp01(t / 0.30f));
+                float start = aim - 128f + t * 126f;
+                DrawPowerPixelArc(center, radius, 0.66f, start, sweep, shade, thick * 2.4f);
+                DrawPowerPixelArc(center, radius, 0.66f, start, sweep, bright, thick);
+                DrawPowerPixelArc(center, radius * 0.72f, 0.66f, start + 180f, sweep * 0.70f, bright.WithAlpha(detailFade * 0.38f), Mathf.Max(1f, thick * 0.6f));
+                return true;
+            }
+            if (key == "rally" || key == "dreadroar")
+            {
+                float wave = cell * Mathf.Lerp(0.20f, 0.84f + intensity * 0.06f, Mathf.Sqrt(t));
+                DrawPowerPixelArc(center + Vector2.down * cell * 0.18f, wave, 0.48f, 0f, 360f, bright, thick);
+                if (t > 0.12f)
+                    DrawPowerPixelArc(center + Vector2.down * cell * 0.18f, wave * 0.68f, 0.48f, 0f, 360f, bright.WithAlpha(detailFade * 0.34f), Mathf.Max(1f, thick * 0.65f));
+                return true;
+            }
+            if (key == "stealth" || key == "shadowstep" || key == "smokebomb")
+            {
+                float inward = cell * Mathf.Lerp(0.64f, 0.22f, Mathf.SmoothStep(0f, 1f, t));
+                DrawPowerPixelArc(center, inward, 0.68f, 36f - t * 48f, 116f, shade, thick * 1.8f);
+                DrawPowerPixelArc(center, inward, 0.68f, 216f - t * 48f, 116f, bright.WithAlpha(detailFade * 0.36f), thick);
+                return true;
+            }
+            if (key == "charge" || key == "shieldbash" || key == "sunder" || key == "riftpounce")
+            {
+                DrawPowerPixelArc(center - direction * cell * 0.10f, radius, 1f, aim - 68f, 136f, shade, thick * 2.2f);
+                DrawPowerPixelArc(center - direction * cell * 0.10f, radius, 1f, aim - 68f, 136f, bright, thick);
+                for (int spark = -1; spark <= 1; spark++)
+                {
+                    Vector2 ray = (direction + side * spark * 0.70f).normalized;
+                    DrawPixelLine(center + ray * radius * 0.72f, center + ray * radius * 1.18f, bright, thick * 0.75f);
+                }
+                return true;
+            }
+
+            // Blade strikes cross the contacted body along the attacker's facing.
+            // The second cut is reserved for the paired rogue/demon attacks.
+            int cuts = key == "eviscerate" || key == "soulrend" ? 2 : 1;
+            for (int cut = 0; cut < cuts; cut++)
+            {
+                float slashAngle = aim + (cut == 0 ? -50f : 36f);
+                Vector2 slash = new Vector2(Mathf.Cos(slashAngle * Mathf.Deg2Rad), Mathf.Sin(slashAngle * Mathf.Deg2Rad));
+                Vector2 offset = side * cell * (cut == 0 ? -0.03f : 0.12f);
+                Vector2 start = center + offset - slash * radius;
+                Vector2 end = center + offset + slash * radius;
+                Vector2 revealed = Vector2.Lerp(start, end, Mathf.Clamp01(t / 0.12f));
+                DrawPixelLine(start, revealed, shade, thick * 2.6f);
+                DrawPixelLine(start, revealed, bright, thick);
+                DrawPixelLine(Vector2.Lerp(start, revealed, 0.65f), revealed, cursorWhite.WithAlpha(detailFade * 0.76f), Mathf.Max(1f, thick * 0.55f));
+            }
+            return true;
         }
 
         private void DrawImpactBrackets(Rect rect, Color color, float thickness)
@@ -5708,10 +5846,7 @@ namespace AshenHalls
 
         private int CountReachableMoveDestinations(CombatUnit active)
         {
-            if (active == null
-                || state?.Combat == null
-                || state.Combat.MovePoints <= 0
-                || active.Webbed > 0)
+            if (!string.IsNullOrEmpty(CombatMovementReadyReason(active)))
             {
                 return 0;
             }
@@ -13237,13 +13372,7 @@ namespace AshenHalls
             }
             if (selectedAction == ActionMode.Move)
             {
-                int moveCost = MoveCostTo(active, x, y);
-                return (x != active.X || y != active.Y)
-                    && state.Combat.MovePoints > 0
-                    && active.Webbed <= 0
-                    && CanStandAt(x, y)
-                    && moveCost < UnreachableMoveCost
-                    && moveCost <= state.Combat.MovePoints;
+                return string.IsNullOrEmpty(CombatMovementBlockReason(active, x, y));
             }
             if (!state.Combat.ActionAvailable) return false;
             CombatUnit target = UnitAt(x, y);
@@ -13266,7 +13395,7 @@ namespace AshenHalls
             if (selectedAction == ActionMode.Ability)
             {
                 MartialAbility ability = AbilityDef(pendingAbilityId);
-                return ability != null && CanTargetAbility(active, ability, target, x, y, out _);
+                return ability != null && IsAbilityActionable(active, ability, target, x, y, out _);
             }
             return false;
         }
@@ -13277,7 +13406,7 @@ namespace AshenHalls
             Vector2Int cursor = combatBoardCursorCell.Value;
             if (!CombatBoardCursorCellIsLegal(active, cursor.x, cursor.y))
             {
-                PushLog($"The cursor is not on a legal {ActionName(selectedAction, active).ToLowerInvariant()} target.", Tone.Warn);
+                PushLog(CombatTargetRejectionReason(active, cursor.x, cursor.y), Tone.Warn);
                 PlaySfx("blocked", 0.60f);
                 return true;
             }
@@ -17356,6 +17485,7 @@ namespace AshenHalls
                 if (target == null || target.Id != caster.Id) return false;
                 int turns = Mathf.Max(1, formula.Duration + (IsFocusedCaster(caster) ? 1 : 0));
                 int heal = 6 + Mathf.Max(0, UnitIntelligenceScore(caster) - 10) / 3;
+                int restored = CombatFeedbackRules.RecoverableHealth(caster.Hp, caster.MaxHp, heal);
                 // Status durations tick at the next turn start. Preserve the advertised
                 // number of complete demon-form actions after the casting turn.
                 caster.DemonFormTurns = Mathf.Max(caster.DemonFormTurns, turns + 1);
@@ -17368,7 +17498,7 @@ namespace AshenHalls
                 AddEpicBurst(caster.X, caster.Y, Color.Lerp(color, blood, 0.38f), 32, 1.90f);
                 AddFlash(caster.X, caster.Y, color);
                 AddFloat(caster.X, caster.Y, "ASCEND", color);
-                PushLog($"{caster.Name} assumes an abyssal shape for {turns} turns and recovers {heal} HP.", Tone.Good);
+                PushLog($"{caster.Name} assumes an abyssal shape for {turns} turns and recovers {restored} HP.", Tone.Good);
                 return true;
             }
 
@@ -17451,9 +17581,10 @@ namespace AshenHalls
             if (formula.Effect == "heal")
             {
                 int heal = formula.Power + SkillValue(caster.Skills, formula.Skill) / 2 + FormulaStatPowerBonus(formula, caster) + rng.Next(0, 5);
+                int restored = CombatFeedbackRules.RecoverableHealth(target.Hp, target.MaxHp, heal);
                 target.Hp = Mathf.Min(target.MaxHp, target.Hp + heal);
                 AddLegacyPrimaryPowerBeam(formula.Code, caster.X, caster.Y, target.X, target.Y, teal, FormulaBeamKind(formula, caster, target.X, target.Y));
-                AddFloat(target.X, target.Y, "+" + heal, teal);
+                AddFloat(target.X, target.Y, restored > 0 ? "+" + restored : "full HP", teal, "heal");
                 AddBurst(target.X, target.Y, teal);
                 AddTileGlyph(target.X, target.Y, formula, formula.Splash ? "area" : "impact", teal);
                 AddFlash(target.X, target.Y, teal);
@@ -17463,14 +17594,15 @@ namespace AshenHalls
                     foreach (CombatUnit ally in state.Combat.Units.Where(u => u.Side == target.Side && u.Hp > 0 && u.Id != target.Id && Distance(u.X, u.Y, target.X, target.Y) <= 1))
                     {
                         int splashHeal = Mathf.Max(2, heal / 2);
+                        int splashRestored = CombatFeedbackRules.RecoverableHealth(ally.Hp, ally.MaxHp, splashHeal);
                         ally.Hp = Mathf.Min(ally.MaxHp, ally.Hp + splashHeal);
-                        AddFloat(ally.X, ally.Y, "+" + splashHeal, teal);
+                        AddFloat(ally.X, ally.Y, splashRestored > 0 ? "+" + splashRestored : "full HP", teal, "heal");
                         AddBurst(ally.X, ally.Y, teal);
                         AddTileGlyph(ally.X, ally.Y, formula, "impact", teal);
                         splashHeals++;
                     }
                 }
-                PushLog($"{caster.Name} casts {formula.Name}. {target.Name} recovers {heal}.", Tone.Good);
+                PushLog($"{caster.Name} casts {formula.Name}. {target.Name} recovers {restored} HP.", Tone.Good);
                 if (splashHeals > 0) PushLog("The mend rings through nearby allies.", Tone.Good);
                 return true;
             }
@@ -19657,7 +19789,10 @@ namespace AshenHalls
                 resolvedStableSeed,
                 intensity,
                 false);
-            float safeStartDelay = Mathf.Clamp(startDelay, 0f, 0.75f);
+            // The feedback review leaves 1.30 seconds for the board to settle.
+            // Keep that offset intact so its projectile and impact share a clock.
+            float safeStartDelay = Mathf.Clamp(
+                CombatPowerAnimationTimelineRules.FiniteNonNegative(startDelay), 0f, 1.5f);
             float releaseDelay;
             float resolvedArrivalDelay;
             if (timeline.Supported && timeline.HasTravel)
@@ -21230,7 +21365,9 @@ namespace AshenHalls
                 string type = string.IsNullOrEmpty(formula.DamageType) ? "magic" : formula.DamageType;
                 string spill = formula.Splash ? $" / splash {SplashTargetCount(target, UnitSide.Enemy)}" : "";
                 string status = string.IsNullOrEmpty(formula.Status) ? "" : $" / {StatusLabel(formula.Status)} {StatusChanceText(target, formula.Status, caster, 0.42f, true)}";
-                string drain = formula.Effect == "drain" ? " / heals caster" : "";
+                int drainMin = formula.Effect == "drain" ? CombatFeedbackRules.DrainRecovery(caster.Hp, caster.MaxHp, target?.Hp ?? 0, damage.x, 2) : 0;
+                int drainMax = formula.Effect == "drain" ? CombatFeedbackRules.DrainRecovery(caster.Hp, caster.MaxHp, target?.Hp ?? 0, damage.y, 2) : 0;
+                string drain = formula.Effect == "drain" ? $" / restores {drainMin}-{drainMax} HP" : "";
                 string arc = FormulaArcsOverCover(formula) && !HasLineOfSight(caster.X, caster.Y, x, y, true) ? " / arcs cover" : "";
                 string current = target == null ? "" : StatusCompactLine(target);
                 current = string.IsNullOrEmpty(current) ? "" : $" / target {current}";
@@ -21273,11 +21410,17 @@ namespace AshenHalls
             {
                 int turns = Mathf.Max(1, formula.Duration + (IsFocusedCaster(caster) ? 1 : 0));
                 int heal = 6 + Mathf.Max(0, UnitIntelligenceScore(caster) - 10) / 3;
+                heal = CombatFeedbackRules.RecoverableHealth(caster.Hp, caster.MaxHp, heal);
                 return $"{formula.Name}: greater demon form {turns} turns\n+4 physical/pact power / -2 incoming damage / heal {heal} / ward + regen / {manaCost} MP{FormulaFocusNote(formula, caster)}";
             }
             if (formula.Effect == "heal")
             {
                 Vector2Int heal = FormulaHealPreview(formula, caster);
+                if (target != null)
+                {
+                    heal.x = CombatFeedbackRules.RecoverableHealth(target.Hp, target.MaxHp, heal.x);
+                    heal.y = CombatFeedbackRules.RecoverableHealth(target.Hp, target.MaxHp, heal.y);
+                }
                 string spread = formula.Splash ? $" / splash {SplashTargetCount(target, target?.Side ?? UnitSide.Party)}" : "";
                 return $"{formula.Name}: +{heal.x}-{heal.y} HP{spread}\n{manaCost} MP{FormulaFocusNote(formula, caster)}{FormulaStatNote(formula, caster)}";
             }
@@ -21410,7 +21553,8 @@ namespace AshenHalls
             if (ability.Id == "soulrend")
             {
                 int damage = PreviewDamageAfterTraits(target, SoulRendRawDamage(active), "death");
-                return $"Soul Rend: {damage} death{AbilityStatNote(active, ability.Id)}\nheal up to {Mathf.Max(1, damage / 2)} HP from actual damage";
+                int restored = CombatFeedbackRules.DrainRecovery(active.Hp, active.MaxHp, target?.Hp ?? 0, damage, 1);
+                return $"Soul Rend: {damage} death{AbilityStatNote(active, ability.Id)}\nheal up to {restored} HP from actual damage";
             }
             return ability.Name;
         }

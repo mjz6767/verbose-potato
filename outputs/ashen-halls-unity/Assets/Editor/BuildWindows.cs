@@ -339,7 +339,7 @@ namespace AshenHalls.Editor
             File.Copy(source, destination, true);
         }
 
-        private static void CopyDocsFolder(string projectRoot, string outputRoot)
+        internal static void CopyDocsFolder(string projectRoot, string outputRoot)
         {
             string docsRoot = Path.Combine(projectRoot, "Docs");
             if (!Directory.Exists(docsRoot))

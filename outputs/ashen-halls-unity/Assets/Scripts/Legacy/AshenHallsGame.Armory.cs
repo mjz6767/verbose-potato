@@ -931,7 +931,7 @@ namespace AshenHalls
             {
                 nearestLine = nearest.Distance == 0
                     ? $"The party stands at {nearest.Junction.Name}. Mark any charted destination below."
-                    : $"Nearest marker: {nearest.Junction.Name}, {nearest.Direction} {RouteChartRules.DistanceLabel(nearest.Distance)}. Mark a destination below.";
+                    : $"Nearest marker: {nearest.Junction.Name}, {nearest.Direction} {RouteChartRules.GridDistanceLabel(nearest.Distance)}. Mark a destination for walking directions; terrain can make the route longer.";
             }
 
             rows.Add(new ArmoryRowView
@@ -954,7 +954,7 @@ namespace AshenHalls
                 int distance = Mathf.Abs(junction.X - state.PlayerX) + Mathf.Abs(junction.Y - state.PlayerY);
                 string bearing = distance == 0
                     ? "current position"
-                    : RouteChartRules.DirectionLabel(state.PlayerX, state.PlayerY, junction.X, junction.Y) + " / " + RouteChartRules.DistanceLabel(distance);
+                    : RouteChartRules.DirectionLabel(state.PlayerX, state.PlayerY, junction.X, junction.Y) + " / " + RouteChartRules.GridDistanceLabel(distance);
                 WorldZone junctionZone = ZoneAt(junction.X, junction.Y);
                 bool active = RouteChartRules.IsWaypoint(state.ActiveRouteWaypointKey, state.Depth, junction.Id);
                 rows.Add(new ArmoryRowView
@@ -1159,7 +1159,7 @@ namespace AshenHalls
                 string bearing = distance == 0
                     ? "current position"
                     : RouteChartRules.DirectionLabel(state.PlayerX, state.PlayerY, site.X, site.Y)
-                        + " / " + RouteChartRules.DistanceLabel(distance);
+                        + " / " + RouteChartRules.GridDistanceLabel(distance);
                 WorldZone zone = ZoneAt(site.X, site.Y);
                 bool rewardClaimed = WorldSiteInteractionRules.RewardClaimed(
                     state.StoryFlags,

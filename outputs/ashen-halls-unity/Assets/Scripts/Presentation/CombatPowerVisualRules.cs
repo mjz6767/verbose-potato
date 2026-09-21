@@ -54,6 +54,18 @@ namespace AshenHalls
     {
         public const float FireballTravelDuration = 0.40f;
 
+        // Impacts reach their crest near contact, then settle. A symmetric sine
+        // swell peaks halfway through the recovery and makes a hit feel late.
+        public static float ImpactSnap(float progress)
+        {
+            float t = Clamp01(progress);
+            float attack = Clamp01(t / 0.18f);
+            attack = attack * attack * (3f - 2f * attack);
+            float settle = Clamp01((t - 0.18f) / 0.82f);
+            settle = settle * settle * (3f - 2f * settle);
+            return attack * (1f - settle * 0.30f);
+        }
+
         public static CombatPowerVisualMotif MotifFor(string kind)
         {
             string key = Normalize(kind);

@@ -319,21 +319,20 @@ namespace AshenHalls
                 state.PlayerX,
                 state.PlayerY);
             bool overlapsParty = x == state.PlayerX && y == state.PlayerY;
-            Rect citizenRect = Pad(
-                cell,
-                cell.width * ExplorationNpcPresentationRules.ExteriorAmbientPadding(exploreWideView));
-            citizenRect.x += cell.width * ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells(
+            float horizontalOffset = ExplorationCharacterArtCatalog.ExteriorCitizenHorizontalOffsetInCells(
                 district,
                 state.Seed,
                 x,
                 y,
                 state.PlayerX,
                 state.PlayerY);
-            citizenRect.y += cell.height * ExplorationCharacterArtCatalog.ExteriorCitizenVerticalOffsetInCells(
+            float verticalOffset = ExplorationCharacterArtCatalog.ExteriorCitizenVerticalOffsetInCells(
                 x,
                 y,
                 state.PlayerX,
                 state.PlayerY);
+            Rect citizenRect = ExplorationNpcPresentationRules.AmbientSpriteRect(
+                cell, exploreWideView, false, new Vector2(horizontalOffset, verticalOffset));
             float alpha = ExplorationNpcPresentationRules.ExteriorAmbientAlpha(exploreWideView, yieldingToParty);
             if (overlapsParty) alpha *= 0.56f;
             WorldMapArtSpec spec = new WorldMapArtSpec(
@@ -424,9 +423,7 @@ namespace AshenHalls
 
             int index = ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession);
             if (index < 0) return false;
-            Rect patronRect = Pad(
-                cell,
-                cell.width * ExplorationNpcPresentationRules.GrandHearthPatronPadding(exploreWideView));
+            Rect patronRect = ExplorationNpcPresentationRules.AmbientSpriteRect(cell, exploreWideView, true, Vector2.zero);
             float alpha = ExplorationNpcPresentationRules.GrandHearthPatronAlpha(exploreWideView);
             WorldMapArtSpec spec = new WorldMapArtSpec(
                 0.98f,

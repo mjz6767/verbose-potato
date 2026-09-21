@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "development-audit-evidence",
+  "audit": "world-map-experience",
+  "completedDate": "2026-09-08",
+  "baselineCommit": "4783a27840ce8be14075fe4b7fd3939fa154b92c",
+  "sourceVersion": "v2.24.0",
+  "saveSchema": 27,
+  "sourceDirty": true,
+  "includesCoordinatedCombatEffectsChanges": true,
+  "releasePromoted": false,
+  "automatedAudit": {
+    "profile": "Full",
+    "passed": true,
+    "checks": ["Rules", "Inventory and loot", "Sprite art", "Combat UI", "Runtime boot"],
+    "log": "QA/project-audit/20260908-031655-c0d90e4e/unity.log",
+    "logSha256": "763166c12872eff3f379c8a5e06d5a583c15dd56f6b7bb9025031f21a31ec8ea",
+    "runtimeChangedBetweenAuditAndBuild": false
+  },
+  "preview": {
+    "kind": "Development",
+    "executable": "QA/audit-players/20260908-073456-f3f27056/AshAndBrimstone.exe",
+    "executableSha256": "0a4d928ac950c45822d2a7bb67d336c00e1c7240d190422006ad2c649a5fc763",
+    "managedAssemblySha256": "b5e6d50c3df0db2bc3033876ceac6ebe888646fd989dc191f53d0d3c76f7c5ab",
+    "buildLog": "QA/world-map-audit-2026-09-07/audit-player-build-with-art.log",
+    "buildLogSha256": "285dedc9547d3b55dc836e04411355cfe3c2b16e7488d62c53d4a5a22cf1ba01",
+    "stagedArtPngCount": 92,
+    "allStagedArtPngsMatchSource": true,
+    "supersedesArtIncompletePreview": "20260908-031816-d17c4c31"
+  },
+  "visualReview": {
+    "packet": "QA/world-map-audit-2026-09-07/final-f3f27056/visual-qa-packet/visual-qa-packet.json",
+    "packetSha256": "8b9d48812dcc3740568dc7c0588a07beec09f0e9baed3e363a781525c9ef4880",
+    "captureSetSha256": "16607468e2b941d3b0f2667a62398f2c4154684f1485f18e5fa2e72659ff64a7",
+    "deterministicPassed": true,
+    "acceptedCaptureCount": 8,
+    "assistantReviewedCaptureCount": 8,
+    "assistantReviewMethod": "In-conversation inspection of all eight final PNGs",
+    "assistantReviewAdvisoryOnly": true,
+    "reviewChangesDeterministicStatus": false,
+    "scenarios": [
+      "local@960x600", "region@960x600",
+      "local-details@1280x720", "region-details@1280x720",
+      "local@1920x1080", "region@1920x1080",
+      "region-route@1280x720", "region-fog@1280x720"
+    ],
+    "scope": "Map header/footer/detail readability, real-art rendering, landmark and uncharted focus fixtures",
+    "liveInputVerified": false,
+    "liveInputLimitation": "Computer-use application approval timed out before real keyboard or pointer input; controller and campaign playthrough remain pending",
+    "combatVisualAudioCertified": false
+  },
+  "preservedRelease": {
+    "archive": "../AshAndBrimstone-Windows-v2.24.0.zip",
+    "sha256": "ab6cb675f31bb5abbaf51c089c2697e44c0950888e2bdf178ceecb64b7ea63cf",
+    "byteLength": 229972808
+  }
+}

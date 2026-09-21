@@ -446,8 +446,20 @@ namespace AshenHalls
             DrawRect(geometry.Side, Hex("060a0c", 0.985f));
             DrawRect(new Rect(geometry.Side.x, geometry.Side.y, 4f * scale, geometry.Side.height), teal.WithAlpha(0.84f));
             DrawBorder(geometry.Side, Hex("58b7a5", 0.82f), 1);
-            GUI.Label(new Rect(sideInnerX, geometry.Side.y + 8f * scale, sideInnerW, 24f * scale), FitText(view.ZoneName, sideInnerW, CenterLeftStyle(ExploreHudFont(18), Hex("e3ba63"))), CenterLeftStyle(ExploreHudFont(18), Hex("e3ba63")));
-            GUI.Label(new Rect(sideInnerX, geometry.Side.y + 34f * scale, sideInnerW, 18f * scale), FitText(view.DangerLabel, sideInnerW, CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6"))), CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6")));
+            Rect locationTitle = ExplorationHudScreenLayout.LocationTitle(geometry.Side.width, scale);
+            locationTitle.position += geometry.Side.position;
+            GUIStyle locationTitleStyle = new GUIStyle(CenterLeftStyle(ExploreHudFont(18), Hex("e3ba63"))) { wordWrap = true };
+            GUIContent locationTitleContent = new GUIContent(view.ZoneName ?? "Location");
+            int minimumLocationSize = ExploreHudFont(ExplorationHudScreenLayout.MinimumLocationTitleFontSize);
+            while (locationTitleStyle.fontSize > minimumLocationSize
+                && locationTitleStyle.CalcHeight(locationTitleContent, locationTitle.width) > locationTitle.height)
+            {
+                locationTitleStyle.fontSize--;
+            }
+            GUI.Label(locationTitle, locationTitleContent, locationTitleStyle);
+            Rect locationDanger = ExplorationHudScreenLayout.LocationDanger(geometry.Side.width, scale);
+            locationDanger.position += geometry.Side.position;
+            GUI.Label(locationDanger, FitText(view.DangerLabel, sideInnerW, CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6"))), CenterLeftStyle(ExploreHudFont(11), Hex("66c9b6")));
             DrawRect(new Rect(sideInnerX, geometry.Side.y + 57f * scale, sideInnerW, 1f), line.WithAlpha(0.72f));
 
             Rect detailsButton = new Rect(sideInnerX, geometry.Side.yMax - 40f * scale, sideInnerW, 32f * scale);
@@ -579,7 +591,7 @@ namespace AshenHalls
             GUI.enabled = oldEnabled && view.HasAction;
             if (DrawExploreFallbackAction(commandLayout.Action, view.ActionLabel, view.ActionTarget, view.HasAction)) UseExploreHudContextualAction();
             GUI.enabled = oldEnabled;
-            if (DrawExploreFallbackCommand(commandLayout.Map, exploreWideView ? "Local" : "Region", "Tab", "scroll", true)) ToggleExploreView();
+            if (DrawExploreFallbackCommand(commandLayout.Map, exploreWideView ? "Local" : "Region", "Tab / Y", "scroll", true)) ToggleExploreView();
             if (DrawExploreFallbackCommand(commandLayout.Journal, "Journal", "J", "timeline", true)) ToggleArmory(ArmoryTab.Journal);
             if (DrawExploreFallbackCommand(commandLayout.Party, "Party", "F", "party", true)) ToggleArmory(ArmoryTab.Party);
             if (DrawExploreFallbackCommand(commandLayout.Menu, "Menu", "Esc", "queue", true)) OpenPauseMenu();
