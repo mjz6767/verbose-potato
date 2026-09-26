@@ -1,10 +1,16 @@
 # Steel & Streets candidate — September 20, 2026
 
-## Status
+## September 26 continuation
+
+The user requested a retry. Unity now works with access to its existing licensing service outside the sandbox; authentication/license activation was not automated or bypassed. The first licensed pass found one stale release-label assertion expecting v2.24.0. It was updated to the intended v2.25.0 without weakening any gameplay, art or input check.
+
+The complete licensed Full audit subsequently passed: Rules, Inventory and loot, Sprite art, Combat UI and Runtime boot. Exact log: `QA/project-audit/20260926-143756-10536d9a/unity.log`. All newly integrated combat-decision and map-sprite regressions ran. Clean-source retail packaging and final-player review follow from this frozen source; final results belong in `Docs/ReleaseEvidence/v2.25.0-summary.json`.
+
+## Historical September 20 status
 
 Implemented as a **source-only, unpublished build candidate**. Candidate v2.25.0 retains save schema 27. The previous combat-effects/world-map improvements are preserved and integrated. The user authorized committing and pushing this source checkpoint after the license-blocked handoff. That source push does not certify or publish a playable v2.25 build. The existing v2.24 and older release artifacts have not been replaced; no archive promotion has been performed.
 
-Unity currently exits with code 198 before starting tests because it cannot find an active Editor license. Both ordinary and approved outside-sandbox attempts fail for the same reason. The user has been asked to reactivate the existing license through Unity Hub. Authentication/license activation was not automated or bypassed.
+At that checkpoint, Unity exited with code 198 before starting tests because it could not find an active Editor license. Both ordinary and approved outside-sandbox attempts failed for the same reason. The user was asked to reactivate the existing license through Unity Hub. Authentication/license activation was not automated or bypassed.
 
 ## New polish
 
@@ -29,7 +35,7 @@ Failed licensed audit logs (test suites never started):
 - `QA/project-audit/20260921-035411-718b8f88/unity.log`
 - `QA/project-audit/20260921-035440-5701ffe4/unity.log`
 
-## Release continuation after license restoration
+## Original release-continuation checklist
 
 1. Run `Tools/InvokeProjectAudit.ps1 -Suite Full`; fix failures without weakening acceptance.
 2. Build an isolated audit player if visual iteration is needed. Inspect combat phases/target feedback and NPCs/landmarks at actually rendered sizes. Current display supports 960×600 and 1080×720; 1280×720/1920×1080 final-player checks require a suitable display. Automated layout geometry is not a replacement for those captures.

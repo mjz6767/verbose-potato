@@ -1,8 +1,8 @@
-Ash & Brimstone v2.25.0 candidate - Steel & Streets
+Ash & Brimstone v2.25.0 - Steel & Streets
 
-Candidate version: v2.25.0. Save schema: v27.
+Release version: v2.25.0. Save schema: v27.
 
-UNPUBLISHED CANDIDATE: source compilation passes, but licensed Unity tests and a new Windows build are blocked by the missing active Editor license. A source push is not a playable release. Existing published Windows packages remain unchanged; see Docs/POLISH_AUDIT_2026-09-20.md.
+The licensed Full Unity audit passed on September 26: rules, inventory/loot, sprite art, combat UI and runtime boot. Release packaging repeats these checks and validates a clean-extracted launch. Final package hashes, rendered-view coverage and remaining manual checks are recorded separately in Docs/ReleaseEvidence/v2.25.0-summary.json after verification. Older versioned Windows packages remain available for rollback.
 
 Steel & Streets polishes combat decisions and the people of Midgaard. Movement and skill previews respect the same restrictions as execution, blocked actions explain why they cannot proceed, and healing feedback reflects health actually recovered. Spell and skill impacts have a clearer contact beat, more distinct release/travel accents, and a controlled layered sound mix. Reduced Motion keeps compact static impacts.
 
