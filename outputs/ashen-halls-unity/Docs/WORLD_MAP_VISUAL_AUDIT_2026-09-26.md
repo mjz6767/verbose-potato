@@ -2,9 +2,9 @@
 
 ## Result
 
-The first pass below was implemented and verified locally after v2.25.0. This is an **unreleased preview**, not a replacement for the published package. Save schema remains v27; collision, quests, balance and authored atlas files are unchanged by this map pass.
+The first pass below was implemented and verified locally after v2.25.0 as an unreleased preview. It and the continuation are now integrated into v2.26.0 Rift & Ruin alongside the coordinated combat effects/audio work. Current release verification is recorded in `Docs/ReleaseEvidence/v2.26.0-summary.json`; the first-pass evidence below remains historical. Save schema remains v27; collision, quests, balance and authored atlas files are unchanged by this map pass.
 
-### Continuation in progress
+### Continuation integrated into v2.26
 
 The user requested a further pass after the verified preview. Additional map-only changes now present in source are not part of the first-pass binary or its recorded hashes:
 
@@ -12,7 +12,7 @@ The user requested a further pass after the verified preview. Additional map-onl
 - Inspection access wording ignores unseen patrol occupancy after the visible-threat check, so even a generic terrain heading does not hint that an unseen enemy is there. Movement/collision still consults live occupancy.
 - Healthy party HP bars use a subdued rose fill. Half-health injury and quarter-health critical thresholds increase emphasis; critical/zero HP add a textual `!` warning. Numbers, fill ratios, class accents and mana remain intact. Native and fallback map rails share the rules.
 
-Follow-up Unity/build/visual verification is pending. Static diff checks and an independent source review are complete. Added tests cover compact heading semantics, fog and unseen-patrol privacy in both views, unchanged campaign data, HP thresholds, text contrast, invalid vitals, healing reset, and native/fallback parity. No Unity or player process was launched for this continuation because a separate combat/audio release pass is active in the same project. The first-pass evidence JSON remains an immutable record of the preview it identifies, not a claim that its hashes match subsequently changed source.
+The combined v2.26 Full audit, repeated build gates and clean-extracted startup passed. Tests cover compact heading semantics, fog and unseen-patrol privacy in both views, unchanged campaign data, HP thresholds, text contrast, invalid vitals, healing reset, and native/fallback parity. Current retail captures and their separate review are indexed by the release summary. The first-pass evidence JSON remains an immutable record of the preview it identifies, not a claim that its hashes match subsequently changed source.
 
 Preview: `QA/audit-players/20260926-151512-5270a552/AshAndBrimstone.exe`. It is a Development build and retains the v2.25 version label. Do not mistake it for a new retail release. Exact hashes and coverage are in `Docs/VisualEvidence/world-map-declutter-2026-09-26.json`.
 
@@ -54,4 +54,4 @@ Real mouse/keyboard checks in the final save-blocked preview passed: click Kate/
 
 ## Scope and remaining limits
 
-The published v2.25 ZIP hash remains `cb6a0e2170646aa450b6ef3a0f02d0417caf76546f5dce9ad11f185dfb19e0db`. No retail rebuild, source commit or push was performed in this pass. Physical-controller feel, audio listening, full-campaign playthrough and a hardware frame-time profile remain separate follow-ups. Existing sprite artwork is retained; this pass improves its presentation rather than generating replacement assets.
+The preserved v2.25 ZIP hash remains `cb6a0e2170646aa450b6ef3a0f02d0417caf76546f5dce9ad11f185dfb19e0db`. The initial map-only preview did not perform a retail rebuild, source commit or push; the subsequent coordinated v2.26 release is recorded separately. Physical-controller feel, audio listening, full-campaign playthrough and a hardware frame-time profile remain separate follow-ups. Existing sprite artwork is retained; this pass improves its presentation rather than generating replacement assets.

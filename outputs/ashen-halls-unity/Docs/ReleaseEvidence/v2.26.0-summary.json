@@ -1,0 +1,225 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.26.0",
+  "releaseStage": "Rift & Ruin",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-09-26T15:47:36.8921181Z",
+  "sourceCommit": "47cea0178d53d8a26674fb9b577d6152f332e946",
+  "sourceDirty": false,
+  "developmentPackage": false,
+  "coordination": {
+    "combatTask": "Improve combat spell effects",
+    "mapTask": "Audit and improve current codebase",
+    "note": "Combined the completed map clarity and hover/vitals continuation with demonic combat effects and music. Preserved prior map preview evidence separately."
+  },
+  "package": {
+    "file": "AshAndBrimstone-Windows-v2.26.0.zip",
+    "bytes": 230128219,
+    "sha256": "f8c7c1b46328ef1a2e88616ca52cd63115b15d98a6ffe408b19dbf87b7f57a78",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "85a83b19d694d19195f152e1c4b054c277b15d72cf923ff758010c401f6936ee",
+    "cleanExtractLaunch": true,
+    "packagedBootMode": "batchmode-explore-smoke",
+    "playerExitCode": 0,
+    "packagedArtCount": 92,
+    "sourceStagedAndZippedArtHashesMatch": true,
+    "previousV225ArchivePreserved": true
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "exitCode": 0,
+    "passed": [
+      "Rules",
+      "Inventory and loot",
+      "Sprite art",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "repeatedDuringWindowsBuild": true,
+    "rejectsLoggedErrors": true,
+    "newCoverage": [
+      "DemonicCombatAudioSmoke",
+      "Demonic ritual bounds and reduced-motion invariants",
+      "WorldMapVisualLayoutSmoke",
+      "WorldMapRenderOptimizationSmoke",
+      "Compact map inspection and vitals contracts"
+    ],
+    "note": "A final raw layered-audio headroom assertion was added after the initial audit compilation and passed in the repeated retail-build gates."
+  },
+  "audioQa": {
+    "originalSynthesis": true,
+    "externalSamples": false,
+    "newFullCues": 30,
+    "newCompactCues": 14,
+    "demonicFormulaPlans": 23,
+    "demonSkillPlans": 4,
+    "pythonContractTestsPassed": 9,
+    "existingAuthoredBankValidationPassed": true,
+    "music": [
+      {
+        "cue": "red_rift_war_loop",
+        "title": "Red Rift War",
+        "sha256": "33a9930dee3ea8174ad5d9a505a6c83998e2ce7e33c302994ba9c4e713c2dd89",
+        "duration_seconds": 19.2,
+        "peak_dbfs": -5.091,
+        "rms_dbfs": -19.5,
+        "seam_delta_dbfs": -62.35,
+        "wrap_max_step": 0.0007629,
+        "phrase_rms_dbfs": [
+          -19.224,
+          -18.79,
+          -24.282,
+          -17.965
+        ],
+        "phrase_contrast_db": 6.318,
+        "stereo_correlation": 0.9363,
+        "preview_start_seconds": 0.0
+      },
+      {
+        "cue": "the_rift_walks_demon_lord_loop",
+        "title": "The Rift Walks",
+        "sha256": "b8832fe9cffbd15b0b603229debd149f8bb5e91b44987242cbe8cff62a79de8b",
+        "duration_seconds": 20.0,
+        "peak_dbfs": -6.345,
+        "rms_dbfs": -19.37,
+        "seam_delta_dbfs": -63.865,
+        "wrap_max_step": 0.0006714,
+        "phrase_rms_dbfs": [
+          -19.018,
+          -18.766,
+          -23.662,
+          -17.927
+        ],
+        "phrase_contrast_db": 5.736,
+        "stereo_correlation": 0.9166,
+        "preview_start_seconds": 6.25
+      },
+      {
+        "cue": "sigils_crossed_arcane_duel_loop",
+        "title": "Sigils Crossed",
+        "sha256": "4de87e8aefa369aa661af6fd4d28603360bf7a1b142d91b39a1fccdb84a17806",
+        "duration_seconds": 16.5517,
+        "peak_dbfs": -4.461,
+        "rms_dbfs": -19.5,
+        "seam_delta_dbfs": -62.01,
+        "wrap_max_step": 0.0007935,
+        "phrase_rms_dbfs": [
+          -18.916,
+          -18.869,
+          -24.346,
+          -18.127
+        ],
+        "phrase_contrast_db": 6.219,
+        "stereo_correlation": 0.9429,
+        "preview_start_seconds": 12.5
+      }
+    ],
+    "rawCenteredSignatureMixPeakRange": [
+      0.1979459,
+      0.4798913
+    ],
+    "rawCenteredDemonArtsPeakRange": [
+      0.3650776,
+      0.397213
+    ],
+    "maxPreviewMixPeakAcrossSampledPowers": 0.8454025,
+    "headroomCheckedBeforePreviewNormalization": true,
+    "voiceLimit": 8,
+    "note": "Deterministic sample/headroom, cue-resolution, mute/reduced, timeline, loop-seam and phrase-contrast checks passed. Subjective listening was not performed."
+  },
+  "visualQa": {
+    "status": "passed-with-nonblocking-observations",
+    "captureCount": 26,
+    "deterministicPassed": true,
+    "groups": [
+      {
+        "kind": "demonic-combat-effects",
+        "resolution": "1280x720",
+        "captureCount": 14,
+        "packet": "QA/combat-effects/20260926-154034-a2965f24/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "52562dcfd68975b5fbc57f057ea0dbdfbdd6128a96ee0ddfc295c16cfb72e4b1",
+        "warningCount": 0,
+        "failureCount": 0
+      },
+      {
+        "kind": "world-map",
+        "resolution": "960x600",
+        "captureCount": 6,
+        "packet": "QA/world-sprites/20260926-154404-2f9915a1/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "8c112ef732c6314a20456142071d0da6f889f0a7800b000b148956443628eae6",
+        "warningCount": 0,
+        "failureCount": 0
+      },
+      {
+        "kind": "world-map",
+        "resolution": "1920x1080",
+        "captureCount": 6,
+        "packet": "QA/world-sprites/20260926-154521-39e75416/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "c00e6164c8f11abd97a482b576524de416d6ead6c6d82fc48ac1727c5a3475ac",
+        "warningCount": 0,
+        "failureCount": 0
+      }
+    ],
+    "subsequentAssistantReview": {
+      "performed": true,
+      "assistantReviewedCaptureCount": 26,
+      "advisoryOnly": true,
+      "changesDeterministicStatus": false,
+      "note": "Separate visual-review agents opened all 14 combat and 12 map PNGs. Primary assistant inspected representative frames. Raw packets retain aiReview.performed=false because this was subsequent conversational review."
+    },
+    "nonblockingObservations": [
+      "Summon showcase previews demonstrate gate presentation on an existing enemy tile; they do not certify live creature placement/spawn behavior.",
+      "Death Burst uses the catalog-derived ember subtitle for its ember|hex formula while the effect is violet soul magic.",
+      "Static images establish composition and legibility, not temporal flicker or a subjective animation-feel assessment.",
+      "Map frames show contact/action labels; no open pointer-hover tooltip was visually exercised."
+    ]
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/project-audit/20260926-153718-eb4cd3cf/unity.log",
+      "sha256": "979b77128d829aed167dc6d78649f609904d15bf5971b907a033c8b83a06b2d8",
+      "tracked": false
+    },
+    {
+      "path": "build-v2.26.0.log",
+      "sha256": "fd9600fa3ef1d6cb5762f0a4322c8ca5f48ced394c7470ba228cc07b2ecd65fe",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.26.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "aa9c92c656427ff9a1155a81a985055a05d983a8fab634496da25d8a37b29f41",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.26.0-release-integrity/clean-extract-boot.log",
+      "sha256": "e05aff5cce18229a54aa850f4420585dfaaffd736b505bb54291684fd31fe0fb",
+      "tracked": false
+    },
+    {
+      "path": "QA/combat-music-2026-09-26/validation.json",
+      "sha256": "5e8618691625e88da898a3a4b1b2410e22e6e61a66fea9fbe1a94651a810f66a",
+      "tracked": false
+    },
+    {
+      "path": "QA/combat-music-2026-09-26/epic-combat-preview.wav",
+      "sha256": "3946587e404e37a6a421dee80003022985b8da08f18eb6ed35efbbc6fd13dbfc",
+      "tracked": false
+    },
+    {
+      "path": "QA/combat-effects/demonic-spells-preview.wav",
+      "sha256": "3adbc5e13ff3c02c8de28cc68e34a82a37a639dc64341026b475c19dda8a7f4f",
+      "tracked": false
+    },
+    {
+      "path": "QA/combat-effects/demon-arts-preview.wav",
+      "sha256": "5f9d8a869020ed14eefd1caf7f0a565280b2d3da892601227cb44134687565b6",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "Raw logs, previews, screenshots and Windows ZIP remain local and ignored; this tracked summary records their hashes.",
+    "This evidence commit follows the immutable package. The archive retains its pre-verification documentation snapshot and runtime source commit 47cea0178d53d8a26674fb9b577d6152f332e946.",
+    "New physical-controller, live keyboard/pointer, subjective listening and complete human campaign checks were not performed for v2.26. Automated input/runtime coverage passed; earlier map live checks are recorded in the separate historical preview evidence."
+  ]
+}
