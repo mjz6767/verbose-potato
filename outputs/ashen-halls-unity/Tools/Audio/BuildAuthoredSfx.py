@@ -369,6 +369,15 @@ def main() -> int:
                 if cue_name:
                     original_cues.add(cue_name)
 
+    everyday_manifest = output_root.parents[3] / "Docs" / "EVERYDAY_AUDIO_ASSET_MANIFEST.tsv"
+    if everyday_manifest.is_file():
+        with everyday_manifest.open("r", encoding="utf-8", newline="") as handle:
+            original_cues.update(
+                row["cue"].strip().lower()
+                for row in csv.DictReader(handle, delimiter="\t")
+                if row.get("kind") == "sfx" and row.get("cue")
+            )
+
     unexpected = [
         path
         for path in output_root.glob("*.wav")

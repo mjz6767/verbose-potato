@@ -13,11 +13,11 @@
   "world_map_runtime_preview": "QA/ash-and-brimstone-v2.16.0-world-map-runtime-preview.wav",
   "combat_runtime_preview": "QA/ash-and-brimstone-v2.16.0-combat-runtime-preview.wav",
   "preview_sha256": {
-    "preview": "c94de4fce3c5a936f0ba645c782e3cabe41662bcbf22ff47d927f1b7e97fcb0b",
+    "preview": "e3d23a12cdf35128d15738e34bc2f497a98b49fadc4ed14052f71512af6a3afb",
     "title_preview": "b2fbcbea86c613f97fe8eef6ae5aefada7c088a09b4ae1211e5fe22ba7723a94",
     "title_runtime_preview": "8c31c4afb32a253004ebb2db68ad8105ad69c141f07857fd1c807ecb9c1bea3c",
-    "world_map_runtime_preview": "0d4369768b2ef2830033731f76a5c01adbc9ae0f0719a9fbb9917a03acca8966",
-    "combat_runtime_preview": "a03861665cc2755ac65b42700602c48e343c84b1c9562be8de45b126538f89cc"
+    "world_map_runtime_preview": "aea6dc941ac092e82295d02205797cff7df66c8bc2e393da0afaf5e71a3c9b4b",
+    "combat_runtime_preview": "45e248751d30164f1d6fb3c2b8bd4b0cc5200bb767fe6e9c2363a4eda163b69c"
   },
   "runtime_preview_contract": {
     "default_music_volume_percent": 65,
@@ -41,13 +41,13 @@
     },
     "world_map_runtime_preview": {
       "peak_dbfs": -12.45,
-      "rms_dbfs": -34.24,
+      "rms_dbfs": -34.22,
       "headroom_db": 12.45
     },
     "combat_runtime_preview": {
-      "peak_dbfs": -5.75,
-      "rms_dbfs": -30.65,
-      "headroom_db": 5.75
+      "peak_dbfs": -5.73,
+      "rms_dbfs": -30.73,
+      "headroom_db": 5.73
     }
   },
   "world_map_runtime_preview_routes": [
@@ -97,10 +97,10 @@
       "channels": 2,
       "frames": 853333,
       "duration_seconds": 26.6667,
-      "peak_dbfs": -7.54,
-      "rms_dbfs": -21.3,
-      "seam_delta_dbfs": "-84.14",
-      "sha256": "d84839e05066e134c37f6929611a5e2cac5adfe77d2d95bab1ff2b022acefa43",
+      "peak_dbfs": -5.68,
+      "rms_dbfs": -22.72,
+      "seam_delta_dbfs": "-68.03",
+      "sha256": "bf8c4761290a91f9771bb918c22601f9be52eb5e4256f7fabcc9add27f60956c",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -273,10 +273,10 @@
       "channels": 2,
       "frames": 731429,
       "duration_seconds": 22.8572,
-      "peak_dbfs": -7.34,
-      "rms_dbfs": -20.82,
-      "seam_delta_dbfs": "-91.32",
-      "sha256": "839a1f3822ff37f822a2f28ea2d82d9f78381123b1618d556f1ff701820aa8a1",
+      "peak_dbfs": -6.61,
+      "rms_dbfs": -21.0,
+      "seam_delta_dbfs": "-76.33",
+      "sha256": "86b0144edc41c42f3012e8e935ef5860d04c2b00c7f37992457d2a85b55b8961",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -321,10 +321,10 @@
       "channels": 2,
       "frames": 667826,
       "duration_seconds": 20.8696,
-      "peak_dbfs": -8.55,
-      "rms_dbfs": -20.66,
-      "seam_delta_dbfs": "-82.85",
-      "sha256": "f3386b3de71ca07191cc20b02bf5e515843766ebe7618e6c531c6a5d65ffe5c7",
+      "peak_dbfs": -7.39,
+      "rms_dbfs": -21.0,
+      "seam_delta_dbfs": "-76.33",
+      "sha256": "c8e52e8c2900c325dbd05556025b71cc192118120967e61eb18a05ca4fb32dec",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -385,10 +385,10 @@
       "channels": 2,
       "frames": 548571,
       "duration_seconds": 17.1428,
-      "peak_dbfs": -4.63,
-      "rms_dbfs": -19.38,
-      "seam_delta_dbfs": "-71.18",
-      "sha256": "a09081fd96a513173631910dbcfd8601d60991561c5d696268cee8f73a1e4228",
+      "peak_dbfs": -4.71,
+      "rms_dbfs": -19.8,
+      "seam_delta_dbfs": "-69.48",
+      "sha256": "8258f30e7f3d5574c234e8c4d6667f792fd2ebe3ad1bbe6810ea26056f76cdfe",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -401,10 +401,10 @@
       "channels": 2,
       "frames": 590769,
       "duration_seconds": 18.4615,
-      "peak_dbfs": -5.09,
-      "rms_dbfs": -19.62,
-      "seam_delta_dbfs": "-74.77",
-      "sha256": "630ad0b9f5914db9e105bcb6c071f2d07bddfd66bc9f5f973a656425fccf64dd",
+      "peak_dbfs": -6.27,
+      "rms_dbfs": -20.1,
+      "seam_delta_dbfs": "-68.03",
+      "sha256": "62f69e52cb00ea0219fbb5fac1ac1e1683e12a181c87b5d4cd368db55397840d",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -433,10 +433,10 @@
       "channels": 2,
       "frames": 520678,
       "duration_seconds": 16.2712,
-      "peak_dbfs": -3.91,
-      "rms_dbfs": -19.22,
-      "seam_delta_dbfs": "-72.02",
-      "sha256": "880831c9d1e4037285099d6732130f2abed90d008298da3f639de4da7feec9c7",
+      "peak_dbfs": -5.23,
+      "rms_dbfs": -20.2,
+      "seam_delta_dbfs": "-62.35",
+      "sha256": "c0b218913d2516896c1f857f0aba13bdc8702eaaf7f19a8bdb181aee1ea6eb3e",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -449,10 +449,10 @@
       "channels": 2,
       "frames": 640000,
       "duration_seconds": 20.0,
-      "peak_dbfs": -3.91,
-      "rms_dbfs": -18.9,
-      "seam_delta_dbfs": "-78.45",
-      "sha256": "2857d595405bcd66c58f23407720988a306f95617e1f3932c9c567f190073f9c",
+      "peak_dbfs": -5.51,
+      "rms_dbfs": -19.8,
+      "seam_delta_dbfs": "-80.77",
+      "sha256": "062a8dbb155dc075ae52512d559de05d7eca59b35644e95c2b0724608ae907bb",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -721,10 +721,10 @@
       "channels": 2,
       "frames": 808421,
       "duration_seconds": 25.2632,
-      "peak_dbfs": -8.61,
-      "rms_dbfs": -21.38,
-      "seam_delta_dbfs": "-74.37",
-      "sha256": "600c37bd4902088c6c40298528eba393779d661d2dc9c5daee5c66d852ad005f",
+      "peak_dbfs": -6.22,
+      "rms_dbfs": -22.7,
+      "seam_delta_dbfs": "-74.75",
+      "sha256": "a6fd8ddf942c32f9a74e84b3bf85562e363bca2836347807d6959142267e2544",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {

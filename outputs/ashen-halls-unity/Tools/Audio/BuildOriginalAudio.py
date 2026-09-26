@@ -56,6 +56,61 @@ EPIC_COMBAT_CUES = (
     "sigils_crossed_arcane_duel_loop",
 )
 EPIC_COMBAT_QA_DIR = QA_DIR / "combat-music-2026-09-26"
+JOURNEY_SCORE_QA_DIR = QA_DIR / "journey-score-2026-09-26"
+
+# Four authored two-bar phrases per cue, expressed as beat/length/chord-degree.
+# These are score decisions; the RNG only varies the synthesized instrument body.
+JOURNEY_SCORES = {
+    "four_names_by_the_fire_loop": ("lute", "hearth", (
+        ((0, 1.4, 0), (1.5, .65, 2), (2.5, 1.1, 4), (4.25, 1.25, 2), (6, 1.6, 0)),
+        ((.5, .7, 0), (1.5, 1.3, 4), (3, .6, 2), (4.25, 1.4, 0), (6.25, 1.1, 2)),
+        ((.25, 2.1, 2), (3, .6, 0), (4.5, 2.4, 4)),
+        ((0, 1.4, 0), (1.5, .65, 2), (2.5, 1.1, 4), (4.25, 1.3, 2), (6, .7, 0), (7.25, .5, 4)),
+    )),
+    "midgaard_lamps_loop": ("flute", "city", (
+        ((.5, .6, 0), (1.25, .55, 2), (2, 1.25, 4), (4, .6, 4), (5, .6, 2), (6, 1.35, 0)),
+        ((0, .6, 2), (1, .6, 4), (2.25, 1.1, 6), (4.5, 1.1, 4), (6, .65, 2), (7, .6, 0)),
+        ((.5, 1.8, 4), (3, .6, 2), (4.5, 2.1, 0)),
+        ((.5, .6, 0), (1.25, .55, 2), (2, 1.25, 4), (4, .8, 2), (5.5, .8, 0), (7, .6, 4)),
+    )),
+    "old_road_walk_loop": ("flute", "road", (
+        ((0, .7, 0), (1, .6, 2), (1.75, 1.4, 4), (4, 1.25, 4), (5.5, .7, 2), (6.5, .9, 0)),
+        ((0, 1.2, 2), (1.5, .6, 4), (2.5, 1.0, 6), (4.5, 1.1, 4), (6, 1.4, 2)),
+        ((.5, 2.25, 0), (4, 1.6, 2), (6.25, .75, 4)),
+        ((0, .7, 0), (1, .6, 2), (1.75, 1.4, 4), (4, 1.25, 2), (5.5, .65, 0), (7, .6, 4)),
+    )),
+    "a_fire_between_roads_loop": ("lute", "camp", (
+        ((.25, 1.8, 0), (2.75, .8, 4), (4.5, 2.5, 2)),
+        ((0, 1.4, 2), (2, 1.4, 4), (4.5, 1.6, 0), (6.5, .8, 2)),
+        ((1, 2.1, 0), (5, 2.0, 4)),
+        ((.25, 1.8, 0), (2.75, .8, 4), (4.5, 1.6, 2), (7, .6, 4)),
+    )),
+    "combat_battle_pulse_loop": ("brass", "battle", (
+        ((0, .6, 0), (.75, .5, 0), (1.5, .75, 2), (2.75, .8, 4), (4, 1.3, 4), (5.5, .65, 2), (6.5, 1, 0)),
+        ((0, .7, 2), (1, .7, 4), (2, 1.3, 6), (4.25, .6, 4), (5.25, .6, 2), (6.25, 1.1, 0)),
+        ((.5, 1.7, 0), (3, .6, 2), (4.5, 2.2, 4)),
+        ((0, .6, 0), (.75, .5, 0), (1.5, .75, 2), (2.75, .8, 4), (4, 1.1, 4), (5.5, .7, 2), (7, .65, 4)),
+    )),
+    "sewer_hunt_combat_loop": ("spiccato", "cistern", (
+        ((0, .45, 0), (.75, .45, 2), (1.5, .65, 0), (3, .6, 4), (4.5, .65, 2), (5.5, .45, 0), (6.25, 1.1, 4)),
+        ((.5, .55, 2), (1.5, .7, 4), (2.75, .6, 2), (4, .6, 0), (5, .45, 4), (6, 1.3, 2)),
+        ((.5, 1.7, 0), (4.5, 1.9, 2), (7, .55, 4)),
+        ((0, .45, 0), (.75, .45, 2), (1.5, .65, 0), (3, .6, 4), (4.5, .6, 2), (5.5, .6, 0), (7, .6, 4)),
+    )),
+    "kobold_hide_drums_loop": ("lute", "kobold", (
+        ((0, .35, 0), (.5, .35, 4), (1.5, .35, 2), (2, .7, 0), (3.25, .4, 4), (4, .65, 2), (5, .4, 4), (6.5, .8, 0)),
+        ((0, .4, 2), (.75, .4, 4), (1.5, .55, 6), (2.75, .5, 4), (4, .6, 0), (5.25, .55, 2), (6.5, .75, 4)),
+        ((.5, 1.2, 0), (2.5, .65, 2), (4.5, 1.5, 4), (7, .4, 2)),
+        ((0, .35, 0), (.5, .35, 4), (1.5, .35, 2), (2, .7, 0), (3.25, .4, 4), (4, .6, 2), (5.5, .5, 0), (7, .45, 4)),
+    )),
+    "crown_and_ashes_boss_loop": ("brass", "crown", (
+        ((0, 1.7, 0), (2.5, .8, 4), (4, 1.5, 4), (6, 1.3, 2)),
+        ((0, .7, 0), (1, .7, 2), (2, 1.6, 4), (4.5, 1.5, 2), (6.5, .75, 0)),
+        ((.5, 2.6, 0), (4.5, 2.1, 4)),
+        ((0, 1.7, 0), (2.5, .8, 4), (4, 1.5, 2), (6, .7, 0), (7, .65, 4)),
+    )),
+}
+JOURNEY_SCORE_CUES = tuple(JOURNEY_SCORES)
 
 WORLD_MAP_PREVIEW_ROUTES = (
     ("local-road", "old_road_walk_loop", 0.0, 0.0),
@@ -1464,11 +1519,149 @@ def compose_epic_combat_track(spec: TrackSpec) -> np.ndarray:
     return master_audio(mix, -19.0 if lord else -19.5, -4.0)
 
 
+def journey_instrument(name: str, frequency: float, duration: float, rng: np.random.Generator) -> np.ndarray:
+    """Restrained chamber voices; no changes to the existing demonic orchestra."""
+    if name == "spiccato":
+        return battle_spiccato(frequency, duration, MUSIC_SAMPLE_RATE, rng)
+    if name == "lute":
+        return lowpass(pluck(frequency, duration, MUSIC_SAMPLE_RATE, rng), 5)
+    if name == "flute":
+        frames = max(1, round(duration * MUSIC_SAMPLE_RATE))
+        t = np.arange(frames) / MUSIC_SAMPLE_RATE
+        phase = rng.uniform(0, 2 * math.pi)
+        # Breath has a slow onset; weak upper partials keep the melody rounded.
+        body = oscillator(frequency, frames, MUSIC_SAMPLE_RATE, "sine", phase, .025, 4.8)
+        body += .13 * oscillator(frequency * 2, frames, MUSIC_SAMPLE_RATE, "sine", phase * .8)
+        body += .045 * oscillator(frequency * 3, frames, MUSIC_SAMPLE_RATE, "sine", phase * .4)
+        breath = lowpass(colored_noise(frames, rng, .3), 7) * .018
+        return (body + breath) * (.93 + .07 * np.sin(t * 3.1)) * envelope(frames, MUSIC_SAMPLE_RATE, .065, .15)
+    return {"bowed": bowed, "brass": brass, "bell": bell, "reed": reed}[name](
+        frequency, duration, MUSIC_SAMPLE_RATE, rng)
+
+
+def compose_journey_track(spec: TrackSpec) -> np.ndarray:
+    """Eight-bar chamber arrangements with a statement, answer, space and return."""
+    lead, scene, phrases = JOURNEY_SCORES[spec.cue]
+    rng = np.random.default_rng(stable_seed(spec.cue + ":journey-score-1"))
+    beat = 60.0 / spec.bpm
+    frames = round(MUSIC_BEATS * beat * MUSIC_SAMPLE_RATE)
+    mix = np.zeros((2, frames), dtype=np.float64)
+    combat = scene in {"battle", "cistern", "kobold", "crown"}
+    quiet = scene in {"hearth", "camp"}
+    levels = (.88, .92, 1.0, .94, .44, .48, 1.02, .96)
+
+    def note(instrument: str, midi: int, when: float, length: float, gain: float, pan: float) -> None:
+        level = levels[min(7, int(when // 4))]
+        signal = journey_instrument(instrument, midi_to_hz(midi), length * beat, rng)
+        mix_circular(mix, signal, round(when * beat * MUSIC_SAMPLE_RATE), gain * level, pan)
+
+    def pitch(degree: int, octave: int = 0) -> int:
+        return scale_note(spec.root_midi, spec.mode, degree, octave)
+
+    # Inverted inner voices move by the nearest octave, avoiding the large,
+    # parallel jumps caused by blindly stacking every chord above its root.
+    previous_voices = [spec.root_midi - 5, spec.root_midi + 2, spec.root_midi + 7]
+    for bar, chord in enumerate(spec.progression[:8]):
+        origin = float(bar * 4)
+        withdrawn = bar in (4, 5)
+        for voice, interval in enumerate((0, 2, 4)):
+            base = pitch(chord + interval)
+            midi = min((base - 24, base - 12, base, base + 12), key=lambda value: abs(value - previous_voices[voice]))
+            previous_voices[voice] = midi
+            if withdrawn and voice == 1:
+                continue
+            note("bowed", midi, origin + .06 + voice * .025, 4.1,
+                 .030 if quiet else .041, (-.46, .03, .43)[voice])
+
+        # Bass changes register smoothly while still landing each new harmony.
+        bass = pitch(chord, -2)
+        while bass > spec.root_midi - 10:
+            bass -= 12
+        for position in ((0, 2.5) if combat else (0, 2)):
+            note("lute" if quiet or scene == "kobold" else "bowed", bass, origin + position,
+                 .85 if combat else 1.7, .074 if combat else .058, -.08)
+
+        # The accompaniment has a different physical feel in each location.
+        if scene in {"hearth", "camp", "city", "road"}:
+            pattern = ((0, 0), (1.5, 4), (2.5, 2)) if quiet else ((.5, 0), (1.5, 4), (2.25, 2), (3.25, 4))
+            for index, (position, interval) in enumerate(pattern):
+                if withdrawn and index > 0:
+                    continue
+                note("lute", pitch(chord + interval), origin + position, 1.15,
+                     .043 if quiet else .050, -.48 if index % 2 == 0 else .44)
+        else:
+            pattern = (0, 4, 2, 0, 4, 2, 4, 2) if scene != "cistern" else (0, 2, 0, 4, 0, 2, 4, 2)
+            for index, interval in enumerate(pattern):
+                if withdrawn and index % 2:
+                    continue
+                note("lute" if scene == "kobold" else "spiccato", pitch(chord + interval, -1),
+                     origin + index * .5, .35, .051 if index in (0, 3, 6) else .033,
+                     -.36 if index % 2 == 0 else .36)
+
+        # Keep the third phrase genuinely open; the return restores percussion.
+        if scene != "camp":
+            hits = ((0, 60, .060), (2.5, 94, .032))
+            if combat:
+                hits = ((0, 53 if scene == "crown" else 68, .155), (1.5, 116, .060), (2.5, 82, .102))
+                if scene == "kobold":
+                    hits += ((.75, 150, .050), (3.25, 132, .072))
+            for index, (position, frequency, gain) in enumerate(hits):
+                if withdrawn and index > 0:
+                    continue
+                hit = drum(frequency, .42 if combat else .30, MUSIC_SAMPLE_RATE, rng, .72 if combat else .30)
+                mix_circular(mix, hit, round((origin + position) * beat * MUSIC_SAMPLE_RATE),
+                             gain * levels[bar] * (.5 if quiet else 1), -.13 if index % 2 == 0 else .22)
+            if combat and not withdrawn:
+                for position in ((1, 3) if scene != "kobold" else (.5, 2, 3.5)):
+                    tick = click(.065, MUSIC_SAMPLE_RATE, rng, bright=scene == "kobold")
+                    mix_circular(mix, tick, round((origin + position) * beat * MUSIC_SAMPLE_RATE), .018, .34)
+            if combat and bar in (3, 7):
+                for index, position in enumerate((3.25, 3.5, 3.75)):
+                    hit = drum(135 - index * 22, .18, MUSIC_SAMPLE_RATE, rng, .65)
+                    mix_circular(mix, hit, round((origin + position) * beat * MUSIC_SAMPLE_RATE),
+                                 .025 + index * .014, -.3 + index * .3)
+
+        if scene in {"city", "cistern"} and bar in (0, 3, 6):
+            note("bell", pitch(chord + 4, 1), origin + (2.75 if scene == "cistern" else .25),
+                 2.0, .023 if scene == "city" else .016, .55)
+        if scene == "crown" and bar in (0, 6):
+            mix_circular(mix, cymbal(1.2, MUSIC_SAMPLE_RATE, rng), round(origin * beat * MUSIC_SAMPLE_RATE), .026, .35)
+
+    # Stable melodic positions let players recognize the motif. Each cue has a
+    # separate rhythm and a written answer; the third phrase changes lead voice.
+    last_midi = spec.root_midi + (12 if scene == "city" else 5)
+    for phrase_index, events in enumerate(phrases):
+        for index, (position, length, interval) in enumerate(events):
+            when = phrase_index * 8 + position
+            chord = spec.progression[int(when // 4)]
+            base = pitch(chord + interval, 1 if scene == "city" else 0)
+            options = (base - 24, base - 12, base, base + 12)
+            # Range constrains the independent nearest-note rule to a singable line.
+            options = tuple(value for value in options if spec.root_midi <= value <= spec.root_midi + 19)
+            midi = min(options, key=lambda value: abs(value - last_midi))
+            last_midi = midi
+            instrument = lead if phrase_index != 2 else "flute" if quiet or not combat else "bowed"
+            lead_gain = .106 if lead == "lute" else .090
+            note(instrument, midi, when, length, lead_gain * (.75 if phrase_index == 2 else 1), -.12)
+            if phrase_index in (1, 3) and index in (1, len(events) - 2):
+                note("flute" if quiet else "bowed", midi - 12, when + .07,
+                     length + .15, .032, .35)
+
+    wet = .23 if scene == "cistern" else .18 if quiet else .14
+    mix = circular_reverb(mix, MUSIC_SAMPLE_RATE, wet, .85)
+    # Circular instrument/reverb tails cross the bar line. Preserve the exact
+    # downbeat and use only the bounded 24 ms bridge to remove a sample click.
+    mix = bridge_loop_seam(mix, MUSIC_SAMPLE_RATE)
+    return master_audio(mix, -22.5 if quiet else -21.0 if not combat else -19.8, -4.0)
+
+
 def compose_track(spec: TrackSpec) -> np.ndarray:
     if spec.cue == "tavern_storm_hearth_ensemble_loop":
         return compose_main_title_track(spec)
     if spec.cue in EPIC_COMBAT_CUES:
         return compose_epic_combat_track(spec)
+    if spec.cue in JOURNEY_SCORES:
+        return compose_journey_track(spec)
 
     rng = np.random.default_rng(stable_seed(spec.cue))
     beat_seconds = 60.0 / spec.bpm
@@ -2983,6 +3176,8 @@ def validate_outputs() -> list[str]:
             errors.append(f"{path}: waveform duplicates {fingerprints[fingerprint]}")
         fingerprints[fingerprint] = path
         if path.parent == MUSIC_DIR:
+            if path.stem in JOURNEY_SCORES:
+                errors.extend(f"{path}: {error}" for error in validate_journey_audio(audio, sample_rate))
             duration_seconds = audio.shape[-1] / sample_rate
             minimum_duration, maximum_duration = music_duration_bounds(path.stem)
             if duration_seconds < minimum_duration or duration_seconds > maximum_duration:
@@ -3278,12 +3473,114 @@ def build_epic_combat() -> None:
     (EPIC_COMBAT_QA_DIR / "validation.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
 
+def validate_journey_audio(audio: np.ndarray, sample_rate: int) -> list[str]:
+    errors = validate_epic_combat_audio(audio, sample_rate)
+    if sample_rate != MUSIC_SAMPLE_RATE:
+        errors.append("expected 32 kHz authored music")
+    if audio.ndim == 2 and audio.shape[0] == 2 and audio.shape[1] >= 128 and np.all(np.isfinite(audio)):
+        metrics = epic_combat_metrics(audio, sample_rate)
+        if metrics["phrase_rms_dbfs"][2] > metrics["phrase_rms_dbfs"][0] - 2:
+            errors.append("reflective phrase must leave at least 2 dB more space than the opening")
+    return errors
+
+
+def build_journey_score() -> None:
+    """Replace only eight everyday scores; preserve title and demonic masters."""
+    JOURNEY_SCORE_QA_DIR.mkdir(parents=True, exist_ok=True)
+    untouched = {path: sha256(path) for path in MUSIC_DIR.glob("*.wav") if path.stem not in JOURNEY_SCORES}
+    replacements = {}
+    report = {
+        "generator": "Tools/Audio/BuildOriginalAudio.py --journey-score",
+        "external_samples": False,
+        "structure": ["statement", "answer", "reflective space", "return and pickup"],
+        "listening_review": "Listening sampler provided; numerical checks do not establish subjective musical quality.",
+        "tracks": [],
+    }
+    excerpts = []
+    cursor = 0.0
+    for cue in JOURNEY_SCORE_CUES:
+        spec = next(item for item in TRACKS if item.cue == cue)
+        rendered = compose_track(spec)
+        errors = validate_journey_audio(rendered, MUSIC_SAMPLE_RATE)
+        if errors:
+            raise ValueError(cue + ": " + "; ".join(errors))
+        path = MUSIC_DIR / (cue + ".wav")
+        write_pcm16(path, rendered, MUSIC_SAMPLE_RATE)
+        audio, sample_rate = read_pcm16(path)
+        errors = validate_journey_audio(audio, sample_rate)
+        if errors:
+            raise ValueError(cue + ": " + "; ".join(errors))
+        replacements[cue] = asdict(metrics_for(cue, spec.title, spec.direction, "music", path, audio, sample_rate))
+        track = {"cue": cue, "title": spec.title, "lead": JOURNEY_SCORES[cue][0],
+                 "sha256": sha256(path), **epic_combat_metrics(audio, sample_rate),
+                 "preview_start_seconds": round(cursor, 3)}
+        report["tracks"].append(track)
+        # Eight seconds of identity, then four seconds at the actual loop wrap.
+        # Preview fades affect excerpts only; masters retain musical downbeats.
+        opening = audio[:, :8 * sample_rate].copy()
+        wrap = np.concatenate((audio[:, -2 * sample_rate:], audio[:, :2 * sample_rate]), axis=1)
+        for excerpt in (opening, wrap):
+            fade_frames = int(.04 * sample_rate)
+            excerpt[:, :fade_frames] *= np.linspace(0, 1, fade_frames)
+            excerpt[:, -fade_frames:] *= np.linspace(1, 0, fade_frames)
+            excerpts.extend((excerpt, np.zeros((2, int(.20 * sample_rate)))))
+        cursor += 12.4
+        print(json.dumps(track), flush=True)
+
+    manifest = DOCS_DIR / "ORIGINAL_AUDIO_ASSET_MANIFEST.tsv"
+    with manifest.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        fields, rows = reader.fieldnames, list(reader)
+    missing = set(replacements) - {row["cue"] for row in rows}
+    if missing:
+        raise ValueError("Missing original manifest rows: " + str(sorted(missing)))
+    with manifest.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(replacements.get(row["cue"], row) for row in rows)
+    validation_path = DOCS_DIR / "ORIGINAL_AUDIO_VALIDATION.json"
+    validation = json.loads(validation_path.read_text(encoding="utf-8"))
+    validation["assets"] = [replacements.get(item["cue"], item) for item in validation["assets"]]
+    # Refresh the existing QA mixes from the changed masters without rerendering
+    # any other music or SFX. Their previous hashes would otherwise stay valid
+    # even though those listening files no longer represented the current bank.
+    refreshed = {
+        "preview": build_preview(TRACKS),
+        "world_map_runtime_preview": build_world_map_runtime_preview(),
+        "combat_runtime_preview": build_combat_runtime_preview(),
+    }
+    for key, path in refreshed.items():
+        validation[key] = str(path.relative_to(STAGE_ROOT)).replace("\\", "/")
+        validation["preview_sha256"][key] = sha256(path)
+    validation["runtime_preview_metrics"] = preview_metrics_payload({
+        key: STAGE_ROOT / validation[key]
+        for key in ("title_runtime_preview", "world_map_runtime_preview", "combat_runtime_preview")
+    })
+    validation_path.write_text(json.dumps(validation, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    preview = JOURNEY_SCORE_QA_DIR / "listening-preview.wav"
+    write_pcm16(preview, np.concatenate(excerpts[:-1], axis=1), MUSIC_SAMPLE_RATE)
+    report["preview"] = str(preview.relative_to(STAGE_ROOT)).replace("\\", "/")
+    report["preview_sha256"] = sha256(preview)
+    report["preserved_music_sha256"] = {path.name: digest for path, digest in untouched.items()}
+    if any(sha256(path) != digest for path, digest in untouched.items()):
+        raise ValueError("Selective build modified an unrelated music master")
+    report_text = json.dumps(report, indent=2) + "\n"
+    (JOURNEY_SCORE_QA_DIR / "validation.json").write_text(report_text, encoding="utf-8")
+    (DOCS_DIR / "JOURNEY_SCORE_VALIDATION.json").write_text(report_text, encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Validate existing outputs without rebuilding.")
     parser.add_argument("--music-cue", help="Rebuild one named music cue without touching the rest of the bank.")
     parser.add_argument("--epic-combat", action="store_true", help="Build the three combat scores, update only their manifest rows, and write a focused listening preview.")
+    parser.add_argument("--journey-score", action="store_true", help="Build eight everyday exploration/combat scores and a loop-boundary listening sampler.")
     args = parser.parse_args()
+    if args.journey_score:
+        if args.check or args.music_cue or args.epic_combat:
+            parser.error("--journey-score cannot be combined with another action")
+        build_journey_score()
+        return
     if args.epic_combat:
         if args.check or args.music_cue: parser.error("--epic-combat cannot be combined with another action")
         build_epic_combat()

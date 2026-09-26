@@ -2,6 +2,17 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.27.0 - Echoes of the Road
+
+- Recompose eight everyday score routes with original eight-bar arrangements, contrasting phrases and distinct instrumentation for the Grand Hearth, Midgaard, the Old Road, camp, ordinary combat, cistern combat, kobolds and bosses. Preserve route identities, seamless loops and the earlier demonic scores.
+- Give equipment materials, rare loot, chest openings, discoveries and quest completion distinct sound cues. Add alternate footsteps across eight surfaces while keeping effects within the existing bounded voice mix.
+- Bind delayed effects to their scene and encounter, allow delayed exploration cues to play, and discard obsolete cues after transitions. Muting effects stops existing tails. Interrupted music fades retain source continuity, including reversals, and repeated cues vary independently.
+- Add dedicated audio lifecycle and everyday-cue regressions to both the Full audit and Windows build gates, alongside deterministic synthesis, loop and headroom checks.
+
+- Repair the white/checkerboard wedges, pale edge remnants and opaque footplates in all 28 named/ambient NPC cells using native Aseprite cleanup. Preserve pale clothes, hair, lantern light, metal details and original canvas/cell geometry. Keep layered editable Aseprite sources with the originals retained.
+- Group the contextual action, full destination and E shortcut together instead of detaching the key across a wide bar. Quiet inactive No Route/No Action controls and remove their empty shortcut/icon slots while preserving readability and the full action hit area.
+- Add enclosed-matte and protected-detail regressions alongside the existing atlas checks; test compact/wide HUD grouping and inactive-text contrast. Gameplay and save schema v27 are unchanged. Final combined release evidence is recorded separately after verification; the v2.26 archive remains preserved.
+
 ## v2.26.0 - Rift & Ruin
 
 - Give warlock spells and demon skills a dedicated original sound palette: ritual whispers, rising gate invocations, distinct imp/lesser/greater breaches, soul implosions, and Ascendance choirs. Layered cues retain their existing combat timing and bounded voice mix; Reduced Motion uses compact impact sounds.

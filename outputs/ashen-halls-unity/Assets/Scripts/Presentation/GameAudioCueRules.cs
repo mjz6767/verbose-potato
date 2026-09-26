@@ -6,6 +6,46 @@ namespace AshenHalls
     {
         public const int RoamingThreatHearingRadius = 8;
 
+        // Additional authored masters are kept separate from the original bank.
+        public const int EverydayMasterCount = 26;
+        public static readonly string[] EverydayCueKeys =
+        {
+            "equipblade", "equipbow", "equipstaff", "equipcloth", "equipmail", "equipplate",
+            "chestopen", "lootrare", "zonediscover", "questcomplete"
+        };
+        public static readonly string[] VariedFootstepKeys =
+        {
+            "footstone", "footearth", "footwood", "footwater",
+            "footglass", "footmud", "footash", "footgravel"
+        };
+
+        public static string EquipmentCueFor(InventoryItem item)
+        {
+            if (item == null || !InventoryEquipmentRules.IsEquippable(item)) return "itemequip";
+            string form = (item.Form ?? "").Trim().ToLowerInvariant();
+            string material = (item.Material ?? "").Trim().ToLowerInvariant();
+            if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
+            {
+                if (form.Contains("bow") || form.Contains("sling")) return "equipbow";
+                if (form.Contains("staff") || form.Contains("focus") || form.Contains("orb")
+                    || form.Contains("scepter")) return "equipstaff";
+                return "equipblade";
+            }
+            if (form.Contains("plate") || form.Contains("cuirass") || form.Contains("brigandine")) return "equipplate";
+            if (form.Contains("mail") || form.Contains("hauberk")) return "equipmail";
+            if (material.Contains("iron") || material.Contains("steel") || material.Contains("bronze")) return "equipplate";
+            return "equipcloth";
+        }
+
+        public static string LootCueFor(InventoryItem item)
+        {
+            if (item == null) return "itemtake";
+            string rarity = (item.Rarity ?? "").Trim().ToLowerInvariant();
+            return !string.IsNullOrWhiteSpace(item.SignatureId)
+                || rarity == "rare" || rarity == "epic" || rarity == "legendary"
+                ? "lootrare" : "itemtake";
+        }
+
         public static string FootstepFor(ExplorationMaterial material)
         {
             switch (material)

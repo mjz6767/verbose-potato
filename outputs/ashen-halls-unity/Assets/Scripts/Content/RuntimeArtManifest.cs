@@ -43,8 +43,8 @@ namespace AshenHalls
         public const string MidgaardStreetLifeAtlas = "midgaard-street-life-atlas-runtime-v1.50.0.png";
         public const string MidgaardPavingDecalAtlas = "midgaard-paving-decal-atlas-runtime-v1.50.0.png";
         public const string MidgaardRoadSurfaceAtlas = "midgaard-road-surface-atlas-runtime-v2.21.0.png";
-        public const string MidgaardNpcAtlas = "midgaard-npc-atlas-runtime-v2.21.0.png";
-        public const string WorldNpcCitizenAtlas = "world-npc-citizen-atlas-runtime-v2.21.0.png";
+        public const string MidgaardNpcAtlas = "midgaard-npc-atlas-runtime-v2.26.1.png";
+        public const string WorldNpcCitizenAtlas = "world-npc-citizen-atlas-runtime-v2.26.1.png";
         public const string RouteScaffoldAtlas = "route-scaffold-atlas-runtime-v1.30.0.png";
         public const string KoboldRouteAtlas = "kobold-route-atlas-runtime-v1.30.0.png";
         public const string MidgaardSewerAtlas = "midgaard-sewer-atlas-runtime-v1.30.0.png";

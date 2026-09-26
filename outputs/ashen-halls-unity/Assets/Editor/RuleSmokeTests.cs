@@ -152,6 +152,7 @@ namespace AshenHalls.Editor
             WorldMapSpritePolishSmoke.RunOrThrow();
             WorldMapVisualLayoutSmoke.RunOrThrow();
             WorldMapRenderOptimizationSmoke.RunOrThrow();
+            NpcAtlasAlphaSmoke.RunOrThrow();
             ExplorationGuidanceRulesKeepTheGoldenThreadActionable();
             WorldMapGenerationRulesDefineModestExpansion();
             WorldMapGenerationRulesDefineNamedJunctionCircuit();
@@ -314,6 +315,9 @@ namespace AshenHalls.Editor
                 "ambgrove", "ambfen", "ambglass", "ambruin", "ambcave", "ambcamp",
                 "footglass", "footmud", "footash", "footgravel"
             };
+            expectedKeys = expectedKeys.Concat(GameAudioCueRules.EverydayCueKeys)
+                .Concat(GameAudioCueRules.VariedFootstepKeys.SelectMany(key => new[] { key + "__v1", key + "__v2" }))
+                .ToArray();
             string[] paths = AssetDatabase.FindAssets(
                     "t:AudioClip",
                     new[] { "Assets/Resources/Audio/Sfx" })
@@ -3426,7 +3430,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.26.0", VersionInfo.PackageVersion, "package version marks the Rift & Ruin release");
+            AssertEqual("v2.27.0", VersionInfo.PackageVersion, "package version marks the Echoes of the Road release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -3469,8 +3473,8 @@ namespace AshenHalls.Editor
             AssertEqual("midgaard-street-life-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardStreetLifeAtlas, "approved v1.50 street-life atlas pin");
             AssertEqual("midgaard-paving-decal-atlas-runtime-v1.50.0.png", RuntimeArtManifest.MidgaardPavingDecalAtlas, "approved v1.50 paving-decal atlas pin");
             AssertEqual("midgaard-road-surface-atlas-runtime-v2.21.0.png", RuntimeArtManifest.MidgaardRoadSurfaceAtlas, "approved v2.21 road-surface atlas pin");
-            AssertEqual("midgaard-npc-atlas-runtime-v2.21.0.png", RuntimeArtManifest.MidgaardNpcAtlas, "approved v2.21 coherent named-NPC atlas pin");
-            AssertEqual("world-npc-citizen-atlas-runtime-v2.21.0.png", RuntimeArtManifest.WorldNpcCitizenAtlas, "approved v2.21 coherent ambient-citizen atlas pin");
+            AssertEqual("midgaard-npc-atlas-runtime-v2.26.1.png", RuntimeArtManifest.MidgaardNpcAtlas, "approved v2.26.1 cleaned-alpha named-NPC atlas pin");
+            AssertEqual("world-npc-citizen-atlas-runtime-v2.26.1.png", RuntimeArtManifest.WorldNpcCitizenAtlas, "approved v2.26.1 cleaned-alpha ambient-citizen atlas pin");
             AssertEqual("route-scaffold-atlas-runtime-v1.30.0.png", RuntimeArtManifest.RouteScaffoldAtlas, "approved v1.30 route scaffold atlas pin");
             AssertEqual("kobold-route-atlas-runtime-v1.30.0.png", RuntimeArtManifest.KoboldRouteAtlas, "approved v1.30 kobold route atlas pin");
             AssertEqual("midgaard-sewer-atlas-runtime-v1.30.0.png", RuntimeArtManifest.MidgaardSewerAtlas, "approved v1.30 sewer atlas pin");
@@ -3487,7 +3491,7 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png|unique-item-atlas-runtime-v2.20.0.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|title-menu-icon-atlas-runtime-v2.16.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v2.21.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-road-surface-atlas-runtime-v2.21.0.png|midgaard-npc-atlas-runtime-v2.21.0.png|world-npc-citizen-atlas-runtime-v2.21.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png|unique-item-atlas-runtime-v2.20.0.png|title-backdrop-runtime-v2.4.0.png|tavern-ui-atlas-runtime-v1.5.9.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|title-menu-icon-atlas-runtime-v2.16.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v2.21.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-road-surface-atlas-runtime-v2.21.0.png|midgaard-npc-atlas-runtime-v2.26.1.png|world-npc-citizen-atlas-runtime-v2.26.1.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
             AssertEqual(58, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
@@ -3654,12 +3658,12 @@ namespace AshenHalls.Editor
                     }
                     if (string.Equals(fileName, RuntimeArtManifest.MidgaardNpcAtlas, StringComparison.Ordinal))
                     {
-                        AssertAtlasCellCoverageAtAlpha(atlas, 5, 4, Enumerable.Range(0, 20), 0.18f, 0.40f, 24, "v2.21 named Midgaard NPC");
+                        AssertAtlasCellCoverageAtAlpha(atlas, 5, 4, Enumerable.Range(0, 20), 0.18f, 0.40f, 24, "cleaned-alpha named Midgaard NPC");
                         foreach (int cell in Enumerable.Range(0, 20))
                         {
                             RectInt bounds = AtlasCellVisibleBounds(atlas, 5, 4, cell, 24);
-                            AssertEqual(true, bounds.height >= 216 && bounds.height <= 220, "v2.21 named NPC cell " + cell + " shares the normalized baseline height");
-                            AssertEqual(true, bounds.width >= 90 && bounds.width <= 170, "v2.21 named NPC cell " + cell + " keeps a readable bounded silhouette");
+                            AssertEqual(true, bounds.height >= 216 && bounds.height <= 220, "cleaned-alpha named NPC cell " + cell + " shares the normalized baseline height");
+                            AssertEqual(true, bounds.width >= 90 && bounds.width <= 170, "cleaned-alpha named NPC cell " + cell + " keeps a readable bounded silhouette");
                         }
                     }
                 }
@@ -3732,23 +3736,26 @@ namespace AshenHalls.Editor
                 normalizedAtlases.Add(ambientCitizens);
                 normalizedAtlases.Add(playerRoles);
                 AssertEqual(new Vector2Int(1536, 768), new Vector2Int(threatHabitats.width, threatHabitats.height), "v2.4 threat-habitat dimensions");
-                AssertEqual(new Vector2Int(1536, 768), new Vector2Int(ambientCitizens.width, ambientCitizens.height), "v2.21 ambient-citizen dimensions");
+                AssertEqual(new Vector2Int(1536, 768), new Vector2Int(ambientCitizens.width, ambientCitizens.height), "cleaned-alpha ambient-citizen dimensions");
                 AssertEqual(new Vector2Int(1536, 768), new Vector2Int(playerRoles.width, playerRoles.height), "v2.4 player-role dimensions");
                 AssertAtlasCellCoverageAtAlpha(threatHabitats, 4, 2, Enumerable.Range(0, 8), 0.46f, 0.51f, 8, "v2.4 threat habitat");
-                AssertAtlasCellCoverageAtAlpha(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 0.25f, 0.38f, 8, "v2.21 ambient citizen");
+                AssertAtlasCellCoverageAtAlpha(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 0.25f, 0.38f, 8, "cleaned-alpha ambient citizen");
                 AssertAtlasCellCoverageAtAlpha(playerRoles, 4, 2, Enumerable.Range(0, 8), 0.22f, 0.43f, 8, "v2.4 player role");
                 AssertAtlasCellSafeGutter(threatHabitats, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 threat habitat");
-                AssertAtlasCellSafeGutter(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.21 ambient citizen");
+                AssertAtlasCellSafeGutter(ambientCitizens, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "cleaned-alpha ambient citizen");
                 AssertAtlasCellSafeGutter(playerRoles, 4, 2, Enumerable.Range(0, 8), 20, 8, 0, "v2.4 player role");
                 AssertAtlasHasNoVisibleBrightMagenta(threatHabitats, 8, "v2.4 threat habitat");
-                AssertAtlasHasNoVisibleBrightMagenta(ambientCitizens, 8, "v2.21 ambient citizen");
+                AssertAtlasHasNoVisibleBrightMagenta(ambientCitizens, 8, "cleaned-alpha ambient citizen");
                 AssertAtlasHasNoVisibleBrightMagenta(playerRoles, 8, "v2.4 player role");
                 for (int cell = 0; cell < ExplorationCharacterArtCatalog.CitizenCellCount; cell++)
                 {
                     RectInt bounds = AtlasCellVisibleBounds(ambientCitizens, 4, 2, cell, 8);
-                    AssertEqual(20, bounds.y, "v2.21 ambient citizen cell " + cell + " keeps the exact top gutter");
-                    AssertEqual(344, bounds.height, "v2.21 ambient citizen cell " + cell + " uses the shared figure height");
-                    AssertEqual(20, 384 - bounds.yMax, "v2.21 ambient citizen cell " + cell + " keeps the shared baseline gutter");
+                    // Removing the authored white matte can trim one pixel at either
+                    // silhouette edge; the 384px frame and clear 20px gutter are unchanged.
+                    AssertEqual(true, bounds.y >= 20 && bounds.y <= 21, "cleaned-alpha ambient citizen cell " + cell + " keeps the top edge within one matte pixel");
+                    AssertEqual(true, bounds.height >= 342 && bounds.height <= 344, "cleaned-alpha ambient citizen cell " + cell + " preserves figure height after at most one matte pixel per edge");
+                    int bottomGutter = 384 - bounds.yMax;
+                    AssertEqual(true, bottomGutter >= 20 && bottomGutter <= 21, "cleaned-alpha ambient citizen cell " + cell + " keeps the baseline within one matte pixel");
                 }
 
                 Texture2D streetLife = LoadApprovedRuntimeAtlas(RuntimeArtManifest.MidgaardStreetLifeAtlas);

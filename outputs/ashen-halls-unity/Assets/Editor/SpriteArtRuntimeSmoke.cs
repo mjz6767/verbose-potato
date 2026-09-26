@@ -86,8 +86,8 @@ namespace AshenHalls.Editor
                 Texture2D npcAtlas = GetPrivateField<Texture2D>(game, "midgaardNpcAtlas");
                 Assert(npcAtlas != null, "Midgaard NPC atlas loads");
                 Assert(
-                    npcAtlas.name.IndexOf("v2.21.0", StringComparison.OrdinalIgnoreCase) >= 0,
-                    "runtime selects the approved v2.21 coherent NPC atlas");
+                    string.Equals(npcAtlas.name, RuntimeArtManifest.MidgaardNpcAtlas, StringComparison.Ordinal),
+                    "runtime selects the exact approved cleaned-alpha NPC atlas");
                 Assert(
                     npcAtlas.width == NpcPortraitCatalog.Columns * 256
                         && npcAtlas.height == NpcPortraitCatalog.Rows * 256,
@@ -230,10 +230,10 @@ namespace AshenHalls.Editor
             Assert(habitatAtlas.width == 1536 && habitatAtlas.height == 768, "v2.4 habitat atlas uses the exact 4x2 square-cell contract");
             Assert(InvokePrivate<bool>(game, "IsWorldThreatHabitatAtlas"), "presentation accepts the exact v2.4 habitat atlas");
 
-            Assert(citizenAtlas != null, "v2.21 ambient-citizen atlas loads");
-            Assert(citizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "runtime selects the exact approved v2.21 citizen atlas");
-            Assert(citizenAtlas.width == 1536 && citizenAtlas.height == 768, "v2.21 citizen atlas preserves the exact 4x2 square-cell contract");
-            Assert(InvokePrivate<bool>(game, "IsWorldNpcCitizenAtlas"), "presentation accepts the exact v2.21 citizen atlas");
+            Assert(citizenAtlas != null, "cleaned-alpha ambient-citizen atlas loads");
+            Assert(citizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "runtime selects the exact approved cleaned-alpha citizen atlas");
+            Assert(citizenAtlas.width == 1536 && citizenAtlas.height == 768, "citizen atlas preserves the exact 4x2 square-cell contract");
+            Assert(InvokePrivate<bool>(game, "IsWorldNpcCitizenAtlas"), "presentation accepts the exact citizen atlas contract");
 
             Assert(playerRoleAtlas != null, "v2.4 player exploration-role atlas loads");
             Assert(playerRoleAtlas.name == RuntimeArtManifest.PlayerExplorationRoleAtlas, "runtime selects the exact approved v2.4 player-role atlas");
@@ -350,7 +350,7 @@ namespace AshenHalls.Editor
                     && profession == placement.Profession,
                     placement.Profession + " resolves at its authored Town Hall cell");
                 Assert(ExplorationCharacterArtCatalog.CitizenAtlasIndex(profession) >= 0,
-                    placement.Profession + " uses approved v2.21 citizen art in Town Hall");
+                    placement.Profession + " uses approved citizen art in Town Hall");
                 Assert(patronCells.Add(x + "," + y),
                     "Town Hall patron cells are unique");
                 Assert(!MidgaardInteriorRules.IsGrandHearthCompanyRunner(townHallMap, x, y),

@@ -1,0 +1,66 @@
+{
+  "tool": "Aseprite",
+  "toolVersion": "1,3,18,5",
+  "source": "world-npc-citizen-atlas-runtime-v2.21.0.png",
+  "sourceSha256": "6F45940F1F590D2F4CE04450AD19A0C081611A06897B9B3952A51F2551AFB198",
+  "output": "world-npc-citizen-atlas-runtime-v2.26.1.png",
+  "outputSha256": "95382FDF50404024CE0D7F1014E9EEAF7CDD543F701FA986412066A4F53FE638",
+  "editable": "source-world-npc-citizen-atlas-v2.26.1.aseprite",
+  "editableSha256": "3967E67B127E47D689801BCC1289EA21EA8086F1B00FF99081E27C2C1A4EE59B",
+  "recipeSha256": "6A4AC0F3087AA73CDCEFDB01161DA313E527F069D7923569F0563A7C2B6194BA",
+  "geometry": [
+    1536,
+    768
+  ],
+  "cells": [
+    {
+      "cell": 0,
+      "removed": 5645,
+      "shadowPixels": 1679,
+      "unchanged": 140132
+    },
+    {
+      "cell": 1,
+      "removed": 3624,
+      "shadowPixels": 1468,
+      "unchanged": 142364
+    },
+    {
+      "cell": 2,
+      "removed": 2533,
+      "shadowPixels": 1659,
+      "unchanged": 143264
+    },
+    {
+      "cell": 3,
+      "removed": 3633,
+      "shadowPixels": 1486,
+      "unchanged": 142337
+    },
+    {
+      "cell": 4,
+      "removed": 3177,
+      "shadowPixels": 2117,
+      "unchanged": 142162
+    },
+    {
+      "cell": 5,
+      "removed": 5256,
+      "shadowPixels": 2193,
+      "unchanged": 140007
+    },
+    {
+      "cell": 6,
+      "removed": 5523,
+      "shadowPixels": 2021,
+      "unchanged": 139912
+    },
+    {
+      "cell": 7,
+      "removed": 6165,
+      "shadowPixels": 2244,
+      "unchanged": 139047
+    }
+  ],
+  "note": "Native Aseprite cleanup. Original reference layer retained hidden; corrected layer visible. No generated replacement art, character resizing or remapping."
+}

@@ -35,6 +35,7 @@ namespace AshenHalls.Editor
             PassiveHudGraphicsDoNotCompeteForPointerHits();
             PartyVitalWarningsAreBoundedAndReadable();
             NativePartyVitalsFollowSharedPresentationRules();
+            ContextualContentStaysGroupedAndReadable();
         }
 
         private static void CompactBoardHeadingKeepsLocationAndControlsSeparate()
@@ -153,18 +154,37 @@ namespace AshenHalls.Editor
                 screen.Refresh();
                 Require(Field<Text>(screen, "detailsButtonText").text == "Close · Q", "expanded details keeps its return shortcut");
                 Require(Field<Text>(screen, "mapButtonText").text == "Local\nTab / Y", "Region Map always explains how to return to travel");
+                foreach (string destination in new[] { "Town Hall", "Green Shrine Training Ring / Eastern Approach" })
                 foreach (Vector2Int size in new[] { new Vector2Int(960, 600), new Vector2Int(1280, 720), new Vector2Int(1920, 1080) })
                 {
+                    view.ActionTarget = destination;
+                    screen.Refresh();
                     Layout(screen, true, size);
                     RectTransform key = Field<Text>(screen, "actionKeyText").rectTransform;
-                    RectTransform target = Field<Text>(screen, "actionTargetText").rectTransform;
+                    Text targetText = Field<Text>(screen, "actionTargetText");
+                    RectTransform target = targetText.rectTransform;
                     Require(target.anchoredPosition.x + target.rect.width <= key.anchoredPosition.x,
                         "action shortcut cannot cover the destination " + size);
+                    float scale = ExplorationHudScreenLayout.InterfaceScale(size.x, size.y);
+                    Require(key.anchoredPosition.x - target.anchoredPosition.x - target.rect.width <= 12f * scale + 0.01f,
+                        "native E key stays in the action-content cluster " + size);
+                    Require(targetText.text == destination && target.rect.width + 0.01f >= targetText.preferredWidth,
+                        "native content grouping retains the complete authored destination " + size);
                 }
                 view.HasAction = false;
                 screen.Refresh();
                 Require(Field<Text>(screen, "actionKeyText").text.Length == 0 && !screen.HasContextualActionForTest,
                     "non-actionable focus cannot advertise an active interaction");
+                Require(Field<Text>(screen, "actionLabelText").fontStyle == FontStyle.Normal
+                    && Field<Text>(screen, "actionLabelText").color.maxColorComponent < 0.7f,
+                    "non-actionable context is visually quieter than enabled navigation commands");
+                Require(ContrastRatio(Field<Text>(screen, "actionLabelText").color, new Color32(11, 15, 18, 255)) >= 4.5f
+                    && ContrastRatio(Field<Text>(screen, "actionTargetText").color, new Color32(11, 15, 18, 255)) >= 4.5f,
+                    "quiet inactive context remains readable");
+                view.HasAction = true;
+                screen.Refresh();
+                Require(Field<Text>(screen, "actionLabelText").fontStyle == FontStyle.Bold,
+                    "a newly available contextual action restores its emphasis");
                 screen.SetVisible(false);
             }
             finally { UnityEngine.Object.DestroyImmediate(host); }
@@ -228,6 +248,35 @@ namespace AshenHalls.Editor
                 ExplorationPartyVitalPresentation vital = ExplorationPartyVitalsRules.Resolve(hp, 100);
                 Require(ContrastRatio(vital.Text, vital.Fill) >= 4.5f && ContrastRatio(vital.Text, vital.Track) >= 4.5f,
                     "numeric HP keeps readable contrast over both the filled and empty track at " + hp);
+            }
+        }
+
+        private static void ContextualContentStaysGroupedAndReadable()
+        {
+            foreach (float scale in new[] { 1f, 1.25f })
+            foreach (float width in new[] { 360f, 508f, 900f, 1400f })
+            foreach (float desiredWidth in new[] { 40f, 180f, 320f, 1200f })
+            foreach (bool available in new[] { false, true })
+            foreach (bool showIcon in new[] { false, true })
+            {
+                Rect action = new Rect(19f, 300f, width * scale, 52f * scale);
+                ExplorationActionContentGeometry content = ExplorationHudScreenLayout.ActionContent(action, scale, desiredWidth * scale, available, showIcon);
+                Rect[] visible = new[] { content.Label, content.Target, content.Key, content.Icon }.Where(rect => rect.width > 0f).ToArray();
+                Require(visible.All(rect => rect.xMin >= action.xMin && rect.xMax <= action.xMax && rect.yMin >= action.yMin && rect.yMax <= action.yMax),
+                    "contextual copy and shortcuts stay inside the unchanged action hit area");
+                if (available)
+                    Require(Mathf.Abs(content.Key.xMin - content.Target.xMax - 12f * scale) < 0.01f,
+                        "E remains beside its destination instead of detaching toward the screen edge");
+                else Require(content.Key.width == 0f, "unavailable context does not reserve a meaningless shortcut slot");
+                if (showIcon) Require(content.Icon.xMax < content.Label.xMin, "fallback icon cannot cover contextual text");
+                float left = visible.Min(rect => rect.xMin);
+                float right = visible.Max(rect => rect.xMax);
+                Require(Mathf.Abs((left + right) * 0.5f - action.center.x) < 0.01f, "contextual content forms one centered cluster");
+                float availableTextWidth = action.width - 24f * scale - (available ? 44f * scale : 0f) - (showIcon ? 44f * scale : 0f);
+                Require(content.Target.width >= Mathf.Min(desiredWidth * scale, availableTextWidth) - 0.01f,
+                    "long destinations receive all needed width without an arbitrary narrow cap");
+                if (desiredWidth <= 180f)
+                    Require(right - left <= 272f * scale + 0.01f, "short action copy stays compact even on a wide command bar");
             }
         }
 

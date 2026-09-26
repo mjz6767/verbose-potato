@@ -379,7 +379,7 @@ namespace AshenHalls
             PushLog(result, equipped ? Tone.Good : Tone.Warn);
             MarkUiDirty();
             SyncArmoryOverlayScreen();
-            PlaySfx(equipped ? "itemequip" : "blocked", 0.55f);
+            PlaySfx(equipped ? GameAudioCueRules.EquipmentCueFor(item) : "blocked", 0.55f);
         }
 
         private IReadOnlyList<ArmoryRowView> BuildArmoryRows(int tab)

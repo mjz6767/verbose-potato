@@ -737,23 +737,26 @@ namespace AshenHalls
             DrawRect(rect, available ? Hex("10201f", 0.99f) : Hex("080d0f", 0.90f));
             DrawRect(new Rect(rect.x, rect.y, 4f * scale, rect.height), accent.WithAlpha(available ? 0.94f : 0.18f));
             DrawBorder(rect, accent.WithAlpha(available ? 0.88f : 0.16f), available ? 2 : 1);
-            Rect iconRect = new Rect(rect.x + 10f * scale, rect.y + 10f * scale, 32f * scale, 32f * scale);
-            int actionArtIndex = ExploreActionArtIndex(actionLabel, actionTarget);
-            if (!TryDrawWorldMapUiAtlasIcon(iconRect, actionArtIndex, available ? Color.white : muted.WithAlpha(0.38f)))
+            string label = (actionLabel ?? "Use").ToUpperInvariant();
+            GUIStyle labelStyle = new GUIStyle(CenterStyle(ExploreHudFont(13), available ? accent : Hex("9aa7a5")))
             {
-                DrawTinyUiIcon(iconRect, available ? "hand" : "scroll", available ? teal : muted.WithAlpha(0.40f));
+                fontStyle = available ? FontStyle.Bold : FontStyle.Normal
+            };
+            GUIStyle targetStyle = CenterStyle(ExploreHudFont(12), available ? ink : Hex("8b9996"));
+            float desiredTextWidth = Mathf.Max(labelStyle.CalcSize(new GUIContent(label)).x,
+                targetStyle.CalcSize(new GUIContent(actionTarget ?? "")).x);
+            ExplorationActionContentGeometry content = ExplorationHudScreenLayout.ActionContent(rect, scale, desiredTextWidth, available, available);
+            if (available)
+            {
+                int actionArtIndex = ExploreActionArtIndex(actionLabel, actionTarget);
+                if (!TryDrawWorldMapUiAtlasIcon(content.Icon, actionArtIndex, Color.white))
+                    DrawTinyUiIcon(content.Icon, "hand", teal);
+                DrawRect(content.Key, Hex("05090a", 0.94f));
+                DrawBorder(content.Key, accent.WithAlpha(0.76f), 1);
+                GUI.Label(content.Key, "E", CenterStyle(ExploreHudFont(13), ink));
             }
-            float keyW = 34f * scale;
-            Rect key = new Rect(rect.xMax - keyW - 10f * scale, rect.y + 10f * scale, keyW, 32f * scale);
-            DrawRect(key, Hex("05090a", 0.94f));
-            DrawBorder(key, accent.WithAlpha(available ? 0.76f : 0.18f), 1);
-            GUI.Label(key, available ? "E" : "--", CenterStyle(ExploreHudFont(13), available ? ink : muted.WithAlpha(0.52f)));
-            float textX = iconRect.xMax + 10f * scale;
-            float textW = Mathf.Max(60f * scale, key.x - textX - 8f * scale);
-            Color labelColor = available ? accent : muted.WithAlpha(0.60f);
-            Color targetColor = available ? ink : muted.WithAlpha(0.52f);
-            GUI.Label(new Rect(textX, rect.y + 5f * scale, textW, 20f * scale), FitText((actionLabel ?? "USE").ToUpperInvariant(), textW, CenterLeftStyle(ExploreHudFont(13), labelColor)), CenterLeftStyle(ExploreHudFont(13), labelColor));
-            GUI.Label(new Rect(textX, rect.y + 26f * scale, textW, 21f * scale), FitText(actionTarget ?? "", textW, CenterLeftStyle(ExploreHudFont(12), targetColor)), CenterLeftStyle(ExploreHudFont(12), targetColor));
+            GUI.Label(content.Label, FitText(label, content.Label.width, labelStyle), labelStyle);
+            GUI.Label(content.Target, FitText(actionTarget ?? "", content.Target.width, targetStyle), targetStyle);
             return GUI.Button(rect, GUIContent.none, GUIStyle.none);
         }
 

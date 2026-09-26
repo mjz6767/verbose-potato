@@ -16,6 +16,43 @@ import BuildOriginalAudio as audio  # noqa: E402
 
 
 class OriginalAudioContractTests(unittest.TestCase):
+    def test_journey_score_deliveries_keep_runtime_duration_and_mono_body(self) -> None:
+        fingerprints = set()
+        self.assertEqual(8, len(audio.JOURNEY_SCORE_CUES))
+        self.assertTrue(set(audio.JOURNEY_SCORE_CUES).isdisjoint(audio.EPIC_COMBAT_CUES))
+        for cue in audio.JOURNEY_SCORE_CUES:
+            with self.subTest(cue=cue):
+                path = audio.MUSIC_DIR / (cue + ".wav")
+                samples, sample_rate = audio.read_pcm16(path)
+                self.assertEqual([], audio.validate_journey_audio(samples, sample_rate))
+                spec = next(item for item in audio.TRACKS if item.cue == cue)
+                self.assertAlmostEqual(audio.expected_track_duration_seconds(spec), samples.shape[1] / sample_rate, places=4)
+                mono_rms = np.sqrt(np.mean(np.mean(samples, axis=0) ** 2))
+                stereo_rms = np.sqrt(np.mean(samples ** 2))
+                self.assertGreater(mono_rms / stereo_rms, .80)
+                fingerprints.add(audio.sha256(path))
+        self.assertEqual(len(audio.JOURNEY_SCORE_CUES), len(fingerprints))
+
+    def test_journey_score_validator_rejects_click_flat_repetition_and_phase_loss(self) -> None:
+        samples, sample_rate = audio.read_pcm16(audio.MUSIC_DIR / "old_road_walk_loop.wav")
+        broken = samples.copy()
+        broken[:, 0] += .1
+        self.assertIn("audible loop boundary discontinuity", audio.validate_journey_audio(broken, sample_rate))
+        flat = np.tile(np.array_split(samples, 4, axis=1)[0], (1, 4))
+        self.assertIn("reflective phrase must leave at least 2 dB more space than the opening",
+                      audio.validate_journey_audio(flat, sample_rate))
+        out_of_phase = np.vstack((samples[0], -samples[0]))
+        self.assertIn("score loses body when summed to mono", audio.validate_journey_audio(out_of_phase, sample_rate))
+
+    def test_journey_chamber_and_battle_masters_reproduce_exactly(self) -> None:
+        for cue in ("four_names_by_the_fire_loop", "combat_battle_pulse_loop"):
+            with self.subTest(cue=cue):
+                spec = next(item for item in audio.TRACKS if item.cue == cue)
+                generated = audio.compose_track(spec)
+                written, _ = audio.read_pcm16(audio.MUSIC_DIR / (cue + ".wav"))
+                quantized = np.round(generated * 32767).astype("<i2").astype(np.float64) / 32768
+                np.testing.assert_array_equal(quantized, written)
+
     def test_music_blueprints_are_unique(self) -> None:
         self.assertEqual([], audio.track_blueprint_collisions())
 

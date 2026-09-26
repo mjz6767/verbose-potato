@@ -1780,7 +1780,7 @@ namespace AshenHalls.Editor
             }
             HashSet<string> importedSfxKeys = GetPrivateField<HashSet<string>>(game, "importedSfxKeys");
             AudioClip[] importedSfx = Resources.LoadAll<AudioClip>("Audio/Sfx");
-            Assert(importedSfx.Length == 161, "authored SFX resource bank contains 55 curated and 106 original cues");
+            Assert(importedSfx.Length == 161 + GameAudioCueRules.EverydayMasterCount, "authored SFX bank contains the original 161 cues and all 26 everyday masters");
             Assert(importedSfxKeys.Count == importedSfx.Length, "every authored SFX resource replaces a known runtime cue");
             foreach (AudioClip clip in importedSfx)
             {
@@ -2111,8 +2111,8 @@ namespace AshenHalls.Editor
             Assert(roadSurfaceAtlas != null, "v2.21 Midgaard road-surface atlas is loaded");
             Assert(roadSurfaceAtlas.name == RuntimeArtManifest.MidgaardRoadSurfaceAtlas, "Midgaard roads use the exact approved v2.21 material atlas");
             Assert(roadSurfaceAtlas.width == 512 && roadSurfaceAtlas.height == 512, "Midgaard road surfaces use the exact 2x2 grid");
-            Assert(ambientCitizenAtlas != null, "v2.21 ambient-citizen atlas is loaded");
-            Assert(ambientCitizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "ambient citizens use the exact approved v2.21 art contract");
+            Assert(ambientCitizenAtlas != null, "cleaned-alpha ambient-citizen atlas is loaded");
+            Assert(ambientCitizenAtlas.name == RuntimeArtManifest.WorldNpcCitizenAtlas, "ambient citizens use the exact approved cleaned-alpha art contract");
             Assert(ambientCitizenAtlas.width == 1536 && ambientCitizenAtlas.height == 768, "ambient citizens use the exact 4x2 grid");
             Assert(roamingThreatAtlas != null, "v1.62 roaming-threat atlas is loaded");
             Assert(roamingThreatAtlas.name.IndexOf("v1.62.0", StringComparison.OrdinalIgnoreCase) >= 0, "roaming patrols use the pinned v1.62 art contract");
@@ -2140,8 +2140,8 @@ namespace AshenHalls.Editor
             Assert(midgaardTownAtlas != null, "v2.21 Midgaard town atlas is loaded");
             Assert(midgaardTownAtlas.name.IndexOf("v2.21.0", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard buildings use the approved architectural v2.21 art contract");
             Assert(midgaardTownAtlas.width == 1280 && midgaardTownAtlas.height == 1024, "Midgaard town atlas is an exact 5x4 grid");
-            Assert(cityNpcAtlas != null, "v2.21 Midgaard NPC atlas is loaded");
-            Assert(cityNpcAtlas.name.IndexOf("v2.21.0", StringComparison.OrdinalIgnoreCase) >= 0, "named Midgaard NPCs use the approved coherent v2.21 art contract");
+            Assert(cityNpcAtlas != null, "cleaned-alpha Midgaard NPC atlas is loaded");
+            Assert(string.Equals(cityNpcAtlas.name, RuntimeArtManifest.MidgaardNpcAtlas, StringComparison.Ordinal), "named Midgaard NPCs use the exact approved cleaned-alpha art contract");
             Assert(cityNpcAtlas.width == 1280 && cityNpcAtlas.height == 1024, "Midgaard NPC atlas is an exact 5x4 grid");
             Assert(npcPortraitAtlas != null && npcPortraitAtlas.name.IndexOf("v1.60.0", StringComparison.OrdinalIgnoreCase) >= 0, "named Midgaard portraits use the pinned v1.60 art contract");
             Assert(npcPortraitAtlas.width == 1400 && npcPortraitAtlas.height == 1120, "NPC portrait atlas is an exact 5x4 grid");

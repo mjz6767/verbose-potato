@@ -7930,6 +7930,7 @@ namespace AshenHalls
                 int xp = Mathf.Max(6, 10 + zone.Danger * 4 + state.Depth * 2);
                 AwardWorldExperience(xp, $"{zone.Name} discovered");
                 AddBurst(state.PlayerX, state.PlayerY, ZoneDangerColor(zone));
+                QueueSfx("zonediscover", 0.12f, 0.46f);
             }
         }
 
@@ -8738,7 +8739,7 @@ namespace AshenHalls
                 RemoveObject(obj);
                 PushLog($"A sealed cache yields {foundGold} gold{CacheSupplyLine(foundSupplies, foundElixirs)} and {item.DisplayName}. {equipNote}", Tone.Good);
                 ShowBanner("Cache opened");
-                PlaySfx("cache");
+                PlaySfx("chestopen", 0.72f);
                 AddBurst(state.PlayerX, state.PlayerY, gold);
                 AwardWorldExperience(8 + state.Depth * 3, "Cache charted");
                 AutosaveCheckpoint("cache claimed");
@@ -11757,7 +11758,7 @@ namespace AshenHalls
                 PushLog($"The armorer stitches the proof into {sewerReward.DisplayName}. {sewerEquipNote}", Tone.Good);
                 PushLog("The Old Road opens eastbound through Lanternless Cross toward Dusk Market and the kobold smoke route.", Tone.Good);
                 ShowBanner("Rat-Pelt Armor");
-                PlaySfx("cache", 0.78f);
+                PlaySfx("questcomplete", 0.66f);
                 AutosaveCheckpoint("chapter reward claimed");
                 return true;
             }
@@ -11796,7 +11797,7 @@ namespace AshenHalls
             PushLog($"The armorer stitches the pelts into {item.DisplayName}. {equipNote}", Tone.Good);
             PushLog("Old Road teaser unlocked: Green Shrine Road and Old Quarry are marked in the journal.", Tone.Good);
             ShowBanner("Rat-Pelt Armor");
-            PlaySfx("cache", 0.78f);
+            PlaySfx("questcomplete", 0.66f);
             AutosaveCheckpoint("chapter reward claimed");
             return true;
         }
@@ -14367,16 +14368,13 @@ namespace AshenHalls
         {
             string encounterStyle = state.Combat?.EncounterStyle ?? "boss";
             InventoryItem relic = MakeBossLoot(encounterStyle);
+            string relicEquipNote = "The final spoils are secured.";
             if (relic != null)
             {
                 EnsureInventoryList();
                 AddInventoryItem(relic);
                 string equipNote = AutoEquipItem(relic);
-                ShowLootPanel(relic, foundGold, 0, foundElixirs, string.IsNullOrEmpty(equipNote) ? "A future art pass can give this final relic unique artwork." : equipNote, "Final Gate Relic");
-            }
-            else
-            {
-                ShowLootPanel(null, foundGold, 0, foundElixirs, "The final spoils are secured.", "Final Gate Spoils");
+                relicEquipNote = string.IsNullOrEmpty(equipNote) ? "A future art pass can give this final relic unique artwork." : equipNote;
             }
             state.Mode = GameMode.Victory;
             state.Combat = null;
@@ -14384,6 +14382,9 @@ namespace AshenHalls
             betaLabMode = false;
             showSpellbook = false;
             showAbilityPanel = false;
+            // Queue loot feedback in its destination scene so transition cleanup
+            // preserves the reward reveal while clearing the old combat tails.
+            ShowLootPanel(relic, foundGold, 0, foundElixirs, relicEquipNote, relic != null ? "Final Gate Relic" : "Final Gate Spoils");
             state.ActiveStory = "Epilogue: The Old Road is sealed for now. Midgaard has one more dawn.";
             PushLog($"The final gate falls. {foundGold} gold and {xp} XP recovered.", Tone.Good);
             if (relic != null) PushLog($"A boss relic is recovered: {relic.DisplayName}.", Tone.Good);

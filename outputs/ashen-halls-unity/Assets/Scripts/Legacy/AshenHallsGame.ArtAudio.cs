@@ -219,7 +219,9 @@ namespace AshenHalls
 
         private int nextSfxVoice;
 
-        private int sfxPlaybackSerial;
+        private readonly Dictionary<string, int> sfxCuePlaybackSerial = new Dictionary<string, int>(StringComparer.Ordinal);
+
+        private readonly Dictionary<string, AudioClip[]> sfxClipVariants = new Dictionary<string, AudioClip[]>(StringComparer.Ordinal);
 
         private float combatMusicDuckStartedAt = -1f;
 
@@ -317,6 +319,10 @@ namespace AshenHalls
             public float Pitch;
             public int Priority;
             public int Serial;
+            public GameState State;
+            public GameMode Mode;
+            public MapData Map;
+            public CombatState Encounter;
         }
 
         private enum GateOrientation
@@ -391,6 +397,8 @@ namespace AshenHalls
         {
             soundClips.Clear();
             scheduledSfx.Clear();
+            sfxCuePlaybackSerial.Clear();
+            sfxClipVariants.Clear();
             soundClips["move"] = MakeSound("move", 96f, 54f, 0.08f, 0.34f, "thud");
             soundClips["blocked"] = MakeSound("blocked", 132f, 86f, 0.10f, 0.30f, "square");
             soundClips["attack"] = MakeSound("attack", 220f, 78f, 0.12f, 0.38f, "slash");
@@ -589,7 +597,9 @@ namespace AshenHalls
             soundClips["ambcave"] = MakeAmbientSound("ambcave", "drip");
             soundClips["ambcamp"] = MakeAmbientSound("ambcamp", "hearth");
             BuildDemonicSoundClips();
+            BuildEverydaySoundClips();
             ApplyImportedSfxOverrides();
+            RebuildSfxVariantBank();
         }
 
         private void ApplyImportedSfxOverrides()
@@ -2431,7 +2441,10 @@ namespace AshenHalls
                 // changes affect those old sounds. Own exactly one cue on each voice.
                 voice.Stop();
                 voice.panStereo = Mathf.Clamp(pan, -0.85f, 0.85f);
-                voice.pitch = Mathf.Clamp(pitch * SfxPlaybackPitchVariation(key, sfxPlaybackSerial++), 0.90f, 1.10f);
+                sfxCuePlaybackSerial.TryGetValue(key, out int playbackSerial);
+                AudioClip playbackClip = ResolveSfxPlaybackClip(key, playbackSerial);
+                sfxCuePlaybackSerial[key] = playbackSerial == int.MaxValue ? 0 : playbackSerial + 1;
+                voice.pitch = Mathf.Clamp(pitch * SfxPlaybackPitchVariation(key, playbackSerial), 0.90f, 1.10f);
                 voice.priority = 64 - priority * 16;
                 sfxVoicePlayback[voice] = new SfxVoicePlayback { Priority = priority, StartedAt = Time.unscaledTime };
                 lastSfxKey = key;
@@ -2449,7 +2462,7 @@ namespace AshenHalls
                 {
                     lastCombatForegroundSfxAt = Time.time;
                 }
-                voice.PlayOneShot(soundClips[key], clamped);
+                voice.PlayOneShot(playbackClip, clamped);
             }
             catch (Exception)
             {
@@ -2516,6 +2529,7 @@ namespace AshenHalls
         {
             int percent = state == null ? 100 : Mathf.Clamp(state.SfxVolumePercent <= 0 ? 100 : state.SfxVolumePercent, 25, 100);
             bool muted = state != null && state.SfxMuted;
+            if (muted) StopSfxPlayback();
             float sfxVolume = muted ? 0f : 0.78f * (percent / 100f);
             if (sfxVoices.Count == 0)
             {
@@ -2806,13 +2820,15 @@ namespace AshenHalls
 
             if (musicTransitionActive)
             {
-                if (musicFadeSource == null || musicFadeSource.clip != desired)
+                if (musicFadeSource == null)
                 {
-                    SettleInterruptedMusicTransition();
+                    musicTransitionActive = false;
                 }
-                else if (Time.unscaledTime - musicTransitionStartedAt >= activeMusicTransitionDuration)
+                else
                 {
-                    CompleteMusicTransition();
+                    if (musicFadeSource.clip != desired) RetargetMusicTransition(desired);
+                    if (Time.unscaledTime - musicTransitionStartedAt >= activeMusicTransitionDuration)
+                        CompleteMusicTransition();
                 }
             }
 
@@ -2875,23 +2891,28 @@ namespace AshenHalls
             return MusicTransitionContext.Explore;
         }
 
-        private void SettleInterruptedMusicTransition()
+        private void RetargetMusicTransition(AudioClip desired)
         {
             if (!musicTransitionActive || musicFadeSource == null) return;
             float duration = Mathf.Max(0.01f, activeMusicTransitionDuration);
             float progress = Mathf.Clamp01((Time.unscaledTime - musicTransitionStartedAt) / duration);
-            MusicCrossfadeGains gains = MusicTransitionRules.EqualPowerCrossfade(progress);
-            if (gains.Incoming >= gains.Outgoing)
+            if (desired == musicSource.clip)
             {
-                CompleteMusicTransition();
+                // Reverse the envelope and swap live sources without touching either
+                // playhead. Each clip keeps exactly the gain it had before reversal.
+                AudioSource previousOutgoing = musicSource;
+                musicSource = musicFadeSource;
+                musicFadeSource = previousOutgoing;
+                musicTransitionStartedAt = Time.unscaledTime - (1f - progress) * duration;
                 return;
             }
 
-            musicFadeSource.Stop();
-            musicFadeSource.clip = null;
-            musicFadeSource.volume = 0f;
-            musicTransitionActive = false;
-            musicTransitionStartedAt = -1f;
+            // A third route must wait for a free source. Finish this envelope quickly
+            // at the same current gain rather than abruptly cutting off either clip.
+            float remaining = (1f - progress) * duration;
+            if (remaining <= AudioRuntimeRules.MusicRetargetSettleSeconds) return;
+            activeMusicTransitionDuration = AudioRuntimeRules.RetargetTransitionDuration(duration, progress);
+            musicTransitionStartedAt = Time.unscaledTime - progress * activeMusicTransitionDuration;
         }
 
         private void CompleteMusicTransition()
@@ -5449,7 +5470,10 @@ namespace AshenHalls
             float pitch = 1f,
             int priority = CombatAudioMixRules.ScheduledSfxPrioritySupporting)
         {
-            if (string.IsNullOrEmpty(key) || !soundClips.ContainsKey(key)) return;
+            if (string.IsNullOrEmpty(key) || !soundClips.ContainsKey(key)
+                || state == null || state.SfxMuted || CurrentUiOverlay() == UiOverlay.Pause) return;
+            scheduledSfx.RemoveAll(cue => !ScheduledSfxContextMatches(cue)
+                || AudioRuntimeRules.IsScheduledCueExpired(Time.time, cue.PlayAt));
             if (delay <= 0.005f)
             {
                 PlaySfxSpatial(key, volume, pan, pitch, priority);
@@ -5464,12 +5488,17 @@ namespace AshenHalls
                 Pan = Mathf.Clamp(pan, -0.85f, 0.85f),
                 Pitch = Mathf.Clamp(pitch, 0.90f, 1.10f),
                 Priority = Mathf.Clamp(priority, CombatAudioMixRules.ScheduledSfxPriorityAuxiliary, CombatAudioMixRules.ScheduledSfxPriorityPrimaryImpact),
-                Serial = scheduledSfxSerial++
+                Serial = scheduledSfxSerial++,
+                State = state,
+                Mode = state.Mode,
+                Map = state.Map,
+                Encounter = state.Mode == GameMode.Combat ? state.Combat : null
             };
 
             for (int i = 0; i < scheduledSfx.Count; i++)
             {
                 ScheduledSfxCue existing = scheduledSfx[i];
+                if (!ScheduledSfxContextMatches(existing)) continue;
                 if (!CombatAudioMixRules.ShouldCoalesceScheduledCue(
                     existing.Key,
                     existing.PlayAt,
@@ -5533,7 +5562,7 @@ namespace AshenHalls
         private void UpdateScheduledSfx()
         {
             if (scheduledSfx.Count == 0) return;
-            if (state == null || state.Mode != GameMode.Combat)
+            if (state == null || state.SfxMuted || CurrentUiOverlay() == UiOverlay.Pause)
             {
                 scheduledSfx.Clear();
                 return;
@@ -5544,6 +5573,12 @@ namespace AshenHalls
             for (int i = scheduledSfx.Count - 1; i >= 0; i--)
             {
                 ScheduledSfxCue cue = scheduledSfx[i];
+                if (!ScheduledSfxContextMatches(cue)
+                    || AudioRuntimeRules.IsScheduledCueExpired(now, cue.PlayAt))
+                {
+                    scheduledSfx.RemoveAt(i);
+                    continue;
+                }
                 if (now < cue.PlayAt) continue;
                 scheduledSfx.RemoveAt(i);
                 if (due == null) due = new List<ScheduledSfxCue>();

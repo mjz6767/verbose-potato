@@ -1,6 +1,12 @@
-Ash & Brimstone v2.26.0 - Rift & Ruin
+Ash & Brimstone v2.27.0 - Echoes of the Road
 
-Release version: v2.26.0. Save schema: v27.
+Release version: v2.27.0. Save schema: v27.
+
+Echoes of the Road expands the everyday soundscape with newly arranged music for town, the Grand Hearth, roads, camp and several battle settings. Equipment, discoveries, treasure and completed quests gain more distinct sound cues, and footsteps gain additional surface-specific variations. Music and SFX keep their independent volume controls.
+
+Interrupted music transitions retain smooth fades; queued sounds remain attached to their scene and encounter, and silencing effects clears old tails. The coordinated map update repairs the white background remnants around all 28 named and ambient NPC sprites, keeps pale clothing and highlights, and groups the contextual action, destination and E hint together.
+
+Existing campaigns remain compatible with save schema v27. Release checks and package hashes are recorded in Docs/ReleaseEvidence/v2.27.0-summary.json after verification. The v2.26 Windows archive is retained for rollback.
 
 Rift & Ruin gives warlocks a deeper ritual sound palette, distinct demon arrivals, soul-tearing impacts and larger summoning gates. Abyssal Ascendance unfolds spectral wings, and Death Burst pulls souls inward before releasing them. Demonic battles, the Demon Lord and arcane duels receive fuller original scores with choir, horns, strings and war drums. Music and effects retain independent volume controls; Reduced Motion keeps compact static impacts.
 

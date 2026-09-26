@@ -2124,7 +2124,7 @@ namespace AshenHalls
             lootPanelRequiresDismissal = true;
             MarkUiDirty();
             SyncLootPopupScreen();
-            QueueSfx("itemtake", 0.06f, 0.38f);
+            QueueSfx(GameAudioCueRules.LootCueFor(item), 0.12f, 0.38f);
         }
 
         private void AddLootPanelResources(int goldFound, int suppliesFound, int elixirsFound)

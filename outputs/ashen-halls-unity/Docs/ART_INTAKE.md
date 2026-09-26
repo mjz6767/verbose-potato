@@ -3,11 +3,21 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
-## Active v2.21.0 Midgaard road and citizen contract
+## Active v2.26.1 NPC alpha-repair contract (unreleased)
+
+`midgaard-npc-atlas-runtime-v2.26.1.png` and `world-npc-citizen-atlas-runtime-v2.26.1.png` supersede the v2.21 NPC exports. Their cell order and 1280 by 1024 / 1536 by 768 canvases are unchanged. This is an art revision; the playable preview still identifies as game v2.26.0 and retains save schema v27.
+
+The v2.21 exports contained opaque white/checkerboard remnants in enclosed gaps and beneath feet. Outer-border flood removal and silhouette coverage tests did not catch those defects. The user-approved repair uses installed Aseprite 1.3.18.5 through `Tools/RepairWorldNpcAtlases.ps1` and `Tools/RepairNpcAtlasMatte.lua`: hash-locked source files, reviewed per-cell negative-space seeds, bounded neutral fringe cleanup, and edge-connected translucent contact shadows. It does not globally color-key white, repaint, resize, or remap characters. Pale clothing, hair, lantern light, and metal highlights are protected by exact-color probes.
+
+Editable `source-midgaard-npc-atlas-v2.26.1.aseprite` and `source-world-npc-citizen-atlas-v2.26.1.aseprite` retain the unmodified v2.21 layer hidden beneath the visible corrected layer. Re-exporting either native file reproduces every runtime RGBA pixel exactly. Sibling validation JSON records tool version, source/output/native/recipe hashes and per-cell changed-pixel counts. Retain the old source exports for reproduction.
+
+All 28 cells retain their existing coverage and clear-gutter limits. Citizen visible heights are now 342–344 pixels, with 20–21 pixels above and below: removing matte may trim one silhouette pixel at either edge, without altering the 384-pixel frame. `NpcAtlasAlphaSmoke` checks six known enclosed matte sites and nine protected art details; the existing geometry, coverage and gutter tests remain active. Some named bottom-row heads were already clipped in the v2.21 source; this repair does not reconstruct that missing artwork. See `NPC_ALPHA_AND_HUD_AUDIT_2026-09-26.md` for verification and preview evidence.
+
+## v2.21.0 road contract and historical citizen source
 
 `midgaard-road-surface-atlas-runtime-v2.21.0.png` is the exact-pinned opaque 2 by 2 road-material sheet. It is 512 by 512 with four 256-pixel cells ordered civic cobble, civic setts, old-road stone-earth, and old-road fine gravel. Every cell is fully populated and must match its own opposite edges exactly. Runtime rejects incorrect geometry and retains the existing procedural shoulder/core road as a fail-closed fallback.
 
-`world-npc-citizen-atlas-runtime-v2.21.0.png` is the exact-pinned transparent 4 by 2 ambient-citizen sheet. It is 1536 by 768 with 384-pixel cells ordered lamplighter, fishmonger, tailor, mason, apothecary, road pilgrim, gravedigger, and caravan guide. Every cell uses a 344-pixel shared figure height, baseline 364, exact 20-pixel top/bottom gutters, and 25%-38% visible coverage.
+`world-npc-citizen-atlas-runtime-v2.21.0.png` was the exact-pinned transparent 4 by 2 ambient-citizen sheet. It is 1536 by 768 with 384-pixel cells ordered lamplighter, fishmonger, tailor, mason, apothecary, road pilgrim, gravedigger, and caravan guide. Every source cell uses a 344-pixel shared figure height, baseline 364, exact 20-pixel top/bottom gutters, and 25%-38% visible coverage. The current pin and repaired silhouette contract are documented above.
 
 Both accepted sources were created with built-in ImageGen from explicit style and role references. The exact prompts are preserved as `source-midgaard-road-surfaces-v2.21.0-prompt.txt` and `source-world-npc-citizens-v2.21.0-prompt.txt`. `Tools/BuildMidgaardWorldArtAtlases.py` deterministically removes baked neutral backgrounds from sprite sources, normalizes every figure, makes the road edges exactly seamless, and writes SHA-256-backed validation JSON. The accepted hashes are `428A853DF2FF339740DC5E54D3DB8061C608D1C6E2DA5041B4435A726AEA7E72` and `6F45940F1F590D2F4CE04450AD19A0C081611A06897B9B3952A51F2551AFB198`.
 

@@ -1,0 +1,138 @@
+{
+  "tool": "Aseprite",
+  "toolVersion": "1,3,18,5",
+  "source": "midgaard-npc-atlas-runtime-v2.21.0.png",
+  "sourceSha256": "7E33AECC377E690A03A62AC070481A6853BDDFF61C2C56E92E4060E1763F6C27",
+  "output": "midgaard-npc-atlas-runtime-v2.26.1.png",
+  "outputSha256": "4CA876765191A0A149B06FEC34F3952D0DB4B0C810BD90DBF38AEBF0DC3B3DA7",
+  "editable": "source-midgaard-npc-atlas-v2.26.1.aseprite",
+  "editableSha256": "FABE58A30A4DFD3238331BA6EE91A61119AA0D7DFDA4E023032C71CD0EAB78DC",
+  "recipeSha256": "6A4AC0F3087AA73CDCEFDB01161DA313E527F069D7923569F0563A7C2B6194BA",
+  "geometry": [
+    1280,
+    1024
+  ],
+  "cells": [
+    {
+      "cell": 0,
+      "removed": 1957,
+      "shadowPixels": 700,
+      "unchanged": 62879
+    },
+    {
+      "cell": 1,
+      "removed": 2034,
+      "shadowPixels": 712,
+      "unchanged": 62790
+    },
+    {
+      "cell": 2,
+      "removed": 1354,
+      "shadowPixels": 877,
+      "unchanged": 63305
+    },
+    {
+      "cell": 3,
+      "removed": 1297,
+      "shadowPixels": 541,
+      "unchanged": 63698
+    },
+    {
+      "cell": 4,
+      "removed": 2222,
+      "shadowPixels": 540,
+      "unchanged": 62774
+    },
+    {
+      "cell": 5,
+      "removed": 1579,
+      "shadowPixels": 669,
+      "unchanged": 63288
+    },
+    {
+      "cell": 6,
+      "removed": 1951,
+      "shadowPixels": 723,
+      "unchanged": 62862
+    },
+    {
+      "cell": 7,
+      "removed": 2409,
+      "shadowPixels": 710,
+      "unchanged": 62417
+    },
+    {
+      "cell": 8,
+      "removed": 1699,
+      "shadowPixels": 799,
+      "unchanged": 63038
+    },
+    {
+      "cell": 9,
+      "removed": 1243,
+      "shadowPixels": 539,
+      "unchanged": 63754
+    },
+    {
+      "cell": 10,
+      "removed": 1409,
+      "shadowPixels": 720,
+      "unchanged": 63407
+    },
+    {
+      "cell": 11,
+      "removed": 1755,
+      "shadowPixels": 695,
+      "unchanged": 63086
+    },
+    {
+      "cell": 12,
+      "removed": 2075,
+      "shadowPixels": 787,
+      "unchanged": 62674
+    },
+    {
+      "cell": 13,
+      "removed": 1815,
+      "shadowPixels": 560,
+      "unchanged": 63161
+    },
+    {
+      "cell": 14,
+      "removed": 2107,
+      "shadowPixels": 680,
+      "unchanged": 62749
+    },
+    {
+      "cell": 15,
+      "removed": 1101,
+      "shadowPixels": 475,
+      "unchanged": 63960
+    },
+    {
+      "cell": 16,
+      "removed": 2264,
+      "shadowPixels": 886,
+      "unchanged": 62386
+    },
+    {
+      "cell": 17,
+      "removed": 1451,
+      "shadowPixels": 748,
+      "unchanged": 63337
+    },
+    {
+      "cell": 18,
+      "removed": 2517,
+      "shadowPixels": 997,
+      "unchanged": 62022
+    },
+    {
+      "cell": 19,
+      "removed": 1827,
+      "shadowPixels": 715,
+      "unchanged": 62994
+    }
+  ],
+  "note": "Native Aseprite cleanup. Original reference layer retained hidden; corrected layer visible. No generated replacement art, character resizing or remapping."
+}

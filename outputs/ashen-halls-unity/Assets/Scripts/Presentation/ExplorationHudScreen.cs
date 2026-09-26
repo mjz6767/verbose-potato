@@ -171,6 +171,22 @@ namespace AshenHalls
         }
     }
 
+    public readonly struct ExplorationActionContentGeometry
+    {
+        public readonly Rect Label;
+        public readonly Rect Target;
+        public readonly Rect Key;
+        public readonly Rect Icon;
+
+        public ExplorationActionContentGeometry(Rect label, Rect target, Rect key, Rect icon)
+        {
+            Label = label;
+            Target = target;
+            Key = key;
+            Icon = icon;
+        }
+    }
+
     public static class ExplorationHudScreenLayout
     {
         public const float DetailsBoardGap = 10f;
@@ -271,6 +287,28 @@ namespace AshenHalls
                 sideHeight - 40f * scale,
                 Mathf.Max(1f, sideWidth - padding * 2f),
                 32f * scale);
+        }
+
+        public static ExplorationActionContentGeometry ActionContent(Rect action, float scale, float desiredTextWidth, bool hasAction, bool showIcon = false)
+        {
+            scale = Mathf.Clamp(scale, 1f, 1.25f);
+            float padding = 12f * scale;
+            float gap = 12f * scale;
+            float keyWidth = hasAction ? 32f * scale : 0f;
+            float iconWidth = showIcon ? 32f * scale : 0f;
+            float leading = showIcon ? iconWidth + gap : 0f;
+            float trailing = hasAction ? keyWidth + gap : 0f;
+            float maximumTextWidth = Mathf.Max(1f, action.width - padding * 2f - leading - trailing);
+            float textWidth = Mathf.Min(maximumTextWidth, Mathf.Max(140f * scale, desiredTextWidth + 4f * scale));
+            float groupX = action.x + (action.width - textWidth - leading - trailing) * 0.5f;
+            float textX = groupX + leading;
+            // The control keeps its full hit area, but E belongs beside the
+            // action copy rather than at the far edge of a wide empty slab.
+            return new ExplorationActionContentGeometry(
+                new Rect(textX, action.y + 5f * scale, textWidth, 24f * scale),
+                new Rect(textX, action.y + 29f * scale, textWidth, 18f * scale),
+                hasAction ? new Rect(textX + textWidth + gap, action.y + 10f * scale, keyWidth, 32f * scale) : Rect.zero,
+                showIcon ? new Rect(groupX, action.y + 10f * scale, iconWidth, 32f * scale) : Rect.zero);
         }
 
         // Two readable lines fit inside the existing rail header; neither long
@@ -534,6 +572,10 @@ namespace AshenHalls
                 : view.ActionTarget;
             actionButton.interactable = view.HasAction;
             actionKeyText.text = view.HasAction ? "E" : "";
+            actionLabelText.color = view.HasAction ? Hex("f3ead7", 1f) : Hex("9aa7a5", 1f);
+            actionLabelText.fontStyle = view.HasAction ? FontStyle.Bold : FontStyle.Normal;
+            actionTargetText.color = view.HasAction ? Hex("d0c5ae", 1f) : Hex("8b9996", 1f);
+            LayoutContextualAction(ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height));
             detailsButtonText.text = view.DetailsOpen ? "Close · Q" : "Details · Q";
             mapButtonText.text = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase)
                 ? "Local\nTab / Y"
@@ -720,14 +762,23 @@ namespace AshenHalls
 
             Rect[] buttons = ExplorationHudScreenLayout.CommandButtons(geometry.Command.width);
             SetLocalRect(actionButton.GetComponent<RectTransform>(), buttons[0]);
-            SetLocalRect(actionLabelText.rectTransform, new Rect(12f * scale, 5f * scale, buttons[0].width - 62f * scale, 24f * scale));
-            actionLabelText.alignment = TextAnchor.MiddleCenter;
-            SetLocalRect(actionTargetText.rectTransform, new Rect(12f * scale, 29f * scale, buttons[0].width - 62f * scale, 18f * scale));
-            SetLocalRect(actionKeyText.rectTransform, new Rect(buttons[0].width - 44f * scale, 10f * scale, 32f * scale, 32f * scale));
+            LayoutContextualAction(scale);
             SetLocalRect(mapButton.GetComponent<RectTransform>(), buttons[1]);
             SetLocalRect(journalButton.GetComponent<RectTransform>(), buttons[2]);
             SetLocalRect(partyButton.GetComponent<RectTransform>(), buttons[3]);
             SetLocalRect(menuButton.GetComponent<RectTransform>(), buttons[4]);
+        }
+
+        private void LayoutContextualAction(float scale)
+        {
+            float desiredTextWidth = Mathf.Max(actionLabelText.preferredWidth, actionTargetText.preferredWidth);
+            Rect button = actionButton.GetComponent<RectTransform>().rect;
+            ExplorationActionContentGeometry content = ExplorationHudScreenLayout.ActionContent(
+                new Rect(0f, 0f, button.width, button.height), scale, desiredTextWidth, actionButton.interactable);
+            SetLocalRect(actionLabelText.rectTransform, content.Label);
+            SetLocalRect(actionTargetText.rectTransform, content.Target);
+            SetLocalRect(actionKeyText.rectTransform, content.Key);
+            actionLabelText.alignment = TextAnchor.MiddleCenter;
         }
 
         private void ApplyResponsiveTypography(float width, float height)
