@@ -4,6 +4,8 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 
 ## v2.27.0 - Echoes of the Road
 
+- Full Unity audit, repeated Windows build gates, 12 music contracts, all 26 new SFX checks, clean-source packaging and clean-extracted startup pass from `a706eca4a3f70977be79844749d6b5b17bec37ce`. ZIP SHA-256 is `4f5dc82724231bf6e4797013772edeff583258e8deebf49b5a9f4fdad66090a9`. The hidden-window final visual capture was black and rejected; visible final-player review awaits permission. Earlier NPC/HUD preview review and all limitations are recorded in `Docs/ReleaseEvidence/v2.27.0-summary.json`.
+
 - Recompose eight everyday score routes with original eight-bar arrangements, contrasting phrases and distinct instrumentation for the Grand Hearth, Midgaard, the Old Road, camp, ordinary combat, cistern combat, kobolds and bosses. Preserve route identities, seamless loops and the earlier demonic scores.
 - Give equipment materials, rare loot, chest openings, discoveries and quest completion distinct sound cues. Add alternate footsteps across eight surfaces while keeping effects within the existing bounded voice mix.
 - Bind delayed effects to their scene and encounter, allow delayed exploration cues to play, and discard obsolete cues after transitions. Muting effects stops existing tails. Interrupted music fades retain source continuity, including reversals, and repeated cues vary independently.

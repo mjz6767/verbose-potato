@@ -1,0 +1,282 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.27.0",
+  "releaseStage": "Echoes of the Road",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-09-26T19:43:43.5755523Z",
+  "sourceCommit": "a706eca4a3f70977be79844749d6b5b17bec37ce",
+  "sourceDirty": false,
+  "developmentPackage": false,
+  "coordination": {
+    "audioTask": "Add richer game audio",
+    "mapTask": "Audit and improve current codebase",
+    "note": "Combined the completed NPC alpha and contextual HUD fixes with eight everyday score arrangements, 26 sound masters and runtime audio lifecycle repairs."
+  },
+  "package": {
+    "file": "AshAndBrimstone-Windows-v2.27.0.zip",
+    "bytes": 230556099,
+    "sha256": "4f5dc82724231bf6e4797013772edeff583258e8deebf49b5a9f4fdad66090a9",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "111893dcf7fb11479fd02249a908a83c8fb21290233896584fac00a730e89d76",
+    "cleanExtractLaunch": true,
+    "packagedBootMode": "batchmode-explore-smoke",
+    "playerExitCode": 0,
+    "packagedArtCount": 92,
+    "sourceStagedAndZippedArtHashesMatch": true,
+    "previousV226ArchivePreserved": true,
+    "previousV226Sha256": "f8c7c1b46328ef1a2e88616ca52cd63115b15d98a6ffe408b19dbf87b7f57a78"
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "exitCode": 0,
+    "passed": [
+      "Rules",
+      "Audio lifecycle",
+      "Everyday sound effects",
+      "Inventory and loot",
+      "Sprite art",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "repeatedDuringWindowsBuild": true,
+    "rejectsLoggedErrors": true,
+    "initialFailure": "Updated the pre-existing exact SFX bank inventory from 161 to 187, retaining an exact key-set check, then reran the Full audit successfully."
+  },
+  "audioQa": {
+    "originalSynthesis": true,
+    "externalSamples": false,
+    "pythonContractTestsPassed": 12,
+    "fullOriginalBankValidationPassed": true,
+    "everydayDeterministicValidationPassed": true,
+    "musicMasterCount": 54,
+    "unchangedMusicMasterCount": 46,
+    "newEverydayMasters": 26,
+    "totalImportedSfxMasters": 187,
+    "newEventCues": 10,
+    "newFootstepVariants": 16,
+    "variedSurfaces": 8,
+    "music": [
+      {
+        "cue": "four_names_by_the_fire_loop",
+        "title": "Four Names by the Fire",
+        "lead": "lute",
+        "sha256": "bf8c4761290a91f9771bb918c22601f9be52eb5e4256f7fabcc9add27f60956c",
+        "duration_seconds": 26.6667,
+        "peak_dbfs": -5.683,
+        "rms_dbfs": -22.716,
+        "seam_delta_dbfs": -68.03,
+        "wrap_max_step": 0.0004272,
+        "phrase_rms_dbfs": [
+          -22.307,
+          -21.898,
+          -27.574,
+          -21.358
+        ],
+        "phrase_contrast_db": 6.216,
+        "stereo_correlation": 0.9113,
+        "preview_start_seconds": 0.0
+      },
+      {
+        "cue": "midgaard_lamps_loop",
+        "title": "Lamps of Midgaard",
+        "lead": "flute",
+        "sha256": "86b0144edc41c42f3012e8e935ef5860d04c2b00c7f37992457d2a85b55b8961",
+        "duration_seconds": 22.8572,
+        "peak_dbfs": -6.614,
+        "rms_dbfs": -21.0,
+        "seam_delta_dbfs": -76.33,
+        "wrap_max_step": 0.0001831,
+        "phrase_rms_dbfs": [
+          -20.457,
+          -19.858,
+          -27.953,
+          -19.651
+        ],
+        "phrase_contrast_db": 8.302,
+        "stereo_correlation": 0.9258,
+        "preview_start_seconds": 12.4
+      },
+      {
+        "cue": "old_road_walk_loop",
+        "title": "Boots on the Old Road",
+        "lead": "flute",
+        "sha256": "c8e52e8c2900c325dbd05556025b71cc192118120967e61eb18a05ca4fb32dec",
+        "duration_seconds": 20.8696,
+        "peak_dbfs": -7.39,
+        "rms_dbfs": -21.0,
+        "seam_delta_dbfs": -76.33,
+        "wrap_max_step": 0.0001526,
+        "phrase_rms_dbfs": [
+          -20.32,
+          -19.965,
+          -28.291,
+          -19.618
+        ],
+        "phrase_contrast_db": 8.673,
+        "stereo_correlation": 0.9334,
+        "preview_start_seconds": 24.8
+      },
+      {
+        "cue": "a_fire_between_roads_loop",
+        "title": "A Fire between Roads",
+        "lead": "lute",
+        "sha256": "a6fd8ddf942c32f9a74e84b3bf85562e363bca2836347807d6959142267e2544",
+        "duration_seconds": 25.2632,
+        "peak_dbfs": -6.217,
+        "rms_dbfs": -22.7,
+        "seam_delta_dbfs": -74.746,
+        "wrap_max_step": 0.0001831,
+        "phrase_rms_dbfs": [
+          -23.343,
+          -21.246,
+          -27.101,
+          -21.311
+        ],
+        "phrase_contrast_db": 5.855,
+        "stereo_correlation": 0.908,
+        "preview_start_seconds": 37.2
+      },
+      {
+        "cue": "combat_battle_pulse_loop",
+        "title": "Steel in the Lantern Smoke",
+        "lead": "brass",
+        "sha256": "8258f30e7f3d5574c234e8c4d6667f792fd2ebe3ad1bbe6810ea26056f76cdfe",
+        "duration_seconds": 17.1428,
+        "peak_dbfs": -4.713,
+        "rms_dbfs": -19.8,
+        "seam_delta_dbfs": -69.481,
+        "wrap_max_step": 0.0003357,
+        "phrase_rms_dbfs": [
+          -19.719,
+          -18.407,
+          -25.889,
+          -18.475
+        ],
+        "phrase_contrast_db": 7.482,
+        "stereo_correlation": 0.9062,
+        "preview_start_seconds": 49.6
+      },
+      {
+        "cue": "sewer_hunt_combat_loop",
+        "title": "The Cistern Gives Chase",
+        "lead": "spiccato",
+        "sha256": "62f69e52cb00ea0219fbb5fac1ac1e1683e12a181c87b5d4cd368db55397840d",
+        "duration_seconds": 18.4615,
+        "peak_dbfs": -6.273,
+        "rms_dbfs": -20.104,
+        "seam_delta_dbfs": -68.03,
+        "wrap_max_step": 0.0003967,
+        "phrase_rms_dbfs": [
+          -19.655,
+          -18.882,
+          -26.473,
+          -18.848
+        ],
+        "phrase_contrast_db": 7.625,
+        "stereo_correlation": 0.9114,
+        "preview_start_seconds": 62.0
+      },
+      {
+        "cue": "kobold_hide_drums_loop",
+        "title": "Hide Drums in the Dark",
+        "lead": "lute",
+        "sha256": "c0b218913d2516896c1f857f0aba13bdc8702eaaf7f19a8bdb181aee1ea6eb3e",
+        "duration_seconds": 16.2712,
+        "peak_dbfs": -5.23,
+        "rms_dbfs": -20.198,
+        "seam_delta_dbfs": -62.35,
+        "wrap_max_step": 0.0007935,
+        "phrase_rms_dbfs": [
+          -19.52,
+          -18.86,
+          -28.068,
+          -19.036
+        ],
+        "phrase_contrast_db": 9.208,
+        "stereo_correlation": 0.93,
+        "preview_start_seconds": 74.4
+      },
+      {
+        "cue": "crown_and_ashes_boss_loop",
+        "title": "Crown and Ashes",
+        "lead": "brass",
+        "sha256": "062a8dbb155dc075ae52512d559de05d7eca59b35644e95c2b0724608ae907bb",
+        "duration_seconds": 20.0,
+        "peak_dbfs": -5.509,
+        "rms_dbfs": -19.8,
+        "seam_delta_dbfs": -80.767,
+        "wrap_max_step": 0.0001221,
+        "phrase_rms_dbfs": [
+          -19.283,
+          -18.87,
+          -26.135,
+          -18.333
+        ],
+        "phrase_contrast_db": 7.802,
+        "stereo_correlation": 0.9099,
+        "preview_start_seconds": 86.8
+      }
+    ],
+    "everydayPeakMaximum": 0.768738,
+    "voiceLimit": 8,
+    "runtimeCoverage": [
+      "Non-combat delayed effects play",
+      "Mode, map, state and encounter transitions clear stale queue entries",
+      "Expired cues and stale queue capacity are discarded",
+      "Mute stops old tails and clears ducking",
+      "Independent cue rotation and missing-variant fallback",
+      "Music reversal retains gains and playheads",
+      "Third music route settles within 180 ms before next fade"
+    ],
+    "independentCodeReview": "A second agent found an optional-variant fallback imbalance; corrected and covered before the successful Full audit.",
+    "subjectiveListeningPerformed": false
+  },
+  "visualQa": {
+    "status": "final-player-visual-check-pending-visible-window-permission",
+    "hiddenCaptureRejected": "QA/world-sprites/20260926-193828-a676b8dd/npc-kate-local-960x600.log reported NearUniformBlack and exit 2; not counted as passing.",
+    "previewEvidence": "Docs/NPC_ALPHA_AND_HUD_AUDIT_2026-09-26.md",
+    "finalCaptureCount": 0,
+    "priorPreviewCaptureCount": 12,
+    "priorPreviewIndependentReview": true,
+    "finalDisposition": "Final hidden-window capture was rejected, not counted as a pass. Publication proceeds under the original user request; visible-window capture remains pending explicit permission."
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/project-audit/20260926-193428-3c833c33/unity.log",
+      "sha256": "e4a61be39ad94615d34bbaedb32daac25ab6958a6276af25c22e7f64f8a33d7e",
+      "tracked": false
+    },
+    {
+      "path": "build-v2.27.0.log",
+      "sha256": "33369c8ec169acbade1814660897ce51206551ea7339cdbe59f5aa9660dc500c",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.27.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "0948dd71ee85c97b854d660a1dd2d4b5c9d061748625b389c2b4030d07e02bf0",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.27.0-release-integrity/clean-extract-boot.log",
+      "sha256": "e20cd0f95d365adc4ea399c8504624b2fa861a2558ef996f6f6899f7047ce93e",
+      "tracked": false
+    },
+    {
+      "path": "QA/journey-score-2026-09-26/listening-preview.wav",
+      "sha256": "3694b624ec067b8aede42d9dee9574d72fb86eda8443410e87182d87b33246f7",
+      "tracked": false
+    },
+    {
+      "path": "QA/everyday-audio/everyday-sfx-preview.wav",
+      "sha256": "6224fc1bcafa851be5bcfcc577a5c29c0200e59ab5f093c83011839926b799b3",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "Raw logs, previews, screenshots and Windows ZIP remain local and ignored; this tracked summary records their hashes.",
+    "This evidence commit follows the immutable package; the archive retains its pre-verification documentation snapshot and source commit.",
+    "Subjective listening, physical-controller feel and a complete human campaign were not performed.",
+    "Existing clipped head tops in several v2.21 named NPC sprites remain as documented in the map audit; this update repairs alpha backgrounds without reconstructing the source artwork."
+  ]
+}
