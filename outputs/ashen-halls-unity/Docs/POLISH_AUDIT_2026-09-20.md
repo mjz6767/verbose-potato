@@ -4,7 +4,13 @@
 
 The user requested a retry. Unity now works with access to its existing licensing service outside the sandbox; authentication/license activation was not automated or bypassed. The first licensed pass found one stale release-label assertion expecting v2.24.0. It was updated to the intended v2.25.0 without weakening any gameplay, art or input check.
 
-The complete licensed Full audit subsequently passed: Rules, Inventory and loot, Sprite art, Combat UI and Runtime boot. Exact log: `QA/project-audit/20260926-143756-10536d9a/unity.log`. All newly integrated combat-decision and map-sprite regressions ran. Clean-source retail packaging and final-player review follow from this frozen source; final results belong in `Docs/ReleaseEvidence/v2.25.0-summary.json`.
+The complete licensed Full audit subsequently passed: Rules, Inventory and loot, Sprite art, Combat UI and Runtime boot. Exact log: `QA/project-audit/20260926-143756-10536d9a/unity.log`. All newly integrated combat-decision and map-sprite regressions ran.
+
+The final retail package was built from clean source `ed175db4d82ca1d468c466a5ada0f1ab69047a53`; all embedded gates and clean-extracted boot passed. All 92 source/staged/zipped art hashes agree. Both versioned destinations listed below now exist; the 229,997,861-byte ZIP has SHA-256 `cb6a0e2170646aa450b6ef3a0f02d0417caf76546f5dce9ad11f185dfb19e0db`. The previous v2.24 ZIP is unchanged.
+
+Final-player review covers 33 accepted exact-size screenshots: 18 Local/Region NPC/landmark views at 960x600, 1280x720 and 1920x1080, ten combat-effect views at 1280x720, and five combat-decision views at 960x600/1920x1080. All five deterministic packets pass without warnings; subsequent assistant review found no release-blocking issue. Secondary Region metadata truncation and tall roofs/smoke reaching the board header remain cosmetic follow-ups. Static selected-power fixtures can retain the baseline Fireball/Cairn banner and damage float; they certify effect readability, not live labels or timing.
+
+Real keyboard/pointer checks in the final visible retail player passed Local scroll safety, Region pan/return without party movement, Kate dialogue open/close, Details mouse/Q controls, E/Q combat target cycling, and Return attack confirmation with Action Used feedback. Only isolated save-blocked fixtures were used and their owned processes were closed. Physical-controller feel, subjective listening and a full human campaign remain unchecked. Exact provenance, capture hashes, observations and limits are recorded in `Docs/ReleaseEvidence/v2.25.0-summary.json`. This evidence is committed after packaging; the immutable ZIP retains its pre-verification documentation snapshot.
 
 ## Historical September 20 status
 
@@ -21,7 +27,7 @@ At that checkpoint, Unity exited with code 198 before starting tests because it 
 - Ambient citizens/interior patrons align with the named-NPC footline, with yielding kept within the terrain row. Atlas identities, art files, collision and dialogue behavior are unchanged.
 - Region contact capture staging now recenters after moving the fixture party. `Tools/InvokeWorldSpriteCapture.ps1` captures four named contacts plus Region contact/landmark views and creates an acceptance packet. The earlier combat phase capture tool remains available.
 
-## Verification performed
+## Historical September 20 verification performed
 
 - Independent static second-pass review: no actionable defects found in grounding/focus/interaction ownership or combat readiness/rejection/healing arithmetic.
 - `Tools/InvokeSourceCompile.ps1`: PASS, 138 runtime source files and 26 editor source files, zero diagnostics. Uses Unity's existing editor response configuration with refreshed source lists; outputs only under `QA/source-compile`, never into the live build cache. This is source compilation, **not** a Unity runtime test or build.
@@ -44,7 +50,7 @@ Failed licensed audit logs (test suites never started):
 5. Verify final retail-player captures, clean-extracted boot, all art hashes and package manifest. Record immutable source/package/capture evidence in `Docs/ReleaseEvidence/v2.25.0-summary.json` and commit it separately.
 6. Recheck remote main and publish through the established non-force source push plus local versioned Windows ZIP/build folder. Do not create a new distribution channel implicitly: the existing GitHub repository has no Releases/upload workflow.
 
-Expected destinations, **not yet produced**:
+Destinations expected at the historical checkpoint (produced September 26):
 
 - `outputs/AshAndBrimstone-Windows-v2.25.0.zip` (relative to Git repository)
 - `outputs/ash-and-brimstone-build/AshAndBrimstone-Windows-v2.25.0`

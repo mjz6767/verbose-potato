@@ -1,0 +1,173 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.25.0",
+  "releaseStage": "Steel & Streets",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-09-26T14:53:02Z",
+  "sourceCommit": "ed175db4d82ca1d468c466a5ada0f1ab69047a53",
+  "sourceDirty": false,
+  "developmentPackage": false,
+  "package": {
+    "file": "AshAndBrimstone-Windows-v2.25.0.zip",
+    "bytes": 229997861,
+    "sha256": "cb6a0e2170646aa450b6ef3a0f02d0417caf76546f5dce9ad11f185dfb19e0db",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "47911d1abddccb1f79eb93af37c8789a665633bc471892bc704d2a4aa6cd6ae3",
+    "cleanExtractLaunch": true,
+    "packagedBootMode": "batchmode-explore-smoke",
+    "playerExitCode": 0,
+    "packagedArtCount": 92,
+    "sourceStagedAndZippedArtHashesMatch": true,
+    "previousV224ArchivePreserved": true
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "exitCode": 0,
+    "passed": [
+      "Rules",
+      "Inventory and loot",
+      "Sprite art",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "newRegressionCoverage": [
+      "CombatDecisionPolishSmoke",
+      "WorldMapSpritePolishSmoke"
+    ],
+    "rejectsLoggedErrors": true,
+    "repeatedDuringWindowsBuild": true,
+    "retryNote": "The existing licensing service was accessible outside the sandbox. One stale v2.24 release-label assertion was corrected to v2.25 without weakening gameplay, art or input checks; the subsequent Full audit and all build gates passed. Authentication and license activation were not automated."
+  },
+  "visualQa": {
+    "status": "passed-with-nonblocking-observations",
+    "captureCount": 33,
+    "deterministicPassed": true,
+    "packetWarningCount": 0,
+    "packetFailureCount": 0,
+    "groups": [
+      {
+        "kind": "world-map-npcs-and-landmark",
+        "resolution": "960x600",
+        "captureCount": 6,
+        "packet": "QA/world-sprites/20260926-144131-7099c67c/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "da27fc4051c1281236a90fca724618ecae30515b57ac2ae2e7d11ef0707c5eaa"
+      },
+      {
+        "kind": "world-map-npcs-and-landmark",
+        "resolution": "1280x720",
+        "captureCount": 6,
+        "packet": "QA/world-sprites/20260926-144246-afa5ba4a/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "c12a3a50321e91506d38667ca6663de1f7da204f5e59a026ba20375e14a67774"
+      },
+      {
+        "kind": "world-map-npcs-and-landmark",
+        "resolution": "1920x1080",
+        "captureCount": 6,
+        "packet": "QA/world-sprites/20260926-144402-94fdf6cc/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "2c71a483446656e5633227839f22e7c4f38cbed229a859ab18d07fe74bdc9fdd"
+      },
+      {
+        "kind": "combat-effects",
+        "resolution": "1280x720",
+        "captureCount": 10,
+        "packet": "QA/combat-effects/20260926-144519-9edf4f97/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "1b9937fa0d20c60b8123497286315091e55ffbc09ffdd3b684905be31cf2862a",
+        "coverage": [
+          "Fireball cast, travel, impact and aftermath",
+          "Frost and rift travel",
+          "Charge and Whirlwind impact",
+          "Volley travel",
+          "Reduced Motion Fireball impact"
+        ]
+      },
+      {
+        "kind": "combat-decisions",
+        "resolutions": {
+          "960x600": 4,
+          "1920x1080": 1
+        },
+        "captureCount": 5,
+        "packet": "QA/v2.25.0-combat-decisions/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "f06b3ecec28021438186bf086f453646d0b2ff5505137e6ee1a5fe98a6ff63b4",
+        "coverage": [
+          "move-path",
+          "attack-legal",
+          "attack-blocked",
+          "spell-aoe",
+          "cursor-cycle"
+        ]
+      }
+    ],
+    "subsequentAssistantReview": {
+      "performed": true,
+      "assistantReviewedCaptureCount": 33,
+      "advisoryOnly": true,
+      "changesDeterministicStatus": false,
+      "note": "All 33 final retail-player images were inspected in this conversation by the primary assistant and combat/map reviewers. Raw deterministic packets correctly retain aiReview.performed=false; this records the separate subsequent review, not an API review embedded in those packets."
+    },
+    "nonblockingObservations": [
+      "Secondary Region header metadata truncates in its narrow slot; chart percentage and required actions remain visible.",
+      "Tall building roofs or smoke can extend into the board header near viewport edges, especially in large Lute/Dock views; no required action or contact identity is lost.",
+      "Selected-power VFX fixtures can retain the baseline Fireball/Cairn banner and a detached -12 float because showcase cleanup does not clear combatPowerCue/floatTexts. Those captures establish effect art/readability, not live selected-power label, timing, or audio correctness; this is fixture contamination, not a demonstrated live combat defect."
+    ]
+  },
+  "inputReview": {
+    "automatedRuntimeHandlerTestsPassed": true,
+    "liveKeyboardPointerPerformed": true,
+    "mode": "visible final retail player, isolated save-blocked fixtures, real Windows input",
+    "mapPassed": [
+      "Mouse wheel over Local map did not move the party or open dialogue.",
+      "E opened Kate's conversation; Escape closed it.",
+      "Tab switched to Region; wheel input panned the inspected map without moving the party; Tab returned to the same Local party position.",
+      "Mouse click opened Details; Q closed Details."
+    ],
+    "combatPassed": [
+      "E cycled from Kobold Shaman to Kobold Bone Wizard; Q returned to Kobold Shaman.",
+      "Return confirmed the targeted attack; impact feedback appeared, Action changed to Used, and movement remained available."
+    ],
+    "cleanup": "Only the two owned fixture processes were stopped after checks. No user campaign was written.",
+    "physicalControllerPerformed": false,
+    "subjectiveListeningPerformed": false,
+    "completeHumanCampaignPerformed": false,
+    "note": "Visible state was inspected after each input. Retained boot logs identify version and fixture, but do not independently enumerate input actions. Live observations are not included in the 33 deterministic capture count."
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/v2.25.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "1b915b1e16b8d65033cb8592710acc8b6dd7236afff0d518d1d0dc7061426093",
+      "tracked": false
+    },
+    {
+      "path": "QA/project-audit/20260926-143756-10536d9a/unity.log",
+      "sha256": "da50d07b488a6032f27e1644a111278d41e5f26f2efcec68edf16e9dbcc6b8c6",
+      "tracked": false
+    },
+    {
+      "path": "build-v2.25.0.log",
+      "sha256": "81987d8723fe0104d7829b9cd750c534c26df54917d97fea1b07a1cb48aeb382",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.25.0-release-integrity/clean-extract-boot.log",
+      "sha256": "f4ef3ad6bc53216f33ba24ec5fd7e90bf71513a5409d1a39cc83408df302493f",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.25.0-live-input-map.log",
+      "sha256": "34fa91f58d32060e3c190c2938dcddf6fa8b5e8d7f4eee33280377aa99e79960",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.25.0-live-input-combat.log",
+      "sha256": "1f2279419025ce484b81e47b9e0d2ac691a41697e9f687063c85e8f56a1894a5",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "This compact tracked file indexes retained local evidence; raw logs, manifests, captures, and the ZIP remain local and ignored.",
+    "This evidence commit follows the immutable package build; the archive retains its pre-verification documentation snapshot. Its runtime/source provenance remains ed175db4d82ca1d468c466a5ada0f1ab69047a53.",
+    "Physical-controller feel, subjective sound listening, live Reduced Motion comparison, and a complete human Chapter I-V playthrough remain manual follow-ups.",
+    "The 18 map shots cover Kate, Lute, Dock and Scholar Local contacts plus Kate Region and a Region landmark, not every map/NPC combination. Static combat shots do not certify all powers or dynamic timing."
+  ]
+}
