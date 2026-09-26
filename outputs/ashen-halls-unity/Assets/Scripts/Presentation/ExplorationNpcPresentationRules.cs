@@ -55,9 +55,12 @@ namespace AshenHalls
                 cell.width * 0.86f, cell.height * 0.08f);
         }
 
-        public static bool ShouldShowContactBadge(bool wideView, float cellPixels, bool focused)
+        public static bool ShouldShowContactBadge(bool wideView, float cellPixels, bool focused, bool currentInteraction = false)
         {
-            return !wideView && focused && cellPixels >= 44f && !float.IsInfinity(cellPixels);
+            // The active contact already owns the E key and a foot-level cue.
+            // Keep its role in the action rail instead of stacking another chip.
+            return !wideView && focused && !currentInteraction
+                && cellPixels >= 44f && !float.IsInfinity(cellPixels);
         }
 
         public static Rect ContactBadge(Rect cell)
@@ -80,6 +83,20 @@ namespace AshenHalls
             // Region view uses landmark and role markers; full-body passersby
             // become visual noise at that scale.
             return !wideView;
+        }
+
+        public static bool ShouldDrawInteriorAmbientPatron(bool wideView)
+        {
+            // Interior crowds are local scenery, just like exterior passersby.
+            // Do not repaint six tiny body sprites on a strategic Region map.
+            return !wideView;
+        }
+
+        public static bool ShouldUseRegionRoleMarker(bool wideView, bool namedContactOrGuard)
+        {
+            // One representation per view: proximity and objective importance
+            // change emphasis/visibility, not the actor's visual language.
+            return wideView && namedContactOrGuard;
         }
 
         public static float ExteriorAmbientPadding(bool wideView)

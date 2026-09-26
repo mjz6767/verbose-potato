@@ -23,6 +23,7 @@ namespace AshenHalls.Editor
 
         public static void RunOrThrow()
         {
+            DemonicRitualsStayDistinctAndBounded();
             string[] skills = { "charge", "shieldbash", "rally", "whirlwind", "execute", "sunder", "stealth", "ambush", "smokebomb", "throwknife", "eviscerate", "shadowstep", "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" };
             string[] spells = { "fireball", "meteor", "frost", "tempest", "riftbolt", "lessersummon", "greatersummon", "ascendance", "pactbrand", "doomcircle", "soulveil", "hex" };
             for (int intensity = 1; intensity <= 3; intensity++)
@@ -56,6 +57,26 @@ namespace AshenHalls.Editor
             }
             Require(CombatPowerVisualRules.ImpactSnap(-1f) == 0f, "negative impact time is clamped");
             Require(CombatPowerVisualRules.ImpactSnap(2f) == CombatPowerVisualRules.ImpactSnap(1f), "late impact time is clamped");
+        }
+
+        private static void DemonicRitualsStayDistinctAndBounded()
+        {
+            Require(MageWarlockSpellVfxRules.DemonicStyleFor("IBD") == DemonicSpellVfxStyle.LesserSummon, "imp spell keeps a lesser gate");
+            Require(MageWarlockSpellVfxRules.DemonicStyleFor("IBG") == DemonicSpellVfxStyle.GreaterSummon, "greater summon keeps a crowned gate");
+            Require(MageWarlockSpellVfxRules.DemonicStyleFor("DFA") == DemonicSpellVfxStyle.Ascendance, "transformation keeps its winged signature");
+            Require(MageWarlockSpellVfxRules.DemonicStyleFor("deathburst") == DemonicSpellVfxStyle.Soul, "deathburst uses the soul implosion");
+            Require(MageWarlockSpellVfxRules.DemonicStyleFor("FBL") == DemonicSpellVfxStyle.None, "elemental spell never borrows a demonic ritual");
+            for (int intensity = 1; intensity <= 3; intensity++)
+            {
+                float lesser = MageWarlockSpellVfxRules.DemonicGateRadiusCells("IBD", intensity);
+                float greater = MageWarlockSpellVfxRules.DemonicGateRadiusCells("IBG", intensity);
+                float ascendance = MageWarlockSpellVfxRules.DemonicGateRadiusCells("DFA", intensity);
+                Require(lesser < greater && greater < ascendance && ascendance <= 1.02f, "demonic gate tiers remain distinct and board bounded");
+            }
+            Require(MageWarlockSpellVfxRules.DemonicEmergence(0f) == 0f && MageWarlockSpellVfxRules.DemonicEmergence(0.30f) == 1f,
+                "summoned art emerges during the opening impact beat");
+            Require(MageWarlockSpellVfxRules.DemonicEmergence(0f, true) == MageWarlockSpellVfxRules.DemonicEmergence(1f, true),
+                "reduced-motion emergence stays static");
         }
 
         private static void Require(bool condition, string label)

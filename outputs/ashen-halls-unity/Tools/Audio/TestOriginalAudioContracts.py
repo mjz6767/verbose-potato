@@ -59,6 +59,40 @@ class OriginalAudioContractTests(unittest.TestCase):
             20.0,
         )
 
+    def test_epic_combat_deliveries_have_headroom_clean_wraps_and_contrasting_phrases(self) -> None:
+        fingerprints = set()
+        for cue in audio.EPIC_COMBAT_CUES:
+            with self.subTest(cue=cue):
+                path = audio.MUSIC_DIR / (cue + ".wav")
+                samples, sample_rate = audio.read_pcm16(path)
+                self.assertEqual(audio.MUSIC_SAMPLE_RATE, sample_rate)
+                self.assertEqual([], audio.validate_epic_combat_audio(samples, sample_rate))
+                spec = next(item for item in audio.TRACKS if item.cue == cue)
+                self.assertAlmostEqual(audio.expected_track_duration_seconds(spec), samples.shape[1] / sample_rate, places=4)
+                metrics = audio.epic_combat_metrics(samples, sample_rate)
+                # The intentional withdrawal must survive the PCM master. This
+                # also catches replacing the arrangement with a repeated phrase.
+                self.assertLess(metrics["phrase_rms_dbfs"][2], metrics["phrase_rms_dbfs"][0] - 3)
+                fingerprints.add(audio.sha256(path))
+        self.assertEqual(len(audio.EPIC_COMBAT_CUES), len(fingerprints))
+
+    def test_epic_combat_validator_rejects_a_broken_wrap_and_flat_arrangement(self) -> None:
+        samples, sample_rate = audio.read_pcm16(audio.MUSIC_DIR / (audio.EPIC_COMBAT_CUES[0] + ".wav"))
+        broken = samples.copy()
+        broken[:, 0] += .1
+        self.assertIn("audible loop boundary discontinuity", audio.validate_epic_combat_audio(broken, sample_rate))
+        flat = np.tile(np.array_split(samples, 4, axis=1)[0], (1, 4))
+        self.assertIn("missing contrast between the battle and withdrawal phrases", audio.validate_epic_combat_audio(flat, sample_rate))
+        broken[0, 0] = np.nan
+        self.assertEqual(["non-finite audio samples"], audio.validate_epic_combat_audio(broken, sample_rate))
+
+    def test_epic_combat_score_is_reproducible_from_its_blueprint(self) -> None:
+        spec = next(item for item in audio.TRACKS if item.cue == audio.EPIC_COMBAT_CUES[0])
+        generated = audio.compose_track(spec)
+        written, _ = audio.read_pcm16(audio.MUSIC_DIR / (spec.cue + ".wav"))
+        quantized = np.round(generated * 32767).astype("<i2").astype(np.float64) / 32768
+        np.testing.assert_array_equal(quantized, written)
+
 
 if __name__ == "__main__":
     unittest.main()

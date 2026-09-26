@@ -9,6 +9,17 @@ namespace AshenHalls
         Impact
     }
 
+    public enum DemonicSpellVfxStyle
+    {
+        None,
+        Rift,
+        LesserSummon,
+        GreaterSummon,
+        Ascendance,
+        Soul,
+        Doom
+    }
+
     public readonly struct MageWarlockSpellVfxProfile
     {
         public readonly string Key;
@@ -132,6 +143,37 @@ namespace AshenHalls
         public const int GreaterSummonCell = 13;
         public const int AscendanceCell = 14;
         public const int DoomCircleCell = 15;
+
+        public static DemonicSpellVfxStyle DemonicStyleFor(string visualOrFormulaKind)
+        {
+            switch (NormalizeKey(visualOrFormulaKind))
+            {
+                case "lessersummon": return DemonicSpellVfxStyle.LesserSummon;
+                case "greatersummon": return DemonicSpellVfxStyle.GreaterSummon;
+                case "ascendance": return DemonicSpellVfxStyle.Ascendance;
+                case "riftbolt": return DemonicSpellVfxStyle.Rift;
+                case "doomcircle": case "pactbrand": return DemonicSpellVfxStyle.Doom;
+                case "hex": case "soulveil": return DemonicSpellVfxStyle.Soul;
+                default: return DemonicSpellVfxStyle.None;
+            }
+        }
+
+        public static float DemonicGateRadiusCells(string visualOrFormulaKind, int intensity)
+        {
+            DemonicSpellVfxStyle style = DemonicStyleFor(visualOrFormulaKind);
+            if (style == DemonicSpellVfxStyle.None) return 0f;
+            float size = style == DemonicSpellVfxStyle.Ascendance ? 0.90f
+                : style == DemonicSpellVfxStyle.GreaterSummon ? 0.78f
+                : style == DemonicSpellVfxStyle.LesserSummon ? 0.59f
+                : style == DemonicSpellVfxStyle.Doom ? 0.68f : 0.52f;
+            return size + (ClampIntensity(intensity) - 1) * 0.055f;
+        }
+
+        public static float DemonicEmergence(float progress, bool reducedMotion = false)
+        {
+            // Reveal is visual only; combat still resolves on the existing impact.
+            return reducedMotion ? 1f : Smooth01(Clamp01(progress) / 0.30f);
+        }
 
         public static bool IsAtlasCell(int cell)
         {

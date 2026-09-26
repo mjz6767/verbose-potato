@@ -1945,6 +1945,7 @@ namespace AshenHalls
                             Color.Lerp(accent, cursorWhite, 0.30f).WithAlpha(opacity * 0.72f),
                             Mathf.Max(1f, cell * 0.025f));
                     }
+                    DrawDemonicAftermathAccent(aftermath.PowerKey, center, cell, progress, opacity, accent, aftermath.Intensity);
                 }
             }
             finally
@@ -3967,16 +3968,22 @@ namespace AshenHalls
                         if (authoredPlan.HasPrimary)
                         {
                             float primarySize = cell * authoredPlan.PrimaryScale;
+                            DemonicSpellVfxStyle demonStyle = MageWarlockSpellVfxRules.DemonicStyleFor(echo.Kind);
+                            bool emerging = demonStyle == DemonicSpellVfxStyle.LesserSummon
+                                || demonStyle == DemonicSpellVfxStyle.GreaterSummon
+                                || demonStyle == DemonicSpellVfxStyle.Ascendance;
+                            float emergence = emerging ? MageWarlockSpellVfxRules.DemonicEmergence(tImpact) : 1f;
+                            float rise = emerging ? cell * Mathf.Lerp(0.20f, -0.12f, emergence) : 0f;
                             Rect primaryArt = new Rect(
                                 center.x - primarySize * 0.5f,
-                                center.y - primarySize * 0.5f,
+                                center.y - primarySize * 0.5f + rise,
                                 primarySize,
                                 primarySize);
                             primaryArtDrawn = TryDrawAuthoredPowerVfxIcon(
                                 primaryArt,
                                 echo.Kind,
                                 authoredPlan.PrimaryCell,
-                                Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity));
+                                Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity * Mathf.Lerp(0.34f, 1f, emergence)));
                         }
                         if (MageWarlockSpellVfxRules.IsSupported(echo.Kind)
                             && !SupportHexSpellVfxRules.IsSupported(echo.Kind))
@@ -4037,7 +4044,9 @@ namespace AshenHalls
                     }
 
                     bool classAccentDrawn = DrawClassSkillImpactAccent(echo.Kind, center, cell, tImpact, fade, accent, intensity);
-                    float semanticOpacity = classAccentDrawn ? 0f : CombatPowerVisualRules.SemanticImpactOverlayOpacity(
+                    bool demonicAccentDrawn = !SupportHexSpellVfxRules.IsSupported(echo.Kind)
+                        && DrawDemonicImpactAccent(echo.Kind, center, cell, tImpact, fade, accent, intensity);
+                    float semanticOpacity = classAccentDrawn || demonicAccentDrawn ? 0f : CombatPowerVisualRules.SemanticImpactOverlayOpacity(
                         motif,
                         intensity,
                         impactArtDrawn,
@@ -4069,6 +4078,167 @@ namespace AshenHalls
             return timeUntilImpact <= 0.065f;
         }
 
+        private void DrawDemonicCastAccent(string kind, Vector2 source, Vector2 target, float cell, float charge, float fade, Color accent, int intensity)
+        {
+            DemonicSpellVfxStyle style = MageWarlockSpellVfxRules.DemonicStyleFor(kind);
+            float radius = cell * MageWarlockSpellVfxRules.DemonicGateRadiusCells(kind, intensity);
+            float strength = fade * Mathf.Lerp(0.24f, 0.80f, Mathf.SmoothStep(0f, 1f, charge));
+            bool summon = style == DemonicSpellVfxStyle.LesserSummon || style == DemonicSpellVfxStyle.GreaterSummon;
+            bool ascendance = style == DemonicSpellVfxStyle.Ascendance;
+            Vector2 gate = ascendance ? source : target;
+            DrawDemonicPactSeal(source + Vector2.up * cell * 0.25f, cell * 0.44f, charge * 28f, 5, strength * 0.70f, accent, cell);
+            if ((gate - source).sqrMagnitude > cell * cell * 0.25f || ascendance)
+            {
+                DrawDemonicPactSeal(gate + Vector2.up * cell * 0.25f, radius * Mathf.Lerp(1.08f, 0.82f, charge), -charge * 24f,
+                    style == DemonicSpellVfxStyle.GreaterSummon || ascendance ? 7 : 5, strength, accent, cell);
+            }
+            if (summon || ascendance)
+            {
+                DrawDemonicGate(gate, cell, radius * 0.84f, Mathf.SmoothStep(0.18f, 1f, charge) * 0.78f,
+                    strength, accent, style == DemonicSpellVfxStyle.GreaterSummon || ascendance);
+            }
+            else
+            {
+                // Souls wind inward; they never draw a target-to-caster damage beam.
+                for (int i = 0; i < 3; i++)
+                {
+                    float angle = (i * 120f - charge * 85f) * Mathf.Deg2Rad;
+                    Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle) * 0.65f);
+                    float reach = radius * Mathf.Lerp(1.20f, 0.35f, charge);
+                    DrawPixelLine(gate + direction * reach, gate + direction * (reach + cell * 0.13f),
+                        Color.Lerp(accent, cursorWhite, 0.32f).WithAlpha(strength * 0.68f), Mathf.Max(1.5f, cell * 0.023f));
+                }
+            }
+        }
+
+        private void DrawDemonicPactSeal(Vector2 center, float radius, float rotation, int runes, float strength, Color accent, float cell)
+        {
+            if (strength <= 0.01f) return;
+            float thickness = Mathf.Max(1f, cell * 0.021f);
+            Color rim = Color.Lerp(accent, violet, 0.24f).WithAlpha(strength * 0.76f);
+            Color glint = Color.Lerp(accent, cursorWhite, 0.45f).WithAlpha(strength * 0.86f);
+            DrawPowerPixelArc(center, radius, 0.42f, rotation, 360f, rim, thickness);
+            DrawPowerPixelArc(center, radius * 0.76f, 0.42f, -rotation + 24f, 286f, rim.WithAlpha(strength * 0.40f), thickness);
+            for (int i = 0; i < runes; i++)
+            {
+                float angle = (rotation + i * 360f / runes) * Mathf.Deg2Rad;
+                Vector2 spoke = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle) * 0.42f);
+                Vector2 tangent = new Vector2(-Mathf.Sin(angle), Mathf.Cos(angle) * 0.42f);
+                Vector2 point = center + spoke * radius;
+                DrawPixelLine(point - spoke * cell * 0.065f, point + spoke * cell * 0.065f, glint, thickness);
+                DrawPixelLine(point - tangent * cell * 0.052f, point + tangent * cell * 0.052f, glint, thickness);
+            }
+        }
+
+        private void DrawDemonicGate(Vector2 center, float cell, float radius, float opening, float strength, Color accent, bool crowned)
+        {
+            if (strength <= 0.01f || opening <= 0.01f) return;
+            float halfHeight = radius * 0.96f;
+            float halfWidth = radius * Mathf.Lerp(0.08f, 0.50f, opening);
+            Vector2 gateCenter = center + Vector2.down * cell * 0.10f;
+            Color shadow = Color.Lerp(retroBlack, violet, 0.14f).WithAlpha(strength * 0.70f);
+            Color bright = Color.Lerp(accent, cursorWhite, 0.48f).WithAlpha(strength * 0.84f);
+            float thickness = Mathf.Max(1.5f, cell * 0.026f);
+            DrawRect(new Rect(gateCenter.x - halfWidth * 0.38f, gateCenter.y - halfHeight * 0.80f,
+                halfWidth * 0.76f, halfHeight * 1.60f), shadow);
+            DrawPowerPixelArc(gateCenter, halfWidth, halfHeight / Mathf.Max(1f, halfWidth), 8f, 344f,
+                accent.WithAlpha(strength * 0.40f), thickness * 2.8f);
+            DrawPowerPixelArc(gateCenter, halfWidth, halfHeight / Mathf.Max(1f, halfWidth), 8f, 344f, bright, thickness);
+            if (!crowned) return;
+            for (int side = -1; side <= 1; side += 2)
+            {
+                Vector2 root = gateCenter + new Vector2(side * halfWidth * 0.72f, -halfHeight * 0.66f);
+                Vector2 elbow = root + new Vector2(side * radius * 0.28f, -radius * 0.23f * opening);
+                Vector2 tip = elbow + new Vector2(-side * radius * 0.07f, -radius * 0.26f * opening);
+                DrawPixelLine(root, elbow, shadow, thickness * 3f);
+                DrawPixelLine(elbow, tip, shadow, thickness * 2f);
+                DrawPixelLine(root, elbow, bright, thickness);
+                DrawPixelLine(elbow, tip, bright, thickness * 0.65f);
+            }
+        }
+
+        private bool DrawDemonicImpactAccent(string kind, Vector2 center, float cell, float progress, float fade, Color accent, int intensity)
+        {
+            DemonicSpellVfxStyle style = MageWarlockSpellVfxRules.DemonicStyleFor(kind);
+            if (style == DemonicSpellVfxStyle.None) return false;
+            float t = Mathf.Clamp01(progress);
+            float radius = cell * MageWarlockSpellVfxRules.DemonicGateRadiusCells(kind, intensity);
+            float emergence = MageWarlockSpellVfxRules.DemonicEmergence(t);
+            float strength = fade * (1f - Mathf.SmoothStep(0.52f, 0.96f, t) * 0.60f);
+            float thickness = Mathf.Max(1.5f, cell * 0.026f);
+            Color bright = Color.Lerp(accent, cursorWhite, 0.52f).WithAlpha(strength * 0.82f);
+            bool summon = style == DemonicSpellVfxStyle.LesserSummon || style == DemonicSpellVfxStyle.GreaterSummon;
+            if (summon || style == DemonicSpellVfxStyle.Ascendance)
+            {
+                DrawDemonicPactSeal(center + Vector2.up * cell * 0.28f, radius * Mathf.Lerp(0.76f, 1f, emergence), -t * 26f,
+                    style == DemonicSpellVfxStyle.LesserSummon ? 5 : 7, strength, accent, cell);
+                DrawDemonicGate(center, cell, radius, Mathf.Lerp(0.64f, 1f, emergence), strength, accent,
+                    style != DemonicSpellVfxStyle.LesserSummon);
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    Vector2 root = center + new Vector2(side * radius * 0.20f, -cell * 0.10f);
+                    float wingWidth = radius * emergence * (style == DemonicSpellVfxStyle.Ascendance ? 1.08f : 0.70f);
+                    Vector2 peak = root + new Vector2(side * wingWidth, -radius * 0.48f * emergence);
+                    Vector2 lower = root + new Vector2(side * wingWidth * 0.80f, radius * 0.12f);
+                    if (style == DemonicSpellVfxStyle.Ascendance)
+                    {
+                        DrawPixelLine(root, peak, retroBlack.WithAlpha(strength * 0.60f), thickness * 4f);
+                        DrawPixelLine(peak, lower, retroBlack.WithAlpha(strength * 0.60f), thickness * 3f);
+                        DrawPixelLine(root, peak, bright, thickness);
+                        DrawPixelLine(peak, lower, bright.WithAlpha(strength * 0.50f), thickness);
+                        DrawPixelLine(lower, root + Vector2.up * radius * 0.26f, accent.WithAlpha(strength * 0.58f), thickness);
+                    }
+                    else
+                    {
+                        Vector2 lifted = center + new Vector2(side * radius * 0.65f, cell * 0.22f - emergence * radius * 0.88f);
+                        DrawPixelLine(lifted, lifted + Vector2.up * cell * 0.17f, bright, thickness);
+                    }
+                }
+                return true;
+            }
+
+            // A rapid implosion followed by outgoing souls distinguishes death magic
+            // from the outward fire/frost explosion. The central unit stays uncovered.
+            float collapse = Mathf.SmoothStep(0f, 0.24f, t);
+            float release = Mathf.SmoothStep(0.18f, 0.76f, t);
+            float orbit = radius * Mathf.Lerp(1f, 0.22f, collapse) + radius * release * 0.58f;
+            DrawDemonicPactSeal(center + Vector2.up * cell * 0.18f, radius * (style == DemonicSpellVfxStyle.Doom ? 1f : 0.72f),
+                -t * 24f, style == DemonicSpellVfxStyle.Doom ? 7 : 5, strength * 0.72f, accent, cell);
+            int souls = style == DemonicSpellVfxStyle.Doom ? 5 : 4;
+            for (int i = 0; i < souls; i++)
+            {
+                float angle = (i * 360f / souls - t * 76f) * Mathf.Deg2Rad;
+                Vector2 direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle) * 0.68f);
+                Vector2 tangent = new Vector2(-Mathf.Sin(angle), Mathf.Cos(angle) * 0.68f);
+                Vector2 head = center + direction * orbit + Vector2.down * release * cell * 0.22f;
+                Vector2 tail = head + direction * cell * 0.12f - tangent * cell * 0.13f;
+                DrawPixelLine(tail, head, accent.WithAlpha(strength * 0.36f), thickness * 2.2f);
+                DrawPixelLine(tail, head, bright, thickness);
+                float core = Mathf.Max(2f, cell * 0.045f);
+                DrawRect(new Rect(head.x - core * 0.5f, head.y - core * 0.5f, core, core), bright);
+            }
+            return true;
+        }
+
+        private void DrawDemonicAftermathAccent(string kind, Vector2 center, float cell, float progress, float opacity, Color accent, int intensity)
+        {
+            DemonicSpellVfxStyle style = MageWarlockSpellVfxRules.DemonicStyleFor(kind);
+            if (style == DemonicSpellVfxStyle.None) return;
+            float strength = opacity * (1f - Mathf.SmoothStep(0.12f, 0.94f, progress));
+            float radius = cell * MageWarlockSpellVfxRules.DemonicGateRadiusCells(kind, intensity);
+            DrawDemonicPactSeal(center + Vector2.up * cell * 0.27f, radius * Mathf.Lerp(0.94f, 0.78f, progress),
+                -26f - progress * 8f, style == DemonicSpellVfxStyle.GreaterSummon || style == DemonicSpellVfxStyle.Ascendance ? 7 : 5,
+                strength * 0.54f, accent, cell);
+            for (int i = 0; i < 4; i++)
+            {
+                float offset = (i - 1.5f) / 2f;
+                Vector2 head = center + new Vector2(offset * radius * 0.72f,
+                    cell * 0.20f - progress * cell * (0.45f + (i % 2) * 0.20f));
+                DrawPixelLine(head, head + Vector2.up * cell * 0.07f,
+                    Color.Lerp(accent, cursorWhite, 0.38f).WithAlpha(strength * 0.56f), Mathf.Max(1f, cell * 0.021f));
+            }
+        }
+
         private void DrawMageWarlockImpactAccent(
             string visualKind,
             Vector2 center,
@@ -4082,6 +4252,10 @@ namespace AshenHalls
             float t = Mathf.Clamp01(progress);
             float thickness = Mathf.Max(2f, cell * 0.028f);
             Color bright = Color.Lerp(accent, cursorWhite, 0.58f);
+
+            // Demonic accents are drawn by the shared impact path, including when
+            // an authored atlas is unavailable; do not double up the generic motif.
+            if (MageWarlockSpellVfxRules.DemonicStyleFor(visualKind) != DemonicSpellVfxStyle.None) return;
 
             if (key == "fireball" || key == "meteor")
             {
@@ -4426,6 +4600,8 @@ namespace AshenHalls
                     Color focusColor = aura.Focused ? Color.Lerp(accent, gold, 0.58f) : accent;
                     CombatPowerVisualMotif motif = CombatPowerVisualRules.MotifFor(aura.Kind);
                     bool ritualPresentation = CombatPowerVisualRules.UsesRitualCastPresentation(aura.Kind);
+                    bool demonicPresentation = MageWarlockSpellVfxRules.DemonicStyleFor(aura.Kind) != DemonicSpellVfxStyle.None
+                        && !SupportHexSpellVfxRules.IsSupported(aura.Kind);
                     Vector2 source = new Vector2((aura.SourceX + 0.5f) * cell, (aura.SourceY + 0.5f) * cell);
                     Vector2 target = new Vector2((aura.TargetX + 0.5f) * cell, (aura.TargetY + 0.5f) * cell);
                     float releaseBoundary = aura.ReleaseAt > aura.Start ? aura.ReleaseAt : aura.ImpactAt;
@@ -4486,8 +4662,8 @@ namespace AshenHalls
                             coreArt,
                             aura.Kind,
                             authoredPlan.PrimaryCell,
-                            Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity),
-                            18f + charge * 46f,
+                            Color.white.WithAlpha(fade * authoredPlan.PrimaryOpacity * (demonicPresentation ? 0.74f : 1f)),
+                            demonicPresentation ? 0f : 18f + charge * 46f,
                             source);
                     }
                     else if (usesLegacyAnticipationArt)
@@ -4499,7 +4675,11 @@ namespace AshenHalls
                         TryDrawEpicSpellEffectsAtlasIcon(art, anticipationCell, Color.white.WithAlpha(artAlpha));
                     }
 
-                    if (!usesAnticipationArt || usesAuthoredArt)
+                    if (demonicPresentation)
+                    {
+                        DrawDemonicCastAccent(aura.Kind, source, target, cell, charge, fade, focusColor, aura.Intensity);
+                    }
+                    else if (!usesAnticipationArt || usesAuthoredArt)
                     {
                         DrawSemanticCastMotif(
                             motif,
@@ -6297,6 +6477,12 @@ namespace AshenHalls
             }
 
             ClearBetaVfxShowcasePresentation();
+            CombatUnit cueTarget = impact.X == source.X && impact.Y == source.Y ? source
+                : entry.Scenario == CombatVfxShowcaseScenario.Summon ? null : target;
+            if (entry.Kind == CombatVfxShowcasePowerKind.Formula)
+                ShowFormulaPowerCue(source, GetFormula(entry.Id), cueTarget, false);
+            else
+                ShowAbilityPowerCue(source, AbilityDef(entry.Id), cueTarget);
             BeginCombatPowerReactionCapture();
             PowerCastAura stagedAura = StageCombatPowerCast(
                 profile,
@@ -6470,6 +6656,16 @@ namespace AshenHalls
 
         private void ClearBetaVfxShowcasePresentation()
         {
+            floatTexts.Clear();
+            combatPowerCue = default;
+            combatPowerCueTexture = null;
+            combatPowerCueSource = default;
+            combatPowerCueStarted = 0f;
+            combatPowerCueUntil = 0f;
+            combatPowerCueImpactAt = 0f;
+            combatPowerOutcomeText = "";
+            combatPowerOutcomeVisibleAt = 0f;
+            combatPowerPulseUntil = 0f;
             powerCastAuras.Clear();
             powerImpactEchoes.Clear();
             powerTravelVfx.Clear();

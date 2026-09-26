@@ -134,6 +134,7 @@ namespace AshenHalls.Editor
             CombatInputSmoke.RunOrThrow();
             CombatEffectsQualitySmoke.RunOrThrow();
             CombatAudioPolishSmoke.RunOrThrow();
+            DemonicCombatAudioSmoke.RunOrThrow();
             CombatImpactReadabilitySmoke.RunOrThrow();
             CombatDecisionPolishSmoke.RunOrThrow();
             TavernScreenLayoutFitsSupportedResolutions();
@@ -149,6 +150,8 @@ namespace AshenHalls.Editor
             WorldMapGuidanceAuditSmoke.RunOrThrow();
             WorldMapInspectionAuditSmoke.RunOrThrow();
             WorldMapSpritePolishSmoke.RunOrThrow();
+            WorldMapVisualLayoutSmoke.RunOrThrow();
+            WorldMapRenderOptimizationSmoke.RunOrThrow();
             ExplorationGuidanceRulesKeepTheGoldenThreadActionable();
             WorldMapGenerationRulesDefineModestExpansion();
             WorldMapGenerationRulesDefineNamedJunctionCircuit();
@@ -3423,7 +3426,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.25.0", VersionInfo.PackageVersion, "package version marks the Steel & Streets release");
+            AssertEqual("v2.26.0", VersionInfo.PackageVersion, "package version marks the Rift & Ruin release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");

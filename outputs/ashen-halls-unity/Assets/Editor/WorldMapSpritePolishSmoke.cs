@@ -12,6 +12,7 @@ namespace AshenHalls.Editor
         {
             GroundedCitizensShareTheNamedFootline();
             ContactCuesLeaveFacesAndNeighboringCellsClear();
+            RegionViewKeepsOneActorScale();
             ProductionSpritesKeepOneAuthoredShadow();
         }
 
@@ -50,6 +51,7 @@ namespace AshenHalls.Editor
                 bool badgeVisible = ExplorationNpcPresentationRules.ShouldShowContactBadge(wide, size, true);
                 Require(badgeVisible == (!wide && size >= 44f), "role badges only appear on readable focused Local sprites");
                 Require(!ExplorationNpcPresentationRules.ShouldShowContactBadge(wide, size, false), "unfocused contacts do not grow permanent map UI");
+                Require(!ExplorationNpcPresentationRules.ShouldShowContactBadge(wide, size, true, true), "active E contact does not stack a redundant role chip");
                 if (!badgeVisible) continue;
                 Rect badge = ExplorationNpcPresentationRules.ContactBadge(cell);
                 Inside(badge, cell, "service badge never overlaps an adjacent cell");
@@ -58,6 +60,49 @@ namespace AshenHalls.Editor
             }
             Require(!ExplorationNpcPresentationRules.ShouldShowContactBadge(false, float.NaN, true), "invalid scale cannot draw a badge");
             Require(!ExplorationNpcPresentationRules.ShouldShowContactBadge(false, float.PositiveInfinity, true), "infinite scale cannot draw a badge");
+        }
+
+        private static void RegionViewKeepsOneActorScale()
+        {
+            foreach (bool wide in new[] { false, true })
+            {
+                Require(ExplorationNpcPresentationRules.ShouldDrawExteriorAmbientCitizen(wide) == !wide,
+                    "exterior scenery bodies belong to Local view only");
+                Require(ExplorationNpcPresentationRules.ShouldDrawInteriorAmbientPatron(wide) == !wide,
+                    "interior scenery bodies use the same Local-only policy");
+                Require(ExplorationNpcPresentationRules.ShouldUseRegionRoleMarker(wide, true) == wide,
+                    "named actors retain full bodies locally and role markers regionally");
+                Require(!ExplorationNpcPresentationRules.ShouldUseRegionRoleMarker(wide, false),
+                    "actor policy never replaces architecture or terrain with an actor marker");
+            }
+
+            GameObject host = new GameObject("World map actor hierarchy audit");
+            host.SetActive(false);
+            host.hideFlags = HideFlags.HideAndDontSave;
+            try
+            {
+                AshenHallsGame game = host.AddComponent<AshenHallsGame>();
+                foreach (bool wide in new[] { false, true })
+                {
+                    typeof(AshenHallsGame).GetField("exploreWideView", PrivateInstance).SetValue(game, wide);
+                    foreach (ObjectType type in Enum.GetValues(typeof(ObjectType)))
+                    {
+                        bool namedActor = (bool)Call(game, "UsesNamedNpcPresentation", type);
+                        MapObject actor = new MapObject(4, 4, type, "sprite-audit-actor");
+                        foreach (int distance in new[] { 0, 1, 2, 7 })
+                        foreach (bool objective in new[] { false, true })
+                        {
+                            bool marker = (bool)Call(game, "ShouldUseExploreRegionMarker", actor, distance, objective);
+                            Require(marker == (wide && namedActor),
+                                type + " keeps one actor representation even beside the party or on an objective");
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(host);
+            }
         }
 
         private static void ProductionSpritesKeepOneAuthoredShadow()

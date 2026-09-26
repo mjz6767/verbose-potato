@@ -24,6 +24,67 @@ namespace AshenHalls
         public string Tone;
     }
 
+    public enum ExplorationPartyVitalTone
+    {
+        Unknown,
+        Stable,
+        Hurt,
+        Critical,
+        Down
+    }
+
+    public readonly struct ExplorationPartyVitalPresentation
+    {
+        public readonly ExplorationPartyVitalTone Tone;
+        public readonly float Ratio;
+        public readonly Color Fill;
+        public readonly Color Track;
+        public readonly Color Text;
+
+        public ExplorationPartyVitalPresentation(ExplorationPartyVitalTone tone, float ratio, Color fill, Color track, Color text)
+        {
+            Tone = tone;
+            Ratio = ratio;
+            Fill = fill;
+            Track = track;
+            Text = text;
+        }
+
+        public bool NeedsWarning => Tone == ExplorationPartyVitalTone.Critical || Tone == ExplorationPartyVitalTone.Down;
+
+        public string Label(int hp, int maximum)
+        {
+            return (NeedsWarning ? "! " : "") + $"HP {Mathf.Max(0, hp)}/{Mathf.Max(0, maximum)}";
+        }
+    }
+
+    public static class ExplorationPartyVitalsRules
+    {
+        // HP remains in the red family; only injury should compete with the map
+        // for attention. Numbers, fill length and ! make urgency non-color-only.
+        public static ExplorationPartyVitalPresentation Resolve(int hp, int maximum)
+        {
+            Color normalText = new Color32(243, 234, 215, 255);
+            Color warningText = new Color32(255, 243, 228, 255);
+            if (maximum <= 0)
+                return new ExplorationPartyVitalPresentation(ExplorationPartyVitalTone.Unknown, 0f,
+                    new Color32(62, 70, 73, 255), new Color32(8, 11, 13, 255), normalText);
+
+            float ratio = Mathf.Clamp01(Mathf.Max(0, hp) / (float)maximum);
+            if (hp <= 0)
+                return new ExplorationPartyVitalPresentation(ExplorationPartyVitalTone.Down, 0f,
+                    new Color32(176, 61, 76, 255), new Color32(74, 32, 40, 255), warningText);
+            if (ratio <= 0.25f)
+                return new ExplorationPartyVitalPresentation(ExplorationPartyVitalTone.Critical, ratio,
+                    new Color32(176, 61, 76, 255), new Color32(52, 24, 33, 255), warningText);
+            if (ratio <= 0.50f)
+                return new ExplorationPartyVitalPresentation(ExplorationPartyVitalTone.Hurt, ratio,
+                    new Color32(133, 73, 86, 255), new Color32(23, 15, 19, 255), normalText);
+            return new ExplorationPartyVitalPresentation(ExplorationPartyVitalTone.Stable, ratio,
+                new Color32(81, 58, 65, 255), new Color32(8, 11, 13, 255), normalText);
+        }
+    }
+
     public sealed class ExplorationHudView
     {
         public string Title;
@@ -230,21 +291,13 @@ namespace AshenHalls
             float h = 27f * scale;
             float textX = strip.x + 43f * scale;
             float gap = 10f * scale;
-            Rect view = new Rect(strip.xMax - 212f * scale, y, 112f * scale, h);
-            Rect details = new Rect(view.xMax + 6f * scale, y, 86f * scale, h);
-            bool compact = strip.width < 900f * scale;
-            if (compact)
-            {
-                // Danger and inspection/action copy are already in the rail
-                // and footer. Give the scarce board-heading space to identity.
-                return new ExplorationRegionStripGeometry(true,
-                    new Rect(textX, y, Mathf.Max(0f, view.xMin - gap - textX), h),
-                    Rect.zero, Rect.zero, view, details);
-            }
-            Rect location = new Rect(textX, y, Mathf.Clamp(strip.width * 0.25f, 220f * scale, 320f * scale), h);
-            Rect danger = new Rect(location.xMax + gap, y, 96f * scale, h);
-            Rect context = new Rect(danger.xMax + gap, y, Mathf.Max(0f, view.xMin - danger.xMax - gap * 2f), h);
-            return new ExplorationRegionStripGeometry(false, location, danger, context, view, details);
+            Rect view = new Rect(strip.xMax - 126f * scale, y, 112f * scale, h);
+            // This heading owns location/hover identity and Region focus only.
+            // Danger, interaction and Q already have persistent homes in the
+            // rail/footer; repeating them also squeezed metadata at wide sizes.
+            return new ExplorationRegionStripGeometry(true,
+                new Rect(textX, y, Mathf.Max(0f, view.xMin - gap - textX), h),
+                Rect.zero, Rect.zero, view, Rect.zero);
         }
 
         public static Rect[] PartyRows(float sideWidth, float scale, bool detailsOpen, int count)
@@ -500,7 +553,11 @@ namespace AshenHalls
                 partyRows[i].Name.text = member.Name ?? "";
                 partyRows[i].ClassLine.text = member.ClassLine ?? "";
                 partyRows[i].Accent.color = ParseColor(member.ColorHex, Hex("58b7a5", 1f));
-                partyRows[i].HpText.text = $"HP {Mathf.Max(0, member.Hp)}/{Mathf.Max(0, member.MaxHp)}";
+                ExplorationPartyVitalPresentation vital = ExplorationPartyVitalsRules.Resolve(member.Hp, member.MaxHp);
+                partyRows[i].HpText.text = vital.Label(member.Hp, member.MaxHp);
+                partyRows[i].HpText.color = vital.Text;
+                partyRows[i].HpFillImage.color = vital.Fill;
+                partyRows[i].HpTrackImage.color = vital.Track;
                 partyRows[i].ManaText.text = $"MP {Mathf.Max(0, member.Mana)}/{Mathf.Max(0, member.MaxMana)}";
                 SetFill(partyRows[i].HpFill, member.Hp, member.MaxHp);
                 SetFill(partyRows[i].ManaFill, member.Mana, member.MaxMana);
@@ -538,7 +595,7 @@ namespace AshenHalls
             suppliesText = AddText("Supplies", topPanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             elixirsText = AddText("Elixirs", topPanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
 
-            sidePanel = AddPanel("Location Panel", canvas.transform, Hex("080b0d", 0.86f), Hex("58b7a5", 0.72f));
+            sidePanel = AddPanel("Location Panel", canvas.transform, Hex("080b0d", 0.94f), Hex("3c4544", 0.56f));
             sideTitleText = AddText("Location Title", sidePanel, "Location", ExplorationHudScreenLayout.MinimumTitleFontSize, Hex("e3ba63", 1f), TextAnchor.MiddleLeft);
             sideTitleText.resizeTextForBestFit = true;
             sideDangerText = AddText("Danger", sidePanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleLeft);
@@ -738,12 +795,12 @@ namespace AshenHalls
 
         private PartyRow CreatePartyRow(Transform parent, int index)
         {
-            RectTransform root = AddPanel("Party Row " + index, parent, Hex("151b20", 0.86f), Hex("3c4544", 0.45f));
+            RectTransform root = AddImage("Party Row " + index, parent, Hex("151b20", 0.72f)).rectTransform;
             Image accent = AddImage("Accent", root, Hex("58b7a5", 1f));
             Text name = AddText("Name", root, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             Text classLine = AddText("Class", root, "", 10, Hex("d0c5ae", 1f), TextAnchor.MiddleLeft);
             Image hpBg = AddImage("Hp Bg", root, Hex("050708", 0.85f));
-            Image hpFill = AddImage("Hp Fill", hpBg.transform, Hex("b94b56", 1f));
+            Image hpFill = AddImage("Hp Fill", hpBg.transform, ExplorationPartyVitalsRules.Resolve(1, 1).Fill);
             Image manaBg = AddImage("Mana Bg", root, Hex("050708", 0.85f));
             Image manaFill = AddImage("Mana Fill", manaBg.transform, Hex("58b7a5", 1f));
             Text hpText = AddText("Hp Text", root, "HP 0/0", ExplorationHudScreenLayout.MinimumVitalFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
@@ -755,7 +812,7 @@ namespace AshenHalls
 
         private LogRow CreateLogRow(Transform parent, int index)
         {
-            RectTransform root = AddPanel("Log Row " + index, parent, Hex("151b20", 0.82f), Hex("3c4544", 0.35f));
+            RectTransform root = AddImage("Log Row " + index, parent, Hex("151b20", 0.72f)).rectTransform;
             Image stripe = AddImage("Stripe", root, Hex("7f9d5b", 1f));
             Text text = AddText("Text", root, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
             return new LogRow(root, stripe, text);
@@ -814,6 +871,9 @@ namespace AshenHalls
         private RectTransform AddPanel(string name, Transform parent, Color fill, Color border)
         {
             RectTransform panel = AddImage(name, parent, fill).rectTransform;
+            // Only the three enclosing panels and actual buttons need pointer
+            // hits. Empty rail/chrome space must still block map input below it.
+            panel.GetComponent<Image>().raycastTarget = true;
             Outline outline = panel.gameObject.AddComponent<Outline>();
             outline.effectColor = border;
             outline.effectDistance = new Vector2(1f, -1f);
@@ -826,6 +886,7 @@ namespace AshenHalls
             go.transform.SetParent(parent, false);
             Image image = go.GetComponent<Image>();
             image.color = color;
+            image.raycastTarget = false;
             return image;
         }
 
@@ -839,6 +900,7 @@ namespace AshenHalls
             text.fontSize = size;
             text.color = color;
             text.alignment = anchor;
+            text.raycastTarget = false;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
             if (size >= 14) text.fontStyle = FontStyle.Bold;
@@ -849,6 +911,8 @@ namespace AshenHalls
         {
             if (fill == null) return;
             float ratio = max <= 0 ? 0f : Mathf.Clamp01((float)Mathf.Max(0, value) / max);
+            if (fill.anchorMin == Vector2.zero && fill.anchorMax == new Vector2(ratio, 1f)
+                && fill.offsetMin == Vector2.zero && fill.offsetMax == Vector2.zero) return;
             fill.anchorMin = new Vector2(0f, 0f);
             fill.anchorMax = new Vector2(ratio, 1f);
             fill.offsetMin = Vector2.zero;
@@ -919,6 +983,8 @@ namespace AshenHalls
             public readonly Text ClassLine;
             public readonly RectTransform HpBg;
             public readonly RectTransform HpFill;
+            public readonly Image HpTrackImage;
+            public readonly Image HpFillImage;
             public readonly Text HpText;
             public readonly RectTransform ManaBg;
             public readonly RectTransform ManaFill;
@@ -942,6 +1008,8 @@ namespace AshenHalls
                 ClassLine = classLine;
                 HpBg = hpBg;
                 HpFill = hpFill;
+                HpTrackImage = hpBg.GetComponent<Image>();
+                HpFillImage = hpFill.GetComponent<Image>();
                 HpText = hpText;
                 ManaBg = manaBg;
                 ManaFill = manaFill;

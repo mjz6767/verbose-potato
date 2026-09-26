@@ -693,8 +693,11 @@ namespace AshenHalls
             GUI.Label(new Rect(row.x + 10f * scale, row.y + 17f * scale, nameW - 12f * scale, 13f * scale), FitText(member.ClassLine, nameW - 12f * scale, CenterLeftStyle(ExploreHudFont(11), Hex("d0c5ae"))), CenterLeftStyle(ExploreHudFont(11), Hex("d0c5ae")));
             float barX = row.x + nameW;
             float barW = row.xMax - barX - 8f * scale;
-            DrawExploreRailBar(new Rect(barX, row.y + 6f * scale, barW, 8f * scale), member.Hp, member.MaxHp, blood);
-            GUI.Label(new Rect(barX + 4f * scale, row.y + 2f * scale, barW - 8f * scale, 15f * scale), $"HP {member.Hp}/{member.MaxHp}", CenterRightStyle(ExploreHudFont(11), ink));
+            ExplorationPartyVitalPresentation vital = ExplorationPartyVitalsRules.Resolve(member.Hp, member.MaxHp);
+            Rect hpBar = new Rect(barX, row.y + 6f * scale, barW, 8f * scale);
+            DrawRect(hpBar, vital.Track);
+            if (vital.Ratio > 0f) DrawRect(new Rect(hpBar.x, hpBar.y, hpBar.width * vital.Ratio, hpBar.height), vital.Fill);
+            GUI.Label(new Rect(barX + 4f * scale, row.y + 2f * scale, barW - 8f * scale, 15f * scale), vital.Label(member.Hp, member.MaxHp), CenterRightStyle(ExploreHudFont(11), vital.Text));
             if (member.MaxMana > 0)
             {
                 DrawExploreRailBar(new Rect(barX, row.y + 19f * scale, barW, 8f * scale), member.Mana, member.MaxMana, teal);
@@ -933,7 +936,9 @@ namespace AshenHalls
             {
                 Title = ExploreViewLabel(),
                 RouteLine = $"{StoryChapterTitle()} / D{state.Depth}",
-                FocusHint = RegionMapFocusLabel(),
+                FocusHint = exploreWideView && !RegionMapFocusIsParty()
+                    ? RegionMapFocusLabel()
+                    : ExploreChartProgressLabel(),
                 Gold = state.Gold.ToString(),
                 Supplies = state.Supplies.ToString(),
                 Elixirs = state.Elixirs.ToString(),
@@ -957,8 +962,8 @@ namespace AshenHalls
                 ObjectiveLine = string.IsNullOrEmpty(state.ActiveStory) ? "Follow the road and mark what the party learns." : state.ActiveStory,
                 ObjectiveSummary = ExploreObjectiveSummaryLine(),
                 WaypointLine = ExploreWaypointLine(),
-                NearbyLine = ExploreNearbySummaryLine(),
-                GrowthLine = PartyGrowthLine(),
+                NearbyLine = exploreHudCollapsed ? "" : ExploreNearbySummaryLine(),
+                GrowthLine = exploreHudCollapsed ? "" : PartyGrowthLine(),
                 HasAction = exploreWideView ? regionAction.HasAction : interaction.HasTarget,
                 ActionLabel = exploreWideView
                     ? regionAction.HasAction
@@ -967,11 +972,11 @@ namespace AshenHalls
                     : interaction.HasTarget ? interaction.Verb : "No Action",
                 ActionTarget = exploreWideView
                     ? regionAction.HasAction
-                        ? regionAction.Target.Name + " · Space / E / A"
+                        ? regionAction.Target.Name
                         : "Choose a charted landmark"
                     : interaction.HasTarget ? interaction.TargetName : "Nothing nearby",
                 Party = BuildExplorationHudPartyViews(),
-                Logs = BuildExplorationHudLogViews()
+                Logs = exploreHudCollapsed ? Array.Empty<ExplorationHudLogView>() : BuildExplorationHudLogViews()
             };
         }
 

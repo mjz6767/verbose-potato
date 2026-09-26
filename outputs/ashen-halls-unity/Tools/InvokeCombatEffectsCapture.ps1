@@ -2,6 +2,7 @@ param(
     [Parameter(Mandatory = $true)][string]$PlayerPath,
     [ValidateRange(960, 3840)][int]$Width = 1280,
     [ValidateRange(600, 2160)][int]$Height = 720,
+    [switch]$Demonic,
     [switch]$Visible
 )
 
@@ -23,6 +24,24 @@ $shots = @(
     @{ Power = 'volley'; Phase = 'travel' },
     @{ Power = 'FBL'; Phase = 'impact'; Reduced = $true }
 )
+if ($Demonic) {
+    $shots = @(
+        @{ Power = 'IBD'; Phase = 'impact' },
+        @{ Power = 'IBF'; Phase = 'impact' },
+        @{ Power = 'IBG'; Phase = 'cast' },
+        @{ Power = 'IBG'; Phase = 'impact' },
+        @{ Power = 'IBG'; Phase = 'aftermath' },
+        @{ Power = 'DFA'; Phase = 'cast' },
+        @{ Power = 'DFA'; Phase = 'impact' },
+        @{ Power = 'DFA'; Phase = 'aftermath' },
+        @{ Power = 'RLM'; Phase = 'cast' },
+        @{ Power = 'RLM'; Phase = 'impact' },
+        @{ Power = 'RLM'; Phase = 'aftermath' },
+        @{ Power = 'RBT'; Phase = 'travel' },
+        @{ Power = 'IBG'; Phase = 'impact'; Reduced = $true },
+        @{ Power = 'DFA'; Phase = 'impact'; Reduced = $true }
+    )
+}
 $results = @()
 foreach ($shot in $shots) {
     $name = $shot.Power.ToLowerInvariant() + '-' + $shot.Phase

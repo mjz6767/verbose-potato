@@ -337,7 +337,7 @@ namespace AshenHalls
                     : profile.Release.Enabled ? profile.Release : profile.Cast;
                 float compactGain = Math.Min(0.82f, compact.Gain * masterGain * intensityGain);
                 CombatPowerSfxCuePlan impact = compact.Enabled && compactGain > 0f
-                    ? new CombatPowerSfxCuePlan(CombatPowerSfxPhase.Impact, compact.Key, 0f, compactGain, compact.Pitch)
+                    ? new CombatPowerSfxCuePlan(CombatPowerSfxPhase.Impact, DemonicPowerSfxRules.ReducedCue(compact.Key), 0f, compactGain, compact.Pitch)
                     : CombatPowerSfxCuePlan.None(CombatPowerSfxPhase.Impact);
                 return new CombatPowerSfxPlan(
                     profile.Key,
@@ -360,10 +360,10 @@ namespace AshenHalls
                 ? Accent(LowHitCue, impactCue.Delay + 0.015f, (0.18f + intensity * 0.055f) * masterGain, impactCue.Pitch * 0.92f)
                 : CombatPowerSfxCuePlan.None(CombatPowerSfxPhase.Accent);
             CombatPowerSfxCuePlan rumble = profile.LayerRumble && intensity >= 2 && impactCue.Enabled
-                ? Accent(RumbleCue, impactCue.Delay + 0.080f, (0.14f + intensity * 0.050f) * masterGain, impactCue.Pitch * 0.90f)
+                ? Accent(DemonicPowerSfxRules.IsDemonic(profile.Key) ? "demonrumble" : RumbleCue, impactCue.Delay + 0.080f, (0.14f + intensity * 0.050f) * masterGain, impactCue.Pitch * 0.90f)
                 : CombatPowerSfxCuePlan.None(CombatPowerSfxPhase.Accent);
             CombatPowerSfxCuePlan shimmer = profile.LayerShimmer && intensity >= 1 && cast.Enabled
-                ? Accent(ShimmerCue, Math.Max(0f, release.Delay - 0.030f), (0.15f + intensity * 0.035f) * masterGain, cast.Pitch * 1.04f)
+                ? Accent(DemonicPowerSfxRules.IsDemonic(profile.Key) ? "demonritual" : ShimmerCue, Math.Max(0f, release.Delay - 0.030f), (0.15f + intensity * 0.035f) * masterGain, cast.Pitch * 1.04f)
                 : CombatPowerSfxCuePlan.None(CombatPowerSfxPhase.Accent);
 
             return new CombatPowerSfxPlan(
@@ -587,7 +587,7 @@ namespace AshenHalls
             float aftershock = string.IsNullOrEmpty(aftershockCue)
                 ? 0f
                 : Math.Min(0.60f, impact + 0.08f + tier * 0.025f);
-            return new CombatPowerSfxProfile(
+            return DemonicPowerSfxRules.Enhance(new CombatPowerSfxProfile(
                 key,
                 tier,
                 Cue(CombatPowerSfxPhase.Cast, castCue, 0f, 0.42f + tier * 0.065f + gainBoost * 0.30f, pitch + 0.015f),
@@ -596,7 +596,7 @@ namespace AshenHalls
                 Cue(CombatPowerSfxPhase.Aftershock, aftershockCue, aftershock, 0.20f + tier * 0.075f + gainBoost * 0.25f, pitch - 0.035f),
                 lowHit,
                 rumble,
-                shimmer);
+                shimmer));
         }
 
         private static CombatPowerSfxProfile Skill(
@@ -620,7 +620,7 @@ namespace AshenHalls
             float aftershock = string.IsNullOrEmpty(aftershockCue)
                 ? 0f
                 : Math.Min(0.60f, impact + 0.07f + tier * 0.025f);
-            return new CombatPowerSfxProfile(
+            return DemonicPowerSfxRules.Enhance(new CombatPowerSfxProfile(
                 key,
                 tier,
                 Cue(CombatPowerSfxPhase.Cast, castCue, 0f, 0.40f + tier * 0.07f + gainBoost * 0.25f, pitch + 0.015f),
@@ -629,7 +629,7 @@ namespace AshenHalls
                 Cue(CombatPowerSfxPhase.Aftershock, aftershockCue, aftershock, 0.18f + tier * 0.065f + gainBoost * 0.25f, pitch - 0.035f),
                 lowHit,
                 rumble,
-                shimmer);
+                shimmer));
         }
 
         private static float ReleaseBeforeImpact(float release, float impact)

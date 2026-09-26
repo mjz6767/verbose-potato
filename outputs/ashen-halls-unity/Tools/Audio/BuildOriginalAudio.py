@@ -50,6 +50,12 @@ MIN_MUSIC_DURATION_SECONDS = 15.0
 MAX_MUSIC_DURATION_SECONDS = 30.1
 TITLE_MAX_MUSIC_DURATION_SECONDS = 60.1
 TITLE_MUSIC_CUE = "tavern_storm_hearth_ensemble_loop"
+EPIC_COMBAT_CUES = (
+    "red_rift_war_loop",
+    "the_rift_walks_demon_lord_loop",
+    "sigils_crossed_arcane_duel_loop",
+)
+EPIC_COMBAT_QA_DIR = QA_DIR / "combat-music-2026-09-26"
 
 WORLD_MAP_PREVIEW_ROUTES = (
     ("local-road", "old_road_walk_loop", 0.0, 0.0),
@@ -653,7 +659,7 @@ TRACKS: tuple[TrackSpec, ...] = (
         (0, 5, 4, 6, 0, 3, 5, 4),
         "boss",
         0.88,
-        "Heavy war drum, strained low strings, and unstable rising rift intervals.",
+        "An eight-bar infernal march: low vowel choir, answering bronze horns, driving bowed ostinati, a withdrawn middle phrase, and a returning war-drum cadence.",
     ),
     TrackSpec(
         "bones_beneath_stone_loop",
@@ -675,7 +681,7 @@ TRACKS: tuple[TrackSpec, ...] = (
         (0, 4, 6, 3, 0, 5, 7, 4),
         "combat",
         0.76,
-        "Fast glassy figures and crossed rising lines for a dangerous caster duel.",
+        "An eight-bar arcane duel: antiphonal glass arpeggios, a rising horn answer, restrained choir, cross-rhythm battle drums, and a suspended middle phrase before the return.",
     ),
     TrackSpec(
         "steel_against_the_chosen_loop",
@@ -705,10 +711,10 @@ TRACKS: tuple[TrackSpec, ...] = (
         96,
         41,
         HARMONIC_MINOR,
-        (0, 5, 4, 6, 0, 3, 7, 5),
+        (0, 0, 5, 4, 3, 5, 4, 4),
         "boss",
         0.98,
-        "Massive low strings, ritual war drum, and a broken fanfare for the demon-lord finale.",
+        "An eight-bar demon-lord procession: a measured low-horn summons, wordless bass choir, massed bowed answers, deep ritual drums, a tense withdrawal, and a dominant cadence back into the summons.",
     ),
 )
 
@@ -1326,9 +1332,143 @@ def compose_main_title_track(spec: TrackSpec) -> np.ndarray:
     return master_audio(mix, -18.2, -3.0)
 
 
+def battle_choir(frequency: float, duration: float, sample_rate: int, rng: np.random.Generator) -> np.ndarray:
+    """Wordless, voiced /ah/ ensemble; formants are synthesis, never a recording."""
+    frames = max(1, int(duration * sample_rate))
+    t = np.arange(frames, dtype=np.float64) / sample_rate
+    choir = np.zeros(frames, dtype=np.float64)
+    for singer, detune in enumerate((-0.0035, 0.0025)):
+        pitch = frequency * (1.0 + detune)
+        phase = 2 * math.pi * pitch * t + rng.uniform(0, 2 * math.pi)
+        phase += 0.045 * np.sin(2 * math.pi * (4.4 + singer * 0.7) * t)
+        for harmonic in range(1, min(36, int(6500 / pitch))):
+            hz = harmonic * pitch
+            vowel = (0.78 * math.exp(-0.5 * ((hz - 650) / 180) ** 2)
+                     + 0.40 * math.exp(-0.5 * ((hz - 1120) / 240) ** 2)
+                     + 0.18 * math.exp(-0.5 * ((hz - 2450) / 380) ** 2))
+            weight = 0.16 / harmonic + vowel / math.sqrt(harmonic)
+            choir += np.sin(phase * harmonic) * weight * 0.43
+    return choir * envelope(frames, sample_rate, 0.11, 0.23, 0.12, 0.88)
+
+
+def battle_spiccato(frequency: float, duration: float, sample_rate: int, rng: np.random.Generator) -> np.ndarray:
+    frames = max(1, int(duration * sample_rate))
+    t = np.arange(frames, dtype=np.float64) / sample_rate
+    phase = rng.uniform(0, 2 * math.pi)
+    voice = oscillator(frequency, frames, sample_rate, "softsaw", phase)
+    voice += 0.36 * oscillator(frequency * 1.003, frames, sample_rate, "softsaw", phase * 0.73)
+    return voice * np.exp(-t * 5.8) * envelope(frames, sample_rate, 0.012, 0.075)
+
+
+def compose_epic_combat_track(spec: TrackSpec) -> np.ndarray:
+    """Compose a complete eight-bar call/reply/withdrawal/return, with no random notes."""
+    rng = np.random.default_rng(stable_seed(spec.cue + ":battle-phrases-2026-09-26"))
+    beat = 60.0 / spec.bpm
+    frames = int(round(MUSIC_BEATS * beat * MUSIC_SAMPLE_RATE))
+    mix = np.zeros((2, frames), dtype=np.float64)
+    lord = spec.cue == "the_rift_walks_demon_lord_loop"
+    arcane = spec.cue == "sigils_crossed_arcane_duel_loop"
+    levels = (0.94, 1.0, 1.03, 0.94, 0.57, 0.66, 1.05, 1.10)
+    # Each four-beat phrase has rests and an answer. Degrees are chord-relative;
+    # the final dominant therefore turns naturally into the opening tonic.
+    march = (
+        ((0, .65, 0), (.75, .55, 0), (1.5, .8, 2), (2.5, 1.2, 4)),
+        ((0, 1.3, 4), (1.5, .7, 2), (2.5, 1.1, 0)),
+        ((0, .8, 0), (1, .65, 2), (2, 1.55, 4)),
+        ((.5, .7, 3), (1.5, .8, 2), (2.5, 1.0, 0)),
+        ((0, 1.8, 0), (2.5, 1.0, 2)),
+        ((.5, 1.2, 4), (2, 1.3, 2)),
+        ((0, .65, 0), (.75, .55, 0), (1.5, .8, 2), (2.5, 1.2, 4)),
+        ((0, 1.2, 4), (1.5, .7, 2), (2.5, 1.1, 0)),
+    )
+    summons = (
+        ((0, 1.6, 0), (2, .6, 0), (3, .8, 4)),
+        ((0, 1.6, 3), (2, 1.5, 2)),
+        ((0, .7, 0), (1, .7, 2), (2, 1.5, 4)),
+        ((0, 1.7, 2), (2.5, 1.0, 0)),
+        ((.5, 2.7, 0),),
+        ((0, 1.5, 2), (2, 1.4, 4)),
+        ((0, 1.5, 0), (2, .65, 2), (3, .7, 4)),
+        ((0, 1.5, 4), (2, .7, 2), (3, .7, 0)),
+    )
+    for bar in range(8):
+        origin = float(bar * 4)
+        chord = spec.progression[bar]
+        level = levels[bar]
+        withdrawn = bar in (4, 5)
+        low_root = scale_note(spec.root_midi, spec.mode, chord, -1)
+
+        def note(instrument: str, degree: int, when: float, length: float, gain: float, pan: float, octave: int = 0) -> None:
+            midi = scale_note(spec.root_midi, spec.mode, degree, octave)
+            if instrument in {"choir", "spiccato"}:
+                synth = battle_choir if instrument == "choir" else battle_spiccato
+                signal = synth(midi_to_hz(midi), length * beat, MUSIC_SAMPLE_RATE, rng)
+                mix_circular(mix, signal, round((origin + when) * beat * MUSIC_SAMPLE_RATE), gain * level, pan)
+            else:
+                add_music_note(mix, instrument, midi, origin + when, length, beat, gain * level, pan, rng)
+
+        # Bass remains pitched and rhythmic, leaving sustained weight to the choir.
+        for position in ((0, 2.5) if lord else (0, 1.5, 2.5)):
+            add_music_note(mix, "bowed", low_root, origin + position, 1.18, beat, .082 * level, 0, rng)
+        for voice, degree in enumerate((chord, chord + 4)):
+            note("choir", degree, .08, 3.75, .090 if lord else .065 if not arcane else .035,
+                 (-.42, .42)[voice], 0 if voice == 0 else -1)
+        if not withdrawn:
+            note("bowed", chord + 2, .12, 3.7, .038, -.25)
+            note("bowed", chord + 4, .17, 3.65, .034, .28)
+
+        # Staccato strings play an intentional 3+3+2 accent group. The middle
+        # two bars remove alternate strokes, opening room for the choir reply.
+        ostinato = (0, 4, 2, 0, 4, 2, 4, 2) if not arcane else (0, 2, 4, 6, 4, 2, 4, 2)
+        for index, degree in enumerate(ostinato):
+            if withdrawn and index % 2: continue
+            note("spiccato", chord + degree, index * .5, .37,
+                 (.060 if index in (0, 3, 6) else .041) * (.80 if lord else 1),
+                 -.44 if index % 2 == 0 else .44, 0 if arcane else -1)
+        if arcane:
+            for index in (0, 2, 3, 5, 7):
+                if withdrawn and index not in (0, 5): continue
+                note("bell", chord + ostinato[index], index * .5 + .03, .63, .026, .50 if bar % 2 == 0 else -.50, 1)
+
+        for when, length, degree in (summons if lord else march)[bar]:
+            note("brass" if not withdrawn else "choir", chord + degree, when, length,
+                 .100 if lord else .080 if not arcane else .060, -.13 if bar % 2 == 0 else .13,
+                 0 if not arcane else -1)
+        if bar in (1, 3, 7):
+            note("brass", chord + 2, 2.55, 1.15, .035, .32, 1 if not lord else 0)
+
+        # Low drum, skin drum and sparse bronze occupy different registers.
+        drum_events = ((0, 48, .24), (2, 72, .15)) if lord else ((0, 60, .21), (1.5, 90, .105), (2.5, 67, .15))
+        for position, frequency, gain in drum_events:
+            hit = drum(frequency, .50 if lord else .36, MUSIC_SAMPLE_RATE, rng, .85)
+            mix_circular(mix, hit, round((origin + position) * beat * MUSIC_SAMPLE_RATE), gain * level, -.08)
+        if not withdrawn:
+            for position in (1, 3):
+                hit = drum(154 if arcane else 118, .22, MUSIC_SAMPLE_RATE, rng, .94)
+                mix_circular(mix, hit, round((origin + position) * beat * MUSIC_SAMPLE_RATE), .090 * level, .23)
+            for index in range(8):
+                tick = click(.06, MUSIC_SAMPLE_RATE, rng, bright=arcane)
+                mix_circular(mix, tick, round((origin + index * .5 + .25) * beat * MUSIC_SAMPLE_RATE),
+                             .012 * level * (1.25 if index % 2 == 0 else .65), -.32 if index % 2 else .32)
+        if bar in (0, 6):
+            mix_circular(mix, cymbal(1.20, MUSIC_SAMPLE_RATE, rng), round(origin * beat * MUSIC_SAMPLE_RATE), .032, .30)
+        if bar in (3, 7):
+            for index, position in enumerate((3, 3.5, 3.75)):
+                hit = drum(112 - index * 18, .20, MUSIC_SAMPLE_RATE, rng, .76)
+                mix_circular(mix, hit, round((origin + position) * beat * MUSIC_SAMPLE_RATE), .055 + index * .015, -.3 + index * .3)
+
+    # Circular tails preserve the phrase downbeat. Do not rotate the finished
+    # arrangement to an arbitrary quiet sample or fade the entire musical bar.
+    mix = circular_reverb(mix, MUSIC_SAMPLE_RATE, .22 if lord else .17, .95)
+    mix = bridge_loop_seam(mix, MUSIC_SAMPLE_RATE)
+    return master_audio(mix, -19.0 if lord else -19.5, -4.0)
+
+
 def compose_track(spec: TrackSpec) -> np.ndarray:
     if spec.cue == "tavern_storm_hearth_ensemble_loop":
         return compose_main_title_track(spec)
+    if spec.cue in EPIC_COMBAT_CUES:
+        return compose_epic_combat_track(spec)
 
     rng = np.random.default_rng(stable_seed(spec.cue))
     beat_seconds = 60.0 / spec.bpm
@@ -3049,11 +3189,105 @@ def build_music_cue(cue: str) -> None:
     print(json.dumps(asdict(item), indent=2))
 
 
+def epic_combat_metrics(audio: np.ndarray, sample_rate: int) -> dict[str, object]:
+    """Measure the delivered PCM, including the wrap and the four two-bar phrases."""
+    sections = np.array_split(audio, 4, axis=1)
+    section_rms = [db(float(np.sqrt(np.mean(section * section)))) for section in sections]
+    peak = float(np.max(np.abs(audio)))
+    seam = float(np.max(np.abs(audio[:, 0] - audio[:, -1])))
+    wrap = np.concatenate((audio[:, -64:], audio[:, :64]), axis=1)
+    return {
+        "duration_seconds": round(audio.shape[1] / sample_rate, 4),
+        "peak_dbfs": round(db(peak), 3),
+        "rms_dbfs": round(db(float(np.sqrt(np.mean(audio * audio)))), 3),
+        "seam_delta_dbfs": round(db(seam), 3),
+        "wrap_max_step": round(float(np.max(np.abs(np.diff(wrap, axis=1)))), 7),
+        "phrase_rms_dbfs": [round(value, 3) for value in section_rms],
+        "phrase_contrast_db": round(max(section_rms) - min(section_rms), 3),
+        "stereo_correlation": round(float(np.corrcoef(audio)[0, 1]), 4),
+    }
+
+
+def validate_epic_combat_audio(audio: np.ndarray, sample_rate: int) -> list[str]:
+    if audio.ndim != 2 or audio.shape[0] != 2 or audio.shape[1] < 128:
+        return ["expected a nonempty stereo score"]
+    if not np.all(np.isfinite(audio)):
+        return ["non-finite audio samples"]
+    metrics = epic_combat_metrics(audio, sample_rate)
+    errors = []
+    if metrics["peak_dbfs"] > -3.9: errors.append("insufficient peak headroom")
+    if not -25 <= metrics["rms_dbfs"] <= -16: errors.append("score is silent or excessively dense")
+    if metrics["seam_delta_dbfs"] > -60: errors.append("audible loop boundary discontinuity")
+    if metrics["wrap_max_step"] > .015: errors.append("sharp sample step around loop boundary")
+    if metrics["phrase_contrast_db"] < 2.0: errors.append("missing contrast between the battle and withdrawal phrases")
+    if metrics["stereo_correlation"] < -.1: errors.append("score loses body when summed to mono")
+    return errors
+
+
+def build_epic_combat() -> None:
+    """Replace three authored masters and their rows, leaving every other asset intact."""
+    EPIC_COMBAT_QA_DIR.mkdir(parents=True, exist_ok=True)
+    replacements = {}
+    report = {"generator": "Tools/Audio/BuildOriginalAudio.py --epic-combat", "external_samples": False,
+              "structure": ["declaration", "answer", "withdrawal", "return and cadence"], "tracks": []}
+    excerpts = []
+    cursor = 0.0
+    for cue in EPIC_COMBAT_CUES:
+        spec = next(item for item in TRACKS if item.cue == cue)
+        rendered = compose_track(spec)
+        errors = validate_epic_combat_audio(rendered, MUSIC_SAMPLE_RATE)
+        if errors: raise ValueError(cue + ": " + "; ".join(errors))
+        path = MUSIC_DIR / (cue + ".wav")
+        write_pcm16(path, rendered, MUSIC_SAMPLE_RATE)
+        audio, sample_rate = read_pcm16(path)
+        errors = validate_epic_combat_audio(audio, sample_rate)
+        if errors: raise ValueError(cue + ": " + "; ".join(errors))
+        replacements[cue] = asdict(metrics_for(cue, spec.title, spec.direction, "music", path, audio, sample_rate))
+        track = {"cue": cue, "title": spec.title, "sha256": sha256(path), **epic_combat_metrics(audio, sample_rate),
+                 "preview_start_seconds": round(cursor, 3)}
+        report["tracks"].append(track)
+        # Six seconds per cue with preview-only edge fades; deliver the actual
+        # loop separately so these listening transitions cannot alter its seam.
+        excerpt = audio[:, :6 * sample_rate].copy()
+        fade_frames = int(.10 * sample_rate)
+        excerpt[:, :fade_frames] *= np.linspace(0, 1, fade_frames)
+        excerpt[:, -fade_frames:] *= np.linspace(1, 0, fade_frames)
+        excerpts.extend((excerpt, np.zeros((2, int(.25 * sample_rate)))))
+        cursor += excerpt.shape[1] / sample_rate + .25
+        print(json.dumps(track))
+
+    manifest = DOCS_DIR / "ORIGINAL_AUDIO_ASSET_MANIFEST.tsv"
+    with manifest.open(encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle, delimiter="\t")
+        fields = reader.fieldnames
+        rows = list(reader)
+    missing = set(replacements) - {row["cue"] for row in rows}
+    if missing: raise ValueError("Missing original manifest rows: " + str(sorted(missing)))
+    with manifest.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, delimiter="\t")
+        writer.writeheader()
+        writer.writerows(replacements.get(row["cue"], row) for row in rows)
+    validation_path = DOCS_DIR / "ORIGINAL_AUDIO_VALIDATION.json"
+    validation = json.loads(validation_path.read_text(encoding="utf-8"))
+    validation["assets"] = [replacements.get(item["cue"], item) for item in validation["assets"]]
+    validation_path.write_text(json.dumps(validation, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    preview = EPIC_COMBAT_QA_DIR / "epic-combat-preview.wav"
+    write_pcm16(preview, np.concatenate(excerpts[:-1], axis=1), MUSIC_SAMPLE_RATE)
+    report["preview"] = str(preview.relative_to(STAGE_ROOT)).replace("\\", "/")
+    report["preview_sha256"] = sha256(preview)
+    (EPIC_COMBAT_QA_DIR / "validation.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--check", action="store_true", help="Validate existing outputs without rebuilding.")
     parser.add_argument("--music-cue", help="Rebuild one named music cue without touching the rest of the bank.")
+    parser.add_argument("--epic-combat", action="store_true", help="Build the three combat scores, update only their manifest rows, and write a focused listening preview.")
     args = parser.parse_args()
+    if args.epic_combat:
+        if args.check or args.music_cue: parser.error("--epic-combat cannot be combined with another action")
+        build_epic_combat()
+        return
     if args.check and args.music_cue:
         parser.error("--check and --music-cue cannot be combined")
     if args.music_cue:

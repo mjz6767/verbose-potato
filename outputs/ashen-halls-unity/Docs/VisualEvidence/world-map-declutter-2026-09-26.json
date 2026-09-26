@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "kind": "unreleased-world-map-visual-audit",
+  "verifiedAtUtc": "2026-09-26T15:21:39Z",
+  "baseCommit": "9287c5764bb9bccbc6b42670b870b0d8b59e67ec",
+  "sourceDirty": true,
+  "published": false,
+  "saveVersion": 27,
+  "preview": {
+    "directory": "QA/audit-players/20260926-151512-5270a552",
+    "developmentBuild": true,
+    "displayVersion": "v2.25.0",
+    "assemblySha256": "521dbcd6a76d79b47bdbcc157256e120151c5ec2e8b8c53993c8bccdcef12d43",
+    "note": "Isolated uncommitted-source preview, not a new retail release. Version metadata and published v2.25 remain unchanged."
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "passed": true,
+    "exitCode": 0,
+    "checks": [
+      "Rules",
+      "Inventory and loot",
+      "Sprite art",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "log": "QA/project-audit/20260926-151429-a23b54bb/unity.log",
+    "sha256": "4f8bbd4fb3c47c78860031b0b7dd17343e2a81839d69eb1a11b0b1e4951059d0"
+  },
+  "buildLog": {
+    "path": "QA/world-layout-20260926-final-build.log",
+    "sha256": "2be58dd1a3d0868cffe6546d7e36d424e57392660d6e8c497bc686efb262f3ea",
+    "success": true
+  },
+  "visualReview": {
+    "captureCount": 18,
+    "deterministicPassed": true,
+    "warningCount": 0,
+    "failureCount": 0,
+    "subsequentAssistantReviewPerformed": true,
+    "advisoryOnly": true,
+    "note": "The primary assistant and separate visual reviewers inspected the final images. Raw packets retain aiReview.performed=false; this records subsequent in-conversation review, not an API review embedded in those packets.",
+    "scenarios": [
+      "npc-kate-local",
+      "npc-lute-local",
+      "npc-dock-local",
+      "npc-scholar-local",
+      "npc-kate-region",
+      "landmark-region"
+    ],
+    "captureSets": [
+      {
+        "resolution": "960x600",
+        "count": 6,
+        "path": "QA/world-sprites/20260926-151535-99a3bd58/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "509383c03c5807030833f981b01a59a84bb336b0cd64f3b3d3906831e77b51b6"
+      },
+      {
+        "resolution": "1280x720",
+        "count": 6,
+        "path": "QA/world-sprites/20260926-151656-68aaec0c/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "5faaa460cfbec7900edbf1480abb9619fe732dae00659cbc5adee60c7d5f4062"
+      },
+      {
+        "resolution": "1920x1080",
+        "count": 6,
+        "path": "QA/world-sprites/20260926-151810-643e406d/visual-qa-packet/visual-qa-packet.json",
+        "captureSetSha256": "9568147ff8d2520b39150ab57b2df5f454f1a815ba0efd004c89580842d8ee8f"
+      }
+    ],
+    "baselineSets": [
+      "QA/world-sprites/20260926-144131-7099c67c",
+      "QA/world-sprites/20260926-144246-afa5ba4a",
+      "QA/world-sprites/20260926-144402-94fdf6cc"
+    ],
+    "supersededIteration": {
+      "sets": [
+        "QA/world-sprites/20260926-151003-3f55c455",
+        "QA/world-sprites/20260926-151134-b46cf2a2",
+        "QA/world-sprites/20260926-151249-8c297e87"
+      ],
+      "reason": "Visual review found the slim route too faint against paving. Final candidate brightens the gold core and enforces a 1.5px minimum without restoring bulky markers."
+    }
+  },
+  "inputReview": {
+    "liveKeyboardPointerPerformed": true,
+    "fixture": "Isolated save-blocked Kate contact, 1280x720 final preview",
+    "passed": [
+      "Mouse click on Kate opens the correct dialogue; Escape closes it.",
+      "Clicking the adjacent left tile moves exactly one tile; D returns beside Kate.",
+      "Local mouse wheel over Kate neither moves the party nor activates dialogue.",
+      "Clicking Region button opens Region Map; dragging pans focus without moving the party.",
+      "Home recenters the same party; selecting Kate's Region role icon displays her name and inspected coordinates.",
+      "Tab returns to Local; Details mouse button opens the expanded rail; blank rail click does not move the party; Q closes Details."
+    ],
+    "log": "QA/world-layout-20260926-live-input.log",
+    "sha256": "086ff4e2d06b915a0e234825e043998c1b8c8b9a52fdfcf35050aed4ee6c9346",
+    "runtimeErrorsObserved": false,
+    "note": "Actions were observed through the computer-use skill. Boot log identifies the fixture but is not an action-by-action input trace. Only the owned fixture process was stopped; no campaign save was written."
+  },
+  "optimizationEvidence": {
+    "threatIndex": {
+      "fixtureRosterSize": 32,
+      "viewportQueries": 693,
+      "previousWorstCaseRosterVisits": 22176,
+      "indexedRosterVisits": 32,
+      "scope": "fresh rendering-only index each repaint, gameplay queries remain live"
+    },
+    "objectOrder": "One map scan followed by sorting visible candidates in a reusable buffer, preserving prior stable Y/X/ordinal-ID/source-index ordering. Regression fixture sorts fewer than one tenth of 1200+ source objects.",
+    "hudRaycastTargets": 9,
+    "hudOutlineComponentsBefore": 10,
+    "hudOutlineComponentsAfter": 3,
+    "hiddenInteriorRegionPatronDraws": 6,
+    "skipsCollapsedDetailConstruction": true,
+    "fpsMeasured": false
+  },
+  "runtimeSources": [
+    {
+      "path": "Assets/Scripts/Legacy/AshenHallsGame.Explore.cs",
+      "sha256": "f81d3109e33c33a3c50d1d0e05f57f8c98b6860a6c5119360dddf6921f68b914"
+    },
+    {
+      "path": "Assets/Scripts/Legacy/AshenHallsGame.ExplorationHud.cs",
+      "sha256": "7ddae721347da0628e1177c5c347d77df743fa3a4f5e5a2842c6d0b8167cf100"
+    },
+    {
+      "path": "Assets/Scripts/Legacy/AshenHallsGame.WorldMapV24Art.cs",
+      "sha256": "9dc30f2f932e7d4031da4e20046f24ff16eafcec51160d4fa0229331ccbef00d"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/ExplorationHudScreen.cs",
+      "sha256": "78f4ed83446f78ee54fcd7007885b08ec3d796ef59ef06b07215c4fd1025de0b"
+    },
+    {
+      "path": "Assets/Scripts/Presentation/ExplorationNpcPresentationRules.cs",
+      "sha256": "92cf215f46c2f6e122fe800bfdc819ca74be8965e889c8b5ef19d7043eba2ea0"
+    },
+    {
+      "path": "Assets/Scripts/Exploration/ExplorationMapVisualRules.cs",
+      "sha256": "fcb3c85ccffc4dba00532dcb1bf0a4191fb5275c3accbef08b877d4b66f93ede"
+    },
+    {
+      "path": "Assets/Scripts/Exploration/ExplorationThreatRenderIndex.cs",
+      "sha256": "5f8c9ef0636fc9869d08c777c23453071e6ec34c7d3d0ebfa669ad35c25ae14a"
+    }
+  ],
+  "publishedV225Archive": {
+    "unchanged": true,
+    "sha256": "cb6a0e2170646aa450b6ef3a0f02d0417caf76546f5dce9ad11f185dfb19e0db"
+  },
+  "limitations": [
+    "No retail package or source push was requested or performed in this pass.",
+    "No FPS/frametime or total-allocation benchmark is claimed; counters measure specific deterministic work removed.",
+    "Physical-controller feel, subjective audio, a complete human campaign, and every possible map/NPC combination were not tested.",
+    "Raw screenshots/logs/player remain local ignored QA artifacts. This compact record and the audit note are intended source evidence.",
+    "Existing authored sprite atlases are unchanged; appearance improvements are layout, layering, scale hierarchy, and marker changes."
+  ]
+}

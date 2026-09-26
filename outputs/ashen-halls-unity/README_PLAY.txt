@@ -1,8 +1,12 @@
-Ash & Brimstone v2.25.0 - Steel & Streets
+Ash & Brimstone v2.26.0 - Rift & Ruin
 
-Release version: v2.25.0. Save schema: v27.
+Release version: v2.26.0. Save schema: v27.
 
-The licensed Full Unity audit passed on September 26: rules, inventory/loot, sprite art, combat UI and runtime boot. Release packaging repeats these checks and validates a clean-extracted launch. Final package hashes, rendered-view coverage and remaining manual checks are recorded separately in Docs/ReleaseEvidence/v2.25.0-summary.json after verification. Older versioned Windows packages remain available for rollback.
+Rift & Ruin gives warlocks a deeper ritual sound palette, distinct demon arrivals, soul-tearing impacts and larger summoning gates. Abyssal Ascendance unfolds spectral wings, and Death Burst pulls souls inward before releasing them. Demonic battles, the Demon Lord and arcane duels receive fuller original scores with choir, horns, strings and war drums. Music and effects retain independent volume controls; Reduced Motion keeps compact static impacts.
+
+This update also includes the coordinated map clarity pass: clipped roofs and smoke, quieter selection and route cues, consistent Region contact icons, compact hover actions, clearer injury warnings and less repeated rendering work. Saves remain compatible with schema v27.
+
+Release packaging runs the rules, inventory/loot, sprite-art, combat-UI and runtime-boot checks, then validates a clean-extracted launch. Final package hashes and review coverage are recorded separately in Docs/ReleaseEvidence/v2.26.0-summary.json after verification. Older versioned Windows packages remain available for rollback.
 
 Steel & Streets polishes combat decisions and the people of Midgaard. Movement and skill previews respect the same restrictions as execution, blocked actions explain why they cannot proceed, and healing feedback reflects health actually recovered. Spell and skill impacts have a clearer contact beat, more distinct release/travel accents, and a controlled layered sound mix. Reduced Motion keeps compact static impacts.
 

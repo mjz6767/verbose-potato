@@ -99,13 +99,18 @@ namespace AshenHalls.Editor
 
         private static void ExportPreview(Dictionary<string, AudioClip> clips)
         {
-            const int rate = 44100;
             CombatPowerSfxPlan[] plans =
             {
                 CombatPowerSfxRules.PlanForFormula("FBL"), CombatPowerSfxRules.PlanForFormula("RCL"),
                 CombatPowerSfxRules.PlanForFormula("RBT"), CombatPowerSfxRules.PlanForAbility("charge"),
                 CombatPowerSfxRules.PlanForAbility("whirlwind"), CombatPowerSfxRules.PlanForAbility("volley")
             };
+            ExportPlansPreview(clips, plans, "audio-preview.wav", "Fireball, Cold Lance, Rift Bolt, Charge, Whirlwind, Volley");
+        }
+
+        internal static void ExportPlansPreview(Dictionary<string, AudioClip> clips, CombatPowerSfxPlan[] plans, string filename, string labels)
+        {
+            const int rate = 44100;
             List<float> output = new List<float>();
             foreach (CombatPowerSfxPlan plan in plans)
             {
@@ -118,6 +123,7 @@ namespace AshenHalls.Editor
                         duration = Math.Max(duration, cue.Delay + clip.length / 0.90f);
                 }
                 float[] segment = new float[(int)((duration + 0.45f) * rate) * 2];
+                float[] centered = new float[segment.Length / 2];
                 for (int channel = 0; channel < cues.Length; channel++)
                 {
                     CombatPowerSfxCuePlan cue = cues[channel];
@@ -137,10 +143,15 @@ namespace AshenHalls.Editor
                         for (int c = 0; c < clip.channels; c++)
                             sample += Mathf.Lerp(source[sourceFrame * clip.channels + c], source[(sourceFrame + 1) * clip.channels + c], position - sourceFrame);
                         sample *= cue.Gain * 0.78f / clip.channels;
+                        centered[start + frame] += sample;
                         segment[(start + frame) * 2] += sample * left;
                         segment[(start + frame) * 2 + 1] += sample * right;
                     }
                 }
+                float rawPeak = 0f;
+                foreach (float sample in centered) rawPeak = Math.Max(rawPeak, Math.Abs(sample));
+                Assert(rawPeak < 0.95f, plan.ProfileKey + " layered mix leaves headroom before preview normalization (centered peak " + rawPeak + ")");
+                Debug.Log("Combat plan raw centered peak: " + plan.ProfileKey + " = " + rawPeak);
                 output.AddRange(segment);
             }
             float peak = 0f;
@@ -152,7 +163,7 @@ namespace AshenHalls.Editor
             float gain = peak > 0.90f ? 0.90f / peak : 1f;
             string directory = Path.GetFullPath(Path.Combine(Application.dataPath, "..", "QA", "combat-effects"));
             Directory.CreateDirectory(directory);
-            string path = Path.Combine(directory, "audio-preview.wav");
+            string path = Path.Combine(directory, filename);
             using (BinaryWriter writer = new BinaryWriter(File.Create(path)))
             {
                 writer.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
@@ -163,7 +174,7 @@ namespace AshenHalls.Editor
                 writer.Write(System.Text.Encoding.ASCII.GetBytes("data")); writer.Write(output.Count * 2);
                 foreach (float sample in output) writer.Write((short)Math.Round(sample * gain * short.MaxValue));
             }
-            Debug.Log("Combat audio preview (Fireball, Cold Lance, Rift Bolt, Charge, Whirlwind, Volley): " + path);
+            Debug.Log("Combat audio preview (" + labels + "): " + path);
         }
 
         private static void Assert(bool condition, string message)

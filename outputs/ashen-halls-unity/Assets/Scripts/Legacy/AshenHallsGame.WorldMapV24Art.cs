@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace AshenHalls
@@ -14,6 +13,44 @@ namespace AshenHalls
         private Texture2D worldThreatHabitatAtlas;
         private Texture2D worldNpcCitizenAtlas;
         private Texture2D playerExplorationRoleAtlas;
+        private readonly ExplorationThreatRenderIndex exploreThreatRenderIndex = new ExplorationThreatRenderIndex();
+        private MapData exploreThreatRenderMap;
+        private List<RoamingThreat> exploreThreatRenderSource;
+        private int exploreThreatRenderDepth;
+        private bool exploreThreatRenderFrameActive;
+
+        private void BeginExploreWorldArtFrame()
+        {
+            // Reuse storage, never world state: rebuilding at each repaint keeps
+            // movement, cleared camps and save/depth changes visible immediately.
+            exploreThreatRenderMap = state?.Map;
+            exploreThreatRenderSource = state?.RoamingThreats;
+            exploreThreatRenderDepth = state?.Depth ?? 0;
+            exploreThreatRenderIndex.Rebuild(exploreThreatRenderSource, exploreThreatRenderDepth);
+            exploreThreatRenderFrameActive = exploreThreatRenderMap != null;
+        }
+
+        private void EndExploreWorldArtFrame()
+        {
+            exploreThreatRenderFrameActive = false;
+            exploreThreatRenderMap = null;
+            exploreThreatRenderSource = null;
+        }
+
+        private bool HasCurrentExploreThreatRenderIndex()
+        {
+            return exploreThreatRenderFrameActive
+                && ReferenceEquals(exploreThreatRenderMap, state?.Map)
+                && ReferenceEquals(exploreThreatRenderSource, state?.RoamingThreats)
+                && exploreThreatRenderDepth == state.Depth;
+        }
+
+        private bool IsRoamingThreatRenderCell(int x, int y)
+        {
+            return HasCurrentExploreThreatRenderIndex()
+                ? exploreThreatRenderIndex.HasActivePatrol(x, y)
+                : RoamingThreatAt(x, y) != null;
+        }
 
         private void LoadV24WorldMapArtAtlases()
         {
@@ -156,15 +193,16 @@ namespace AshenHalls
                     && threat.HomeY >= 0
                     && threat.HomeX < state.Map.Width
                     && threat.HomeY < state.Map.Height;
-                ExplorationCellRole roles = homeInBounds
-                    ? ExplorationSurfaceRules.RolesAt(state.Map, threat.HomeX, threat.HomeY)
-                    : ExplorationCellRole.None;
-                WorldZone zone = homeInBounds ? ZoneFor(threat.HomeX, threat.HomeY, state.Map, state.Depth) : null;
+                // Cull before material, district and catalog work. Unknown Region
+                // cells still fail closed before any habitat can be submitted.
+                if (!homeInBounds
+                    || !ExplorePointInViewport(threat.HomeX, threat.HomeY, origin, viewW, viewH)
+                    || exploreWideView && !IsExploreCellCharted(threat.HomeX, threat.HomeY)) continue;
+                ExplorationCellRole roles = ExplorationSurfaceRules.RolesAt(state.Map, threat.HomeX, threat.HomeY);
+                WorldZone zone = ZoneFor(threat.HomeX, threat.HomeY, state.Map, state.Depth);
                 bool certifiedSafeRoad = ExplorationSurfaceRules.IsPath(roles)
                     && (zone == null || zone.Danger <= 0);
                 if (!WorldThreatHabitatPresentationRules.ShouldDrawAtHome(homeInBounds, certifiedSafeRoad)) continue;
-                if (exploreWideView && !IsExploreCellCharted(threat.HomeX, threat.HomeY)) continue;
-                if (!ExplorePointInViewport(threat.HomeX, threat.HomeY, origin, viewW, viewH)) continue;
 
                 Rect homeCell = new Rect(
                     grid.x + (threat.HomeX - origin.X) * cell,
@@ -366,7 +404,7 @@ namespace AshenHalls
                 || state?.Map == null
                 || tile != 1
                 || IsMidgaardInteriorCell(x, y, state.Map, state.Depth)
-                || RoamingThreatAt(x, y) != null
+                || IsRoamingThreatRenderCell(x, y)
                 || IsRoamingThreatHomeCell(x, y))
             {
                 return false;
@@ -414,7 +452,8 @@ namespace AshenHalls
             int tile,
             HashSet<int> guidanceCells)
         {
-            if (!IsWorldNpcCitizenAtlas()
+            if (!ExplorationNpcPresentationRules.ShouldDrawInteriorAmbientPatron(exploreWideView)
+                || !IsWorldNpcCitizenAtlas()
                 || x == state.PlayerX && y == state.PlayerY
                 || !TryGetGrandHearthPatronAt(x, y, tile, guidanceCells, out AmbientCitizenProfession profession))
             {
@@ -461,6 +500,7 @@ namespace AshenHalls
 
         private bool IsRoamingThreatHomeCell(int x, int y)
         {
+            if (HasCurrentExploreThreatRenderIndex()) return exploreThreatRenderIndex.HasHome(x, y);
             if (state?.RoamingThreats == null) return false;
             foreach (RoamingThreat threat in state.RoamingThreats)
             {
@@ -477,13 +517,20 @@ namespace AshenHalls
 
         private bool IsActiveRoamingThreatHabitatCell(int x, int y)
         {
+            if (HasCurrentExploreThreatRenderIndex()) return exploreThreatRenderIndex.HasActiveHome(x, y);
             if (state?.RoamingThreats == null) return false;
-            return state.RoamingThreats.Any(threat =>
-                threat != null
-                && threat.Active
-                && threat.Depth == state.Depth
-                && threat.HomeX == x
-                && threat.HomeY == y);
+            foreach (RoamingThreat threat in state.RoamingThreats)
+            {
+                if (threat != null
+                    && threat.Active
+                    && threat.Depth == state.Depth
+                    && threat.HomeX == x
+                    && threat.HomeY == y)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private HashSet<int> BuildCurrentExploreGuidanceCellSet()

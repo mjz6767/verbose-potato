@@ -2,6 +2,23 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.26.0 - Rift & Ruin
+
+- Give warlock spells and demon skills a dedicated original sound palette: ritual whispers, rising gate invocations, distinct imp/lesser/greater breaches, soul implosions, and Ascendance choirs. Layered cues retain their existing combat timing and bounded voice mix; Reduced Motion uses compact impact sounds.
+- Add destination pact seals, upright horned summoning gates, rising demon silhouettes, Ascendance wings, soul wisps and fading ritual embers. Spell phases, combat balance and save schema remain unchanged.
+- Recompose demonic combat, Demon Lord and arcane-duel music into original eight-bar arrangements with choir, horn calls, string ostinati, war drums, a quieter middle and returning cadence. Existing routing, seamless loops and independent volume controls are retained.
+- Correct selected-power visual review labels and stale showcase damage floats; extend the capture tool with a demonic Full/Reduced Motion matrix.
+
+- Clip every world-art layer to the map viewport so tall roofs, smoke and fireplace sprites cannot cross the header or surrounding panels; pointer coordinates remain unchanged.
+- Replace the party's full-body locator with a quiet foot bracket. Keep blocked/enemy movement warnings, but show ordinary walkable cues only on hover. Active NPCs keep one interaction key instead of stacked service badges and movement brackets.
+- Use slimmer dashed gold routes with a readable minimum-width core and one Local next-step key, preserving route exits, fog limits and marked destinations.
+- Present named contacts consistently as role icons in Region view, and omit noninteractive interior crowds there. Local character art and gameplay occupancy are unchanged.
+- Consolidate map headings and shortcuts, preserve hover/NPC/threat inspection and browsed bearings, and soften party/side-panel chrome.
+- Keep hover headings to the subject and relevant access/action hint, while retaining full descriptions in Details. Reuse the inspection result during repaint instead of calculating it twice.
+- Subdue healthy party HP bars; emphasize half-health injury and quarter-health critical states, retaining numeric values and adding a non-color critical warning in both map HUD implementations.
+- Reuse per-repaint threat indexes and a visible-object sort buffer; cull habitats earlier, skip hidden detail construction, and exclude decorative HUD graphics from pointer hit-testing. Deterministic work-count improvements are tested; FPS gains are not claimed.
+- Earlier map-preview evidence is recorded in `Docs/WORLD_MAP_VISUAL_AUDIT_2026-09-26.md`. Combined release evidence is recorded separately after verification. Save schema remains v27 and the prior v2.25 archive is preserved.
+
 ## v2.25.0 - Steel & Streets
 
 - Combat movement and armed-skill previews now share the restrictions enforced by execution, including web, resource and action availability. Rejected keyboard/controller targets explain the blocking condition instead of only saying they are illegal.

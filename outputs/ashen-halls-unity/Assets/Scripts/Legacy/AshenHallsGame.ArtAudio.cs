@@ -588,6 +588,7 @@ namespace AshenHalls
             soundClips["ambruin"] = MakeAmbientSound("ambruin", "stone");
             soundClips["ambcave"] = MakeAmbientSound("ambcave", "drip");
             soundClips["ambcamp"] = MakeAmbientSound("ambcamp", "hearth");
+            BuildDemonicSoundClips();
             ApplyImportedSfxOverrides();
         }
 
