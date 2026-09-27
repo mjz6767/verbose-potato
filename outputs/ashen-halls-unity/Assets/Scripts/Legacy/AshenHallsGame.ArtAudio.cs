@@ -107,6 +107,7 @@ namespace AshenHalls
         private Texture2D uniqueItemAtlas;
         private Texture2D remembranceItemAtlas;
         private Texture2D honestWeightItemAtlas;
+        private Texture2D roadStockItemAtlas;
 
         private Texture2D combatHudUiAtlas;
 
@@ -3545,6 +3546,8 @@ namespace AshenHalls
                 RuntimeArtManifest.RemembranceItemAtlas, 0.65f, "remembrance reward icons", 0.15f);
             honestWeightItemAtlas = LoadApprovedExternalPngWithAlpha(
                 RuntimeArtManifest.HonestWeightItemAtlas, 0.65f, "honest weight reward icons", 0.15f);
+            roadStockItemAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.RoadStockItemAtlas, 0.75f, "Tessa road stock icons", 0.08f);
             combatHudUiAtlas = LoadLatestExternalPng("combat-hud-ui-atlas-runtime-", "combat-hud-ui-atlas-runtime-v0.49.png");
             combatSpellFloatAtlas = LoadLatestExternalPng("combat-spell-float-atlas-runtime-", "combat-spell-float-atlas-runtime-v0.49.png");
             enemyWorldObjectAtlas = LoadLatestExternalPng("enemy-world-object-atlas-runtime-", "enemy-world-object-atlas-runtime-v0.49.png");
@@ -5842,6 +5845,11 @@ namespace AshenHalls
 
         private bool TryDrawUniqueItemAtlasIcon(Rect rect, int index, Color tint)
         {
+            if (index >= 11 && index <= 12)
+            {
+                if (!IsRoadStockItemAtlas()) return false;
+                return DrawTextureRegionTint(roadStockItemAtlas, rect, AtlasCell(roadStockItemAtlas, index - 11, 2, 1), tint);
+            }
             if (index >= 9 && index <= 10)
             {
                 if (!IsHonestWeightItemAtlas()) return false;
@@ -5864,6 +5872,11 @@ namespace AshenHalls
         private bool IsHonestWeightItemAtlas()
         {
             return honestWeightItemAtlas != null && honestWeightItemAtlas.width == 1774 && honestWeightItemAtlas.height == 887;
+        }
+
+        private bool IsRoadStockItemAtlas()
+        {
+            return roadStockItemAtlas != null && roadStockItemAtlas.width == 1774 && roadStockItemAtlas.height == 887;
         }
 
         private bool IsUniqueItemAtlas()

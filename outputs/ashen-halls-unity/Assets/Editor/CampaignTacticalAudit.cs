@@ -98,10 +98,10 @@ namespace AshenHalls.Editor
             Debug.Log("Campaign tactical audit complete: " + results.Count + " actual fights; report and turn trace in " + qa);
         }
 
-        private sealed class Result
+        internal sealed class Result
         {
             public string Encounter, Build, Outcome, Levels, StartingBuild, Actions;
-            public int Seed, Rounds, Decisions, Survivors, Hp, MaxHp, Mp, MaxMp, EnemyHp, ElixirsUsed;
+            public int Seed, Rounds, Decisions, Survivors, Hp, MaxHp, Mp, MaxMp, EnemyHp, ElixirsUsed, StartingHp, StartingMp;
             public float HpRatio => MaxHp == 0 ? 0 : (float)Hp / MaxHp;
             public string Row() => $"| {Encounter} | {Seed} | {Build} | {Levels} | {Outcome} | {Rounds} / {Decisions} | {Survivors} | {Hp} / {MaxHp} | {Mp} / {MaxMp} | {EnemyHp} | {ElixirsUsed} | {Actions} |";
         }
@@ -115,13 +115,14 @@ namespace AshenHalls.Editor
             public string Label => Kind + (string.IsNullOrEmpty(Code) ? "" : ":" + Code);
         }
 
-        private sealed class Fixture : IDisposable
+        internal sealed class Fixture : IDisposable
         {
             private readonly GameObject host;
             private readonly AshenHallsGame game;
             private readonly Dictionary<string, MethodInfo> methods = new Dictionary<string, MethodInfo>();
             public readonly GameState State;
             private readonly Dictionary<string, int> actions = new Dictionary<string, int>();
+            private readonly int[] spentAttributes = new int[4], spentTalents = new int[4];
 
             public Fixture(int seed)
             {
@@ -224,38 +225,53 @@ namespace AshenHalls.Editor
                 Require((bool)Call("EquipInventoryItemToMember", item, State.Party[hero], null), "quest item equipped legally");
             }
 
-            private void SpendGrowth()
+            internal void SpendGrowth(bool continuous = false)
             {
                 for (int i = 0; i < State.Party.Count; i++)
                 {
                     PartyMember member = State.Party[i];
-                    int n = 0;
+                    int n = continuous ? spentAttributes[i] : 0;
                     while (member.StatPoints > 0)
                     {
                         PartyGrowthChoice choice = n++ % 3 == 2 ? PartyGrowthChoice.Health : i == 0 ? PartyGrowthChoice.Strength
                             : i == 1 ? PartyGrowthChoice.Dexterity : PartyGrowthChoice.Intelligence;
                         Require(PartyGrowthRules.TrySpendAttributePoint(member, choice, out string note), note);
                     }
-                    n = 0;
+                    if (continuous) spentAttributes[i] = n;
+                    n = continuous ? spentTalents[i] : 0;
                     while (member.SkillPoints > 0)
                     {
                         PartyGrowthChoice choice = i == 0 ? (n++ % 3 == 2 ? PartyGrowthChoice.Guard : PartyGrowthChoice.Arms)
                             : i == 1 ? PartyGrowthChoice.Missile : i == 2 ? PartyGrowthChoice.Ember : PartyGrowthChoice.Mend;
-                        Require(PartyGrowthRules.TrySpendTalentPoint(member, choice, out string note), note);
+                        bool spent = PartyGrowthRules.TrySpendTalentPoint(member, choice, out string note);
+                        if (!spent && continuous)
+                        {
+                            // Real practice can cap a talent before level rewards are spent.
+                            // Spend an allowed secondary talent, or keep points for later review.
+                            PartyGrowthChoice fallback = i == 0 ? (choice == PartyGrowthChoice.Arms ? PartyGrowthChoice.Guard : PartyGrowthChoice.Arms)
+                                : i == 1 ? PartyGrowthChoice.Arms : i == 3 ? PartyGrowthChoice.Guard : PartyGrowthChoice.Ember;
+                            spent = PartyGrowthRules.TrySpendTalentPoint(member, fallback, out note);
+                            if (!spent) break;
+                        }
+                        Require(spent, note);
                     }
+                    if (continuous) spentTalents[i] = n;
                 }
             }
 
-            public Result Fight(EncounterDefinition encounter, string build, StringBuilder trace)
+            public Result Fight(EncounterDefinition encounter, string build, StringBuilder trace, bool alreadyStarted = false)
             {
+                actions.Clear();
                 Result result = new Result { Encounter = encounter.Banner, Build = build, Seed = State.Seed,
                     Levels = string.Join("/", State.Party.Select(p => p.Level)),
                     StartingBuild = string.Join("; ", State.Party.Select(p => $"{p.Name} L{p.Level}: HP{p.MaxHp}, MP{p.MaxMana}, damage{p.DamageMin}-{p.DamageMax}, defense{p.Defense}; STR/INT/DEX/HP {p.Stats.Strength}/{p.Stats.Intelligence}/{p.Stats.Dexterity}/{p.Stats.Health}; Arms/Missile/Ember/Mend/Guard {p.Skills.Arms}/{p.Skills.Missile}/{p.Skills.Ember}/{p.Skills.Mend}/{p.Skills.Guard}; {p.WeaponName}, {p.ArmorName}")) };
-                Call("StartCombat", encounter);
+                if (!alreadyStarted) Call("StartCombat", encounter);
                 CombatState combat = State.Combat;
                 Require(combat != null, "production combat started");
+                Require(combat.EncounterStyle == encounter.LegacyStyle, "admitted encounter matches policy target");
                 var heroes = combat.Units.Where(u => u.Side == UnitSide.Party && u.PartyIndex >= 0).ToArray();
-                result.MaxHp = heroes.Sum(u => u.Hp); result.MaxMp = heroes.Sum(u => u.Mana);
+                result.StartingHp = heroes.Sum(u => u.Hp); result.StartingMp = heroes.Sum(u => u.Mana);
+                result.MaxHp = heroes.Sum(u => u.MaxHp); result.MaxMp = heroes.Sum(u => u.MaxMana);
                 int startingElixirs = State.Elixirs;
                 trace.AppendLine("\n=== " + encounter.Banner + " seed=" + State.Seed + " " + build + " L" + result.Levels + " ===");
                 for (int decision = 0; State.Combat != null && State.Mode == GameMode.Combat && decision < 600 && combat.Round <= 35; decision++)
@@ -465,8 +481,8 @@ namespace AshenHalls.Editor
                 try { return method.Invoke(game, args); }
                 catch (TargetInvocationException ex) { throw new InvalidOperationException("Production method " + name + " failed", ex.InnerException); }
             }
-            private object Get(string name) => typeof(AshenHallsGame).GetField(name, Private).GetValue(game);
-            private void Set(string name, object value) => typeof(AshenHallsGame).GetField(name, Private).SetValue(game,value);
+            internal object Get(string name) => typeof(AshenHallsGame).GetField(name, Private).GetValue(game);
+            internal void Set(string name, object value) => typeof(AshenHallsGame).GetField(name, Private).SetValue(game,value);
             public void Dispose() => UnityEngine.Object.DestroyImmediate(host);
         }
 

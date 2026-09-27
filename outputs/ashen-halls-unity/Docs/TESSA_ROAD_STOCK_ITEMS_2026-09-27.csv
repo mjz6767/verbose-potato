@@ -1,0 +1,3 @@
+SignatureId,DisplayName,IconIndex,Slot,Form,QualityBonus,BaseDamageMin,BaseDamageMax,BaseAttackSpeed,DamageType,StrengthBonus,IntelligenceBonus,AgilityBonus,HealthBonus,IntrinsicName,IntrinsicEffect,PriceGold,PurchaseLimit,UnlockFlag
+bridgehook_spear,+3 Bridgehook Spear,11,weapon,long spear,3,3,8,7,physical,0,0,0,1,Holdfast,+1 Guard only when taking the Guard action,76,1,KoboldKingDefeated
+stonecleft_axe,+3 Stonecleft Axe,12,weapon,battle axe,3,5,9,5,physical,1,0,0,0,Sure Hew,+2 hit on weapon attacks,76,1,KoboldKingDefeated

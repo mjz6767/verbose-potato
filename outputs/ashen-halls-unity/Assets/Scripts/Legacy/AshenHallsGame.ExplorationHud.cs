@@ -1054,6 +1054,12 @@ namespace AshenHalls
                 if (target == ObjectType.Armorer) return "Bring three sewer proof bundles to Borin for starter armor.";
                 if (target == ObjectType.OldRoadScout)
                 {
+                    if (ContentSetCatalog.IsSewerSlice(activeContentSet)
+                        && HasStoryFlag(StoryFlags.RedGateDebriefed)
+                        && !MeteorCrownQuestRules.Accepted(state.StoryFlags))
+                    {
+                        return "Ask Yara to review the final Meteor Crown assault; accept when the company is ready.";
+                    }
                     if (ContentSetCatalog.RedGateComplete(state.StoryFlags)
                         && !HasStoryFlag(StoryFlags.RedGateDebriefed))
                     {
@@ -1077,7 +1083,9 @@ namespace AshenHalls
                 }
                 if (target == ObjectType.Stairs)
                 {
-                    return HasRedGateStoryProgress()
+                    return HasMeteorCrownStoryProgress()
+                        ? "Follow the known roads to Salt Cistern Gate and rejoin the final assault."
+                        : HasRedGateStoryProgress()
                         ? "Follow the Old Road east and regain the far seal for the Red Gate assault."
                         : HasGlassAndAshStoryProgress()
                         ? "Follow the Old Road east and regain the Red Gate passage for Yara's expedition."

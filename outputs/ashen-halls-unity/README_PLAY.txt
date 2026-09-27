@@ -1,4 +1,14 @@
-Ash & Brimstone v2.34.0 - The Honest Weight
+Ash & Brimstone v2.35.0 - Roads Remember
+
+Release version: v2.35.0. Save schema: v27.
+
+The Journal now opens with your current journey and next step. Unfinished favors appear near the top, recent chapters precede older records, and entries use journal markers instead of item placeholders. After Varkh falls, Maud's available favor appears even before you accept it.
+
+Tessa's later road stock adds the +3 Bridgehook Spear and +3 Stonecleft Axe, each 76 gold and each available once after Varkh. The spear offers basic reach and an extra Guard point when bracing; the slower axe adds Strength and weapon accuracy. Inspect either before buying. Both go into the Pack for deliberate equipping and have original artwork. Equipment range previews name the wearer, and Tessa explains what changes when an enemy closes.
+
+Halvard and Brann remember completed work and direct you along the actual eastbound route. Final-assault guidance distinguishes Yara's briefing from returning to Salt Cistern Gate. Existing v27 saves remain compatible, and earlier release archives are preserved. See Docs/FRIENDS_PLAYTEST.md for a first-session route and feedback prompts; final verification is recorded in Docs/ReleaseEvidence/v2.35.0-summary.json after packaging.
+
+Previous release: v2.34.0 - The Honest Weight
 
 Release version: v2.34.0. Save schema: v27.
 

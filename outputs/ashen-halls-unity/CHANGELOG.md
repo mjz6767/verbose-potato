@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.35.0 — Roads Remember
+
+- Put the current journey first in the production Journal, show unfinished favors and Maud's available lead, prioritize recent chapter records, and replace generic item placeholders with journal markers.
+- Give Tessa two independent, once-only road-stock purchases after Varkh: the Bridgehook Spear and Stonecleft Axe, with original art, stable identity, explicit prices and deliberate Pack assignment. Add ordinary axe support and accurate wearer-specific range descriptions.
+- Correct Halvard and Brann's stale route/reward advice, acknowledge later progress, and distinguish the final assault's briefing and return journey in the HUD.
+- Complete six connected automated campaigns with actual movement, admissions, combat, Growth, equipment and resource carryover: 108 required and 34 roaming victories. Preserve and document earlier harness failures; informed parties still face little late-game resource pressure.
+- Preserve save schema v27 and previous archives. Release evidence records executed checks and remaining playtest limits after packaging.
+
 ## v2.34.0 - The Honest Weight
 
 - Add Maud's optional magical-contract investigation after Varkh: explicitly inspect two Chapter III inscriptions in either order, then choose a one-time 30-gold settlement or permanent 8-gold Dusk Market supply trades. Both branches award 120 base XP and an independent equipment choice; saves retain every stage and ordinary site services stay available.

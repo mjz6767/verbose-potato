@@ -164,6 +164,8 @@ namespace AshenHalls
         public const string VigilkeeperWrapId = "vigilkeeper_wrap";
         public const string CounterweightKnifeId = "counterweight_knife";
         public const string MeasurekeeperJackId = "measurekeeper_jack";
+        public const string BridgehookSpearId = "bridgehook_spear";
+        public const string StonecleftAxeId = "stonecleft_axe";
 
         private static readonly IReadOnlyList<SignatureItemDefinition> Definitions =
             Array.AsReadOnly(new[]
@@ -274,7 +276,25 @@ namespace AshenHalls
                     "Load Bearing",
                     "Reduce physical damage taken by 1. Damage cannot fall below 1.",
                     "true-weight", "quilted leather", "road jack", "load bearing", "armor",
-                    3, 0, 0, 1, 0, 0, 0, 0, "quest", "")
+                    3, 0, 0, 1, 0, 0, 0, 0, "quest", ""),
+                new SignatureItemDefinition(
+                    BridgehookSpearId,
+                    11,
+                    "+3 Bridgehook Spear",
+                    "Tessa reset the hooked head and iron foot of a bridge watchman's spear. Its worn shaft still shows where a steady hand held the crossing.",
+                    "Holdfast",
+                    "Gain +1 Guard only when taking the Guard action.",
+                    "bridgehook", "iron-shod ashwood", "long spear", "holdfast", "weapon",
+                    3, 0, 0, 0, 1, 3, 8, 7, "quest", "physical"),
+                new SignatureItemDefinition(
+                    StonecleftAxeId,
+                    12,
+                    "+3 Stonecleft Axe",
+                    "Copper staples bind an old quarry axe's dark haft. Tessa kept its broad wedge true and left the stone scars where their owner could see them.",
+                    "Sure Hew",
+                    "Gain +2 hit on weapon attacks.",
+                    "stonecleft", "copper-bound steel", "battle axe", "sure hew", "weapon",
+                    3, 1, 0, 0, 0, 5, 9, 5, "quest", "physical")
             });
 
         public static IReadOnlyList<SignatureItemDefinition> All => Definitions;
@@ -382,5 +402,7 @@ namespace AshenHalls
         public static InventoryItem CreateVigilkeeperWrap() => Create(VigilkeeperWrapId);
         public static InventoryItem CreateCounterweightKnife() => Create(CounterweightKnifeId);
         public static InventoryItem CreateMeasurekeeperJack() => Create(MeasurekeeperJackId);
+        public static InventoryItem CreateBridgehookSpear() => Create(BridgehookSpearId);
+        public static InventoryItem CreateStonecleftAxe() => Create(StonecleftAxeId);
     }
 }

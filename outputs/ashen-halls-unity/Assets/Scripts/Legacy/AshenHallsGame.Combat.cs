@@ -10418,9 +10418,11 @@ namespace AshenHalls
             SetStoryFlag(StoryFlags.MidgaardGateCaptainMet);
             if (!ContentSetCatalog.ShowPrototypeScaffold(activeContentSet))
             {
-                PushLog("Brann keeps the gates quiet and points the party back toward the sewer contract.", Tone.Normal);
+                PushLog(ContentSetCatalog.SewerSliceComplete(state.StoryFlags)
+                    ? "Brann compares the company's road report with the watch's orders."
+                    : "Brann keeps the gates quiet and reviews the cistern contract.", Tone.Normal);
                 ShowBanner("Gate Captain");
-                ShowBrannConversation("The roads can wait until the cistern contract is settled. If you need the watch report before you go below, ask.");
+                ShowBrannConversation();
                 PlaySfx("guard", 0.66f);
                 return;
             }
@@ -10462,7 +10464,7 @@ namespace AshenHalls
                 "Gate Captain",
                 "Brann",
                 RemembranceGreeting(ObjectType.GateCaptain, string.IsNullOrWhiteSpace(greeting)
-                    ? "West and east are open. North and south are sealed. What do you need clarified?"
+                    ? offersGateSurvey ? "West and east are open. North and south are sealed. What do you need clarified?" : BrannCampaignGreeting()
                     : greeting),
                 ObjectType.GateCaptain,
                 stone,
@@ -10471,7 +10473,7 @@ namespace AshenHalls
                     MakeDialogueChoice(
                         offersGateSurvey ? "survey" : "watch",
                         offersGateSurvey ? "What remains on the survey?" : "What are the current orders?",
-                        offersGateSurvey ? "Review the two open exits and your progress." : "The watch's priority while the cistern writ is active."),
+                        offersGateSurvey ? "Review the two open exits and your progress." : "The watch's current orders and your next road."),
                     MakeDialogueChoice("roads", "How do the roads differ?", "Compare the western shrine road with the kobold country east."),
                     MakeDialogueChoice("sealed", "Why are two gates sealed?", "The condition of the north and south gatehouses.")
                 }),
@@ -10484,7 +10486,9 @@ namespace AshenHalls
             switch (choice)
             {
                 case "roads":
-                    ShowDialogueResponse("Gate Captain", "Brann", "West Gate leads to Green Shrine Road and the old quarry. The ground narrows there, with roots and broken stone for cover. East Gate leads toward Dusk Market. Kobolds use slings, webs, and bone signs on the open road. Pick the route your group is equipped to handle.", ObjectType.GateCaptain, stone, () => ShowBrannConversation());
+                    ShowDialogueResponse("Gate Captain", "Brann", HasStoryFlag(StoryFlags.MeteorCrownDefeated)
+                        ? "The eastbound carts are moving again. West still leads to the shrine and quarry; east leads through Lanternless Cross toward Dusk Market. The watch will keep those roads open. Take whichever you like today. You have no royal order left to answer."
+                        : "West Gate leads to Green Shrine Road and the old quarry. The ground narrows there, with roots and broken stone for cover. East Gate leads through Lanternless Cross toward Dusk Market. Kobolds use slings, webs, and bone signs on the open road. Pick the route your group is equipped to handle.", ObjectType.GateCaptain, stone, () => ShowBrannConversation());
                     break;
                 case "sealed":
                     ShowDialogueResponse("Gate Captain", "Brann", "The north gate stays barred until its defenses are repaired. The south gate stands over the cistern works; opening it would give anything below a direct way into the city. Until both are secure, use east or west.", ObjectType.GateCaptain, stone, () => ShowBrannConversation());
@@ -10495,11 +10499,45 @@ namespace AshenHalls
                         : "Your survey still requires you to " + GateSurveyStatusLine() + ". Stand at each open gate, look beyond the wall, and report back to me.", ObjectType.GateCaptain, stone, () => ShowBrannConversation());
                     break;
                 default:
-                    ShowDialogueResponse("Gate Captain", "Brann", MidgaardRatPeltsReady()
+                    ShowDialogueResponse("Gate Captain", "Brann", !ContentSetCatalog.ShowPrototypeScaffold(activeContentSet)
+                        && (ContentSetCatalog.SewerSliceComplete(state.StoryFlags) || HasStoryFlag(StoryFlags.MeteorCrownDefeated))
+                        ? "Your cistern work is signed off. " + CurrentCampaignRoadBriefing()
+                        : MidgaardRatPeltsReady()
                         ? "The cistern chambers are clear. Take the proof to Borin before you leave the city; earned armor is worth more than another road rumor. East and west remain open."
                         : "King Halvard's cistern writ is the current priority. The threat is inside the walls, below the south quarter. Clear the contracted chambers before you commit to either outer road.", ObjectType.GateCaptain, stone, () => ShowBrannConversation());
                     break;
             }
+        }
+
+        private string BrannCampaignGreeting()
+        {
+            if (HasStoryFlag(StoryFlags.MeteorCrownDefeated)) return "I sent the morning watch out without a funeral detail. First time in weeks. You brought the company home and broke Vhal Rakh's hold. Stand easy. What do you need?";
+            if (ContentSetCatalog.SewerSliceComplete(state.StoryFlags)) return "Borin filed your payment. I won't send you back for proof you've already handed over. Tell me which road you're taking; I'll keep the return gate clear.";
+            if (MidgaardRatPeltsReady()) return "The three chambers are clear. Good work. Borin still owes you the armor named in the writ; collect it before you take another road.";
+            return "The roads can wait until the cistern contract is settled. If you need the watch report before you go below, ask.";
+        }
+
+        private string CurrentCampaignRoadBriefing()
+        {
+            if (HasStoryFlag(StoryFlags.MeteorCrownDefeated)) return "Vhal Rakh is defeated. There is no further royal order. Rest, visit the people you helped, or finish any favors you left open. The road can wait for you now.";
+            if (MeteorCrownQuestRules.Accepted(state.StoryFlags)) return MeteorCrownQuestRules.HeartBroken(state.StoryFlags)
+                ? "Follow the known roads back beneath Salt Cistern Gate. The ritual heart is broken; Vhal Rakh is the last position. Yara is keeping your return line lit."
+                : "Follow the known roads through the Red Gate to the surveyed descent at Salt Cistern Gate. Yara's final assault runs through the crownwatch, the ritual heart, then Vhal Rakh. Come back to rest whenever you need.";
+            if (ContentSetCatalog.RedGateComplete(state.StoryFlags)) return HasStoryFlag(StoryFlags.RedGateDebriefed)
+                ? "Yara has your threshold survey. Ask her to review the final assault when you are ready; the Meteor Crown descent remains sealed until you accept."
+                : "Bring the marshal's seal and the threshold survey to Yara. Let her check the return line before anyone opens the final descent.";
+            if (HasStoryFlag(StoryFlags.RedGateAssaultAccepted)) return HasStoryFlag(StoryFlags.CrownroadMarshalDefeated)
+                ? "The marshal is down. Return to Salt Cistern Gate, survey the sealed threshold, then give Yara your report. Survey it; do not descend yet."
+                : "Take Yara's crownward plan back through the far Red Gate Seal. Break the vanguard, recover the ossuary road seal from Gloam Deep Crypt, then reach the marshal at Salt Cistern Gate. Cleared positions stay cleared.";
+            if (ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)) return HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
+                ? "Yara has copied the Emberglass key. Ask her to review the Red Gate assault before you return to the far seal."
+                : "Bring the Emberglass key to Yara in Midgaard. She needs to copy it before planning the inner Red Gate assault.";
+            if (HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted)) return "Follow the Old Road east through Lanternless Cross, regain the Bone Road, then cross the surveyed Red Gate passage. The Glass Lore Library comes first; its Mirror Index names the far seal. Bring the Emberglass key home to Yara.";
+            if (HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)) return "Take the frontier survey to Yara. Ask her to plan the Glass Road crossing before you leave Midgaard again.";
+            if (HasStoryFlag(StoryFlags.RedGateWarningRecovered)) return "Return along the Old Road to the Red Gate passage on the Bone Road. Survey the Glass-and-Ash frontier, then bring the chart to Yara. The warning alone does not give you a safe crossing.";
+            if (HasStoryFlag(StoryFlags.GloamWardenDefeated)) return "Carry the tally to the Red Gate Seal on the Bone Road. Read the outer warning and survey the frontier before you bring your report home.";
+            if (HasStoryFlag(StoryFlags.KoboldKingDefeated)) return "Take the Old Road east through Lanternless Cross, then Varkh's opened passage onto the Bone Road. Follow Courtward Arch toward Gloam Deep Crypt. Yara can read the tally with you before you go.";
+            return "Leave by the eastbound Old Road through Lanternless Cross toward Dusk Market. Yara can help you prepare. Ask the watch for its latest report before you pass the East Gate.";
         }
 
         private void MarkLampRoundVisit(string stop, string label)
@@ -10856,13 +10894,13 @@ namespace AshenHalls
                     : greeting,
                 ObjectType.WeaponVendor,
                 gold,
-                new[]
+                AddTessaRoadStockChoice(new[]
                 {
                     MakeDialogueChoice("buy", serviceLabel, serviceHint, canBuy),
                     MakeDialogueChoice("forms", "Which weapon suits which fighter?", "The tradeoffs between blades, axes, spears, bows, and staves."),
                     MakeDialogueChoice("range", "When should an archer draw steel?", "Using distance and reach without getting trapped by them."),
                     MakeDialogueChoice("personal", "Have you carried these on the road?", "How Tessa learned to fit a weapon to its wielder.")
-                },
+                }),
                 ResolveTessaDialogueChoice);
         }
 
@@ -10873,14 +10911,23 @@ namespace AshenHalls
                 case "buy":
                     ShowTessaPurchaseReview();
                     break;
+                case "roadstock":
+                    ShowTessaRoadStock();
+                    break;
+                case "advice":
+                    ShowTessaAdvice();
+                    break;
+                case "back":
+                    ShowTessaConversation();
+                    break;
                 case "forms":
-                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Quick hands like daggers and epees. Strong shoulders can make room for an axe or heavy blade. Spears buy you a step; bows need a lane; a staff should earn its keep as a focus. Look at the wielder first. The rack comes second.", ObjectType.WeaponVendor, gold, () => ShowTessaConversation("That's the shape of it. Need another answer?"));
+                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Quick hands like knives and epees. Strong shoulders can make room for an axe or heavy blade. Spears let basic strikes reach two cells; a bow needs an open lane. For a caster, compare Intelligence and the range shown for that wearer. A staff's name alone promises no extra magic. Look at the wielder first; the rack comes second.", ObjectType.WeaponVendor, gold, ReturnToTessaAdvice);
                     break;
                 case "personal":
                     ShowDialogueResponse("Weapon Vendor", "Tessa", TownConversationCatalog.PersonalStory(NpcId.Tessa), ObjectType.WeaponVendor, gold, () => ShowTessaConversation("You can try the doorway too, if you like. Anything else?"));
                     break;
                 default:
-                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Shoot while the lane is clear. The moment an enemy can touch the bow, draw steel; string won't stop a blade. Spears are the same lesson backward: enjoy the reach, then shorten your grip or give ground when the gap closes.", ObjectType.WeaponVendor, gold, () => ShowTessaConversation("Need another answer, or a weapon?"));
+                    ShowDialogueResponse("Weapon Vendor", "Tessa", "A bow's basic attack becomes a close Arms strike when an enemy engages you. A melee fighter's spear keeps its one-or-two-cell reach even then. Class techniques still use their own listed range. Some trained roles keep a longer basic reach with other weapons too, so check the Pack's range for the wearer instead of judging by the shape alone.", ObjectType.WeaponVendor, gold, ReturnToTessaAdvice);
                     break;
             }
         }
@@ -11444,8 +11491,10 @@ namespace AshenHalls
             }
             else if (!fullPrototype)
             {
-                PushLog("The king marks the sewer work complete. The East Gate now opens the Old Road toward Dusk Market.", Tone.Good);
-                ShowBanner("Sewer Contract Complete");
+                PushLog(HasStoryFlag(StoryFlags.MeteorCrownDefeated)
+                    ? "King Halvard rises to welcome the company home from the last road."
+                    : "The king keeps the completed cistern writ beside the company's current road report.", Tone.Good);
+                ShowBanner(HasStoryFlag(StoryFlags.MeteorCrownDefeated) ? "The Company Returns" : "Royal Audience");
             }
             else
             {
@@ -11458,10 +11507,16 @@ namespace AshenHalls
         private void ShowHalvardConversation()
         {
             bool contractAccepted = HasStoryFlag(StoryFlags.MidgaardRatQuestGiven);
+            bool completedCampaignWrit = !ContentSetCatalog.IsFullPrototype(activeContentSet)
+                && ContentSetCatalog.SewerSliceComplete(state.StoryFlags);
             ShowDialogueChoices(
                 "King's Hall",
                 "King Halvard",
-                !contractAccepted
+                !ContentSetCatalog.IsFullPrototype(activeContentSet) && HasStoryFlag(StoryFlags.MeteorCrownDefeated)
+                    ? "Leave the report on the table. I can read it after I have seen who came home. Vhal Rakh is gone, and all I have for you today is a chair and my thanks."
+                : completedCampaignWrit
+                    ? "Borin's receipt is here. The cistern writ is closed and paid. Yara keeps the road charts current; I can tell you where the work stands, if you need it."
+                : !contractAccepted
                     ? "The writ stays sealed until you have heard it whole. Ask what you need, then decide whether the work is yours."
                     : MidgaardRatPeltsReady()
                         ? "Three chambers cleared, and proof brought home. Good. Ask what comes next."
@@ -11471,7 +11526,7 @@ namespace AshenHalls
                 contractAccepted
                     ? new[]
                     {
-                        MakeDialogueChoice("duty", "What is our current duty?", "Review the writ, its progress, and the proof still required."),
+                        MakeDialogueChoice("duty", "What is our current duty?", completedCampaignWrit ? "The current road report and any work still ahead." : "Review the writ and any proof still required."),
                         MakeDialogueChoice("city", "What are we protecting here?", "Why the cistern work matters to Midgaard."),
                         MakeDialogueChoice("road", "What is the Old Road?", "What lies beyond the first contract.")
                     }
@@ -11503,15 +11558,27 @@ namespace AshenHalls
                     ShowDialogueResponse("King's Hall", "King Halvard", "Then leave it sealed. Speak with the watch, visit the temple, and prepare properly. The work will still be here when you are ready to answer for it.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
                     break;
                 case "city":
-                    ShowDialogueResponse("King's Hall", "King Halvard", "Those cisterns once carried clean water beneath the south quarter. Now ratfolk use them to reach our stores and foundations. Leave the tunnels to them and we have not lost old stone—we have handed an enemy a road beneath our walls.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
+                    ShowDialogueResponse("King's Hall", "King Halvard", !ContentSetCatalog.IsFullPrototype(activeContentSet)
+                        && ContentSetCatalog.SewerSliceComplete(state.StoryFlags)
+                        ? "The masons are back below the south quarter. They complain about broken sluices and wages now, which is work a city knows how to answer. You gave us that ordinary trouble back. I intend to keep it."
+                        : "Those cisterns once carried clean water beneath the south quarter. Now ratfolk use them to reach our stores and foundations. Leave the tunnels to them and we have not lost old stone—we have handed an enemy a road beneath our walls.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
                     break;
                 case "road":
-                    ShowDialogueResponse("King's Hall", "King Halvard", HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)
+                    ShowDialogueResponse("King's Hall", "King Halvard", !ContentSetCatalog.IsFullPrototype(activeContentSet)
+                        ? HasStoryFlag(StoryFlags.MeteorCrownDefeated)
+                            ? "The eastbound Old Road passes Lanternless Cross and Dusk Market. You have broken the power that held the country beyond it. I hope the next travelers bring back arguments about tolls and weather. We have heard enough about crowns."
+                            : ContentSetCatalog.SewerSliceComplete(state.StoryFlags)
+                                ? "The Old Road leaves through the East Gate, passes Lanternless Cross, and runs toward Dusk Market. The shrine and quarry lie west of here. Ask Yara for road advice, then take the eastbound route when you are ready to continue."
+                                : "Clear the cistern writ and collect Borin's armor first. Then the eastbound Old Road opens through Lanternless Cross toward Dusk Market. I want you equipped before you leave the reach of the city watch."
+                        : HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)
                         ? "The Old Road runs beyond the cistern stair toward Green Shrine Road, the old quarry, and country that no longer answers to Midgaard. Yara can mark the first western routes. Beyond them, even my reports grow thin."
                         : "Finish the cistern writ first. The stair below it opens onto roads we cannot patrol or quickly reinforce. Curiosity is not enough reason to send an untested company there.", ObjectType.KingHalvard, gold, ShowHalvardConversation);
                     break;
                 default:
-                    ShowDialogueResponse("King's Hall", "King Halvard", !HasStoryFlag(StoryFlags.MidgaardRatQuestGiven)
+                    ShowDialogueResponse("King's Hall", "King Halvard", !ContentSetCatalog.IsFullPrototype(activeContentSet)
+                        && (ContentSetCatalog.SewerSliceComplete(state.StoryFlags) || HasStoryFlag(StoryFlags.MeteorCrownDefeated))
+                        ? CurrentCampaignRoadBriefing()
+                        : !HasStoryFlag(StoryFlags.MidgaardRatQuestGiven)
                         ? "Three chambers block the old cistern route: Broken Sluice, Foul Runoff, and the Cistern Den. Clear them and bring proof to Borin. He will make your payment in armor. Dangerous work, plainly stated—and still your choice."
                         : HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)
                             ? "Your proof is accepted and Borin's payment is complete. The next route begins at the stair below the Salt Cisterns. Locate it, confirm what lies beyond, and return before committing to a deeper expedition."
@@ -12673,6 +12740,7 @@ namespace AshenHalls
             else if (text.Contains("sling") || text.Contains("darts")) { min = 1; max = 4; }
             else if (text.Contains("spear") || text.Contains("pike") || text.Contains("glaive") || text.Contains("halberd")) { min = 2; max = 7; }
             else if (text.Contains("war hammer") || text.Contains("war flail")) { min = 3; max = 8; }
+            else if (text.Contains("axe")) { min = 3; max = 7; }
             else if (text.Contains("focus") || text.Contains("orb") || text.Contains("scepter") || text.Contains("staff")) { min = 1; max = 5; }
             min += Mathf.Max(0, bonus / 2);
             max += Mathf.Max(0, bonus);
@@ -12685,7 +12753,7 @@ namespace AshenHalls
             string text = $"{form} {quality} {material} {trait}".ToLowerInvariant();
             int speed = 7;
             if (text.Contains("epee") || text.Contains("sabre") || text.Contains("knife") || text.Contains("darts")) speed = 11;
-            else if (text.Contains("crossbow") || text.Contains("war hammer") || text.Contains("tower")) speed = 5;
+            else if (text.Contains("crossbow") || text.Contains("war hammer") || text.Contains("axe") || text.Contains("tower")) speed = 5;
             else if (text.Contains("bow") || text.Contains("sling")) speed = 9;
             else if (text.Contains("spear") || text.Contains("pike") || text.Contains("halberd")) speed = 7;
             else if (text.Contains("focus") || text.Contains("orb") || text.Contains("scepter") || text.Contains("staff")) speed = 8;
@@ -12702,8 +12770,10 @@ namespace AshenHalls
             if (role == "mender") return new[] { "prayer focus", "ash staff", "scepter", "ritual bell" };
             if (role == "ember") return new[] { "ember focus", "ash staff", "stormglass orb", "scepter" };
             if (role == "hex") return new[] { "bone focus", "ritual knife", "blackglass orb", "ash staff" };
-            if (role == "shield" || role == "ward") return new[] { "broadsword", "mace", "war hammer", "war flail", "arming sword" };
-            return starter ? new[] { "short sword", "staff", "knife" } : new[] { "epee", "sabre", "broadsword", "mace", "war flail", "long spear", "halberd", "longbow", "crossbow", "throwing knives", "ash staff", "ritual knife", "scepter", "orb" };
+            if (role == "shield" || role == "ward") return starter
+                ? new[] { "broadsword", "mace", "war hammer", "war flail", "arming sword" }
+                : new[] { "broadsword", "mace", "war hammer", "war flail", "arming sword", "battle axe" };
+            return starter ? new[] { "short sword", "staff", "knife" } : new[] { "epee", "sabre", "broadsword", "mace", "war flail", "battle axe", "long spear", "halberd", "longbow", "crossbow", "throwing knives", "ash staff", "ritual knife", "scepter", "orb" };
         }
 
         private string[] RoleArmorForms(string role, bool starter)
@@ -12931,7 +13001,7 @@ namespace AshenHalls
             if (role == "knife" && (form.Contains("knife") || form.Contains("epee") || form.Contains("sabre"))) return 6;
             if ((role == "ember" || role == "hex" || role == "mender")
                 && (form.Contains("staff") || form.Contains("ritual") || form.Contains("focus") || form.Contains("orb") || form.Contains("scepter") || form.Contains("bell"))) return 6;
-            if (role == "shield" || role == "ward") return form.Contains("mace") || form.Contains("sword") || form.Contains("flail") || form.Contains("hammer") ? 5 : 2;
+            if (role == "shield" || role == "ward") return form.Contains("mace") || form.Contains("sword") || form.Contains("flail") || form.Contains("hammer") || form.Contains("axe") ? 5 : 2;
             return 2;
         }
 
@@ -12975,15 +13045,11 @@ namespace AshenHalls
             string text = ((item.DisplayName ?? "") + " " + (item.Form ?? "") + " " + (item.Trait ?? "")).ToLowerInvariant();
             if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
             {
-                int range = EffectiveWeaponRange(item, target);
-                if (range >= 4) notes.Add("long range");
-                else if (range == 3) notes.Add("ranged");
-                else if (range == 2) notes.Add("reach");
+                notes.Add(InventoryWeaponRangeLabel(item, target));
                 string status = GearOnHitStatus(text, item);
                 if (!string.IsNullOrEmpty(status)) notes.Add(status + " chance");
                 if (GearLifeDrainAmount(item.DisplayName, Mathf.Max(1, item.DamageMax), item) > 0) notes.Add("life drain");
                 if (!string.IsNullOrEmpty(item.DamageType) && item.DamageType != "physical") notes.Add(item.DamageType + " affinity");
-                if (text.Contains("focus") || text.Contains("orb") || text.Contains("scepter")) notes.Add("spell focus");
                 if (SignatureItemRules.WeaponPowerBonus(item) > 0) notes.Add("mild vorpal edge");
             }
             else
@@ -12993,7 +13059,7 @@ namespace AshenHalls
                 if (text.Contains("warding") || text.Contains("anti-magic") || text.Contains("robe")) notes.Add("warding");
                 if (text.Contains("thorns")) notes.Add("thorn guard");
             }
-            return notes.Count == 0 ? "It is a clean upgrade." : "Why: " + string.Join(", ", notes) + ".";
+            return notes.Count == 0 ? "No additional effects." : "Why: " + string.Join(", ", notes) + ".";
         }
 
         private void StartCombat(string style)

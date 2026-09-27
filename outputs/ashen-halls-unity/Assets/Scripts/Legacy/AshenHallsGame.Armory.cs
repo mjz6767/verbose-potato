@@ -747,11 +747,10 @@ namespace AshenHalls
             List<string> traits = new List<string>();
             if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
             {
-                PartyMember context = BestInventoryFit(item, out _, out _) ?? state?.Party?.FirstOrDefault();
+                PartyMember context = EquippedMember(item) ?? BestInventoryFit(item, out _, out _) ?? state?.Party?.FirstOrDefault();
                 if (item.DamageMin > 0 && item.DamageMax > 0) core.Add($"{item.DamageMin}–{item.DamageMax} damage");
                 if (item.AttackSpeed > 0) core.Add($"Speed {item.AttackSpeed}");
-                int range = EffectiveWeaponRange(item, context ?? new PartyMember { Role = "" });
-                core.Add(range > 1 ? $"Range {range}" : "Melee");
+                core.Add(InventoryWeaponRangeLabel(item, context));
                 if (!string.IsNullOrWhiteSpace(item.DamageType) && !string.Equals(item.DamageType, "physical", StringComparison.OrdinalIgnoreCase))
                 {
                     traits.Add(InventoryDisplayToken(item.DamageType));
@@ -829,39 +828,46 @@ namespace AshenHalls
         {
             List<ArmoryRowView> rows = new List<ArmoryRowView>();
             if (state == null) return rows;
+            WorldZone zone = state.Map == null ? null : ZoneAt(state.PlayerX, state.PlayerY);
+            bool homecoming = ContentSetCatalog.MeteorCrownComplete(state.StoryFlags);
+            rows.Add(new ArmoryRowView
+            {
+                Key = -1, Title = "Current journey",
+                Subtitle = StoryChapterTitle() + " / " + (zone == null ? "On the road" : zone.Name),
+                Detail = ExploreObjectiveSummaryLine(),
+                AccentHex = ColorHtml(homecoming ? teal : gold),
+                Badge = homecoming ? "COMPLETE" : "NEXT",
+                IconLabel = homecoming ? "HOME" : "NOW"
+            });
             if (!ContentSetCatalog.ShowPrototypeScaffold(activeContentSet))
             {
-                BuildSewerSliceJournalRows(rows);
-                if (ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
+                List<ArmoryRowView> optional = new List<ArmoryRowView>();
+                AddRemembranceJournalRows(optional);
+                AddHonestWeightJournalRows(optional);
+                foreach (ArmoryRowView row in optional)
+                    if (!OptionalJournalRowComplete(row)) rows.Add(row);
+                AddMeteorCrownJournalRows(rows);
+                if (HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
+                    || HasRedGateStoryProgress())
                 {
-                    AddBoneRoadJournalRows(rows);
+                    AddRedGateJournalRows(rows);
                 }
                 if (HasStoryFlag(StoryFlags.GlassAndAshFrontierSurveyed)
                     || HasGlassAndAshStoryProgress())
                 {
                     AddGlassAndAshJournalRows(rows);
                 }
-                if (HasStoryFlag(StoryFlags.GlassAndAshDebriefed)
-                    || HasRedGateStoryProgress())
+                if (ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
                 {
-                    AddRedGateJournalRows(rows);
+                    AddBoneRoadJournalRows(rows);
                 }
-                AddMeteorCrownJournalRows(rows);
+                BuildSewerSliceJournalRows(rows);
                 AddChartedRegionalSiteJournalRows(rows);
-                AddRemembranceJournalRows(rows);
-                AddHonestWeightJournalRows(rows);
-                return rows;
+                foreach (ArmoryRowView row in optional)
+                    if (OptionalJournalRowComplete(row)) rows.Add(row);
+                return FinishJournalPresentation(rows);
             }
 
-            WorldZone zone = state.Map == null ? null : ZoneAt(state.PlayerX, state.PlayerY);
-            rows.Add(new ArmoryRowView
-            {
-                Key = -1,
-                Title = StoryChapterTitle(),
-                Subtitle = $"Depth {state.Depth} / {(zone == null ? "Unknown road" : zone.Name)} / {RouteProgressSummary()}",
-                Detail = state.ActiveStory ?? StoryObjectiveForDepth(state.Depth),
-                AccentHex = ColorHtml(gold)
-            });
             AddJournalRouteChartRows(rows);
 
             string[] chapters = { "I Cisterns", "II Smoke", "III Bone", "IV Glass", "V Gate", "VI Crown" };
@@ -903,6 +909,24 @@ namespace AshenHalls
             AddJournalScaffoldRows(rows);
             AddRemembranceJournalRows(rows);
             AddHonestWeightJournalRows(rows);
+            return FinishJournalPresentation(rows);
+        }
+
+        private bool OptionalJournalRowComplete(ArmoryRowView row)
+        {
+            return row.Title == RemembranceQuestRules.Title
+                ? RemembranceQuestRules.RewardClaimed(state.StoryFlags)
+                : row.Title == HonestWeightQuestRules.Title && HonestWeightQuestRules.RewardClaimed(state.StoryFlags);
+        }
+
+        private static IReadOnlyList<ArmoryRowView> FinishJournalPresentation(List<ArmoryRowView> rows)
+        {
+            foreach (ArmoryRowView row in rows)
+            {
+                if (row.IconTexture != null || !string.IsNullOrWhiteSpace(row.IconLabel)) continue;
+                row.IconLabel = !string.IsNullOrWhiteSpace(row.ActionLabel) ? "MAP"
+                    : row.Title == RemembranceQuestRules.Title || row.Title == HonestWeightQuestRules.Title ? "FAVOR" : "LOG";
+            }
             return rows;
         }
 

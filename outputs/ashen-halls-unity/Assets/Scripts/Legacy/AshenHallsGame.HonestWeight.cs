@@ -205,12 +205,13 @@ namespace AshenHalls
 
         private void AddHonestWeightJournalRows(List<ArmoryRowView> rows)
         {
-            if (rows == null || !HonestWeightQuestRules.Accepted(state?.StoryFlags)) return;
+            if (rows == null || (!HonestWeightQuestRules.Available(state?.StoryFlags) && !HonestWeightQuestRules.Accepted(state?.StoryFlags))) return;
             rows.Add(new ArmoryRowView
             {
                 Key = -1, Title = HonestWeightQuestRules.Title,
                 Subtitle = HonestWeightQuestRules.RewardClaimed(state.StoryFlags) ? "optional / complete"
-                    : HonestWeightQuestRules.Complete(state.StoryFlags) ? "optional / choose reward" : "optional / investigating",
+                    : HonestWeightQuestRules.Complete(state.StoryFlags) ? "optional / choose reward"
+                    : HonestWeightQuestRules.Accepted(state.StoryFlags) ? "optional / investigating" : "optional / available — Maud",
                 Detail = HonestWeightQuestRules.Objective(state.StoryFlags),
                 AccentHex = ColorHtml(HonestWeightQuestRules.Complete(state.StoryFlags) ? teal : gold),
                 Badge = HonestWeightQuestRules.RewardClaimed(state.StoryFlags) ? "DONE" : "OPTIONAL",

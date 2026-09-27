@@ -2443,8 +2443,7 @@ namespace AshenHalls
                     ?? BestInventoryFit(item, out _, out _)
                     ?? state?.Party?.FirstOrDefault()
                     ?? new PartyMember { Role = "" };
-                int range = EffectiveWeaponRange(item, rangeMember);
-                parts.Add(range > 1 ? $"range {range}" : "melee");
+                parts.Add(InventoryWeaponRangeLabel(item, rangeMember));
                 if (item.DamageMin > 0 && item.DamageMax > 0) parts.Add($"{item.DamageMin}-{item.DamageMax} dmg");
                 if (item.AttackSpeed > 0) parts.Add($"spd {item.AttackSpeed}");
                 if (!string.IsNullOrEmpty(item.DamageType) && item.DamageType != "physical") parts.Add(item.DamageType);

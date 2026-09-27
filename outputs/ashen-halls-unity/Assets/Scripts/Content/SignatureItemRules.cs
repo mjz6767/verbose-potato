@@ -9,7 +9,8 @@ namespace AshenHalls
 
         public static int GuardActionBonus(InventoryItem weapon)
         {
-            return Is(weapon, SignatureItemCatalog.SluicekeeperBladeId) ? 1 : 0;
+            return Is(weapon, SignatureItemCatalog.SluicekeeperBladeId)
+                || Is(weapon, SignatureItemCatalog.BridgehookSpearId) ? 1 : 0;
         }
 
         public static string BasicHitStatus(InventoryItem weapon)
@@ -55,7 +56,8 @@ namespace AshenHalls
         public static int WeaponHitBonus(InventoryItem weapon)
         {
             if (Is(weapon, SignatureItemCatalog.UnfathomableSwordId)) return 3;
-            return Is(weapon, SignatureItemCatalog.TravelersKnotId) ? 2 : 0;
+            return Is(weapon, SignatureItemCatalog.TravelersKnotId)
+                || Is(weapon, SignatureItemCatalog.StonecleftAxeId) ? 2 : 0;
         }
 
         public static int WeaponPowerBonus(InventoryItem weapon)

@@ -18,6 +18,7 @@ namespace AshenHalls
         public const string UniqueItemAtlas = "unique-item-atlas-runtime-v2.20.0.png";
         public const string RemembranceItemAtlas = "remembrance-item-atlas-runtime-v2.32.0.png";
         public const string HonestWeightItemAtlas = "honest-weight-item-atlas-runtime-v2.34.0.png";
+        public const string RoadStockItemAtlas = "road-stock-item-atlas-runtime-v2.35.0.png";
         public const string TavernBackdrop = "title-backdrop-runtime-v2.4.0.png";
         public const string CharacterWorkshopBackdrop = "character-workshop-backdrop-runtime-v2.29.0.png";
         public const string TavernUiAtlas = "tavern-ui-atlas-runtime-v1.5.9.png";
@@ -88,6 +89,7 @@ namespace AshenHalls
             UniqueItemAtlas,
             RemembranceItemAtlas,
             HonestWeightItemAtlas,
+            RoadStockItemAtlas,
             TavernBackdrop,
             CharacterWorkshopBackdrop,
             TavernUiAtlas,

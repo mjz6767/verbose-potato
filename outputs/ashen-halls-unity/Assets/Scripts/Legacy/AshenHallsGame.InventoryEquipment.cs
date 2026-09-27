@@ -291,6 +291,13 @@ namespace AshenHalls
             return Mathf.Max(WeaponRange(item, member), StartingRange(member?.Role));
         }
 
+        private string InventoryWeaponRangeLabel(InventoryItem item, PartyMember member)
+        {
+            int range = EffectiveWeaponRange(item, member);
+            string label = range <= 1 ? "Melee" : range == 2 ? "Reach 2" : $"Range {range}";
+            return string.IsNullOrWhiteSpace(member?.Name) ? label : label + " for " + member.Name;
+        }
+
         private InventoryItem SnapshotMemberEquipment(PartyMember member, bool weapon)
         {
             if (member == null) return null;
@@ -716,6 +723,12 @@ namespace AshenHalls
             if (item == null) return false;
 
             int uniqueIndex = UniqueItemIconIndex(item);
+            if (uniqueIndex >= 11 && uniqueIndex <= 12 && IsRoadStockItemAtlas())
+            {
+                texture = roadStockItemAtlas;
+                uv = NormalizeAtlasRect(texture, AtlasCell(texture, uniqueIndex - 11, 2, 1));
+                return true;
+            }
             if (uniqueIndex >= 9 && uniqueIndex <= 10 && IsHonestWeightItemAtlas())
             {
                 texture = honestWeightItemAtlas;

@@ -2,6 +2,14 @@
 
 ## Current Release
 
+v2.35.0 — Roads Remember — adds Tessa's Bridgehook Spear and Stonecleft Axe, original item art, explicit purchase review and wearer-specific range labels. Halvard, Brann and the Journal now follow saved campaign progress more clearly. The six-chapter campaign and save schema v27 remain supported; prior release archives are preserved.
+
+All thirteen Full audit gates and 116 native content captures at 960x600 and 1280x720 pass. Six connected campaigns complete all eighteen required fights, plus 34 roaming fights across the six runs. Earlier harness failures and the observed low resource pressure are recorded in `Docs/CAMPAIGN_JOURNEY_AUDIT_2026-09-27.md`. These runs use actual exploration, rewards and resource carryover under a strong scripted policy with complete map knowledge. They are not a human completion or difficulty estimate. Exact package and visual verification are recorded in `Docs/ReleaseEvidence/v2.35.0-summary.json` after packaging.
+
+Start with `Docs/FRIENDS_PLAYTEST.md` for a short first-session route and useful feedback prompts. A complete human campaign, physical-controller comfort, subjective audio balance and player understanding remain the most useful checks.
+
+## Previous Release: v2.34.0
+
 v2.34.0 — The Honest Weight — adds Maud's optional magical-contract investigation, two signature equipment choices with original art, persistent market discounts, and corrected crossbow/armor descriptions. The six-chapter campaign and save schema v27 remain supported. Earlier release archives are preserved.
 
 The Full audit and all 13 repeated Windows build gates pass from clean source `8c00cf8`; the clean-extracted player exits successfully. All 356 archive entries pass CRC verification and all 101 packaged PNGs match source. The 251,114,517-byte ZIP has SHA-256 `f02a24147c26dbf8c472fd5ecf11c0d953a806fde400bfdc37d728cbe21ae7e8`. Exact evidence is recorded in `Docs/ReleaseEvidence/v2.34.0-summary.json`.

@@ -26,6 +26,7 @@ namespace AshenHalls
                 || normalizedForm.Contains("mace")
                 || normalizedForm.Contains("hammer")
                 || normalizedForm.Contains("flail")
+                || normalizedForm.Contains("axe")
                 || normalizedForm.Contains("spear")
                 || normalizedForm.Contains("pike")
                 || normalizedForm.Contains("glaive")
