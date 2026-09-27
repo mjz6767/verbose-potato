@@ -29,6 +29,8 @@ namespace AshenHalls.Editor
                     Check("UI finish", UiFinishSmoke.RunOrThrow);
                     Check("Building atlas alpha", BuildingAtlasAlphaSmoke.RunOrThrow);
                     Check("Audio lifecycle", AudioRuntimeRobustnessSmoke.RunOrThrow);
+                    Check("Title music experience", TitleMusicExperienceSmoke.RunOrThrow);
+                    Check("Character workshop audio", PartySetupAudioSmoke.RunOrThrow);
                     Check("Everyday sound effects", EverydayAudioSmoke.RunOrThrow);
                     Check("Inventory and loot", InventoryLootExperienceSmoke.RunOrThrow);
                     Check("Sprite art", SpriteArtRuntimeSmoke.RunOrThrow);

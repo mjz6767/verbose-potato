@@ -13,9 +13,9 @@
   "world_map_runtime_preview": "QA/ash-and-brimstone-v2.16.0-world-map-runtime-preview.wav",
   "combat_runtime_preview": "QA/ash-and-brimstone-v2.16.0-combat-runtime-preview.wav",
   "preview_sha256": {
-    "preview": "e3d23a12cdf35128d15738e34bc2f497a98b49fadc4ed14052f71512af6a3afb",
-    "title_preview": "b2fbcbea86c613f97fe8eef6ae5aefada7c088a09b4ae1211e5fe22ba7723a94",
-    "title_runtime_preview": "8c31c4afb32a253004ebb2db68ad8105ad69c141f07857fd1c807ecb9c1bea3c",
+    "preview": "c763dc58f9920a8502f661d9c9a3033ea3c0af717d9b6d7a0c234056194b90db",
+    "title_preview": "df8da67eec83d50a5d85306ba455c1a60b800208e68f77ae240e578294c1c052",
+    "title_runtime_preview": "1e39796e42dad50faed364d3b24238604e7551d7ae412c09de510b0218c059da",
     "world_map_runtime_preview": "aea6dc941ac092e82295d02205797cff7df66c8bc2e393da0afaf5e71a3c9b4b",
     "combat_runtime_preview": "45e248751d30164f1d6fb3c2b8bd4b0cc5200bb767fe6e9c2363a4eda163b69c"
   },
@@ -35,9 +35,9 @@
   },
   "runtime_preview_metrics": {
     "title_runtime_preview": {
-      "peak_dbfs": -16.18,
-      "rms_dbfs": -33.23,
-      "headroom_db": 16.18
+      "peak_dbfs": -15.85,
+      "rms_dbfs": -32.83,
+      "headroom_db": 15.85
     },
     "world_map_runtime_preview": {
       "peak_dbfs": -12.45,
@@ -75,16 +75,16 @@
       "cue": "tavern_storm_hearth_ensemble_loop",
       "output": "Assets/Resources/Audio/Music/tavern_storm_hearth_ensemble_loop.wav",
       "kind": "music",
-      "title": "Ash & Brimstone",
-      "direction": "The sixty-second main-title overture: a brighter forged-road motif clears the title reveal, then rises from hearth and rain into wider bronze horns, four company voices, driving strings, and war drums.",
+      "title": "The Ember Oath — Main Title",
+      "direction": "Original title-exclusive horn signature, intimate lute/reed middle, dominant ascent and returning company theme.",
       "sample_rate": 32000,
       "channels": 2,
       "frames": 1920000,
       "duration_seconds": 60.0,
-      "peak_dbfs": -4.8,
-      "rms_dbfs": -18.49,
-      "seam_delta_dbfs": "-79.54",
-      "sha256": "b2fbcbea86c613f97fe8eef6ae5aefada7c088a09b4ae1211e5fe22ba7723a94",
+      "peak_dbfs": -5.02,
+      "rms_dbfs": -19.0,
+      "seam_delta_dbfs": "-74.75",
+      "sha256": "df8da67eec83d50a5d85306ba455c1a60b800208e68f77ae240e578294c1c052",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {
@@ -251,16 +251,16 @@
       "cue": "muster_by_firelight_loop",
       "output": "Assets/Resources/Audio/Music/muster_by_firelight_loop.wav",
       "kind": "music",
-      "title": "Muster by Firelight",
-      "direction": "Patient lute and low strings for choosing a company before the road.",
+      "title": "The Living Folio",
+      "direction": "An authored sixteen-bar company theme: lute, answering wooden flute, close-voiced viols, dulcimer, and a soft frame drum; a contrasting B section and a changed return lead back to the hearth.",
       "sample_rate": 32000,
       "channels": 2,
-      "frames": 768000,
-      "duration_seconds": 24.0,
-      "peak_dbfs": -8.29,
-      "rms_dbfs": -20.98,
-      "seam_delta_dbfs": "-76.46",
-      "sha256": "60f016f93d4d24e4e5612000f2b144f6e2735967f8caeed702f7a1e13e7055c6",
+      "frames": 1706667,
+      "duration_seconds": 53.3333,
+      "peak_dbfs": -5.66,
+      "rms_dbfs": -19.24,
+      "seam_delta_dbfs": "-61.37",
+      "sha256": "a8f55317492da9888cd14e365976929162e79bc51a34bebe8352e7059f6e85e2",
       "provenance": "Original deterministic synthesis; no external samples"
     },
     {

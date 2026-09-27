@@ -60,8 +60,8 @@ namespace AshenHalls
         {
             switch ((requestedKey ?? "").Trim().ToLowerInvariant())
             {
-                case "impactlow": return new TitleAudioCueProfile(RevealStrikeKey, 0.28f);
-                case "uiconfirm": return new TitleAudioCueProfile(RevealChimeKey, 0.22f);
+                case "impactlow": return new TitleAudioCueProfile(RevealStrikeKey, 0.20f);
+                case "uiconfirm": return new TitleAudioCueProfile(RevealChimeKey, 0.14f);
                 case "uitab": return MenuCue(TitleMenuAudioAction.Focus);
                 default: return new TitleAudioCueProfile(requestedKey, fallbackVolume);
             }

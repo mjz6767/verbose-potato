@@ -21,13 +21,18 @@ namespace AshenHalls.Editor
                 Directory.CreateDirectory(directory);
                 int count = 0;
                 HashSet<string> capturedNames = new HashSet<string>(StringComparer.Ordinal);
+                bool polishReview = Environment.GetCommandLineArgs().Contains("-ashen-party-polish-review");
                 string[] races = { "human", "dusk elf", "stoneborn", "fenkin", "ashling", "human" };
                 string[] classes = { "warrior", "ranger", "paladin", "rogue", "warlock", "mage" };
                 foreach (Vector2Int size in new[] { new Vector2Int(960, 600), new Vector2Int(1280, 720), new Vector2Int(1920, 1080) })
                     for (int i = 0; i < races.Length; i++)
                     {
+                        if (polishReview && i != 0 && i != 5) continue;
                         if (CaptureOne(game, directory, races[i], classes[i], i % 4, i == 5, size, capturedNames)) count++;
                     }
+                if (polishReview)
+                    foreach (string motion in new[] { "transition", "reduced" })
+                        if (CaptureOne(game, directory, "fenkin", "wizard", 2, false, new Vector2Int(1280, 720), capturedNames, motion)) count++;
                 if (Environment.GetCommandLineArgs().Contains("-ashen-capture-all-portraits"))
                     foreach (CharacterCreationChoice race in CharacterCreationCatalog.Races)
                         foreach (CharacterCreationChoice vocation in CharacterCreationCatalog.Classes)
@@ -48,11 +53,14 @@ namespace AshenHalls.Editor
             }
         }
 
-        private static bool CaptureOne(AshenHallsGame game, string directory, string race, string classKey, int member, bool details, Vector2Int size, HashSet<string> capturedNames)
+        private static bool CaptureOne(AshenHallsGame game, string directory, string race, string classKey, int member, bool details, Vector2Int size, HashSet<string> capturedNames, string motion = "settled")
         {
-            string name = race.Replace(' ', '-') + "-" + classKey + (details ? "-details" : "") + "-" + size.x + "x" + size.y;
+            string name = race.Replace(' ', '-') + "-" + classKey + (details ? "-details" : "")
+                + (motion == "settled" ? "" : "-" + motion) + "-" + size.x + "x" + size.y;
             if (!capturedNames.Add(name)) return false;
-            PartySetupWorkshopSmoke.Stage(game, race, classKey, member, details);
+            PartySetupWorkshopSmoke.Stage(game, race, classKey, member, details, motion == "reduced");
+            string[] motionArgs = motion == "transition" ? new[] { "-ashen-party-transition-smoke" } : Array.Empty<string>();
+            PartySetupWorkshopSmoke.Invoke(game, "PreparePartySetupCaptureMotion", (object)motionArgs);
             PartySetupScreen screen = PartySetupWorkshopSmoke.Field<PartySetupScreen>(game, "partySetupScreen");
             string path = Path.Combine(directory, name + ".png");
             PartySetupCaptureRenderer.Write(screen, size.x, size.y, path);

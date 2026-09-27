@@ -98,7 +98,7 @@ namespace AshenHalls
     public static class MusicTransitionRules
     {
         public const float TitleTransitionDuration = 1.35f;
-        public const float TitleIntroFadeDuration = 2.00f;
+        public const float TitleIntroFadeDuration = 1.00f;
         public const float WorldMapExploreTransitionDuration = 1.10f;
         public const float WorldMapExploreIntroFadeDuration = 1.25f;
         public const float ExploreTransitionDuration = 0.85f;

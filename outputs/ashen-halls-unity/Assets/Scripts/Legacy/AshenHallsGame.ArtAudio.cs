@@ -598,6 +598,7 @@ namespace AshenHalls
             soundClips["ambcamp"] = MakeAmbientSound("ambcamp", "hearth");
             BuildDemonicSoundClips();
             BuildEverydaySoundClips();
+            BuildPartySetupSoundClips();
             ApplyImportedSfxOverrides();
             RebuildSfxVariantBank();
         }
@@ -658,6 +659,33 @@ namespace AshenHalls
             }
         }
 
+        private void BuildPartySetupSoundClips()
+        {
+            // Every shipped master has a deterministic local fallback if a resource is unavailable.
+            for (int i = 0; i < PartySetupAudioRules.CueKeys.Count; i++)
+            {
+                string key = PartySetupAudioRules.CueKeys[i];
+                float start = 190f + i * 19f;
+                soundClips[key] = MakeSound(key, start, start * 1.25f, key == "folio_begin" ? .62f : .26f, .15f,
+                    key.Contains("page") || key.Contains("name") ? "rustle" : "chime");
+            }
+        }
+
+        private void PlayPartySetupCue(PartySetupAudioAction action, string identity = "")
+        {
+            if (state == null || !PartySetupAudioRules.ShouldPlayCue(state.Mode, state.SfxMuted,
+                state.SfxVolumePercent, visualSmokeSaveBlocked)) return;
+            TitleAudioCueProfile cue = PartySetupAudioRules.CueFor(action, identity);
+            if (string.IsNullOrEmpty(cue.Key)) return;
+            // One immediate, short cue per successful action. Nothing is queued to spill into another mode.
+            PlaySfx(cue.Key, cue.Volume);
+        }
+
+        private void PlayPartySetupTabCue(bool details)
+        {
+            PlayPartySetupCue(details ? PartySetupAudioAction.DetailsOpen : PartySetupAudioAction.DetailsClose);
+        }
+
         private void BuildMusicClips()
         {
             zoneMusicClips.Clear();
@@ -687,7 +715,7 @@ namespace AshenHalls
             zoneMusicClips["road"] = zoneMusicClips["inner-ash-road"];
 
             RegisterAdaptiveMusic(MusicDirectorRules.Muster, () => MakePatternMusic(
-                "muster_by_firelight_loop", 24f, 0.60f,
+                "muster_by_firelight_loop", 53.3333f, 0.833333f,
                 new[] { 329.6f, 392f, 493.9f, 440f, 392f, 349.2f, 329.6f, 293.7f, 329.6f, 369.9f, 440f, 392f, 349.2f, 329.6f, 293.7f, 246.9f },
                 new[] { 82.4f, 98f, 73.4f, 110f, 82.4f, 65.4f, 73.4f, 98f }, 0.34f, "muster"));
             RegisterAdaptiveMusic(MusicDirectorRules.Victory, () => MakePatternMusic(
@@ -2472,7 +2500,7 @@ namespace AshenHalls
 
         private float SfxPlaybackPitchVariation(string key, int serial)
         {
-            if (TitleAudioRules.LocksPitch(key)) return 1f;
+            if (TitleAudioRules.LocksPitch(key) || PartySetupAudioRules.IsWorkshopCue(key)) return 1f;
             unchecked
             {
                 uint seed = StableAudioSeed((key ?? "") + "|playback");

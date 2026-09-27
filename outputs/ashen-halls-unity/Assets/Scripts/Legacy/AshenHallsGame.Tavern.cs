@@ -66,6 +66,8 @@ namespace AshenHalls
                 return;
             }
 
+            bool beganAtWorkshop = state.Mode == GameMode.Muster;
+            if (beganAtWorkshop) PlayPartySetupCue(PartySetupAudioAction.Begin);
             CloseTransientOverlays();
             state.Mode = GameMode.Explore;
             betaLabMode = false;
@@ -89,7 +91,7 @@ namespace AshenHalls
             PushLog(state.ActiveStory, Tone.Normal);
             PushLog("First step: leave Town Hall. Cross the company runner and open the storm doors with Space or E to begin the journey.", Tone.Good);
             ShowBanner(MidgaardInteriorRules.GrandHearthDisplayName);
-            PlaySfx("uiconfirm", 0.55f);
+            if (!beganAtWorkshop) PlaySfx("uiconfirm", 0.55f);
             PlaySfx(TitleAudioRules.HearthAmbienceKey, 0.18f);
             AutosaveCheckpoint("new party gathers in Town Hall");
         }
@@ -102,7 +104,7 @@ namespace AshenHalls
 
         private void StartNewGame()
         {
-            PlayTitleMenuCue(TitleMenuAudioAction.Confirm);
+            if (!visualSmokeSaveBlocked) PlayTitleMenuCue(TitleMenuAudioAction.Confirm);
             NewMuster();
             state.Mode = GameMode.Muster;
             showTavernSettings = false;
@@ -506,6 +508,9 @@ namespace AshenHalls
                 Subtitle = GameSubtitle,
                 BackdropArt = tavernBackdropArt,
                 SummaryLine = () => $"Tavern Muster / {PartySummaryLine()}",
+                WorkshopBackdropArt = PartySetupWorkshopBackdrop,
+                ReducedMotion = () => state != null && state.ReducedMotion,
+                TabChanged = PlayPartySetupTabCue,
                 WeaknessLine = PartyWeaknessLine,
                 Members = PartySetupMemberViews,
                 SelectedIndex = () => selectedBuilderIndex,
@@ -653,8 +658,10 @@ namespace AshenHalls
         private void SelectPartySetupMember(int index)
         {
             if (state?.Party == null || state.Party.Count == 0) return;
-            selectedBuilderIndex = Mathf.Clamp(index, 0, state.Party.Count - 1);
-            PlaySfx("uitab", 0.35f);
+            int nextIndex = Mathf.Clamp(index, 0, state.Party.Count - 1);
+            if (selectedBuilderIndex == nextIndex) return;
+            selectedBuilderIndex = nextIndex;
+            PlayPartySetupCue(PartySetupAudioAction.Companion);
         }
 
         private void ReturnToTavernFromMuster()
@@ -670,7 +677,10 @@ namespace AshenHalls
             PartyMember member = SelectedBuilderMember();
             if (member == null) return;
             string trimmed = string.IsNullOrWhiteSpace(name) ? RandomName(member.Role) : name.Trim();
-            member.Name = trimmed.Length > 16 ? trimmed.Substring(0, 16) : trimmed;
+            string nextName = trimmed.Length > 16 ? trimmed.Substring(0, 16) : trimmed;
+            if (string.Equals(member.Name, nextName, StringComparison.Ordinal)) return;
+            member.Name = nextName;
+            PlayPartySetupCue(PartySetupAudioAction.Name);
         }
 
         private void CycleSelectedClass()
@@ -693,7 +703,7 @@ namespace AshenHalls
                 member.Hp = member.MaxHp;
                 member.Mana = member.MaxMana;
             }
-            PlaySfx("ui", 0.45f);
+            PlayPartySetupCue(PartySetupAudioAction.Class, member.ClassKey);
         }
 
         private void SetSelectedMemberRace(string key)
@@ -708,21 +718,26 @@ namespace AshenHalls
                 member.Hp = member.MaxHp;
                 member.Mana = member.MaxMana;
             }
-            PlaySfx("ui", 0.45f);
+            PlayPartySetupCue(PartySetupAudioAction.Race, member.Race);
         }
 
         private void RandomizeSelectedMemberName()
         {
             PartyMember member = SelectedBuilderMember();
             if (member == null) return;
-            member.Name = RandomName(member.Role);
-            PlaySfx("ui", 0.35f);
+            string previous = member.Name;
+            for (int attempt = 0; attempt < 8 && member.Name == previous; attempt++) member.Name = RandomName(member.Role);
+            if (member.Name != previous) PlayPartySetupCue(PartySetupAudioAction.Name);
         }
 
         private void ChangeSelectedStat(int code, int delta)
         {
-            ChangeStat(SelectedBuilderMember(), code, delta);
-            PlaySfx("ui", 0.25f);
+            PartyMember member = SelectedBuilderMember();
+            if (member == null || code < -4 || code > -1 || (delta != -1 && delta != 1)) return;
+            int before = GetStat(member.Stats, code);
+            ChangeStat(member, code, delta);
+            if (GetStat(member.Stats, code) != before)
+                PlayPartySetupCue(delta > 0 ? PartySetupAudioAction.AttributeUp : PartySetupAudioAction.AttributeDown);
         }
 
         private bool CanBoostTalent(PartyMember member, string key)
@@ -751,13 +766,15 @@ namespace AshenHalls
                     return;
                 }
                 PushLog($"{member.Name} trains {key} to {SkillValue(member.Skills, key)}.", Tone.Good);
-                PlaySfx("ui", 0.45f);
+                if (state?.Mode == GameMode.Muster) PlayPartySetupCue(PartySetupAudioAction.Training);
+                else PlaySfx("ui", 0.45f);
                 return;
             }
 
             if (!CanBoostTalent(member, key)) return;
             SetSkill(member.Skills, key, Mathf.Clamp(Mathf.Max(10, current + 2), 1, 12));
-            PlaySfx("ui", 0.35f);
+            if (state?.Mode == GameMode.Muster) PlayPartySetupCue(PartySetupAudioAction.Training);
+            else PlaySfx("ui", 0.35f);
         }
 
         private void RerollGear(PartyMember member)
@@ -778,17 +795,24 @@ namespace AshenHalls
             ApplyGearStatBonuses(member, armor, false);
             RecalculateMember(member);
             PushLog($"{member.Name} tries a new kit: {TrimGearName(member.WeaponName)} / {TrimGearName(member.ArmorName)}.", Tone.Normal);
-            PlaySfx("cache", 0.45f);
+            if (state?.Mode == GameMode.Muster) PlayPartySetupCue(PartySetupAudioAction.Kit);
+            else PlaySfx("cache", 0.45f);
         }
 
         private void RerollLook(PartyMember member)
         {
             if (member == null) return;
+            string previous = member.Origin + "|" + member.Sigil + "|" + member.SpriteColor;
             member.Origin = originOrder[rng.Next(originOrder.Length)];
             member.Sigil = sigilOrder[rng.Next(sigilOrder.Length)];
             member.SpriteColor = accentPalette[rng.Next(accentPalette.Length)];
             PushLog($"{member.Name} changes colors and sigil.", Tone.Normal);
-            PlaySfx("ui", 0.55f);
+            if (state?.Mode == GameMode.Muster)
+            {
+                if (previous != member.Origin + "|" + member.Sigil + "|" + member.SpriteColor)
+                    PlayPartySetupCue(PartySetupAudioAction.Heraldry);
+            }
+            else PlaySfx("ui", 0.55f);
         }
 
         private string PartySummaryLine()
@@ -1464,21 +1488,27 @@ namespace AshenHalls
 
         private void CycleOrigin(PartyMember member)
         {
+            if (member == null) return;
             int index = Array.IndexOf(originOrder, member.Origin);
             member.Origin = originOrder[(index + 1 + originOrder.Length) % originOrder.Length];
+            PlayPartySetupCue(PartySetupAudioAction.Heraldry);
         }
 
         private void CycleSigil(PartyMember member)
         {
+            if (member == null) return;
             int index = Array.IndexOf(sigilOrder, member.Sigil);
             member.Sigil = sigilOrder[(index + 1 + sigilOrder.Length) % sigilOrder.Length];
+            PlayPartySetupCue(PartySetupAudioAction.Heraldry);
         }
 
         private void CycleColor(PartyMember member)
         {
+            if (member == null) return;
             string current = string.IsNullOrWhiteSpace(member.SpriteColor) ? RoleColor(member.Role).ToHex() : member.SpriteColor.ToUpperInvariant();
             int index = Array.FindIndex(accentPalette, c => c.Equals(current, StringComparison.OrdinalIgnoreCase));
             member.SpriteColor = accentPalette[(index + 1 + accentPalette.Length) % accentPalette.Length];
+            PlayPartySetupCue(PartySetupAudioAction.Heraldry);
         }
 
         private string RandomName(string role)

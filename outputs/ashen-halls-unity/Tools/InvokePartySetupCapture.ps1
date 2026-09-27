@@ -1,6 +1,7 @@
 param(
     [Parameter(Mandatory = $true)][string]$PlayerPath,
-    [switch]$AllCombinations
+    [switch]$AllCombinations,
+    [ValidateSet('Portraits', 'Polish')][string]$Review = 'Portraits'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -19,14 +20,20 @@ $examples = @(
 )
 $shots = @(
     foreach ($size in @(@{ W = 960; H = 600 }, @{ W = 1280; H = 720 }, @{ W = 1920; H = 1080 })) {
-        foreach ($example in $examples) {
-            [pscustomobject]@{ Race = $example.Race; Class = $example.Class; Member = $example.Member; Details = $example.Details; W = $size.W; H = $size.H }
+        $selectedExamples = if ($Review -eq 'Polish') { @($examples[0], $examples[5]) } else { $examples }
+        foreach ($example in $selectedExamples) {
+            [pscustomobject]@{ Race = $example.Race; Class = $example.Class; Member = $example.Member; Details = $example.Details; W = $size.W; H = $size.H; Motion = 'settled' }
+        }
+    }
+    if ($Review -eq 'Polish') {
+        foreach ($motion in @('transition', 'reduced')) {
+            [pscustomobject]@{ Race = 'fenkin'; Class = 'wizard'; Member = 2; Details = $false; W = 1280; H = 720; Motion = $motion }
         }
     }
     if ($AllCombinations) {
         foreach ($race in @('human', 'dusk elf', 'stoneborn', 'fenkin', 'ashling')) {
             foreach ($classKey in @('rogue', 'warrior', 'ranger', 'wizard', 'mage', 'warlock', 'priest', 'paladin')) {
-                [pscustomobject]@{ Race = $race; Class = $classKey; Member = 0; Details = $false; W = 1280; H = 720 }
+                [pscustomobject]@{ Race = $race; Class = $classKey; Member = 0; Details = $false; W = 1280; H = 720; Motion = 'settled' }
             }
         }
     }
@@ -35,6 +42,7 @@ $results = @()
 $completedNames = @{}
 foreach ($shot in $shots) {
     $scenario = $shot.Race.Replace(' ', '-') + '-' + $shot.Class + $(if ($shot.Details) { '-details' } else { '' })
+    if ($shot.Motion -ne 'settled') { $scenario += '-' + $shot.Motion }
     $name = $scenario + '-' + $shot.W + 'x' + $shot.H
     if ($completedNames.ContainsKey($name)) { continue }
     $png = Join-Path $outputRoot ($name + '.png')
@@ -43,6 +51,7 @@ foreach ($shot in $shots) {
         ' -force-d3d11 -ashen-seed 2828 -ashen-party-setup-smoke -ashen-party-race "' + $shot.Race +
         '" -ashen-party-class ' + $shot.Class + ' -ashen-party-member ' + $shot.Member +
         $(if ($shot.Details) { ' -ashen-party-details' } else { '' }) +
+        $(if ($shot.Motion -eq 'reduced') { ' -ashen-party-reduced-motion' } elseif ($shot.Motion -eq 'transition') { ' -ashen-party-transition-smoke' } else { '' }) +
         ' -ashen-capture "' + $png + '" -ashen-capture-quit -logFile "' + $log + '"'
     $process = Start-Process -FilePath $player -ArgumentList $arguments -PassThru -WindowStyle Hidden
     $deadline = [DateTime]::UtcNow.AddSeconds(60)
@@ -56,8 +65,10 @@ foreach ($shot in $shots) {
     $logText = Get-Content -LiteralPath $log -Raw
     $identity = 'race=' + $shot.Race + ', class=' + $shot.Class + ','
     $tabMarker = 'tab=' + $(if ($shot.Details) { 'details,' } else { 'identity,' })
+    $motionMarker = 'party setup capture motion: ' + $shot.Motion + '.'
     if ($process.ExitCode -ne 0 -or $logText -notmatch 'complete=True' -or $logText -notmatch 'failure=None' -or
         $logText -notmatch [regex]::Escape($identity) -or $logText -notmatch [regex]::Escape($tabMarker) -or
+        $logText -notmatch [regex]::Escape($motionMarker) -or
         $logText -notmatch 'actual player canvas / offscreen camera' -or
         $logText -match 'Exception:|visual smoke capture failed:|Error:') {
         throw "Party Setup capture failed: $name (exit $($process.ExitCode)). See $log"

@@ -46,6 +46,9 @@ namespace AshenHalls
         public string Title;
         public string Subtitle;
         public Texture2D BackdropArt;
+        public Func<Texture2D> WorkshopBackdropArt;
+        public Func<bool> ReducedMotion;
+        public Action<bool> TabChanged;
         public IReadOnlyList<PartySetupChoiceView> RaceChoices;
         public IReadOnlyList<PartySetupChoiceView> ClassChoices;
         public Func<string, string, Texture2D> PortraitAtlas;
@@ -268,6 +271,10 @@ namespace AshenHalls
         private RectTransform detailsPage;
         private RectTransform rosterPanel;
         private RawImage selectedPortrait;
+        private RawImage workshopBackdrop;
+        private Image backdropShade;
+        private PartySetupFolioEffects folioEffects;
+        private bool triedWorkshopBackdrop;
         private Text summaryText;
         private Text selectedRaceClass;
         private Text selectedRole;
@@ -320,6 +327,7 @@ namespace AshenHalls
                     navigation.SetSelectedGameObject(null);
             }
             canvas.gameObject.SetActive(visible);
+            if (folioEffects != null) folioEffects.SetVisible(visible);
             focusOnNextRefresh = visible;
         }
 
@@ -328,11 +336,22 @@ namespace AshenHalls
             ApplyLayout(width, height);
         }
 
+        public void AdvancePresentation(float deltaSeconds)
+        {
+            folioEffects?.Advance(deltaSeconds);
+        }
+
+        public PartySetupFolioSnapshot CaptureMotionSnapshot()
+        {
+            return folioEffects == null ? default : folioEffects.Snapshot;
+        }
+
         public void Refresh()
         {
             if (bindings == null || canvas == null) return;
             if (!Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height))
                 ApplyLayout(Screen.width, Screen.height);
+            EnsureWorkshopBackdrop();
             IReadOnlyList<PartySetupMemberView> members = bindings.Members?.Invoke() ?? Array.Empty<PartySetupMemberView>();
             int selected = Mathf.Clamp(bindings.SelectedIndex?.Invoke() ?? 0, 0, Mathf.Max(0, members.Count - 1));
             EnsureRosterRows(members.Count);
@@ -364,7 +383,7 @@ namespace AshenHalls
             lastSelected = selected;
             selectedMemberTitle.text = "CHARACTER " + (selected + 1) + "  /  " + members.Count;
             selectedRaceClass.text = current.RaceClassLine;
-            selectedRole.text = current.RoleLine;
+            selectedRole.text = FormatRoleLine(current.RoleLine);
             raceDescription.text = current.RaceDescription;
             classDescription.text = current.ClassDescription;
             SetPortrait(selectedPortrait, current.RaceKey, current.ClassKey);
@@ -387,6 +406,10 @@ namespace AshenHalls
             detailsBody.text = current.GearLine + "\n\n" + current.BestSkillLine + "\n" + current.ProgressLine + "\n" + current.UnlockLine;
             noteText.text = bindings.WeaknessLine?.Invoke() ?? "";
             RefreshTabs();
+            folioEffects?.SetSelection(selected < rosterButtons.Count ? rosterButtons[selected] : null,
+                ChoiceButton(bindings.RaceChoices, raceButtons, current.RaceKey),
+                ChoiceButton(bindings.ClassChoices, classButtons, current.ClassKey), showingDetails ? detailsTab : identityTab);
+            folioEffects?.Advance(0f);
             EventSystem navigation = NavigationSystem;
             if (focusOnNextRefresh && canvas.gameObject.activeInHierarchy && navigation != null && selected < rosterButtons.Count)
             {
@@ -409,13 +432,12 @@ namespace AshenHalls
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
             Stretch(AddImage("Backdrop Base", canvas.transform, Hex("161310")).rectTransform);
-            if (bindings?.BackdropArt != null)
-            {
-                RawImage backdrop = AddRawImage("Tavern Backdrop", canvas.transform);
-                backdrop.texture = bindings.BackdropArt;
-                Stretch(backdrop.rectTransform);
-            }
-            Stretch(AddImage("Muster Shade", canvas.transform, new Color(0.035f, 0.025f, 0.015f, 0.78f)).rectTransform);
+            workshopBackdrop = AddRawImage("Character Workshop Backdrop", canvas.transform);
+            workshopBackdrop.texture = bindings?.BackdropArt;
+            workshopBackdrop.enabled = workshopBackdrop.texture != null;
+            Stretch(workshopBackdrop.rectTransform);
+            backdropShade = AddImage("Muster Shade", canvas.transform, new Color(0.035f, 0.025f, 0.015f, 0.78f));
+            Stretch(backdropShade.rectTransform);
             folio = NewRect("Character Folio", canvas.transform);
             folio.anchorMin = folio.anchorMax = folio.pivot = new Vector2(0.5f, 0.5f);
             folio.anchoredPosition = Vector2.zero;
@@ -450,11 +472,14 @@ namespace AshenHalls
             selectedRaceClass = PlaceText("Selected Race Class", editorPanel, "", 17, Cream, new Rect(16, 389, 278, 27));
             selectedRaceClass.font = UiRuntime.DialogueEmphasisFont;
             selectedRole = PlaceText("Selected Role", editorPanel, "", 13, Hex("c1af8c"), new Rect(16, 423, 276, 37));
+            selectedRole.resizeTextForBestFit = true;
+            selectedRole.resizeTextMinSize = 12;
+            selectedRole.resizeTextMaxSize = 13;
 
             RectTransform sheet = AddPanel("Character Sheet", editorPanel, Hex("d7c39b"), Gold);
             SetLocalRect(sheet, new Rect(309, 12, 907, 447));
-            identityTab = PlaceButton("Identity Tab", sheet, "Race & class", () => showingDetails = false, new Rect(15, 12, 189, 34), true);
-            detailsTab = PlaceButton("Details Tab", sheet, "Attributes & details", () => showingDetails = true, new Rect(213, 12, 222, 34));
+            identityTab = PlaceButton("Identity Tab", sheet, "Race & class", () => ChangeTab(false), new Rect(15, 12, 189, 34), true);
+            detailsTab = PlaceButton("Details Tab", sheet, "Attributes & details", () => ChangeTab(true), new Rect(213, 12, 222, 34));
             PlaceText("Folio Hint", sheet, "Every race. Every calling. A different story.", 13, MutedInk, new Rect(448, 14, 440, 29), TextAnchor.MiddleRight);
             identityPage = NewRect("Identity Page", sheet);
             SetLocalRect(identityPage, new Rect(15, 55, 877, 382));
@@ -463,6 +488,64 @@ namespace AshenHalls
             BuildIdentityPage();
             BuildDetailsPage();
             summaryText = PlaceText("Party Summary", folio, "", 12, Gold, new Rect(27, 687, 1226, 22), TextAnchor.MiddleCenter);
+            RectTransform ambience = NewRect("Living Folio Effects", folio);
+            SetLocalRect(ambience, new Rect(0, 0, DesignWidth, DesignHeight));
+            ambience.SetAsFirstSibling();
+            folioEffects = ambience.gameObject.AddComponent<PartySetupFolioEffects>();
+            folioEffects.Initialize(selectedPortrait, () => bindings?.ReducedMotion?.Invoke() ?? false);
+            foreach (Button button in canvas.GetComponentsInChildren<Button>(true)) folioEffects.RegisterButton(button);
+        }
+
+        private void ChangeTab(bool details)
+        {
+            if (showingDetails == details) return;
+            showingDetails = details;
+            if (canvas.gameObject.activeInHierarchy) bindings?.TabChanged?.Invoke(details);
+        }
+
+        private void EnsureWorkshopBackdrop()
+        {
+            if (triedWorkshopBackdrop || !canvas.gameObject.activeInHierarchy) return;
+            triedWorkshopBackdrop = true;
+            Texture2D art = bindings.WorkshopBackdropArt?.Invoke();
+            if (art == null) return;
+            workshopBackdrop.texture = art;
+            workshopBackdrop.enabled = true;
+            backdropShade.color = new Color(0.035f, 0.025f, 0.015f, 0.54f);
+            ApplyBackdropCover(lastWidth, lastHeight);
+        }
+
+        private void ApplyBackdropCover(float width, float height)
+        {
+            if (workshopBackdrop == null || workshopBackdrop.texture == null || width <= 0f || height <= 0f) return;
+            float textureAspect = (float)workshopBackdrop.texture.width / workshopBackdrop.texture.height;
+            float screenAspect = width / height;
+            if (textureAspect > screenAspect)
+            {
+                float crop = screenAspect / textureAspect;
+                workshopBackdrop.uvRect = new Rect((1f - crop) * 0.5f, 0f, crop, 1f);
+            }
+            else
+            {
+                float crop = textureAspect / screenAspect;
+                workshopBackdrop.uvRect = new Rect(0f, (1f - crop) * 0.5f, 1f, crop);
+            }
+        }
+
+        private static string FormatRoleLine(string line)
+        {
+            if (string.IsNullOrEmpty(line) || line.Length <= 40) return line;
+            int first = line.IndexOf(" / ", StringComparison.Ordinal);
+            int second = first < 0 ? -1 : line.IndexOf(" / ", first + 3, StringComparison.Ordinal);
+            return second < 0 ? line : line.Substring(0, second) + "\n" + line.Substring(second + 3);
+        }
+
+        private static Button ChoiceButton(IReadOnlyList<PartySetupChoiceView> choices, List<Button> buttons, string key)
+        {
+            if (choices == null) return null;
+            for (int i = 0; i < choices.Count && i < buttons.Count; i++)
+                if (string.Equals(choices[i].Key, key, StringComparison.OrdinalIgnoreCase)) return buttons[i];
+            return null;
         }
 
         private void BuildIdentityPage()
@@ -612,20 +695,26 @@ namespace AshenHalls
         private void SetPortrait(RawImage image, string race, string characterClass)
         {
             Texture2D atlas = bindings.PortraitAtlas?.Invoke(race, characterClass);
-            image.texture = atlas;
-            image.enabled = atlas != null;
-            if (atlas == null) return;
             int cell = Mathf.Clamp(bindings.PortraitCell?.Invoke(race, characterClass) ?? 0, 0, 7);
             // Cells are authored in reading order. Half-texel inset keeps neighbouring cells out of the frame.
-            float dx = 0.5f / atlas.width;
-            float dy = 0.5f / atlas.height;
-            image.uvRect = new Rect((cell % 4) * 0.25f + dx, 1f - ((cell / 4) + 1) * 0.5f + dy, 0.25f - 2f * dx, 0.5f - 2f * dy);
+            float dx = atlas == null ? 0f : 0.5f / atlas.width;
+            float dy = atlas == null ? 0f : 0.5f / atlas.height;
+            Rect uv = new Rect((cell % 4) * 0.25f + dx, 1f - ((cell / 4) + 1) * 0.5f + dy, 0.25f - 2f * dx, 0.5f - 2f * dy);
+            if (image == selectedPortrait && folioEffects != null)
+                folioEffects.ChoosePortrait(atlas, uv, lastSelected, race, characterClass);
+            else
+            {
+                image.texture = atlas;
+                image.enabled = atlas != null;
+                image.uvRect = uv;
+            }
         }
 
         private void ApplyLayout(float width, float height)
         {
             lastWidth = width;
             lastHeight = height;
+            ApplyBackdropCover(width, height);
             if (folio == null) return;
             folio.anchoredPosition = Vector2.zero;
             folio.sizeDelta = new Vector2(DesignWidth, DesignHeight);
@@ -682,6 +771,7 @@ namespace AshenHalls
             text.fontStyle = FontStyle.Bold;
             Stretch(text.rectTransform, 6f, 3f);
             SetLocalRect(go.GetComponent<RectTransform>(), area);
+            folioEffects?.RegisterButton(button);
             return button;
         }
 
@@ -694,7 +784,6 @@ namespace AshenHalls
             colors.selectedColor = colors.highlightedColor;
             colors.disabledColor = paper ? Hex("b3a78e") : Hex("51493e");
             colors.colorMultiplier = 1f;
-            colors.fadeDuration = 0.09f;
             button.colors = colors;
             Outline outline = button.GetComponent<Outline>();
             if (outline != null)

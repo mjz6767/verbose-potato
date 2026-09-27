@@ -1780,7 +1780,8 @@ namespace AshenHalls.Editor
             }
             HashSet<string> importedSfxKeys = GetPrivateField<HashSet<string>>(game, "importedSfxKeys");
             AudioClip[] importedSfx = Resources.LoadAll<AudioClip>("Audio/Sfx");
-            Assert(importedSfx.Length == 161 + GameAudioCueRules.EverydayMasterCount, "authored SFX bank contains the original 161 cues and all 26 everyday masters");
+            Assert(importedSfx.Length == 161 + GameAudioCueRules.EverydayMasterCount + PartySetupAudioRules.CueKeys.Count,
+                "authored SFX bank contains the original cues, everyday masters, and complete workshop bank");
             Assert(importedSfxKeys.Count == importedSfx.Length, "every authored SFX resource replaces a known runtime cue");
             foreach (AudioClip clip in importedSfx)
             {
@@ -1830,7 +1831,7 @@ namespace AshenHalls.Editor
                 Assert(importedMusicClips.TryGetValue(key, out AudioClip indexed) && indexed == clip, key + " resolves through the music override bank");
                 Assert(clip.loadState != AudioDataLoadState.Failed, key + " music data loads");
                 Assert(clip.frequency == 32000 && clip.channels == 2, key + " is mastered as 32 kHz stereo");
-                float maximumDuration = key == "tavern_storm_hearth_ensemble_loop" ? 60.1f : 30.1f;
+                float maximumDuration = key == "tavern_storm_hearth_ensemble_loop" || key == PartySetupAudioRules.MusicCue ? 60.1f : 30.1f;
                 Assert(
                     clip.length >= 15f && clip.length <= maximumDuration,
                     key + " stays inside its authored loop-duration budget");

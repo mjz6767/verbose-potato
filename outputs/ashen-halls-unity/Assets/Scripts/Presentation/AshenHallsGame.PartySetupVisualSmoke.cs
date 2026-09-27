@@ -14,6 +14,7 @@ namespace AshenHalls
             // Keep capture staging isolated from campaign and preference persistence.
             visualSmokeSaveBlocked = true;
             StartNewGame();
+            state.ReducedMotion = args.Any(arg => string.Equals(arg, "-ashen-party-reduced-motion", StringComparison.OrdinalIgnoreCase));
             ApplyVisualSmokeSeed(args);
             string memberText = PartySetupSmokeOption(args, "-ashen-party-member", "0");
             if (!int.TryParse(memberText, out int index) || index < 0 || index >= state.Party.Count)
@@ -54,9 +55,37 @@ namespace AshenHalls
                 return false;
             if (state == null || state.Mode != GameMode.Muster || partySetupScreen == null)
                 throw new InvalidOperationException("Party Setup offscreen capture requires the staged Muster screen.");
+            PreparePartySetupCaptureMotion(args);
             PartySetupCaptureRenderer.Write(partySetupScreen, width, height, path);
             Debug.Log(VersionInfo.ProductName + " party setup capture renderer: actual player canvas / offscreen camera / " + width + "x" + height + ".");
             return true;
+        }
+
+        private void PreparePartySetupCaptureMotion(string[] args)
+        {
+            bool transition = args != null && args.Any(arg => string.Equals(arg, "-ashen-party-transition-smoke", StringComparison.OrdinalIgnoreCase));
+            partySetupScreen.Refresh();
+            partySetupScreen.AdvancePresentation(1f);
+            string motion = state.ReducedMotion ? "reduced" : "settled";
+            if (transition)
+            {
+                if (state.ReducedMotion) throw new InvalidOperationException("A transition capture cannot request Reduced Motion.");
+                string targetClass = SelectedBuilderMember().ClassKey;
+                string previousClass = CharacterCreationCatalog.Classes.First(choice => choice.Key != targetClass).Key;
+                SetSelectedMemberClass(previousClass);
+                partySetupScreen.Refresh();
+                partySetupScreen.AdvancePresentation(1f);
+                SetSelectedMemberClass(targetClass);
+                partySetupScreen.Refresh();
+                partySetupScreen.AdvancePresentation(0.08f);
+                motion = "transition";
+            }
+            PartySetupFolioSnapshot snapshot = partySetupScreen.CaptureMotionSnapshot();
+            if (!snapshot.Visible || (transition && (!snapshot.TransitionActive || snapshot.PreviousPortraitAlpha <= 0f))
+                || (!transition && (snapshot.TransitionActive || snapshot.PreviousPortraitAlpha != 0f))
+                || (state.ReducedMotion && (!snapshot.ReducedMotion || snapshot.AmbientTime != 0f || snapshot.AccentAlpha != 0f)))
+                throw new InvalidOperationException("Party Setup capture did not reach its requested motion state: " + motion);
+            Debug.Log(VersionInfo.ProductName + " party setup capture motion: " + motion + ".");
         }
 
         private static string PartySetupSmokeOption(string[] args, string option, string fallback)

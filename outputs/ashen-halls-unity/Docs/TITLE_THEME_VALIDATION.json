@@ -1,0 +1,193 @@
+{
+  "generator": "Tools/Audio/BuildTitleTheme.py",
+  "original_composition": true,
+  "external_samples": false,
+  "asset": {
+    "cue": "tavern_storm_hearth_ensemble_loop",
+    "output": "Assets/Resources/Audio/Music/tavern_storm_hearth_ensemble_loop.wav",
+    "kind": "music",
+    "title": "The Ember Oath — Main Title",
+    "direction": "Original title-exclusive horn signature, intimate lute/reed middle, dominant ascent and returning company theme.",
+    "sample_rate": 32000,
+    "channels": 2,
+    "frames": 1920000,
+    "duration_seconds": 60.0,
+    "peak_dbfs": -5.02,
+    "rms_dbfs": -19.0,
+    "seam_delta_dbfs": "-74.75",
+    "sha256": "df8da67eec83d50a5d85306ba455c1a60b800208e68f77ae240e578294c1c052",
+    "provenance": "Original deterministic synthesis; no external samples"
+  },
+  "score": {
+    "title": "The Ember Oath",
+    "composition": "The Ember Oath",
+    "cue": "tavern_storm_hearth_ensemble_loop",
+    "sample_rate": 32000,
+    "bpm": 96,
+    "root_midi": 50,
+    "mode": [
+      0,
+      2,
+      3,
+      5,
+      7,
+      8,
+      11
+    ],
+    "progression": [
+      0,
+      5,
+      3,
+      4,
+      0,
+      2,
+      3,
+      4,
+      5,
+      2,
+      3,
+      4,
+      0,
+      6,
+      5,
+      4,
+      0,
+      5,
+      2,
+      3,
+      0,
+      4,
+      0,
+      0
+    ],
+    "direction": "An original Ember Oath signature, with a leaning-semitone horn call, intimate lute/reed memory, prepared dominant ascent, and dark heroic return.",
+    "mode_detail": "D minor with harmonic-minor dominants, a borrowed Dorian major IV, and written chord inversions",
+    "duration_seconds": 60.0,
+    "pickup_seconds": 0.35,
+    "hook_seconds": 1.2,
+    "motif_semitones": [
+      0,
+      7,
+      8,
+      7
+    ],
+    "motif_onset_beats": [
+      0,
+      1.5,
+      2,
+      2.75
+    ],
+    "motif": [
+      {
+        "beat": 0,
+        "semitone": 0,
+        "duration_beats": 1.36
+      },
+      {
+        "beat": 1.5,
+        "semitone": 7,
+        "duration_beats": 0.39
+      },
+      {
+        "beat": 2,
+        "semitone": 8,
+        "duration_beats": 0.66
+      },
+      {
+        "beat": 2.75,
+        "semitone": 7,
+        "duration_beats": 1.12
+      }
+    ],
+    "sections": [
+      {
+        "name": "signature",
+        "start_seconds": 0.0,
+        "end_seconds": 10.0
+      },
+      {
+        "name": "company",
+        "start_seconds": 10.0,
+        "end_seconds": 20.0
+      },
+      {
+        "name": "intimate",
+        "start_seconds": 20.0,
+        "end_seconds": 30.0
+      },
+      {
+        "name": "ascent",
+        "start_seconds": 30.0,
+        "end_seconds": 40.0
+      },
+      {
+        "name": "return",
+        "start_seconds": 40.0,
+        "end_seconds": 55.0
+      },
+      {
+        "name": "coda",
+        "start_seconds": 55.0,
+        "end_seconds": 60.0
+      }
+    ],
+    "harmony": [
+      "Dm(add9)",
+      "Bbmaj7/D",
+      "Gm",
+      "A7",
+      "Dm",
+      "F/C",
+      "G",
+      "A7",
+      "Bbmaj7",
+      "F/A",
+      "Gm9",
+      "A7",
+      "Dm",
+      "Cadd9",
+      "Bb",
+      "A7",
+      "Dm",
+      "Bbmaj7",
+      "Fadd9",
+      "Gm6",
+      "Dm/A",
+      "A7",
+      "Dm(add9)",
+      "D open ninth"
+    ],
+    "external_samples": false,
+    "provenance": "Original authored score and deterministic synthesis; no external audio or services"
+  },
+  "runtime_mix": {
+    "intro_fade_seconds": 1.0,
+    "music_source_gain": 0.29,
+    "default_music_fraction": 0.65,
+    "sfx_source_gain": 0.78,
+    "forge_gain": 0.2,
+    "reveal_gain": 0.14
+  },
+  "exact_pcm_reproducibility": true,
+  "prior_title_sha256": "b2fbcbea86c613f97fe8eef6ae5aefada7c088a09b4ae1211e5fe22ba7723a94",
+  "previews": [
+    {
+      "path": "QA/title-theme-2026-09-27/the-ember-oath.wav",
+      "sha256": "df8da67eec83d50a5d85306ba455c1a60b800208e68f77ae240e578294c1c052"
+    },
+    {
+      "path": "QA/title-theme-2026-09-27/in-game-opening.wav",
+      "sha256": "bbf6f0ac93f23a8323c1e6a5e6fa9302c601352dd5f9ab68ca5153ced57ea974"
+    },
+    {
+      "path": "QA/title-theme-2026-09-27/loop-boundary.wav",
+      "sha256": "0dab2d38552a8e603cb64ff4c1ab257d35aebfa11211725d5e0ed5c6e87603b1"
+    },
+    {
+      "path": "QA/title-theme-2026-09-27/before-after-opening.wav",
+      "sha256": "a14941a05664673d2305557083400343d3bc07add438863cd7928c301758af4f"
+    }
+  ],
+  "review_scope": "Structural and signal checks do not establish subjective musical quality. Listening previews supplied for review.",
+  "preview_scope": "Opening music with source-derived fade/gains and staged title/menu accents; ambience excluded. Not a Unity player recording."
+}

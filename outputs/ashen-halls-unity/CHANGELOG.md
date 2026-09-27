@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.29.0 - The Living Folio
+
+- Introduce The Ember Oath, an original sixty-second title theme with a distinct horn signature, contrasting intimate middle and returning company theme. Bring its opening into focus with a shorter cold-start fade and quieter reveal accents while preserving music preferences and the established title source gain.
+- Add an original candlelit workshop backdrop while preserving the 40 unique portraits, four companion cards and direct race/class choices.
+- Add a dedicated character-creation musical arrangement and distinct sounds for companion, race, class and customization actions. Follow existing music/SFX controls and keep refreshes and unchanged selections silent.
+- Bring portraits and selection frames to life with short transitions, class-colored accents and restrained firelight. Reduced Motion resolves changes immediately and keeps a static presentation.
+- Keep animation and sound presentation separate from character calculations, focus ownership and campaign saves. Preserve save schema v27 and the v2.28 release archive.
+- Record focused motion/audio regression coverage, the integrated audit, package integrity and supported-size visual review in `Docs/ReleaseEvidence/v2.29.0-summary.json` after validation.
+
 ## v2.28.0 - Portraits by the Fire
 
 - Rebuild character creation around painted fantasy portraits, an illustrated four-member party roster, and direct race and class choices with persistent selection markers.

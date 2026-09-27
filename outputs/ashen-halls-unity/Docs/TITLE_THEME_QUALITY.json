@@ -1,0 +1,84 @@
+{
+  "input": "C:\\Users\\markz\\Projects\\Ashen Halls\\project\\outputs\\ashen-halls-unity\\Assets\\Resources\\Audio\\Music\\tavern_storm_hearth_ensemble_loop.wav",
+  "sha256": "df8da67eec83d50a5d85306ba455c1a60b800208e68f77ae240e578294c1c052",
+  "metrics": {
+    "sample_rate": 32000,
+    "channels": 2,
+    "duration_seconds": 60.0,
+    "peak_dbfs": -5.015947282256424,
+    "rms_dbfs": -19.000283064428103,
+    "crest_db": 13.984335782171676,
+    "mono_retention": 0.9856270544093506,
+    "channel_level_difference_db": 0.21381585917665547,
+    "channel_correlation": 0.9432070864117296,
+    "dc_peak": 1.8781026204427084e-06,
+    "boundary_delta": 0.00018310546875,
+    "loop_edge_level_difference_db": 9.273938307629976,
+    "first_five_seconds_rms_dbfs": -19.914476846045666,
+    "band_energy_fraction": {
+      "sub_0_80": 0.001586075727642537,
+      "bass_80_250": 0.12292822171945772,
+      "lowmid_250_1000": 0.7343548674913424,
+      "presence_1000_4000": 0.14080981196124906,
+      "bright_4000_8000": 0.00031681086714269223,
+      "air_8000_up": 4.212233165439496e-06
+    },
+    "band_limited_mono_rms_dbfs": -19.432804958747674,
+    "band_limited_retention_db": -0.4325218943195724,
+    "sections": {
+      "signature": {
+        "start_seconds": 0.0,
+        "end_seconds": 10.0,
+        "rms_dbfs": -19.34406122825891,
+        "mono_retention": 0.9876438951389929
+      },
+      "company": {
+        "start_seconds": 10.0,
+        "end_seconds": 20.0,
+        "rms_dbfs": -18.85084384304629,
+        "mono_retention": 0.9843703463384668
+      },
+      "intimate": {
+        "start_seconds": 20.0,
+        "end_seconds": 30.0,
+        "rms_dbfs": -21.35892374385913,
+        "mono_retention": 0.9879933521733183
+      },
+      "ascent": {
+        "start_seconds": 30.0,
+        "end_seconds": 40.0,
+        "rms_dbfs": -18.8582048972494,
+        "mono_retention": 0.9864221201777529
+      },
+      "return": {
+        "start_seconds": 40.0,
+        "end_seconds": 55.0,
+        "rms_dbfs": -17.387469360394576,
+        "mono_retention": 0.9841935719976374
+      },
+      "coda": {
+        "start_seconds": 55.0,
+        "end_seconds": 60.0,
+        "rms_dbfs": -21.970306476397074,
+        "mono_retention": 0.987018604573624
+      }
+    }
+  },
+  "r128": {
+    "available": true,
+    "integrated_lufs": -16.2,
+    "loudness_range_lu": 5.0,
+    "true_peak_dbtp": -5.0
+  },
+  "engineering_failures": [],
+  "listening_advisories": [
+    "Loop edge windows differ by more than 6 dB; audition harmonic/energy continuity."
+  ],
+  "scope": "Engineering checks are not evidence of an iconic melody, convincing instruments, or emotional impact.",
+  "comparison": {
+    "previous_sha256": "b2fbcbea86c613f97fe8eef6ae5aefada7c088a09b4ae1211e5fe22ba7723a94",
+    "rms_change_db": -0.5086240888348215,
+    "small_speaker_body_change_db": 3.133423413930057,
+    "sub_fraction_change": -0.38269601355547794
+  }
+}

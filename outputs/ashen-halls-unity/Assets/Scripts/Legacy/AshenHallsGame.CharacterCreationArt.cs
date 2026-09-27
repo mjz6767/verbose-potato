@@ -6,6 +6,24 @@ namespace AshenHalls
     public sealed partial class AshenHallsGame
     {
         private readonly Dictionary<string, Texture2D> partySetupPortraitAtlases = new Dictionary<string, Texture2D>();
+        private Texture2D partySetupWorkshopBackdrop;
+        private bool partySetupWorkshopBackdropLoaded;
+
+        private Texture2D PartySetupWorkshopBackdrop()
+        {
+            if (partySetupWorkshopBackdropLoaded) return partySetupWorkshopBackdrop;
+            partySetupWorkshopBackdropLoaded = true;
+            Texture2D texture = LoadExternalPng(RuntimeArtManifest.CharacterWorkshopBackdrop);
+            if (texture != null && (texture.width < 1024 || texture.height < 512 || texture.width <= texture.height))
+            {
+                Debug.LogWarning("Rejected character workshop backdrop: expected a landscape painting at least 1024 by 512 pixels.");
+                DestroyPortraitTexture(texture);
+                texture = null;
+            }
+            if (texture != null) texture.filterMode = FilterMode.Bilinear;
+            partySetupWorkshopBackdrop = texture;
+            return texture;
+        }
 
         private Texture2D PartySetupPortraitAtlas(string race, string classKey)
         {
@@ -32,6 +50,9 @@ namespace AshenHalls
         {
             foreach (Texture2D texture in partySetupPortraitAtlases.Values) DestroyPortraitTexture(texture);
             partySetupPortraitAtlases.Clear();
+            DestroyPortraitTexture(partySetupWorkshopBackdrop);
+            partySetupWorkshopBackdrop = null;
+            partySetupWorkshopBackdropLoaded = false;
         }
 
         private static void DestroyPortraitTexture(Texture2D texture)

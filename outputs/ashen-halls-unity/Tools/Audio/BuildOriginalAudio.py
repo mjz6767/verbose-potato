@@ -26,6 +26,7 @@ import numpy as np
 MUSIC_SAMPLE_RATE = 32_000
 SFX_SAMPLE_RATE = 48_000
 MUSIC_BEATS = 32
+PARTY_SETUP_MUSIC_BEATS = 64
 AUDIO_RELEASE = "v2.16.0"
 AUDIO_RELEASE_SLUG = "v2.16.0"
 STAGE_ROOT = Path(__file__).resolve().parents[2]
@@ -179,14 +180,14 @@ MIXOLYDIAN = (0, 2, 4, 5, 7, 9, 10)
 TRACKS: tuple[TrackSpec, ...] = (
     TrackSpec(
         "tavern_storm_hearth_ensemble_loop",
-        "Ash & Brimstone",
+        "The Ember Oath — Main Title",
         96,
         50,
-        DORIAN,
-        (0, 0, 5, 3, 0, 6, 4, 5, 0, 3, 5, 4, 6, 5, 3, 0, 0, 5, 3, 4, 6, 5, 3, 0),
+        HARMONIC_MINOR,
+        (0, 5, 3, 4, 0, 2, 3, 4, 5, 2, 3, 4, 0, 6, 5, 4, 0, 5, 2, 3, 0, 4, 0, 0),
         "title",
         0.92,
-        "The sixty-second main-title overture: a brighter forged-road motif clears the title reveal, then rises from hearth and rain into wider bronze horns, four company voices, driving strings, and war drums.",
+        "Original title-exclusive horn signature, intimate lute/reed middle, dominant ascent and returning company theme.",
     ),
     TrackSpec(
         "four_names_by_the_fire_loop",
@@ -300,14 +301,14 @@ TRACKS: tuple[TrackSpec, ...] = (
     ),
     TrackSpec(
         "muster_by_firelight_loop",
-        "Muster by Firelight",
-        80,
+        "The Living Folio",
+        72,
         52,
         DORIAN,
-        (0, 4, 3, 5, 0, 6, 3, 4),
+        (0, 6, 3, 4, 0, 2, 3, 4, 2, 6, 0, 3, 6, 3, 4, 0),
         "muster",
         0.38,
-        "Patient lute and low strings for choosing a company before the road.",
+        "An authored sixteen-bar company theme: lute, answering wooden flute, close-voiced viols, dulcimer, and a soft frame drum; a contrasting B section and a changed return lead back to the hearth.",
     ),
     TrackSpec(
         "midgaard_lamps_loop",
@@ -1655,9 +1656,78 @@ def compose_journey_track(spec: TrackSpec) -> np.ndarray:
     return master_audio(mix, -22.5 if quiet else -21.0 if not combat else -19.8, -4.0)
 
 
+def compose_party_setup_track(spec: TrackSpec) -> np.ndarray:
+    """A dedicated, written chamber score for the illustrated character workshop."""
+    rng = np.random.default_rng(stable_seed(spec.cue + ":living-folio-v2.29"))
+    beat = 60.0 / spec.bpm
+    mix = np.zeros((2, round(PARTY_SETUP_MUSIC_BEATS * beat * MUSIC_SAMPLE_RATE)), dtype=np.float64)
+    levels = (.83, .88, .98, .94, .51, .60, 1.0, .92, .77, .82, .57, .63, .83, .94, .98, .79)
+
+    def note(instrument: str, midi: int, when: float, length: float, gain: float, pan: float) -> None:
+        signal = journey_instrument(instrument, midi_to_hz(midi), length * beat, rng)
+        mix_circular(mix, signal, round(when * beat * MUSIC_SAMPLE_RATE), gain * levels[min(15, int(when // 4))], pan)
+
+    voices = [52, 55, 59]
+    for bar, chord in enumerate(spec.progression):
+        origin = float(bar * 4)
+        quiet = bar in (4, 5, 10, 11)
+        for voice, interval in enumerate((0, 2, 4)):
+            pitch = scale_note(spec.root_midi, spec.mode, chord + interval)
+            pitch = min((pitch - 24, pitch - 12, pitch, pitch + 12), key=lambda midi: abs(midi - voices[voice]))
+            voices[voice] = pitch
+            if quiet and voice == 1:
+                continue
+            note("bowed", pitch, origin + .04 + voice * .025, 4.2, .026, (-.48, .03, .47)[voice])
+        bass = scale_note(spec.root_midi, spec.mode, chord, -1)
+        while bass > 45:
+            bass -= 12
+        note("lute", bass, origin, 2.4, .075, -.09)
+        if not quiet:
+            note("lute", bass + 7, origin + 2.5, 1.35, .040, .08)
+        for pick, (position, interval) in enumerate(((.5, 0), (1.5, 4), (2.25, 2), (3.25, 4))):
+            if quiet and pick > 1:
+                continue
+            note("lute", scale_note(spec.root_midi, spec.mode, chord + interval),
+                 origin + position, 1.2, .044, -.44 if pick % 2 == 0 else .42)
+        if not quiet:
+            for position, hz, gain in ((0, 67, .031), (2.5, 105, .017)):
+                mix_circular(mix, drum(hz, .25, MUSIC_SAMPLE_RATE, rng, .20),
+                             round((origin + position) * beat * MUSIC_SAMPLE_RATE), gain, -.15)
+        if bar in (0, 3, 6, 8, 12, 15):
+            note("bell", scale_note(spec.root_midi, spec.mode, chord + 4, 1), origin + .25, 2.0, .020, .53)
+
+    # A recognizable statement, flute answer, quieter reflection and changed return.
+    # MIDI pitches are written against each bar's harmony; RNG never writes the tune.
+    phrases = (
+        ((0, 1.25, 64), (1.5, .60, 67), (2.5, 1.20, 71), (4.25, 1.25, 69), (6, 1.35, 66)),
+        ((.25, 1.3, 69), (2, .65, 73), (3, .7, 71), (4.25, 1.35, 66), (6, 1.55, 62)),
+        ((.5, 2.0, 67), (3, .65, 64), (4.5, 2.4, 62)),
+        ((0, 1.3, 64), (1.5, .6, 69), (2.5, 1.25, 73), (4.25, 1.2, 71), (6, .75, 66), (7.25, .60, 64)),
+        ((.5, 1.8, 71), (3, .7, 74), (4.5, 1.5, 69), (6.5, 1.0, 66)),
+        ((0, 2.0, 67), (3, .65, 64), (4.25, 1.5, 69), (6.25, 1.0, 73)),
+        ((0, 1.3, 66), (1.5, .6, 69), (2.5, 1.25, 74), (4.25, 1.2, 73), (6, 1.35, 69)),
+        ((0, 1.1, 66), (1.5, .6, 69), (2.5, 1.15, 71), (4.25, .95, 67), (5.5, 1.2, 64), (7, .80, 59)),
+    )
+    for phrase, events in enumerate(phrases):
+        for index, (position, duration, pitch) in enumerate(events):
+            when = phrase * 8 + position
+            instrument = "flute" if phrase in (1, 2, 4, 5) else "lute"
+            note(instrument, pitch, when, duration, .108 if instrument == "lute" else .078, -.16)
+            if phrase in (3, 6, 7) and index in (1, 3):
+                note("flute", pitch - 12, when + .10, duration + .2, .029, .36)
+    # Circular tails and a short bounded bridge retain the cadence without a click.
+    mix = circular_reverb(mix, MUSIC_SAMPLE_RATE, .19, .84)
+    mix = bridge_loop_seam(mix, MUSIC_SAMPLE_RATE)
+    # Calibrate the master for the existing 0.23 source gain and player music preference.
+    return master_audio(mix, -18.8, -4.8)
+
+
 def compose_track(spec: TrackSpec) -> np.ndarray:
     if spec.cue == "tavern_storm_hearth_ensemble_loop":
-        return compose_main_title_track(spec)
+        from TitleTheme import compose as compose_title_theme
+        return compose_title_theme(spec)
+    if spec.cue == "muster_by_firelight_loop":
+        return compose_party_setup_track(spec)
     if spec.cue in EPIC_COMBAT_CUES:
         return compose_epic_combat_track(spec)
     if spec.cue in JOURNEY_SCORES:
@@ -2656,6 +2726,9 @@ def build_title_runtime_preview() -> Path:
     if sample_rate != MUSIC_SAMPLE_RATE or music.ndim != 2 or music.shape[0] != 2:
         raise ValueError("title runtime preview requires the 32 kHz stereo title master")
     mix = loop_to_frames(music, preview_frames) * runtime_music_gain("title")
+    # Match the cold-start SmoothStep envelope; menu-to-muster crossfades are separate.
+    progress = np.clip(np.arange(preview_frames) / MUSIC_SAMPLE_RATE / 1.0, 0.0, 1.0)
+    mix *= progress * progress * (3.0 - 2.0 * progress)
 
     def add_runtime_cue(cue: str, at_seconds: float, cue_gain: float, pan: float = 0.0) -> None:
         mono, cue_rate = read_pcm16(SFX_DIR / f"{cue}.wav")
@@ -2676,8 +2749,8 @@ def build_title_runtime_preview() -> Path:
         mix[0, start : start + count] += mono[:count] * left_gain
         mix[1, start : start + count] += mono[:count] * right_gain
 
-    add_runtime_cue("titleforge", 0.28, 0.28)
-    add_runtime_cue("titlereveal", 0.72, 0.22)
+    add_runtime_cue("titleforge", 0.28, 0.20)
+    add_runtime_cue("titlereveal", 0.72, 0.14)
     add_runtime_cue("titlefocus", 3.40, 0.20)
     add_runtime_cue("titlefocus", 4.05, 0.20)
     add_runtime_cue("titleopen", 5.10, 0.26)
@@ -2924,14 +2997,14 @@ def track_blueprint_collisions(
 def music_duration_bounds(cue: str) -> tuple[float, float]:
     maximum = (
         TITLE_MAX_MUSIC_DURATION_SECONDS
-        if cue == TITLE_MUSIC_CUE
+        if cue in {TITLE_MUSIC_CUE, "muster_by_firelight_loop"}
         else MAX_MUSIC_DURATION_SECONDS
     )
     return MIN_MUSIC_DURATION_SECONDS, maximum
 
 
 def expected_track_duration_seconds(spec: TrackSpec) -> float:
-    beats = 96 if spec.cue == TITLE_MUSIC_CUE else MUSIC_BEATS
+    beats = 96 if spec.cue == TITLE_MUSIC_CUE else PARTY_SETUP_MUSIC_BEATS if spec.cue == "muster_by_firelight_loop" else MUSIC_BEATS
     return beats * 60.0 / spec.bpm
 
 
@@ -3021,6 +3094,7 @@ def validate_runtime_source_contracts() -> list[str]:
 
     for _, (field_name, expected) in RUNTIME_MUSIC_GAIN_CONTRACT.items():
         require_float(title_rules, field_name, expected, title_rules_path)
+    require_float(transition_rules, "TitleIntroFadeDuration", 1.0, transition_rules_path)
     require_float(
         transition_rules,
         "WorldMapExploreTransitionDuration",

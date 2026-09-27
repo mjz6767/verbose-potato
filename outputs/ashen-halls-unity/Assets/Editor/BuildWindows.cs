@@ -140,6 +140,10 @@ namespace AshenHalls.Editor
             Debug.Log(VersionInfo.ProductName + " build building-atlas alpha smoke passed.");
             AudioRuntimeRobustnessSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build audio lifecycle smoke passed.");
+            TitleMusicExperienceSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build title music experience smoke passed.");
+            PartySetupAudioSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build character workshop audio smoke passed.");
             EverydayAudioSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build everyday sound effects smoke passed.");
             InventoryLootExperienceSmoke.RunOrThrow();
