@@ -1,0 +1,844 @@
+{
+  "schemaVersion": 2,
+  "releaseVersion": "v2.35.0",
+  "releaseName": "Roads Remember",
+  "recordedUtc": "2026-09-27",
+  "sourceCommit": "e75a2863e43835762cc19d5f1feb887b80e49c3e",
+  "sourceCleanAtPackaging": true,
+  "saveVersion": 27,
+  "changes": [
+    "Tessa sells two independently receipted named weapons after Varkh, with exact review, cancel, price and Pack delivery.",
+    "Bridgehook Spear and Stonecleft Axe have original transparent art, stable identity and guarded equipment intrinsics.",
+    "Weapon forms include ordinary axes; comparisons name the wearer for actual effective range.",
+    "Current journey leads the Journal; optional Maud lead remains visible and campaign NPC guidance follows saved progress.",
+    "Connected production campaign audit carries actual wounds, mana, resources, rewards and Growth between encounters."
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.35.0.zip",
+    "packageBytes": 251665169,
+    "packageSha256": "29bfb024eae84899aa7ef7f3155fad391b3df72c155a68dce667977e19b06849",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "369022d4ef0f3709c79c97d33fbcccc47dc9369924e9bd1ff73bbc6f656f71b9",
+    "cleanExtractLaunch": true,
+    "playerExitCode": 0,
+    "packagedArtCount": 102
+  },
+  "packageVerification": {
+    "allZipEntriesCrcValid": true,
+    "entryCount": 363,
+    "allPackagedPngsMatchZipAndSource": true,
+    "managedAssemblyMatchesArchive": true,
+    "manifest": "QA/v2.35.0-release-integrity/release-integrity-manifest.json",
+    "manifestSha256": "5fab10efe5c97beed77825df5d597f12700f1c3a161c281130f79ec5a4963a2a"
+  },
+  "validation": {
+    "sourceCompile": {
+      "path": "QA/source-compile/20260927-203554-2a4c00af",
+      "sourceCounts": {
+        "Assembly-CSharp": 166,
+        "Assembly-CSharp-Editor": 64
+      },
+      "diagnostics": 0
+    },
+    "fullAudit": {
+      "path": "QA/project-audit/20260927-203601-aabb68c7/unity.log",
+      "sha256": "919887512194436225ab9ebe5ed842ce843b7080ccbb7b3a1aa8e34e6d31d6b6",
+      "gateCount": 13,
+      "gates": [
+        "Rules (11.6 seconds)",
+        "UI finish (0.1 seconds)",
+        "Building atlas alpha (0.0 seconds)",
+        "Audio lifecycle (0.0 seconds)",
+        "Title music experience (0.2 seconds)",
+        "Character workshop audio (0.2 seconds)",
+        "Everyday sound effects (1.1 seconds)",
+        "Inventory and loot (0.1 seconds)",
+        "Sprite art (6.7 seconds)",
+        "Character workshop (6.7 seconds)",
+        "Combat UI (7.1 seconds)",
+        "Runtime boot (12.9 seconds)",
+        "Beta Lab class coverage (0.2 seconds)"
+      ]
+    },
+    "finalBuild": {
+      "path": "build-v2.35.0.log",
+      "sha256": "5ea5dfadb85db8a6847fac7fb0aef6432b7d172942d38c31a75b8232416eeb41",
+      "gateCount": 13,
+      "gates": [
+        "Ash & Brimstone build rule smoke tests passed.",
+        "Ash & Brimstone build UI finish smoke passed.",
+        "Ash & Brimstone build building-atlas alpha smoke passed.",
+        "Ash & Brimstone build audio lifecycle smoke passed.",
+        "Ash & Brimstone build title music experience smoke passed.",
+        "Ash & Brimstone build character workshop audio smoke passed.",
+        "Ash & Brimstone build everyday sound effects smoke passed.",
+        "Ash & Brimstone build inventory/loot experience smoke passed.",
+        "Ash & Brimstone build sprite-art runtime smoke passed.",
+        "Ash & Brimstone build character workshop smoke passed.",
+        "Ash & Brimstone build combat UI runtime smoke passed.",
+        "Ash & Brimstone build runtime boot smoke passed.",
+        "Ash & Brimstone build Beta Lab class coverage smoke passed."
+      ]
+    },
+    "newSmokeSuites": [
+      "NarrativeGuidanceSmoke",
+      "RoadStockItemSmoke",
+      "NativeRoadStockSmoke"
+    ],
+    "journey": {
+      "report": "Docs/CAMPAIGN_JOURNEY_AUDIT_2026-09-27.md",
+      "sha256": "264a51d172cc41f27d9340e7ca595ac370cc717f84cfc2ef693fd86d386fb996",
+      "rawReport": "QA/campaign-journey-report.md",
+      "rawReportSha256": "ec4580c9ca8fcd123db4cc90c5703c79695450f31f132d8ed9020a1b33c9f08e",
+      "runs": 6,
+      "campaignVictories": 6,
+      "requiredBattleWins": 108,
+      "roamingBattleWins": 34,
+      "summaryRows": [
+        "| 42 | prudent | campaign victory | 18/18 | 7 | 0 | 0 / 3 | 754 | 9 / 40 | 16/16/15/15 | 408/410; 132/176 | 1301/28/20 |",
+        "| 42 | conserve | campaign victory | 18/18 | 7 | 0 | 0 / 3 | 754 | 9 / 40 | 16/16/15/15 | 407/410; 134/176 | 1301/28/18 |",
+        "| 727 | prudent | campaign victory | 18/18 | 4 | 1 | 0 / 3 | 704 | 9 / 40 | 16/16/15/15 | 408/411; 145/175 | 1174/27/20 |",
+        "| 727 | conserve | campaign victory | 18/18 | 4 | 0 | 0 / 3 | 704 | 9 / 40 | 16/16/15/15 | 408/411; 145/175 | 1174/28/20 |",
+        "| 1337 | prudent | campaign victory | 18/18 | 6 | 1 | 0 / 3 | 708 | 9 / 40 | 16/16/15/15 | 391/410; 135/176 | 1242/27/26 |",
+        "| 1337 | conserve | campaign victory | 18/18 | 6 | 0 | 0 / 3 | 708 | 9 / 40 | 16/16/15/15 | 397/411; 124/175 | 1308/28/24 |"
+      ],
+      "logSha256": "dd1c623682e35e644bed606574ff3d9240b62c7d9f85311c1f5b25b8cfcd3c43",
+      "traceSha256": "b7827b46bdce831cfb9404e5765602be3bcf3bd321c9a35dca2b723dfcac1da7",
+      "scope": "One persistent party per run; real admissions, walking, battles, equipment, Growth, camps and Recall. Fixed policy with full map knowledge; no human win-rate, UI input or save/reload claim."
+    },
+    "visualReview": {
+      "scope": "Native editor production dialogue, Pack, loot and Journal fixtures; all dialogue pages.",
+      "count": 116,
+      "resolutions": [
+        [
+          960,
+          600
+        ],
+        [
+          1280,
+          720
+        ]
+      ],
+      "reviewRecord": "QA/roads-remember-content/20260927-203100-704/VISUAL_REVIEW.md",
+      "review": "All 116 baseline images directly inspected; final 68 identical and 48 changed directly re-inspected. Two advice pages corrected before final capture.",
+      "reviewRecordSha256": "273902e3beb5af2bbc8386cf76cbbac5aa235172f8295529eebb05b8723ab4b4",
+      "captures": [
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-roads-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "d0a2e8f5c57de9e7b4f3dc3d60c20eb3c2fc2afee72c614e61914b80dfdfcb48"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-roads-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "e90f63056932d90f2a4ee28e58f6b92ebc36ed61259db4a1026c905febdc9767"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-roads-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "b6c10bd28643779cf978d54c83ddff9f6e0356b70e6552242b61b9283cf64ecf"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-roads-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "c5d7cc59920301a41ab83750ea99fa51cf51894e01be413e2a17f03c099feb42"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-root-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "26111c57ae520105962f2aedb15e7cbdb033b8f923caa0f533c00fa4e9a4a567"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-root-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "ae359e9aded6cbf91db84c1e923dbff7c517f1ab3a42aca141ab1a23a95f8e57"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-sealed-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "7f85ddc2d1a2fbe75d6b014d61c0b54050b198839677bdcc5b860c98ed558a7f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-sealed-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "7d477739635d9b10d37de2193a646013e4c4784b4679de65b777c669c8edb1cf"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-watch-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "8b7b594e70c8d885b43d0201811ee36bdd8e744ecf5cbe05d1f39cb3f6a17772"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-final-plan-ready-watch-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "8ccc2caebdeaf762de0aa800466627350776539de2754cdfe45056c860bca312"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-roads-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "e044fd5914942d081c6812e7ffdfd3fd31a50d90b9405306493665718ecbae64"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-roads-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "a8f5dd70df180cbd9bd6e2a077c9c55977f2d45ef80307930044a6b7f619bb9f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-root-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "8c73406c67d697781e66999a4c504e1a0dfa0cf9f04e9aca0a1b039a8732db35"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-root-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "bf546eafac95c7af367b9b75f6a76077592c4843de87f40780c37034a570ee8f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-sealed-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "7f85ddc2d1a2fbe75d6b014d61c0b54050b198839677bdcc5b860c98ed558a7f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-sealed-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "7d477739635d9b10d37de2193a646013e4c4784b4679de65b777c669c8edb1cf"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-watch-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "d455efc2be35641734c8493c8efd77c63c25006cbc26224ec6fb3f2e73482866"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-homecoming-watch-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "7e1d7172a33f91befd689e6cd813e0895231b77493fc5573b633fae0f71e51d0"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-roads-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "d0a2e8f5c57de9e7b4f3dc3d60c20eb3c2fc2afee72c614e61914b80dfdfcb48"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-roads-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "e90f63056932d90f2a4ee28e58f6b92ebc36ed61259db4a1026c905febdc9767"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-roads-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "b6c10bd28643779cf978d54c83ddff9f6e0356b70e6552242b61b9283cf64ecf"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-roads-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "c5d7cc59920301a41ab83750ea99fa51cf51894e01be413e2a17f03c099feb42"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-root-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "26111c57ae520105962f2aedb15e7cbdb033b8f923caa0f533c00fa4e9a4a567"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-root-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "ae359e9aded6cbf91db84c1e923dbff7c517f1ab3a42aca141ab1a23a95f8e57"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-sealed-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "7f85ddc2d1a2fbe75d6b014d61c0b54050b198839677bdcc5b860c98ed558a7f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-sealed-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "7d477739635d9b10d37de2193a646013e4c4784b4679de65b777c669c8edb1cf"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-watch-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "746e73fa9c749cf61deff2f9eaefc01491a0ccc857f01e7ee52dca494827be85"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/brann-paid-writ-watch-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "dabe39cf056e2aff9756a4d000e4abd4e621748e23dc9e7441fdaf228165dd5f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/bridgehook_spear-loot-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "dd046626df0e79f41ffb72f7ef4b222c67bc08270fed8901029f17d69226d939"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/bridgehook_spear-loot-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "1a45badb54eee59db86485d2d832fae95ffbc6cd86fbdf6de71ed2cd39eb47e5"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/bridgehook_spear-pack-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "4a5b30f678da514e29ec1128a0c6a3adb3bdb6569388215aabdc0cbd0c079f2d"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/bridgehook_spear-pack-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "5530097d8c12024ee0b97bd9f152cc3518ebeab2089ef6bc839fd0a47122c7d9"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/counterweight_knife-pack-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "6c3ba822fe062ee892a7f74a5deed6ad8153634f9824bf6595a1b4e4e7cdb60a"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/counterweight_knife-pack-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "ae97d6c7308b4e454209d76daa21952e96f1d489478979622a9d4a79b53745e6"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-city-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "ad2ace31eccb75114d9c0e31e5e500c3c03f951a39c95d2645c083d3ba129c01"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-city-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "ea7359931f6e4fce9c150a34d5b0e1e447f672b3f1bc966c4f16ccb3d86c3fd3"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-duty-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "f94b003fdf9bb8985930f7fa6e635567a48499e1bf61922995123aac3c1d3bd3"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-duty-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "3007b38442d834d6b0b5bbaa771d421ab4c98eaf45c4d3ce0c3956be11b085b5"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-road-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "2140b167bda30615b395f37dd4fa372c5c19be15d0828a66cc78caa0f883a05f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-road-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "a6b39d50253a0e6e443ccfdca6fbef3954fa3ec5168a4241ec1ae04d2232a51a"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-root-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "c57439fb8a0c51257a78374986207dff43037255e080bc2747487e4e4d91d293"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-final-plan-ready-root-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "1be0b78058e80ac755c39d0ba139b1c7a0132e569f40a56d026aa5bce7e368ac"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-city-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "ad2ace31eccb75114d9c0e31e5e500c3c03f951a39c95d2645c083d3ba129c01"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-city-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "ea7359931f6e4fce9c150a34d5b0e1e447f672b3f1bc966c4f16ccb3d86c3fd3"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-duty-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "fefe764f37a9432cd58577f1b95e5915fbc478bdefdc7cd801a326c349130dd4"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-duty-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "c5ea3d83375e7d1f2dfacce7e2263e5b2bb2028cc882215a8d2b256b4841e12a"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-road-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "c7322e5a679d5ce8d8798f667216e76f8e4ab9c3b2b77e448d86e2864fcce8f1"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-road-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "08fc81e6fbeb61bc078593429caa609d276f2dab7eb5b439b73ed5165281a3fa"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-root-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "25bac9421c73bcb420bad294e864b078353133adaf96ba9ebcf8125317e32c10"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-homecoming-root-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "2e8780d617d300302786849fd65503882a9ce855c0c1ccf07b7f39dcba42d2ac"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-city-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "ad2ace31eccb75114d9c0e31e5e500c3c03f951a39c95d2645c083d3ba129c01"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-city-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "ea7359931f6e4fce9c150a34d5b0e1e447f672b3f1bc966c4f16ccb3d86c3fd3"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-duty-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "b9fa24fb5e7cbe04ce70af3418cf6825b38290d3d4df8f838d0f6f10e1c33854"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-duty-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "38ef18743afaa972c15a17529f6d65997d7ecfce4d18daa56dc94651f2eaba51"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-road-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "2140b167bda30615b395f37dd4fa372c5c19be15d0828a66cc78caa0f883a05f"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-road-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "a6b39d50253a0e6e443ccfdca6fbef3954fa3ec5168a4241ec1ae04d2232a51a"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-root-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "c57439fb8a0c51257a78374986207dff43037255e080bc2747487e4e4d91d293"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/halvard-paid-writ-root-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "1be0b78058e80ac755c39d0ba139b1c7a0132e569f40a56d026aa5bce7e368ac"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-chapter-I-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "c9b1d897e1d906a6dcc657349e2d0cd207e85e0e56a6401973a9b30e4ae5c6bc"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-chapter-I-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "0cca476a7376a32c21ace5b55559b9048a7308bb13beb27090418901ffb5b49e"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-chapter-III-maud-lead-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "887eb4c74b4f2b65fb9d7a352f2e2e4cdb9344062fea85debbdbb277b09f9156"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-chapter-III-maud-lead-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "f60380f8568532e92373544517af53277c9e624d61371d1e982d247ddd991aeb"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-chapter-VI-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "3a98131b01d8b582cc8d4ae8867f589184c82ffd148e20f0a305323cbfc01dfd"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-chapter-VI-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "e03605c27d36426a4c64909148f067869f38e0efe708cf6e34f7d84ceb98eebd"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-epilogue-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "778b4a5bc4b77fbd8f16507b48476f4cea2f36de14869584b711d83c6803ab3d"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/journal-epilogue-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "bb439775786ebc4507861544c62469ce2e2372805d3c1191d7242f307e7f1380"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/stonecleft_axe-loot-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "3f891be81f3154b849d40b18e1cd8cf8dfa9856baa457520938cc0804c590902"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/stonecleft_axe-loot-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "49fc9841242250b6fe0ff8b50c42e61e2945e3063287afb4c7f07f079f8229c8"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/stonecleft_axe-pack-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "6a9da9762b54f56231d7bd5c802fcfe1c62919064c09a4edbdcc59954f8e2010"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/stonecleft_axe-pack-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "2912903c7908fc660baf26f77d1e21a9066539988e8402e14185b5a3cddba023"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-advice-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "f378d729bc878a96252f24abc5b00d6cf4505ed9c0995f2626a9b4cc55d72591"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-advice-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "fe889af606984f6bfc9709994fb20032543e01ff771347808a3897f4d76e7af3"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-low-funds-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "e018ac353025c8ed78a3f2d9e08f7cc6aedf355c52c7883aa2a067f4e04086c8"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-low-funds-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "359b3fa7d5d33bc0b4e725a0f9c642460689513cbd98d725c1ed2b8c8e50efca"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-low-funds-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "8f65198670ad80a6d271577317861270dfd0ba08786dabe4d62fa1a9cf672f14"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-low-funds-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "235baed726f58765958cd73da7c00d46c37847dbe41e85533ba345651f35513c"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-review-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "e018ac353025c8ed78a3f2d9e08f7cc6aedf355c52c7883aa2a067f4e04086c8"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-review-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "359b3fa7d5d33bc0b4e725a0f9c642460689513cbd98d725c1ed2b8c8e50efca"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-review-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "deea3dd2cfb9cd530dd2c2004163574384078cc37603b038d7dcd4cb627aade0"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-axe-review-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "2f214b044b5b9e9cdf95c06a03718d468532da4b29f65aa09b36c9766b67eef7"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-cancel-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "6c9bc161e5533ce7b29e97ed6f2350e87c1cf66b3a67cfacfdf7a00377c39de2"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-cancel-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "0c4eabeb2afe1c0921f38439afb28b6a1062bd44a022879671dc42d5b82eb02a"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-forms-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "8c16fab4c0f64a7b739238f38d55812bfe1baf0ab9b07eae577ef100baea8bdf"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-forms-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "77bddd4b8c4bfce974982daabdf263686f23182caf4172e4d1e0221e805ccca9"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-forms-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "95a8014d6be883bec584e6d19fe80bcbe769a7c5b8597dac50497401e9bbcc22"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-forms-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "a57300ee2ed20f67d95de7f33c05eebb089c0314b51b387b1ff455490267b2b7"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-personal-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "b45798d5624bcf44a412c84c776a2be5fa32bda6dac4afbceeca2e7b656c30c5"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-personal-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "3372b8a714a801537a0105635b35b57a98353bc5cbcfcf6f4845f1a45daf3e47"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-personal-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "68018eab9506d5d62ef19149ed0bdb3a919d97aac88e9a20d6b3a87426866684"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-personal-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "902827f9ee634fbc98d72cdbd37068ba8480a1a078a52e3b13e9c3bacf3a5bd1"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-range-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "556816d9cf7cf294721760d93a9fc801899d826d6a72b848bc4b06910b649c4a"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-range-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "6593fc8076afd0b2534203827d595bddad119c0aa83b5868b588d1936f9ddca0"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-range-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "ec681d05286e45b0fcea6746c2ee61e49886e557f9215ae25b4fd4dd8e4aefae"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-range-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "9ae5cc0e004185cbcf40386193ced7aa9ed63a660000da3c6cdc7503df3b0585"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-root-before-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "2e492ee6d4206575696a962d388784defaad26d5020c99b44e1f071620571d3e"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-root-before-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "32b41b9c1e80ea136cc3dfc128007d247c5729a9c3bfa7b15762be6b92ec4984"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-root-purchased-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "cee85eaf26212c2d71ed108daf782d3a6a6a7fb8c4e2291a6a6429918fdf0208"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-root-purchased-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "9079ce849dc75e0527fb2214060ae037a8dad4a0e9a5d84a8be0886c546acea6"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-root-unlocked-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "e052cd7238c45c97e65b750132538e65ece096702ed0a0863649899dcfdb92e0"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-root-unlocked-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "eb5a51fa904dec33162428877ce6184974a4ca714de2ed223bb3bb0bf570e011"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-low-funds-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "dfcf74e7b8bc5a1d72ca6a0e0b21930200717b1b00025c0f125e4a2449dfd267"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-low-funds-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "c7b6e9431995d3941454c553ce186bad040dba78bd61f05826e7f131053068e5"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-low-funds-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "3c660cc916fe1ebfa01cccb4d7db6f78487818c12870e4c164be57d6af74f6db"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-low-funds-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "8e44b43df60c9568147802921351339760f30f7af819d1ab750ca8259e9147c0"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-low-funds-page3-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "2512988fc2d5d9c36980f1fd82d5f50205ce70cb8d293ea8dddae79e55b59775"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-low-funds-page3-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "d4ba609f75a8ebe3927a88d96ec2aa28c72bf93d7bf90ab28d556e7112b6f54e"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-review-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "dfcf74e7b8bc5a1d72ca6a0e0b21930200717b1b00025c0f125e4a2449dfd267"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-review-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "c7b6e9431995d3941454c553ce186bad040dba78bd61f05826e7f131053068e5"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-review-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "7cdef1fd2fd7eb0aa5de93b8f6d6de6ccabd08eb991dc376988e00c47ed7cd97"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-review-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "a6dc7129e9260a364f932ea315e77b17380ef049ec93e91a3c194cda098d9ac0"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-review-page3-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "4cfa4eaaf12735d113a7f4cfa82030030a705beac1bbbc94f7181dd18bc627a4"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-spear-review-page3-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "4b470f8229cfe355b7a775208a613c1847e66a619226adb9c4cdd6458822a2b3"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-stock-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "6c9bc161e5533ce7b29e97ed6f2350e87c1cf66b3a67cfacfdf7a00377c39de2"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-stock-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "0c4eabeb2afe1c0921f38439afb28b6a1062bd44a022879671dc42d5b82eb02a"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-stock-sold-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "5b25f16e37f5ede47cea106334318074186933eeab609a8c35ea5df03e0fc429"
+        },
+        {
+          "file": "QA/roads-remember-content/20260927-203100-704/tessa-stock-sold-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "9b13da8caec1d270f0055a60da1c8d48825d83d0c3e0e3fee106b34078bacc7d"
+        }
+      ]
+    }
+  },
+  "art": {
+    "mode": "built-in imagegen, new image, transparent background",
+    "file": "Docs/ArtReferences/road-stock-item-atlas-runtime-v2.35.0.png",
+    "sha256": "8f90383293ceb79edca697fd88780e954c55780998d974166998ccf43df1c035",
+    "prompt": "Docs/ArtReferences/road-stock-item-atlas-v2.35.0-prompt.md"
+  },
+  "preservedArchives": [
+    {
+      "file": "AshAndBrimstone-Windows-v2.34.0.zip",
+      "sha256": "f02a24147c26dbf8c472fd5ecf11c0d953a806fde400bfdc37d728cbe21ae7e8"
+    }
+  ],
+  "limits": [
+    "No complete human campaign or human win-rate estimate.",
+    "No physical-controller or subjective audio review in this pass.",
+    "New-content visual review uses native editor fixtures, not final-player captures.",
+    "Local Windows archive only; no public upload or remote Git push."
+  ],
+  "archiveNotes": "Evidence recorded after immutable packaging; archive documentation remains from its clean source commit."
+}

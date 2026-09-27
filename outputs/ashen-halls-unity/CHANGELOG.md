@@ -9,6 +9,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Correct Halvard and Brann's stale route/reward advice, acknowledge later progress, and distinguish the final assault's briefing and return journey in the HUD.
 - Complete six connected automated campaigns with actual movement, admissions, combat, Growth, equipment and resource carryover: 108 required and 34 roaming victories. Preserve and document earlier harness failures; informed parties still face little late-game resource pressure.
 - Preserve save schema v27 and previous archives. Release evidence records executed checks and remaining playtest limits after packaging.
+- Verified from clean source `e75a286`: all thirteen Full audit/build gates, 116 native content captures, clean-extracted Windows startup, 363 ZIP CRC entries, and all 102 packaged art hashes pass. Package size is 251,665,169 bytes; SHA-256 `29bfb024eae84899aa7ef7f3155fad391b3df72c155a68dce667977e19b06849`. Exact evidence: `Docs/ReleaseEvidence/v2.35.0-summary.json`. Human campaign difficulty, controller feel and subjective audio remain playtest follow-ups.
 
 ## v2.34.0 - The Honest Weight
 

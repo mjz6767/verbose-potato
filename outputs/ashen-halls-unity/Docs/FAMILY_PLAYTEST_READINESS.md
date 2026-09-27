@@ -6,6 +6,8 @@ v2.35.0 — Roads Remember — adds Tessa's Bridgehook Spear and Stonecleft Axe,
 
 All thirteen Full audit gates and 116 native content captures at 960x600 and 1280x720 pass. Six connected campaigns complete all eighteen required fights, plus 34 roaming fights across the six runs. Earlier harness failures and the observed low resource pressure are recorded in `Docs/CAMPAIGN_JOURNEY_AUDIT_2026-09-27.md`. These runs use actual exploration, rewards and resource carryover under a strong scripted policy with complete map knowledge. They are not a human completion or difficulty estimate. Exact package and visual verification are recorded in `Docs/ReleaseEvidence/v2.35.0-summary.json` after packaging.
 
+The Windows package was built from clean source `e75a286`, passed all thirteen repeated build gates, and passed its clean-extracted startup check. All 363 ZIP entries pass CRC verification; all 102 packaged PNGs and the managed assembly match the source/build evidence. The 251,665,169-byte ZIP has SHA-256 `29bfb024eae84899aa7ef7f3155fad391b3df72c155a68dce667977e19b06849`. The previous v2.34 archive remains unchanged. This evidence was recorded after immutable packaging; the archive's documentation retains its clean source checkpoint.
+
 Start with `Docs/FRIENDS_PLAYTEST.md` for a short first-session route and useful feedback prompts. A complete human campaign, physical-controller comfort, subjective audio balance and player understanding remain the most useful checks.
 
 ## Previous Release: v2.34.0
