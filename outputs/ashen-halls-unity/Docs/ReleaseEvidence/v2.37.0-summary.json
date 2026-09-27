@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 3,
+  "releaseVersion": "v2.37.0",
+  "releaseName": "Roads and Resonance",
+  "publicationStatus": "held-pending-engine-patch-or-explicit-known-issue-acceptance",
+  "sourceCommit": "93eed753817d638c48264cffbc3e13e4e5a263cd",
+  "sourceCleanAtPackaging": true,
+  "saveVersion": 27,
+  "unityVersion": "6000.3.18f1",
+  "changes": [
+    "Twenty-one original spell-school and tactical-skill sound masters, clearer skill sequences and finite procedural fallback envelopes.",
+    "Sparse transparent environment details, softer noncivic roads, working Region Map edge-pan controls and PARTY recenter.",
+    "Compact acquired-loot receipts with prominent resources, prioritized equipment tradeoffs and safe default Continue.",
+    "Coordinated Pack displaced-weapon warnings and Edda/Maud aftermath dialogue without extra rewards."
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.37.0.zip",
+    "packageBytes": 253898198,
+    "packageSha256": "2bd420707f05724e676d09f464ec18276504f6716702e5ef9c09d1e82fdbd46e",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "2ce1158e55a1e645ec99fec72767f29c76ddbb8722c63e79d2f6dfb65f191c04",
+    "cleanExtractLaunch": true,
+    "packagedBootMode": "batchmode-explore-smoke",
+    "playerExitCode": 0,
+    "packagedArtCount": 103
+  },
+  "packageVerification": {
+    "allZipEntriesCrcValid": true,
+    "entryCount": 375,
+    "allPackagedPngsMatchZipAndSource": true,
+    "managedAssemblyMatchesArchive": true,
+    "manifest": {
+      "file": "QA/v2.37.0-release-integrity/release-integrity-manifest.json",
+      "bytes": 20017,
+      "sha256": "c12eac6e99b73736363fd5176b5b541bcedb7214b72fa921768f697a6bd72c39"
+    }
+  },
+  "validation": {
+    "sourceCompile": {
+      "path": "QA/source-compile/20260927-230303-27d7f6d4",
+      "runtimeFiles": 175,
+      "editorFiles": 75,
+      "diagnostics": 0
+    },
+    "fullAudit": {
+      "file": "QA/project-audit/20260927-230445-5b091473/unity.log",
+      "bytes": 195469,
+      "sha256": "776ee50734fc261d66862db5d754084147e73c4b294c2d2a93ab2609df9afe49",
+      "passedGates": 13,
+      "exitCode": 0
+    },
+    "finalBuild": {
+      "file": "build-v2.37.0.log",
+      "bytes": 332830,
+      "sha256": "7d74027d320144863adb2bd1f8153f24b786135e247ce30a95f7d370ac8672db",
+      "passedGates": 13,
+      "result": "Success"
+    },
+    "audio": {
+      "pythonRegressionGroupsPassed": 4,
+      "newMastersExactlyReproduced": 21,
+      "runtimeMasterCount": 231,
+      "subjectiveListeningClaimed": false
+    },
+    "retailVisuals": [
+      {
+        "path": "QA/experience-polish/20260927-231846-924eca0a",
+        "resolution": "1280x720",
+        "captureCount": 7,
+        "allProcessExitCodesZero": true,
+        "deterministicPacketPassed": true,
+        "captureSetSha256": "0c948fce84003d89253ad74ca4ed5be9a5290af91f66961195c446611ef851f7"
+      },
+      {
+        "path": "QA/experience-polish/20260927-232018-e1c7af38",
+        "resolution": "1920x1080",
+        "captureCount": 7,
+        "allProcessExitCodesZero": true,
+        "deterministicPacketPassed": true,
+        "captureSetSha256": "a2ee92e82a81ce94e492974c4949329f7d7cf50b617f859d3517d30ca0919500"
+      }
+    ],
+    "independentVisualReview": "All twelve retail map images and both loot images directly inspected. No new head clipping, white fringes, overlap, fog leak or obstructed interaction. Softer earthen roads remain connected and readable; civic/bridge markings remain. Duplicate loot footer removed; explicit tradeoff review preserved.",
+    "nativeLootMatrix": "QA/loot-experience/20260927-224148-671: twelve captures across four receipt cases and three resolutions; actual default Submit additionally covered by the final Full/build gates.",
+    "liveDesktopContinue": {
+      "file": "QA/v237-desktop-live-loot-20260927.log",
+      "saveProtectedFixture": true,
+      "returnDismissedLootToLocalMap": true,
+      "ordinaryAltF4CloseExitCode": -1073741819,
+      "shutdownPassed": false
+    }
+  },
+  "blockingKnownIssue": {
+    "status": "unfixed-in-current-package",
+    "description": "Windows native accessibility teardown crash after desktop automation interaction; not limited to screenshot capture.",
+    "exception": "0xc0000005",
+    "module": "UnityPlayer.dll",
+    "rva": "0xB1CBD1",
+    "matchingLocalPdbSymbol": "RuntimeStatic<PlatformAccessibilityManager,0>::StaticDestroy +0x51",
+    "moduleSha256": "fc749fc75aaf743cf5f666a849a4bb06bcf8f4bf188e1230451f2ac399c8c500",
+    "failedCaptureRuns": [
+      "QA/experience-polish/20260927-230942-4ce7c5fa",
+      "QA/experience-polish/20260927-231215-41482f93"
+    ],
+    "normalDesktopCloseReproduced": true,
+    "normalDesktopCloseEventUtc": "2026-09-27T23:23:55Z",
+    "normalDesktopCloseReportId": "52c368f9-b8e6-40b8-9c44-27e89cb6f87b",
+    "diagnostics": "QA/retail-shutdown-diagnosis/20260927-231634",
+    "diagnosticResults": "Prior v2.36 loot, new v2.37 route, three repeated default-renderer v2.37 loot captures, and one direct-renderer v2.37 loot capture all exited zero. These script-launched tests do not establish desktop accessibility shutdown safety.",
+    "upstreamIssue": "UUM-146676",
+    "upstreamFixVersion": "6000.3.21f1",
+    "upstreamSource": "https://unity.com/releases/editor/whats-new/6000.3.21f1",
+    "inference": "Fault symbol and observed desktop-close behavior match Unity's documented UI-Automation shutdown issue; the patched engine has not been installed or tested locally.",
+    "noSpeculativeWorkaroundsApplied": true
+  },
+  "preservedArchives": [
+    {
+      "file": "AshAndBrimstone-Windows-v2.36.0.zip",
+      "sha256": "2103174ae826006e66b63605635a1f15b779ba11ed239733ac1b3aa062bc7464"
+    }
+  ],
+  "limits": [
+    "Publication and remote Git push are held pending the user's engine-patch or known-issue decision.",
+    "Passed screenshot checks do not negate the reproduced native desktop shutdown failure.",
+    "Subjective sound balance, physical-controller feel and a full human campaign remain playtest follow-ups.",
+    "An initial non-targetable save-protected manual-test process was explicitly stopped by the test operator; its forced exit is not counted as an application shutdown result.",
+    "No saves or older release archives were changed. The user's pre-existing preview game was left open."
+  ],
+  "archiveNotes": "Evidence recorded after immutable candidate packaging; archive documentation remains from source93eed75 and does not contain this subsequently discovered shutdown limitation."
+}

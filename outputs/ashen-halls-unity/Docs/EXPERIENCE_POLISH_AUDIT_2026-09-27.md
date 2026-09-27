@@ -152,3 +152,39 @@ Final Full audit, package hashes, clean extraction and release-player evidence a
 recorded after packaging in `ReleaseEvidence/v2.37.0-summary.json`. Earlier preview
 evidence is not a substitute for final artifact verification. Subjective audio,
 physical-controller feel and a full human campaign remain playtest limitations.
+
+## Packaged candidate and publication hold
+
+Clean source `93eed753817d638c48264cffbc3e13e4e5a263cd` built successfully and
+repeated all thirteen build gates. The clean-extracted player booted with exit 0;
+all 375 ZIP entries passed CRC verification and all 103 packaged PNGs matched the
+ZIP, staging folder and source. Candidate ZIP SHA-256:
+`2bd420707f05724e676d09f464ec18276504f6716702e5ef9c09d1e82fdbd46e`.
+
+Fourteen retail captures subsequently passed, with every process exiting zero:
+`QA/experience-polish/20260927-231846-924eca0a` (720p) and
+`QA/experience-polish/20260927-232018-e1c7af38` (1080p). Independent direct inspection
+of all twelve maps and both loot images found no new clipping, white fringes,
+overlap, hidden interactions or fog leaks. Connected geometric paths remain,
+intentionally softened rather than erased. The real Return-key Continue action
+also dismissed the save-protected loot receipt correctly on the desktop.
+
+**Publication is held, not complete.** Two earlier retail capture runs exited
+with native `0xc0000005` after successfully writing their images. Ordinary Alt-F4
+closure of the desktop input test reproduced the same failure without taking a
+screenshot. Exact local PDB lookup resolves UnityPlayer RVA `0xB1CBD1` to
+`RuntimeStatic<PlatformAccessibilityManager,0>::StaticDestroy +0x51`; the packaged
+and installed engine binaries have identical hashes. Managed logs contain no
+exception. Thus the failure is not safely dismissible as screenshot-writing or
+loot callback behavior. Later script-launched passing runs do not establish
+accessibility-interacted shutdown safety.
+
+The symptom and symbol match [Unity's documented UUM-146676 fix in 6000.3.21f1](https://unity.com/releases/editor/whats-new/6000.3.21f1):
+a Windows shutdown fault after UI Automation interaction. That is an evidence-based
+inference, not a locally verified fix: only 6000.3.18f1 is installed. No speculative
+renderer flags, accessibility disabling or replacement screenshot code were
+shipped. The user was asked to approve installing the engine patch/retesting or
+explicitly accept publication with this known limitation. No remote push occurred.
+Full candidate evidence, failed-run paths and remaining limits are preserved in
+`ReleaseEvidence/v2.37.0-summary.json`; the immutable candidate ZIP still contains
+its earlier source-checkpoint documentation.
