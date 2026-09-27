@@ -98,10 +98,14 @@ namespace AshenHalls
                 choices.Add(MakeDialogueChoice("private", "A quiet memorial, where you can visit.", "Sera will keep the names in the temple book. Same reward choices."));
                 choices.Add(MakeDialogueChoice("public", "Let the watch hear the truth, with their names.", "Brann will post the account, with Edda's consent. Same reward choices."));
             }
-            else body = RemembranceQuestRules.Delivered(state.StoryFlags)
-                ? RemembranceGreeting(ObjectType.WoundedTraveler, "Thank you for bringing them home in the way we could.")
-                : RemembranceQuestRules.Objective(state.StoryFlags);
-            choices.Add(MakeDialogueChoice("back", "We'll speak again.", "Leave the optional favor for later."));
+            else if (RemembranceQuestRules.Delivered(state.StoryFlags))
+            {
+                body = RemembranceGreeting(ObjectType.WoundedTraveler, "Thank you for bringing them home in the way we could.");
+                choices.Add(MakeDialogueChoice("afterward", "How have you been?"));
+            }
+            else body = RemembranceQuestRules.Objective(state.StoryFlags);
+            choices.Add(MakeDialogueChoice("back", "We'll speak again.", RemembranceQuestRules.Delivered(state.StoryFlags)
+                ? "Return to Edda's other stories." : "Leave the optional favor for later."));
             ShowDialogueChoices(RemembranceQuestRules.Title, "Edda", body, ObjectType.WoundedTraveler, blood, choices.ToArray(), ResolveEddaRemembranceAction);
         }
 
@@ -109,6 +113,15 @@ namespace AshenHalls
         {
             if (state == null || state.Mode != GameMode.Explore) return;
             if (choice == "back") { ShowEddaConversation(); return; }
+            if (choice == "afterward")
+            {
+                if (!RemembranceQuestRules.Delivered(state.StoryFlags)) return;
+                ShowDialogueResponse(RemembranceQuestRules.Title, "Edda", HasStoryFlag(StoryFlags.RemembrancePrivateChosen)
+                    ? "I sat by the book and remembered Jory complaining about wet socks. For a little while, I could hear him clearly."
+                    : "A young guard asked what Nella was like. I told him she counted us twice before every trip. He stayed for the whole story.",
+                    ObjectType.WoundedTraveler, blood, ShowEddaRemembrance);
+                return;
+            }
             bool changed = choice == "accept"
                 ? RemembranceQuestRules.TryAccept(state.StoryFlags)
                 : RemembranceQuestRules.TryChooseDisposition(state.StoryFlags, choice);

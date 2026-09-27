@@ -53,6 +53,7 @@ namespace AshenHalls
                 body = HonestWeightMaudGreeting("");
                 if (!HonestWeightQuestRules.RewardClaimed(state.StoryFlags)) choices.Add(MakePrimaryDialogueChoice("reward", "You mentioned a counterweighted tool.", "Choose one: Counterweight Knife or Measurekeeper Jack."));
                 choices.Add(MakeDialogueChoice("account", "How did the traders take it?", "Hear what changed at the market."));
+                choices.Add(MakeDialogueChoice("work", "Has this changed how you work?"));
             }
             else if (HonestWeightQuestRules.EvidenceReady(state.StoryFlags))
             {
@@ -74,6 +75,15 @@ namespace AshenHalls
             if (choice == "back") { ShowMaudConversation(); return; }
             if (choice == "reward") { ShowHonestWeightRewardChoice(); return; }
             if (choice == "review_break" || choice == "review_retune") { ShowHonestWeightDispositionReview(choice == "review_break" ? "break" : "retune"); return; }
+            if (choice == "work")
+            {
+                if (!HonestWeightQuestRules.Complete(state.StoryFlags)) return;
+                ShowDialogueResponse(HonestWeightQuestRules.Title, "Maud", HonestWeightQuestRules.Retuned(state.StoryFlags)
+                    ? "I've started leaving the working clause where the customer can read it. They ask tiresome questions. Good. I should have invited those sooner."
+                    : "I've been checking the old work on that shelf. Some of it would serve better with a clause crossed out. My younger self would be quite offended.",
+                    ObjectType.Enchanter, violet, ShowHonestWeightConversation);
+                return;
+            }
             if (choice == "account")
             {
                 ShowDialogueResponse(HonestWeightQuestRules.Title, "Maud", HonestWeightQuestRules.Retuned(state.StoryFlags)

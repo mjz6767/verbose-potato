@@ -40,6 +40,7 @@ namespace AshenHalls.Editor
                 CharacterCreationSmoke.AssertRuntimePortraits(game);
                 AssertV27GrandHearthAtlasesAndMappings(game);
                 AssertV24WorldMapAtlasesAndMappings(game);
+                AssertEnvironmentDetails(game);
                 AssertV21RoadAtlasAndNpcSizing(game);
 
                 Texture2D characterAtlas = GetPrivateField<Texture2D>(game, "characterCombatAtlas");
@@ -149,6 +150,61 @@ namespace AshenHalls.Editor
             finally
             {
                 EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            }
+        }
+
+        private static void AssertEnvironmentDetails(AshenHallsGame game)
+        {
+            Texture2D atlas = GetPrivateField<Texture2D>(game, "worldEnvironmentDetailAtlas");
+            Assert(atlas != null, "environment detail atlas positively loads; fallback-only boot cannot pass art validation");
+            Assert(string.Equals(atlas.name, RuntimeArtManifest.EnvironmentDetailAtlas, StringComparison.Ordinal),
+                "environment details select the exact approved art pin");
+            Assert(atlas.width == ExplorationEnvironmentDetailRules.Width && atlas.height == ExplorationEnvironmentDetailRules.Height,
+                "environment details preserve the original 1774x887 alpha pixels without resizing");
+            Assert(atlas.filterMode == FilterMode.Bilinear && atlas.wrapMode == TextureWrapMode.Clamp,
+                "environment details use bounded, smooth sprite sampling");
+            Color32[] pixels = atlas.GetPixels32();
+            Assert(pixels != null && pixels.Length == atlas.width * atlas.height,
+                "environment alpha remains readable and verifiable at runtime");
+            int transparent = 0;
+            int visible = 0;
+            foreach (Color32 pixel in pixels)
+            {
+                if (pixel.a < 32) transparent++;
+                if (pixel.a >= 16) visible++;
+                Assert(pixel.a < 16 || !(pixel.r >= 190 && pixel.b >= 160 && pixel.g <= 90),
+                    "environment details have no visible magenta extraction fringe");
+            }
+            Assert(transparent / (float)pixels.Length >= 0.20f && visible / (float)pixels.Length >= 0.04f,
+                "environment detail runtime alpha contains both real transparency and retained artwork");
+
+            for (int index = 0; index < ExplorationEnvironmentDetailRules.CellCount; index++)
+            {
+                Rect source = InvokePrivate<Rect>(game, "AtlasCell", atlas, index,
+                    ExplorationEnvironmentDetailRules.Columns, ExplorationEnvironmentDetailRules.Rows);
+                Assert(Mathf.Approximately(source.width, 443.5f) && Mathf.Approximately(source.height, 443.5f),
+                    "fractional environment cells stay square in the actual runtime source sampler");
+                int left = Mathf.FloorToInt(source.xMin);
+                int top = Mathf.FloorToInt(source.yMin);
+                int right = Mathf.CeilToInt(source.xMax) - 1;
+                int bottom = Mathf.CeilToInt(source.yMax) - 1;
+                int minX = right + 1, maxX = left - 1, minY = bottom + 1, maxY = top - 1;
+                int occupied = 0;
+                for (int y = top; y <= bottom; y++)
+                for (int x = left; x <= right; x++)
+                {
+                    // AtlasCell is top-down; Unity's pixel snapshot is bottom-up.
+                    if (pixels[(atlas.height - 1 - y) * atlas.width + x].a < 16) continue;
+                    occupied++;
+                    minX = Mathf.Min(minX, x);
+                    maxX = Mathf.Max(maxX, x);
+                    minY = Mathf.Min(minY, y);
+                    maxY = Mathf.Max(maxY, y);
+                }
+                Assert(occupied / (float)((right - left + 1) * (bottom - top + 1)) >= 0.04f,
+                    "environment cell " + index + " retains substantial artwork");
+                Assert(minX - left >= 16 && right - maxX >= 16 && minY - top >= 16 && bottom - maxY >= 16,
+                    "environment cell " + index + " keeps a 16-pixel visible-alpha gutter on every edge");
             }
         }
 

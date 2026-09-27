@@ -609,11 +609,14 @@ namespace AshenHalls
             {
                 reassignmentOutcome = "Review";
             }
+            string swapLoss = CompactSwapWeaponLoss(item, member, replacement, owner);
             return new ArmoryDetailActionView
             {
                 Key = partyIndex,
                 Label = recommended ? $"Best reassignment · {member.Name}" : member.Name,
-                Detail = $"{reassignmentOutcome} · {CompactInventoryComparisonLine(item, member)} · {owner.Name}: {ownerOutcome} with {replacementName}",
+                Detail = string.IsNullOrEmpty(swapLoss)
+                    ? $"{reassignmentOutcome} · {CompactInventoryComparisonLine(item, member)} · {owner.Name}: {ownerOutcome} with {replacementName}"
+                    : $"{reassignmentOutcome} · {swapLoss}",
                 ButtonLabel = "Swap",
                 AccentHex = ColorHtml(MemberColor(member)),
                 Enabled = replacement != null

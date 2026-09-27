@@ -2,6 +2,18 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.37.0 — Roads and Resonance
+
+- Give eight spell schools distinct release sounds and eleven tactical skills clearer material-specific preparation/impact sequences. Add 21 small authored sound masters, retain imported demon-school overrides, and avoid duplicate Smoke Bomb and bow-shot layers.
+- Repair fractional-power procedural audio envelopes at their final sample so fallback smoke, stealth and whirlwind sounds cannot generate invalid samples. Validate both individual clips and mixed previews before normalization.
+- Add one original transparent eight-cell environment detail atlas: mossy stones, roots, rubble, scrub, reeds, a fallen log, town-edge cobbles and leaf litter. Place sparse deterministic clusters away from paths, doors, characters, objectives and route guidance; replace competing props and remove redundant rectangular ground accents over authored terrain.
+- Turn Region Map edge arrows into working quarter-screen pan controls, with a PARTY control to recenter. Clarify off-screen route labels as continuation distance from the map edge, not the party's next movement.
+- Soften wilderness road borders and remove disconnected cosmetic apron boxes. Preserve road connections, civic paving, bridges, thresholds and guidance; check 6,144 role/direction/view combinations.
+- Redesign acquired loot as a quieter reward receipt: larger resource totals, a distinct equipment comparison, prioritized trade-offs, a compact stored-status line and a clear Continue action. Resource-only rewards omit empty equipment areas. Preserve automatic acquisition and deliberate equipment review.
+- Integrate the coordinated Pack disclosure and town-story follow-ups: warn when moving a missile weapon removes another hero's shooting skills/reach, and let Edda and Maud acknowledge completed favors without issuing new rewards.
+- Verify the real default Continue callback dismisses an equipment or resource receipt without equipping, repeating rewards or changing saved state, even when a stale second submit arrives. Remove duplicate fixture-only acquisition wording.
+- Preserve save schema v27 and the published v2.36.0 package. Audit and preview evidence are recorded in `Docs/EXPERIENCE_POLISH_AUDIT_2026-09-27.md`; immutable final-package evidence is recorded in `Docs/ReleaseEvidence/v2.37.0-summary.json` after packaging. Subjective audio and full human campaign/controller review remain playtest follow-ups.
+
 ## v2.36.0 — Steel and Study
 
 - Derive basic reach from the equipped weapon: melee one cell, reach weapons two, missile weapons three or four before ranger training, and spell-trained focus weapons four. Require clear sight for distant focus/reach strikes; retain Arms scaling and independent spell ranges.

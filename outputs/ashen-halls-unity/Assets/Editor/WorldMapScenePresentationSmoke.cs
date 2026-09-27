@@ -26,6 +26,7 @@ namespace AshenHalls.Editor
             RouteLabelsKeepBearingAndExactCount();
             RouteHeaderKeepsWorldArtAndStatusClear();
             BuildingGroundingKeepsOnlyMeaningfulAccents();
+            EarthenRoadPolishPreservesConnectionsAndSemanticSurfaces();
         }
 
         private static void RouteLabelsKeepBearingAndExactCount()
@@ -37,12 +38,14 @@ namespace AshenHalls.Editor
             foreach (bool marked in new[] { false, true })
             {
                 ExplorationMapExitCue cue = new ExplorationMapExitCue(edges[i], 12, 17, steps, 4);
-                string expected = (marked ? "MARK  " : "NEXT  ") + bearings[i]
+                string expected = (marked ? "MARK " : "ROUTE ") + bearings[i] + " +"
                     + steps.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 Require(ExplorationScenePresentationRules.RouteExitLabel(cue, marked) == expected,
                     "route header keeps the exact route kind, bearing and remaining count");
                 Require(cue.MapX == 12 && cue.MapY == 17 && cue.PathIndex == 4 && cue.RemainingSteps == steps,
                     "formatting never alters the real route exit anchor or path index");
+                Require(!expected.Contains("NEXT") && ExplorationScenePresentationRules.RouteExitDescription(cue).Contains("from the edge"),
+                    "viewport continuation cannot masquerade as the party's next movement or full distance");
             }
             Require(ExplorationScenePresentationRules.RouteExitLabel(default, false) == "",
                 "absent or suppressed exits reserve no route text");
@@ -71,7 +74,7 @@ namespace AshenHalls.Editor
                     fontStyle = FontStyle.Bold,
                     alignment = TextAnchor.MiddleCenter
                 };
-                foreach (string label in new[] { "NEXT  N11", "MARK  W3600", "MARK  S2147483647" })
+                foreach (string label in new[] { "ROUTE N +11", "MARK W +3600", "MARK S +2147483647" })
                 {
                     float textWidth = routeStyle.CalcSize(new GUIContent(label)).x;
                     ExplorationSceneHeaderGeometry layout = ExplorationScenePresentationRules.Header(strip, scale, wide, true, textWidth);
@@ -88,7 +91,7 @@ namespace AshenHalls.Editor
                     if (wide)
                         Require(layout.Route.xMax + 9f * scale <= layout.View.xMin,
                             "Region route chip cannot hide focus coordinates");
-                    else if (label == "NEXT  N11")
+                    else if (label == "ROUTE N +11")
                         Require(layout.Location == original.Location,
                             "ordinary Local route uses the empty status lane without shortening hover identity");
                     if (wide && width >= 540f)
@@ -132,6 +135,50 @@ namespace AshenHalls.Editor
                 foreach (float alpha in new[] { style.ShadowAlpha, style.BandAlpha, style.BorderAlpha, style.ThresholdAlpha })
                     Require(!float.IsNaN(alpha) && !float.IsInfinity(alpha) && alpha >= 0f && alpha <= 1f,
                         "every grounding opacity stays finite and bounded");
+            }
+        }
+
+        private static void EarthenRoadPolishPreservesConnectionsAndSemanticSurfaces()
+        {
+            foreach (bool wide in new[] { false, true })
+            foreach (bool oldRoad in new[] { false, true })
+            foreach (ExplorationCellRole roles in new[] { ExplorationCellRole.Road, ExplorationCellRole.Trail,
+                ExplorationCellRole.Road | ExplorationCellRole.City,
+                ExplorationCellRole.Road | ExplorationCellRole.Bridge,
+                ExplorationCellRole.Road | ExplorationCellRole.Threshold,
+                ExplorationCellRole.Trail | ExplorationCellRole.Threshold })
+            for (int roadMask = 0; roadMask <= ExplorationRoadPresentationRules.CardinalMask; roadMask++)
+            for (int trailMask = 0; trailMask <= ExplorationRoadPresentationRules.CardinalMask; trailMask++)
+            {
+                ExplorationRoadVisualPlan plan = ExplorationRoadPresentationRules.Resolve(
+                    roles, wide, oldRoad, roadMask, trailMask, trailMask);
+                if (!plan.Draw) continue;
+
+                bool bridge = (roles & ExplorationCellRole.Bridge) != 0;
+                bool road = (roles & ExplorationCellRole.Road) != 0;
+                int expectedMain = bridge ? roadMask
+                    : road ? oldRoad ? roadMask & (ExplorationRoadPresentationRules.East | ExplorationRoadPresentationRules.West) : roadMask
+                    : roadMask | trailMask;
+                int expectedConnectors = bridge ? wide ? 0 : trailMask & ~expectedMain
+                    : road ? (oldRoad ? roadMask & ~expectedMain : 0) | (wide ? 0 : trailMask & ~expectedMain)
+                    : 0;
+                Require(plan.MainMask == expectedMain && plan.ConnectorMask == expectedConnectors,
+                    "polish preserves every cardinal road, trail departure and Old Road branch");
+
+                bool connected = (expectedMain | expectedConnectors) != 0;
+                bool semantic = plan.CivicSurface || bridge || (roles & ExplorationCellRole.Threshold) != 0;
+                bool expectedApron = (connected || semantic) && plan.Join != ExplorationRoadJoin.Straight;
+                Require(plan.DrawJunctionApron == expectedApron,
+                    "only disconnected nonsemantic ground loses its apron; real endpoints, corners and junctions remain joined");
+                Require(plan.CoreFraction > 0f && plan.ShoulderFraction > plan.CoreFraction,
+                    "connected paths retain their core and shoulder geometry without requiring an art asset");
+
+                ExplorationRoadPresentationRules.GroundStrokeOpacityScale(plan, out float shoulder, out float core);
+                bool soften = !plan.CivicSurface && !bridge;
+                Require(Near(shoulder, soften ? 0.55f : 1f) && Near(core, soften ? 0.85f : 1f),
+                    "only earthen strokes soften; civic cobbles and bridge contrast remain exactly unchanged");
+                Require(shoulder > 0f && core > 0f && shoulder <= 1f && core <= 1f,
+                    "procedural fallback stays visible with finite bounded opacity");
             }
         }
 

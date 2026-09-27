@@ -19,6 +19,8 @@ namespace AshenHalls
         public string EquipNote;
         public string Outcome;
         public string Comparison;
+        public string ComparisonTitle;
+        public string ComparisonSummary;
         public string ReviewActionLabel;
         public string QuickEquipActionLabel;
         public string IconLabel;
@@ -63,6 +65,7 @@ namespace AshenHalls
         public readonly Rect ItemTitle;
         public readonly Rect ResourceRow;
         public readonly Rect Body;
+        public readonly Rect Comparison;
         public readonly Rect Outcome;
         public readonly Rect QuickEquipButton;
         public readonly Rect ReviewButton;
@@ -76,6 +79,7 @@ namespace AshenHalls
             Rect itemTitle,
             Rect resourceRow,
             Rect body,
+            Rect comparison,
             Rect outcome,
             Rect quickEquipButton,
             Rect reviewButton,
@@ -88,6 +92,7 @@ namespace AshenHalls
             ItemTitle = itemTitle;
             ResourceRow = resourceRow;
             Body = body;
+            Comparison = comparison;
             Outcome = outcome;
             QuickEquipButton = quickEquipButton;
             ReviewButton = reviewButton;
@@ -103,6 +108,7 @@ namespace AshenHalls
                 && FitsLocal(ItemTitle, Panel)
                 && FitsLocal(ResourceRow, Panel)
                 && FitsLocal(Body, Panel)
+                && FitsLocal(Comparison, Panel)
                 && FitsLocal(Outcome, Panel)
                 && FitsLocal(QuickEquipButton, Panel)
                 && FitsLocal(ReviewButton, Panel)
@@ -111,12 +117,12 @@ namespace AshenHalls
 
         private static bool FitsScreen(Rect rect, float width, float height)
         {
-            return rect.xMin >= 0f && rect.yMin >= 0f && rect.xMax <= width && rect.yMax <= height;
+            return rect.width >= 0f && rect.height >= 0f && rect.xMin >= 0f && rect.yMin >= 0f && rect.xMax <= width && rect.yMax <= height;
         }
 
         private static bool FitsLocal(Rect rect, Rect parent)
         {
-            return rect.xMin >= 0f && rect.yMin >= 0f && rect.xMax <= parent.width && rect.yMax <= parent.height;
+            return rect.width >= 0f && rect.height >= 0f && rect.xMin >= 0f && rect.yMin >= 0f && rect.xMax <= parent.width && rect.yMax <= parent.height;
         }
     }
 
@@ -124,22 +130,28 @@ namespace AshenHalls
     {
         public static LootPopupGeometry Calculate(float width, float height)
         {
-            float panelW = Mathf.Min(Mathf.Max(760f, width * 0.56f), Mathf.Min(980f, width - 48f));
-            // The same short item summary does not need a taller empty outcome
-            // well on large displays. Keep the modal fitted to its content.
-            float panelH = Mathf.Min(360f, height - 48f);
+            return Calculate(width, height, true, true);
+        }
+
+        public static LootPopupGeometry Calculate(float width, float height, bool hasItem, bool hasResources)
+        {
+            float panelW = Mathf.Min(Mathf.Max(hasItem ? 760f : 560f, width * (hasItem ? 0.61f : 0.40f)), Mathf.Min(hasItem ? 940f : 680f, width - 48f));
+            float panelH = Mathf.Min(hasItem ? (hasResources ? 384f : 344f) : 244f, height - 48f);
             Rect backdrop = new Rect(0f, 0f, width, height);
             Rect panel = new Rect((width - panelW) * 0.5f, (height - panelH) * 0.5f, panelW, panelH);
-            Rect icon = new Rect(24f, 76f, 116f, 116f);
-            Rect eyebrow = new Rect(158f, 47f, panelW - 182f, 18f);
-            Rect itemTitle = new Rect(158f, 68f, panelW - 182f, 38f);
-            Rect resourceRow = new Rect(158f, 112f, panelW - 182f, 30f);
-            Rect body = new Rect(158f, 151f, panelW - 182f, 64f);
-            Rect dismiss = new Rect(panelW - 148f, panelH - 54f, 124f, 40f);
-            Rect review = new Rect(dismiss.x - 158f, panelH - 54f, 148f, 40f);
-            Rect quickEquip = new Rect(review.x - 186f, panelH - 54f, 176f, 40f);
-            Rect outcome = new Rect(24f, 226f, panelW - 48f, Mathf.Max(62f, review.y - 238f));
-            return new LootPopupGeometry(backdrop, panel, icon, eyebrow, itemTitle, resourceRow, body, outcome, quickEquip, review, dismiss);
+            float contentY = hasResources ? 102f : 62f;
+            float comparisonX = Mathf.Round(panelW * 0.62f);
+            Rect icon = hasItem ? new Rect(24f, contentY + 6f, 104f, 104f) : Rect.zero;
+            Rect eyebrow = hasItem ? new Rect(146f, contentY, comparisonX - 170f, 18f) : Rect.zero;
+            Rect itemTitle = hasItem ? new Rect(146f, contentY + 22f, comparisonX - 170f, 50f) : new Rect(24f, 54f, panelW - 48f, 34f);
+            Rect resourceRow = new Rect(24f, hasItem ? 54f : 98f, panelW - 48f, 30f);
+            Rect body = hasItem ? new Rect(146f, contentY + 79f, comparisonX - 170f, 93f) : Rect.zero;
+            Rect comparison = hasItem ? new Rect(comparisonX, contentY, panelW - comparisonX - 24f, 172f) : Rect.zero;
+            Rect dismiss = new Rect(panelW - 168f, panelH - 58f, 144f, 40f);
+            Rect review = new Rect(dismiss.x - 158f, panelH - 58f, 148f, 40f);
+            Rect quickEquip = hasItem ? new Rect(review.x - 186f, panelH - 58f, 176f, 40f) : Rect.zero;
+            Rect outcome = new Rect(24f, panelH - 96f, panelW - 48f, 28f);
+            return new LootPopupGeometry(backdrop, panel, icon, eyebrow, itemTitle, resourceRow, body, comparison, outcome, quickEquip, review, dismiss);
         }
     }
 
@@ -154,12 +166,17 @@ namespace AshenHalls
         private RectTransform accentStrip;
         private RectTransform headerOrnament;
         private RectTransform outcomePanel;
+        private RectTransform comparisonPanel;
+        private RectTransform comparisonDivider;
         private RawImage iconImage;
         private Text headerText;
         private Text itemTitleText;
         private Text eyebrowText;
         private Text iconFallbackText;
         private Text bodyText;
+        private Text comparisonTitleText;
+        private Text comparisonDetailText;
+        private Text comparisonHintText;
         private Text outcomeTitleText;
         private Text outcomeDetailText;
         private Text goldText;
@@ -173,6 +190,8 @@ namespace AshenHalls
         private float lastWidth = -1f;
         private float lastHeight = -1f;
         private bool lastRefreshSucceeded;
+        private bool layoutHasItem = true;
+        private bool layoutHasResources = true;
 
         public bool IsReady => canvas != null && panel != null && dismissButton != null && quickEquipButton != null && iconPanel != null;
         public bool IsVisible => IsReady && UiRuntime.IsCanvasVisible(canvas);
@@ -185,6 +204,10 @@ namespace AshenHalls
         public string PrimaryActionLabelForTest => dismissButton == null ? "" : dismissButton.GetComponentInChildren<Text>()?.text ?? "";
         public string ReviewActionLabelForTest => reviewButton == null ? "" : reviewButton.GetComponentInChildren<Text>()?.text ?? "";
         public string QuickEquipActionLabelForTest => quickEquipButton == null ? "" : quickEquipButton.GetComponentInChildren<Text>()?.text ?? "";
+        public bool HasItemCardForTest => iconPanel != null && iconPanel.gameObject.activeSelf;
+        public string ItemDetailsForTest => bodyText == null ? "" : bodyText.text;
+        public string ComparisonPreviewForTest => comparisonDetailText == null ? "" : comparisonDetailText.text;
+        public string StorageDetailForTest => outcomeDetailText == null ? "" : outcomeDetailText.text;
         public bool HasDefaultFocusForTest
         {
             get
@@ -232,26 +255,34 @@ namespace AshenHalls
                 return;
             }
 
-            if (!Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height)) ApplyLayout();
+            bool hasResources = LootRewardPresentationRules.HasResources(view);
+            bool layoutChanged = layoutHasItem != view.HasItem || layoutHasResources != hasResources;
+            layoutHasItem = view.HasItem;
+            layoutHasResources = hasResources;
+            if (layoutChanged || !Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height)) ApplyLayout();
 
             Color accent = ParseColor(view.AccentHex, Hex("d7a84e", 1f));
             panel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.50f);
             iconPanel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.36f);
-            outcomePanel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.20f);
             accentStrip.GetComponent<Image>().color = accent.WithAlpha(0.74f);
             headerText.text = string.IsNullOrWhiteSpace(view.Title) ? "Loot recovered" : view.Title;
             eyebrowText.text = view.HasItem
                 ? $"{SafeUpper(view.Rarity, "Common")}  ·  {SafeUpper(view.ItemType, "Item")}"
                 : "";
             eyebrowText.color = accent;
-            itemTitleText.text = string.IsNullOrWhiteSpace(view.ItemName) ? "Rewards" : view.ItemName;
-            bodyText.text = BuildBody(view);
+            itemTitleText.text = !view.HasItem ? "Rewards collected" : string.IsNullOrWhiteSpace(view.ItemName) ? "Item recovered" : view.ItemName;
+            bodyText.text = view.HasItem ? LootRewardPresentationRules.ItemDetails(view.TraitLine, view.Rarity) : "";
+            comparisonTitleText.text = string.IsNullOrWhiteSpace(view.ComparisonTitle) ? "Equipment comparison" : view.ComparisonTitle;
+            comparisonDetailText.text = !string.IsNullOrWhiteSpace(view.ComparisonSummary)
+                ? view.ComparisonSummary : LootRewardPresentationRules.ComparisonPreview(view.Comparison);
+            comparisonHintText.text = view.CanReview ? "Full details in Inventory" : "";
+            comparisonPanel.gameObject.SetActive(view.HasItem && !string.IsNullOrWhiteSpace(comparisonDetailText.text));
+            comparisonDivider.gameObject.SetActive(comparisonPanel.gameObject.activeSelf);
             outcomeTitleText.text = string.IsNullOrWhiteSpace(view.Outcome)
                 ? view.HasItem ? "Stored in inventory" : "Collected"
                 : view.Outcome;
-            outcomeTitleText.color = accent;
-            outcomeDetailText.text = !string.Equals(view.EquipNote?.Trim(), outcomeTitleText.text.Trim(), StringComparison.OrdinalIgnoreCase)
-                ? view.EquipNote ?? "" : "";
+            outcomeTitleText.color = Hex("a9c8b9", 1f);
+            outcomeDetailText.text = LootRewardPresentationRules.StorageDetail(view.EquipNote, outcomeTitleText.text);
             eyebrowText.gameObject.SetActive(!string.IsNullOrWhiteSpace(eyebrowText.text));
             bodyText.gameObject.SetActive(!string.IsNullOrWhiteSpace(bodyText.text));
             outcomeDetailText.gameObject.SetActive(!string.IsNullOrWhiteSpace(outcomeDetailText.text));
@@ -262,6 +293,7 @@ namespace AshenHalls
             LayoutResourceChips();
 
             bool hasIcon = view.IconTexture != null && view.IconUv.width > 0f && view.IconUv.height > 0f;
+            iconPanel.gameObject.SetActive(view.HasItem);
             iconImage.gameObject.SetActive(hasIcon);
             iconFallbackText.gameObject.SetActive(!hasIcon);
             if (hasIcon)
@@ -307,15 +339,6 @@ namespace AshenHalls
             if (dismissButton != null && dismissButton.gameObject.activeSelf && dismissButton.interactable) bindings?.Dismiss?.Invoke();
         }
 
-        private static string BuildBody(LootPopupView view)
-        {
-            string trait = view.HasItem ? (view.TraitLine ?? "").Trim() : "";
-            string comparison = (view.Comparison ?? "").Trim();
-            if (string.IsNullOrEmpty(trait)) return comparison;
-            if (string.IsNullOrEmpty(comparison) || string.Equals(trait, comparison, StringComparison.OrdinalIgnoreCase)) return trait;
-            return trait + "\n" + comparison;
-        }
-
         private static string SafeUpper(string value, string fallback)
         {
             return (string.IsNullOrWhiteSpace(value) ? fallback : value.Trim()).ToUpperInvariant();
@@ -346,6 +369,9 @@ namespace AshenHalls
             eyebrowText = AddText("Eyebrow", panel, "", 11, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
             itemTitleText = AddText("Item Name", panel, "", 18, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
             itemTitleText.fontStyle = FontStyle.Bold;
+            itemTitleText.resizeTextForBestFit = true;
+            itemTitleText.resizeTextMinSize = 16;
+            itemTitleText.resizeTextMaxSize = 18;
 
             resourceRow = new GameObject("Resource Row", typeof(RectTransform)).GetComponent<RectTransform>();
             resourceRow.SetParent(panel, false);
@@ -353,8 +379,17 @@ namespace AshenHalls
             suppliesText = AddChip("Supplies", resourceRow, Hex("7f9d5b", 0.72f));
             elixirText = AddChip("Elixirs", resourceRow, Hex("58b7a5", 0.72f));
             bodyText = AddText("Item Details", panel, "", 12, Hex("e1dacb", 1f), TextAnchor.UpperLeft);
+            comparisonPanel = new GameObject("Comparison", typeof(RectTransform)).GetComponent<RectTransform>();
+            comparisonPanel.SetParent(panel, false);
+            comparisonDivider = AddImage("Comparison Divider", panel, Hex("a8b4bd", 0.16f)).rectTransform;
+            comparisonDivider.GetComponent<Image>().raycastTarget = false;
+            comparisonTitleText = AddText("Comparison Title", comparisonPanel, "", 12, Hex("e1dacb", 1f), TextAnchor.UpperLeft);
+            comparisonTitleText.fontStyle = FontStyle.Bold;
+            comparisonDetailText = AddText("Comparison Preview", comparisonPanel, "", 12, Hex("bfc9cf", 1f), TextAnchor.UpperLeft);
+            comparisonHintText = AddText("Comparison Hint", comparisonPanel, "", 11, Hex("8ea09e", 1f), TextAnchor.LowerLeft);
 
-            outcomePanel = AddPanel("Loot Outcome", panel, Hex("080b0d", 0.46f), Hex("d7a84e", 0.20f));
+            outcomePanel = new GameObject("Loot Outcome", typeof(RectTransform)).GetComponent<RectTransform>();
+            outcomePanel.SetParent(panel, false);
             outcomeTitleText = AddText("Outcome", outcomePanel, "", 12, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
             outcomeTitleText.fontStyle = FontStyle.Bold;
             outcomeDetailText = AddText("Outcome Detail", outcomePanel, "", 11, Hex("b7aa90", 1f), TextAnchor.UpperLeft);
@@ -362,6 +397,12 @@ namespace AshenHalls
             quickEquipButton = AddButton("Quick Equip", panel, "Equip best fit", () => bindings?.QuickEquip?.Invoke(), Hex("69c7a7", 0.44f));
             reviewButton = AddButton("Review Equipment", panel, "Compare & equip", () => bindings?.ReviewInventory?.Invoke(), Hex("58b7a5", 0.44f));
             dismissButton = AddButton("Continue", panel, "Continue", () => bindings?.Dismiss?.Invoke(), Hex("d7a84e", 0.86f));
+            ColorBlock primaryColors = dismissButton.colors;
+            primaryColors.normalColor = Hex("66512c", 1f);
+            primaryColors.highlightedColor = Hex("806337", 1f);
+            primaryColors.selectedColor = primaryColors.highlightedColor;
+            primaryColors.pressedColor = Hex("534122", 1f);
+            dismissButton.colors = primaryColors;
             ConfigureActionNavigation(true, true);
         }
 
@@ -374,7 +415,7 @@ namespace AshenHalls
         {
             lastWidth = width;
             lastHeight = height;
-            LootPopupGeometry geometry = LootPopupLayout.Calculate(width, height);
+            LootPopupGeometry geometry = LootPopupLayout.Calculate(width, height, layoutHasItem, layoutHasResources);
             SetScreenRect(backdrop, geometry.Backdrop);
             SetScreenRect(panel, geometry.Panel);
             SetLocalRect(accentStrip, new Rect(0f, 24f, 2f, geometry.Panel.height - 48f));
@@ -387,9 +428,14 @@ namespace AshenHalls
             SetLocalRect(itemTitleText.rectTransform, geometry.ItemTitle);
             SetLocalRect(resourceRow, geometry.ResourceRow);
             SetLocalRect(bodyText.rectTransform, geometry.Body);
+            SetLocalRect(comparisonPanel, geometry.Comparison);
+            SetLocalRect(comparisonDivider, new Rect(geometry.Comparison.x - 14f, geometry.Comparison.y, 1f, geometry.Comparison.height));
+            SetLocalRect(comparisonTitleText.rectTransform, new Rect(0f, 0f, geometry.Comparison.width, 34f));
+            SetLocalRect(comparisonDetailText.rectTransform, new Rect(0f, 40f, geometry.Comparison.width, 104f));
+            SetLocalRect(comparisonHintText.rectTransform, new Rect(0f, 151f, geometry.Comparison.width, 18f));
             SetLocalRect(outcomePanel, geometry.Outcome);
-            SetLocalRect(outcomeTitleText.rectTransform, new Rect(14f, 8f, geometry.Outcome.width - 28f, 20f));
-            SetLocalRect(outcomeDetailText.rectTransform, new Rect(14f, 30f, geometry.Outcome.width - 28f, Mathf.Max(20f, geometry.Outcome.height - 36f)));
+            SetLocalRect(outcomeTitleText.rectTransform, new Rect(0f, 0f, 232f, geometry.Outcome.height));
+            SetLocalRect(outcomeDetailText.rectTransform, new Rect(244f, 0f, geometry.Outcome.width - 244f, geometry.Outcome.height));
             SetLocalRect(quickEquipButton.GetComponent<RectTransform>(), geometry.QuickEquipButton);
             SetLocalRect(reviewButton.GetComponent<RectTransform>(), geometry.ReviewButton);
             SetLocalRect(dismissButton.GetComponent<RectTransform>(), geometry.DismissButton);
@@ -421,7 +467,7 @@ namespace AshenHalls
 
             resourceRow.gameObject.SetActive(true);
             float gap = 8f;
-            float chipW = Mathf.Min(130f, (resourceRow.rect.width - gap * (visible - 1)) / visible);
+            float chipW = Mathf.Min(174f, (resourceRow.rect.width - gap * (visible - 1)) / visible);
             int column = 0;
             foreach (Text chip in chips)
             {
@@ -438,7 +484,7 @@ namespace AshenHalls
             Image marker = AddImage("Resource Accent", chip, accent);
             marker.raycastTarget = false;
             SetLocalRect(marker.rectTransform, new Rect(0f, 10f, 2f, 10f));
-            Text text = AddText("Label", chip, "", 11, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
+            Text text = AddText("Label", chip, "", 14, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             text.fontStyle = FontStyle.Bold;
             Stretch(text.rectTransform, 10f, 2f);
             return text;

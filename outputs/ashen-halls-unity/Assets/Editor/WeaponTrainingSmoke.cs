@@ -25,6 +25,7 @@ namespace AshenHalls.Editor
             ReachAndFocusUseSightWithoutMissileSkill();
             RangerShotsRequireAMissileWeaponAtEveryEntry();
             WeaponTradeoffsRequireReviewAndDiscloseLostShots();
+            ReassignmentPrioritizesLossesForBothAdventurers();
             SpellsAndIndependentTechniquesKeepTheirRanges();
             SavedRangesRepairWithoutChangingCombatOrOwnership();
             EnemySummonAndDemonProfilesStayAuthored();
@@ -219,6 +220,7 @@ namespace AshenHalls.Editor
         {
             using (Fixture f = new Fixture("ranger"))
             {
+                f.Member.Name = "Cairn";
                 InventoryItem bow = f.Equip("longbow");
                 f.State.Mode = GameMode.Explore; f.State.Combat = null;
                 InventoryItem sword = new InventoryItem { Form = "broadsword", Slot = "weapon", DisplayName = "fine iron broadsword",
@@ -281,9 +283,119 @@ namespace AshenHalls.Editor
                 object[] equip = { sword, warrior, "" };
                 Require((bool)f.Call("EquipInventoryItemToMember", equip), "reassignment fixture equips its real replacement sword");
                 ArmoryDetailActionView reassignment = (ArmoryDetailActionView)f.Call("BuildInventoryTargetAction", sword, warrior, 0, false);
-                Require(reassignment.Detail.StartsWith("Review · Range 5→1; shots disabled", StringComparison.Ordinal)
+                Require(reassignment.Detail == "Review · Cairn: 5→1; shots disabled"
                     && reassignment.ButtonLabel == "Swap" && reassignment.Enabled,
                     "reassignment also exposes the target's lost shooting while retaining the explicit swap");
+            }
+        }
+
+        private static void ReassignmentPrioritizesLossesForBothAdventurers()
+        {
+            using (Fixture f = new Fixture("ranger"))
+            {
+                f.Member.Name = "Cairn";
+                InventoryItem bow = f.Equip("longbow");
+                PartyMember maer = AddSwapMember(f, "Maer", "warrior", "broadsword", out InventoryItem sword);
+                f.State.Mode = GameMode.Explore; f.State.Combat = null;
+                string before = JsonUtility.ToJson(f.State);
+                int score = (int)f.Call("InventoryReassignmentScore", bow, maer, f.Member);
+                ArmoryDetailActionView action = (ArmoryDetailActionView)f.Call("BuildInventoryTargetAction", bow, f.Member, 1, false);
+                Require(action.Detail == "Review · Cairn: 5→1; shots disabled" && action.ButtonLabel == "Swap" && action.Enabled,
+                    "giving away a ranger's bow leads with the displaced owner's lost shots");
+                ArmoryDetailActionView opposite = (ArmoryDetailActionView)f.Call("BuildInventoryTargetAction", sword, maer, 0, false);
+                Require(opposite.Detail == action.Detail && JsonUtility.ToJson(f.State) == before
+                    && (int)f.Call("InventoryReassignmentScore", bow, maer, f.Member) == score,
+                    "both item selections disclose the same loss without mutating the preview or score");
+                f.Call("SelectArmoryInventoryItem", bow);
+                ArmoryOverlayScreen screen = f.OpenNativePack();
+                AssertNativeSwapCopyFits(f, screen, action.Detail);
+                screen.InvokeDetailActionForTest(0);
+                Require(f.Member.WeaponItemId == sword.InstanceId && maer.WeaponItemId == bow.InstanceId
+                    && f.Member.Range == 1 && maer.Range == 4 && sword.EquippedById == f.Member.Id && bow.EquippedById == maer.Id,
+                    "explicit native Swap exchanges both physical items and applies both disclosed ranges");
+                f.Call("SelectArmoryInventoryItem", bow); screen.Refresh();
+                ArmoryDetailView inverse = (ArmoryDetailView)f.Call("BuildInventoryItemDetail");
+                Require(inverse.Actions[0].Detail.StartsWith("Review · Maer: range 4→1", StringComparison.Ordinal),
+                    "returning the bow first names the other adventurer's range loss");
+                AssertNativeSwapCopyFits(f, screen, inverse.Actions[0].Detail);
+                screen.InvokeDetailActionForTest(0);
+                Require(f.Member.WeaponItemId == bow.InstanceId && maer.WeaponItemId == sword.InstanceId
+                    && f.Member.Range == 5 && maer.Range == 1, "the native inverse swap restores original ownership and ranges");
+
+                f.Member.Name = "WWWWWWWWWWWWWWWW";
+                ArmoryDetailActionView longName = (ArmoryDetailActionView)f.Call("BuildInventoryTargetAction", bow, f.Member, 1, false);
+                Require(longName.Detail == "Review · WWWWW…: 5→1; shots disabled", "long names are shortened before decisive copy can disappear");
+                f.Call("SelectArmoryInventoryItem", bow); screen.Refresh();
+                AssertNativeSwapCopyFits(f, screen, longName.Detail);
+            }
+            using (Fixture f = new Fixture("mage"))
+            {
+                f.Member.Name = "Luma";
+                InventoryItem focus = f.Equip("ritual staff");
+                PartyMember maer = AddSwapMember(f, "Maer", "warrior", "long spear", out InventoryItem spear);
+                f.State.Mode = GameMode.Explore; f.State.Combat = null;
+                ArmoryDetailActionView action = (ArmoryDetailActionView)f.Call("BuildInventoryTargetAction", focus, f.Member, 1, false);
+                Require(action.Detail == "Review · Range Luma 4→2; Maer 2→1", "a two-person range loss discloses both adventurers");
+                f.Call("SelectArmoryInventoryItem", focus);
+                ArmoryOverlayScreen screen = f.OpenNativePack();
+                AssertNativeSwapCopyFits(f, screen, action.Detail);
+                screen.InvokeDetailActionForTest(0);
+                Require(f.Member.Range == 2 && maer.Range == 1 && f.Member.WeaponItemId == spear.InstanceId && maer.WeaponItemId == focus.InstanceId,
+                    "two-person range disclosure agrees with the actual native swap");
+                f.Call("SelectArmoryInventoryItem", focus); screen.Refresh();
+                ArmoryDetailView recovery = (ArmoryDetailView)f.Call("BuildInventoryItemDetail");
+                string expectedFallback = "Review · " + (string)f.Call("CompactInventoryComparisonLine", focus, f.Member);
+                Require(recovery.Actions[0].Detail.StartsWith(expectedFallback, StringComparison.Ordinal)
+                    && recovery.Actions[0].Detail.Contains("Maer:"), "a swap without range or shot loss preserves the original useful recipient and owner comparison");
+                screen.InvokeDetailActionForTest(0);
+                f.Member.Name = "SharedPrefixOne"; maer.Name = "SharedPrefixTwo";
+                f.Call("SelectArmoryInventoryItem", focus); screen.Refresh();
+                ArmoryDetailView collision = (ArmoryDetailView)f.Call("BuildInventoryItemDetail");
+                Require(collision.Actions[0].Detail == "Review · Range Hero 1 4→2; Hero 2 2→1", "matching shortened names remain distinguishable by party position");
+                AssertNativeSwapCopyFits(f, screen, collision.Actions[0].Detail);
+            }
+            using (Fixture f = new Fixture("ranger"))
+            {
+                f.Member.Name = "Cairn";
+                InventoryItem sling = f.Equip("sling");
+                PartyMember luma = AddSwapMember(f, "Luma", "mage", "ritual staff", out _);
+                f.State.Mode = GameMode.Explore; f.State.Combat = null;
+                ArmoryDetailActionView action = (ArmoryDetailActionView)f.Call("BuildInventoryTargetAction", sling, f.Member, 1, false);
+                Require(action.Detail == "Review · Cai… 4→1 no shots; Luma 4→3", "lost shooting takes priority while the other person's smaller range loss remains visible");
+                f.Call("SelectArmoryInventoryItem", sling);
+                AssertNativeSwapCopyFits(f, f.OpenNativePack(), action.Detail);
+            }
+        }
+
+        private static PartyMember AddSwapMember(Fixture f, string name, string classKey, string form, out InventoryItem weapon)
+        {
+            PartyMember member = (PartyMember)f.Call("MakeHero", name, "human", classKey, (string)f.Call("RoleForClass", classKey),
+                new Stats(18, 18, 18, 18), StarterPartyCatalog.SpellSchoolForClass(classKey), 99, new SkillSet().Normalize());
+            f.State.Party.Add(member);
+            weapon = new InventoryItem { Form = form, Slot = "weapon", DisplayName = "swap " + form, DamageMin = 3, DamageMax = 7,
+                AttackSpeed = 8, DamageType = "physical", Bonus = 1 };
+            f.Call("AddInventoryItem", weapon);
+            object[] equip = { weapon, member, "" };
+            Require((bool)f.Call("EquipInventoryItemToMember", equip), "swap fixture uses real equipment assignment");
+            return member;
+        }
+
+        private static void AssertNativeSwapCopyFits(Fixture f, ArmoryOverlayScreen screen, string expected)
+        {
+            screen.Refresh();
+            ArmoryOverlayView view = (ArmoryOverlayView)f.Call("BuildArmoryOverlayView");
+            Require(view.Detail.Actions[0].Detail == expected && screen.VisibleDetailActionCountForTest > 0, "native Pack exposes the exact priority loss copy");
+            Canvas canvas = (Canvas)typeof(ArmoryOverlayScreen).GetField("canvas", BindingFlags.Instance | BindingFlags.NonPublic).GetValue(screen);
+            UnityEngine.UI.Text comparison = canvas.GetComponentsInChildren<UnityEngine.UI.Text>(true)
+                .Single(text => text.name == "Comparison" && text.transform.parent.name == "Equip Target 0");
+            MethodInfo layout = typeof(ArmoryOverlayScreen).GetMethod("ApplyLayout", BindingFlags.Instance | BindingFlags.NonPublic, null,
+                new[] { typeof(bool), typeof(int), typeof(bool), typeof(int), typeof(float), typeof(float) }, null);
+            foreach (Vector2 size in new[] { new Vector2(960, 600), new Vector2(1280, 720) })
+            {
+                layout.Invoke(screen, new object[] { true, view.Filters.Count, view.Detail.ExtendedSummary, view.Detail.Actions.Count, size.x, size.y });
+                Canvas.ForceUpdateCanvases();
+                Require(comparison.text == expected && comparison.preferredWidth <= comparison.rectTransform.rect.width + .5f,
+                    "complete native swap warning fits at " + size + ": width=" + comparison.preferredWidth + "/" + comparison.rectTransform.rect.width + ", " + expected);
             }
         }
 

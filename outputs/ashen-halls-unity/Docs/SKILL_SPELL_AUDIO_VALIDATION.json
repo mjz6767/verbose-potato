@@ -1,0 +1,218 @@
+{
+  "generator": "Tools/Audio/BuildSkillSpellSfx.py",
+  "sample_rate": 48000,
+  "channels": 1,
+  "source": "original deterministic synthesis; no external recordings or service",
+  "masters": [
+    {
+      "cue": "releaseember",
+      "direction": "Dry ember ignition and turbulent flame; no tonal laser sweep.",
+      "duration_seconds": 0.21,
+      "peak_dbfs": -7.954,
+      "rms_dbfs": -24.732,
+      "dc": -0.00031171,
+      "spectral_centroid_hz": 1100.0,
+      "sha256": "3c4bf4e94fdd814c74c1189a37fbe0729a2161a22f07547755b8f8c8d50940a8"
+    },
+    {
+      "cue": "releasefrost",
+      "direction": "Tiny ice fractures and sparse inharmonic glass.",
+      "duration_seconds": 0.23,
+      "peak_dbfs": -10.134,
+      "rms_dbfs": -25.68,
+      "dc": -0.00010597,
+      "spectral_centroid_hz": 2256.3,
+      "sha256": "a14fda34ae37d1e2fab1694ff8511c6b0c801d67b3f570370980d27d1146446d"
+    },
+    {
+      "cue": "releaseshock",
+      "direction": "Three irregular electrical arcs with a controlled short buzz.",
+      "duration_seconds": 0.16,
+      "peak_dbfs": -5.191,
+      "rms_dbfs": -24.732,
+      "dc": 0.00014269,
+      "spectral_centroid_hz": 5485.1,
+      "sha256": "03de3f6d8756a733315411c1b36810c45cc0bbef190804d29f12ebd136d0db4a"
+    },
+    {
+      "cue": "releasenature",
+      "direction": "Twisting wood fibers, leaf breath and an earthy resonance.",
+      "duration_seconds": 0.24,
+      "peak_dbfs": -11.699,
+      "rms_dbfs": -24.437,
+      "dc": -0.00051239,
+      "spectral_centroid_hz": 1062.7,
+      "sha256": "2f51f64179395dbcb413dc6f7d85e5c7b9b70e3c33e632d3405fe57ca4ec139f"
+    },
+    {
+      "cue": "releaseholy",
+      "direction": "An airy open-fifth light gesture with a soft bronze edge.",
+      "duration_seconds": 0.25,
+      "peak_dbfs": -12.517,
+      "rms_dbfs": -25.68,
+      "dc": -2.562e-05,
+      "spectral_centroid_hz": 778.9,
+      "sha256": "3f5c14d113cd8ca8f96a7fda9a5d8c3a07b2819d9705c77deb9a3be1a0e912b1"
+    },
+    {
+      "cue": "releasehex",
+      "direction": "Inward whisper and descending, hollow shadow body.",
+      "duration_seconds": 0.25,
+      "peak_dbfs": -11.752,
+      "rms_dbfs": -25.037,
+      "dc": 0.0001162,
+      "spectral_centroid_hz": 972.5,
+      "sha256": "af81b230d6ab8d815ee16fa0009709a0d7e1cbb60e9dbd792832b8e5da5813d5"
+    },
+    {
+      "cue": "releasepact",
+      "direction": "Low rift pressure with a widening dissonant harmonic.",
+      "duration_seconds": 0.27,
+      "peak_dbfs": -11.323,
+      "rms_dbfs": -24.437,
+      "dc": 0.00129114,
+      "spectral_centroid_hz": 294.0,
+      "sha256": "43c602c6df08922c1c6b72dcd1bd2d91ba6e7a42cb8e1697468128f19bf367e0"
+    },
+    {
+      "cue": "releaseveil",
+      "direction": "A reversed air fold with a dry spatial re-entry tick.",
+      "duration_seconds": 0.2,
+      "peak_dbfs": -11.624,
+      "rms_dbfs": -26.021,
+      "dc": 0.00010859,
+      "spectral_centroid_hz": 1209.8,
+      "sha256": "a05a2241ad3f0ef5c4010ea9e056614ddc39e3e6e5e735aa528c6decde9a2029"
+    },
+    {
+      "cue": "shieldbashhit",
+      "direction": "Shield wood and leather body under two damped iron modes.",
+      "duration_seconds": 0.42,
+      "peak_dbfs": -3.35,
+      "rms_dbfs": -18.556,
+      "dc": -0.00162187,
+      "spectral_centroid_hz": 267.3,
+      "sha256": "ff55dc64b57713b15fa1ea7b85f7bce0bd9688ffc4b5600297ad0742ab66f391"
+    },
+    {
+      "cue": "cleavehit",
+      "direction": "A broad steel cut settling into a dense body contact.",
+      "duration_seconds": 0.38,
+      "peak_dbfs": -3.35,
+      "rms_dbfs": -18.869,
+      "dc": -0.00035339,
+      "spectral_centroid_hz": 692.9,
+      "sha256": "8571853935665072c9b1edefeef23467e6c1f56d32eda3d968a09efea91f937a"
+    },
+    {
+      "cue": "sunderhit",
+      "direction": "A stressed plate strike followed by small armor fragments.",
+      "duration_seconds": 0.49,
+      "peak_dbfs": -3.35,
+      "rms_dbfs": -18.03,
+      "dc": -0.00079403,
+      "spectral_centroid_hz": 540.7,
+      "sha256": "fe0315f8f26c96d52f755eb3c0a9927df0e2c31b168087891adb685de729fb8e"
+    },
+    {
+      "cue": "hamstringhit",
+      "direction": "A close, dry slicing contact without a bow or magical tail.",
+      "duration_seconds": 0.27,
+      "peak_dbfs": -5.057,
+      "rms_dbfs": -19.576,
+      "dc": -0.00200188,
+      "spectral_centroid_hz": 957.7,
+      "sha256": "a8e672079dcfccba7817cd7ed071c1d4158cc5f43ff1c4b04b6e18adde4be259"
+    },
+    {
+      "cue": "kniferelease",
+      "direction": "A narrow air cut and a light rotating metal whisper.",
+      "duration_seconds": 0.18,
+      "peak_dbfs": -9.344,
+      "rms_dbfs": -25.193,
+      "dc": 9.964e-05,
+      "spectral_centroid_hz": 5631.7,
+      "sha256": "1df5cb3958c68f284361e1fa8260e60d2aa5e8a8a1e41b99519e6f9287134204"
+    },
+    {
+      "cue": "smokeprimer",
+      "direction": "A small flask pin and cloth-handling tick before the burst.",
+      "duration_seconds": 0.13,
+      "peak_dbfs": -11.392,
+      "rms_dbfs": -29.119,
+      "dc": 0.00039934,
+      "spectral_centroid_hz": 1149.4,
+      "sha256": "322279a08df7b9333140c1a07798fe9f9f5be214a84f335f64e2c8170b93c890"
+    },
+    {
+      "cue": "smokeburst",
+      "direction": "One pressure puff expanding into a low, soft smoke cloud.",
+      "duration_seconds": 0.5,
+      "peak_dbfs": -3.35,
+      "rms_dbfs": -20.396,
+      "dc": -0.00014176,
+      "spectral_centroid_hz": 450.1,
+      "sha256": "04b855f22032d75696323eff1c579ae53a21e0b97d20957023b36a7ce063dba2"
+    },
+    {
+      "cue": "bowdraw",
+      "direction": "Restrained wooden limb tension, distinct from a fired bow.",
+      "duration_seconds": 0.18,
+      "peak_dbfs": -15.643,
+      "rms_dbfs": -28.636,
+      "dc": -0.00042772,
+      "spectral_centroid_hz": 1046.2,
+      "sha256": "b3cd129e799f1ce7db9d7be43166e2bc711f06dfd5619523dfc6d149ed25353e"
+    },
+    {
+      "cue": "twinshotrelease",
+      "direction": "Two string releases, 85 ms apart, matching Twinshot's two arrows.",
+      "duration_seconds": 0.27,
+      "peak_dbfs": -4.129,
+      "rms_dbfs": -24.437,
+      "dc": 0.00011452,
+      "spectral_centroid_hz": 2527.2,
+      "sha256": "b9036d5441f6e4cbb49c20c0b918c505d6367bcd84b7b3461472834371ef2d89"
+    },
+    {
+      "cue": "twinshothit",
+      "direction": "Two compact wood-and-body arrow contacts, 85 ms apart.",
+      "duration_seconds": 0.35,
+      "peak_dbfs": -3.35,
+      "rms_dbfs": -19.301,
+      "dc": -0.0011942,
+      "spectral_centroid_hz": 452.4,
+      "sha256": "aab9171a7b37c4eaf7dafbaa11e1c3abef75d119dbaf5efeed4ab43e192df431"
+    },
+    {
+      "cue": "broadheadhit",
+      "direction": "A heavier arrowhead bite and short fibrous body tail.",
+      "duration_seconds": 0.33,
+      "peak_dbfs": -3.35,
+      "rms_dbfs": -18.778,
+      "dc": -0.00149442,
+      "spectral_centroid_hz": 669.8,
+      "sha256": "e4edac66c0be44c90b412ad73acc10043a48fc5241f3bd7601cca34d6dfc1439"
+    },
+    {
+      "cue": "staggerhit",
+      "direction": "A blunt arrow strike with a restrained metallic interruption.",
+      "duration_seconds": 0.4,
+      "peak_dbfs": -3.398,
+      "rms_dbfs": -18.062,
+      "dc": -0.00183031,
+      "spectral_centroid_hz": 311.7,
+      "sha256": "b9cce2c75557e0062a5767408493eb665c59d4049f99fbc9f6c8eefc506d0417"
+    },
+    {
+      "cue": "shieldbrace",
+      "direction": "A quiet leather grip and wooden shield brace before contact.",
+      "duration_seconds": 0.2,
+      "peak_dbfs": -13.142,
+      "rms_dbfs": -28.636,
+      "dc": -0.00032435,
+      "spectral_centroid_hz": 924.8,
+      "sha256": "49f24aaa4b3e6975af733e338006a52ea8272394d6be3ca3d0f9c7ce1a61b6f0"
+    }
+  ]
+}

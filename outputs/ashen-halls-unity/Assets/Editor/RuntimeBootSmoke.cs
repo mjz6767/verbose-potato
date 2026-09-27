@@ -1780,8 +1780,9 @@ namespace AshenHalls.Editor
             }
             HashSet<string> importedSfxKeys = GetPrivateField<HashSet<string>>(game, "importedSfxKeys");
             AudioClip[] importedSfx = Resources.LoadAll<AudioClip>("Audio/Sfx");
-            Assert(importedSfx.Length == 161 + GameAudioCueRules.EverydayMasterCount + PartySetupAudioRules.CueKeys.Count,
-                "authored SFX bank contains the original cues, everyday masters, and complete workshop bank");
+            Assert(importedSfx.Length == 161 + GameAudioCueRules.EverydayMasterCount + PartySetupAudioRules.CueKeys.Count
+                + SkillSpellAudioRules.CueKeys.Count,
+                "authored SFX bank contains the original cues, everyday masters, workshop bank, and skill/spell masters");
             Assert(importedSfxKeys.Count == importedSfx.Length, "every authored SFX resource replaces a known runtime cue");
             foreach (AudioClip clip in importedSfx)
             {

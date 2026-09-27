@@ -866,7 +866,7 @@ namespace AshenHalls
                     48,
                     2,
                     1,
-                    "Added to inventory. Review the party comparison before assigning it.",
+                    "",
                     "Moonlit Reliquary");
                 return;
             }

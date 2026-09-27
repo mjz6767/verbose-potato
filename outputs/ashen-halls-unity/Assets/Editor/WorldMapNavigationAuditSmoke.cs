@@ -33,6 +33,158 @@ namespace AshenHalls.Editor
             RegionWheelAndClicksOnlyChangeBrowseFocus();
             CancelledRegionClickDoesNotSelectItsOldCell();
             BlockedPointerGestureCannotChangeMapFocus();
+            EdgeControlsPanAndRecenterWithoutTravel();
+            EdgeControlsRespectBoundsAndInputOwnership();
+            EdgePanMovesCameraOnFirstBoundaryClick();
+            EdgeHoverDescribesControlsAndRespectsOverlays();
+        }
+
+        private static void EdgeHoverDescribesControlsAndRespectsOverlays()
+        {
+            WithFixture(true, (game, state, smallGrid, origin) =>
+            {
+                Rect grid = EdgeFixtureGrid(smallGrid);
+                float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
+                string before = JsonUtility.ToJson(state);
+                foreach (ExplorationMapEdge edge in new[] { ExplorationMapEdge.North, ExplorationMapEdge.East,
+                    ExplorationMapEdge.South, ExplorationMapEdge.West })
+                {
+                    Rect target = RegionMapNavigationRules.EdgeControlRect(grid, scale, edge, false);
+                    Require(RegionMapNavigationRules.TryHitEdgeControl(target.center, grid, scale, origin,
+                        ViewSize, ViewSize, state.Map.Width, state.Map.Height, state.PlayerX, state.PlayerY,
+                        out ExplorationMapEdge hit, out bool party) && hit == edge && !party,
+                        "control hover and input share the same exact visible rectangle");
+                    Invoke(game, "UpdateExploreHoverLookAt", target.center, grid, CellSize, origin, ViewSize, ViewSize);
+                    Require(Get<string>(game, "exploreHoverHeading") == RegionMapNavigationRules.EdgeControlLabel(edge, false),
+                        "edge hover explains its actual pan direction");
+                    Require(Get<int>(game, "exploreHoverMapX") == -1 && Get<int>(game, "exploreHoverMapY") == -1,
+                        "control hover never inspects or emphasizes the terrain and objects beneath it");
+                    Require(Get<string>(game, "exploreHoverLookLine").Contains("party stays in place"),
+                        "control hover distinguishes map browsing from party travel");
+                }
+                Point farOrigin = new Point(state.PlayerX + 6, state.PlayerY - 2);
+                Rect partyTarget = RegionMapNavigationRules.EdgeControlRect(grid, scale, ExplorationMapEdge.West, true);
+                Invoke(game, "UpdateExploreHoverLookAt", partyTarget.center, grid, CellSize, farOrigin, ViewSize, ViewSize);
+                Require(Get<string>(game, "exploreHoverHeading") == "Return to party", "off-screen party hover explains recentering");
+
+                Rect east = RegionMapNavigationRules.EdgeControlRect(grid, scale, ExplorationMapEdge.East, false);
+                foreach (string overlay in new[] { "showHelpOverlay", "showPauseMenu", "showArmory", "showDialogue" })
+                {
+                    Set(game, overlay, true);
+                    Invoke(game, "UpdateExploreHoverLookAt", east.center, grid, CellSize, origin, ViewSize, ViewSize);
+                    Require(Get<string>(game, "exploreHoverHeading") == "" && Get<string>(game, "exploreHoverLookLine") == "",
+                        overlay + " prevents both control and underlying terrain hover");
+                    Set(game, overlay, false);
+                }
+                Set(game, "suppressBoardPointerThroughFrame", Time.frameCount + 1);
+                Invoke(game, "UpdateExploreHoverLookAt", east.center, grid, CellSize, origin, ViewSize, ViewSize);
+                Require(Get<string>(game, "exploreHoverHeading") == "", "dismissal protection also clears stale control hover");
+                Set(game, "suppressBoardPointerThroughFrame", -1);
+                Invoke(game, "UpdateExploreHoverLookAt", grid.center, grid, CellSize, origin, ViewSize, ViewSize);
+                Require(!Get<string>(game, "exploreHoverHeading").StartsWith("Pan "), "leaving a control cannot leave stale pan wording");
+                Require(JsonUtility.ToJson(state) == before, "all hover inspection stays free of campaign mutations");
+            });
+        }
+
+        private static void EdgePanMovesCameraOnFirstBoundaryClick()
+        {
+            WithFixture(true, (game, state, smallGrid, _) =>
+            {
+                Rect grid = EdgeFixtureGrid(smallGrid);
+                float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
+                foreach (ExplorationMapEdge edge in new[] { ExplorationMapEdge.East, ExplorationMapEdge.South,
+                    ExplorationMapEdge.West, ExplorationMapEdge.North })
+                {
+                    state.PlayerX = edge == ExplorationMapEdge.West ? state.Map.Width - 1 : 0;
+                    state.PlayerY = edge == ExplorationMapEdge.North ? state.Map.Height - 1 : 0;
+                    Invoke(game, "ResetRegionMapFocusToParty");
+                    Point original = RegionMapNavigationRules.ViewportOrigin(state.PlayerX, state.PlayerY,
+                        ViewSize, ViewSize, state.Map.Width, state.Map.Height);
+                    Require(RegionMapNavigationRules.CanPanEdge(edge, original, ViewSize, ViewSize, state.Map.Width, state.Map.Height),
+                        "boundary regression begins with a genuinely available pan direction");
+                    Rect target = RegionMapNavigationRules.EdgeControlRect(grid, scale, edge, false);
+                    string before = JsonUtility.ToJson(state);
+                    Require(Dispatch(game, grid, original, EventType.MouseDown, target.center, Vector2.zero),
+                        "boundary arrow consumes its first click");
+                    Point focus = Focus(game);
+                    Point after = RegionMapNavigationRules.ViewportOrigin(focus.X, focus.Y,
+                        ViewSize, ViewSize, state.Map.Width, state.Map.Height);
+                    Point delta = RegionMapNavigationRules.EdgePanDelta(edge, ViewSize, ViewSize);
+                    Require(after.X == original.X + delta.X && after.Y == original.Y + delta.Y,
+                        "the first boundary arrow click pans the camera, not only an off-center selection");
+                    Require(JsonUtility.ToJson(state) == before, "boundary camera panning remains a presentation-only action");
+                }
+            });
+        }
+
+        private static void EdgeControlsPanAndRecenterWithoutTravel()
+        {
+            WithFixture(true, (game, state, smallGrid, origin) =>
+            {
+                Rect grid = EdgeFixtureGrid(smallGrid);
+                float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
+                string before = JsonUtility.ToJson(state);
+                foreach (ExplorationMapEdge edge in new[] { ExplorationMapEdge.North, ExplorationMapEdge.East, ExplorationMapEdge.South, ExplorationMapEdge.West })
+                {
+                    Invoke(game, "ResetRegionMapFocusToParty");
+                    Rect hit = RegionMapNavigationRules.EdgeControlRect(grid, scale, edge, false);
+                    Point delta = RegionMapNavigationRules.EdgePanDelta(edge, ViewSize, ViewSize);
+                    Require(hit.width > 0f && grid.Contains(hit.center), "edge controls have a real in-map target");
+                    Require(Dispatch(game, grid, origin, EventType.MouseDown, hit.center, Vector2.zero),
+                        "visible " + edge + " arrow consumes its click; screen=" + Screen.width + "x" + Screen.height
+                        + ", grid=" + grid + ", hit=" + hit + ", side=" + Invoke(game, "SidePanelRect")
+                        + ", command=" + Invoke(game, "ExploreCommandBarRect") + ", overlay=" + Invoke(game, "CurrentUiOverlay")
+                        + ", suppressed=" + Invoke(game, "IsBoardPointerSuppressed"));
+                    Require(Focus(game).X == state.PlayerX + delta.X && Focus(game).Y == state.PlayerY + delta.Y,
+                        "edge arrow pans browse focus in its advertised direction");
+                    Require(!Get<bool>(game, "exploreRegionPointerDragging"), "edge controls never start an underlying tile gesture");
+                    Dispatch(game, grid, origin, EventType.MouseUp, hit.center, Vector2.zero);
+                    Require(Focus(game).X == state.PlayerX + delta.X && Focus(game).Y == state.PlayerY + delta.Y,
+                        "release cannot select the old map tile under a panned button");
+                }
+
+                Point farOrigin = new Point(state.PlayerX + 6, state.PlayerY - 2);
+                Invoke(game, "SetRegionMapFocus", state.PlayerX + 8, state.PlayerY);
+                Require(RegionMapNavigationRules.PartyEdge(state.PlayerX, state.PlayerY, farOrigin, ViewSize, ViewSize) == ExplorationMapEdge.West,
+                    "off-screen party advertises its truthful direction");
+                Rect party = RegionMapNavigationRules.EdgeControlRect(grid, scale, ExplorationMapEdge.West, true);
+                Dispatch(game, grid, farOrigin, EventType.MouseDown, party.center, Vector2.zero);
+                Require(Focus(game).X == state.PlayerX && Focus(game).Y == state.PlayerY,
+                    "clicking PARTY recenters rather than taking a map step");
+                Require(JsonUtility.ToJson(state) == before, "all edge controls leave time, resources, discoveries, route marks, and save state untouched");
+            });
+        }
+
+        private static void EdgeControlsRespectBoundsAndInputOwnership()
+        {
+            Require(!RegionMapNavigationRules.CanPanEdge(ExplorationMapEdge.West, new Point(0, 0), 5, 5, 58, 46)
+                && !RegionMapNavigationRules.CanPanEdge(ExplorationMapEdge.North, new Point(0, 0), 5, 5, 58, 46)
+                && !RegionMapNavigationRules.CanPanEdge(ExplorationMapEdge.East, new Point(53, 41), 5, 5, 58, 46)
+                && !RegionMapNavigationRules.CanPanEdge(ExplorationMapEdge.South, new Point(53, 41), 5, 5, 58, 46),
+                "map boundaries never paint or activate outward pan controls");
+            Require(RegionMapNavigationRules.EdgeControlRect(new Rect(0, 0, 100, 100), 1f, ExplorationMapEdge.East, false) == Rect.zero,
+                "tiny layouts cannot acquire overlapping hidden controls");
+            Require(RegionMapNavigationRules.PartyEdge(5, 5, new Point(3, 3), 5, 5) == ExplorationMapEdge.None,
+                "an on-screen party never receives an off-screen indicator");
+            foreach (string overlay in new[] { "showHelpOverlay", "showPauseMenu", "showArmory", "showDialogue" })
+            WithFixture(true, (game, state, smallGrid, origin) =>
+            {
+                Rect grid = EdgeFixtureGrid(smallGrid);
+                Rect target = RegionMapNavigationRules.EdgeControlRect(grid,
+                    ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height), ExplorationMapEdge.East, false);
+                string before = JsonUtility.ToJson(state);
+                Set(game, overlay, true);
+                Require(!Dispatch(game, grid, origin, EventType.MouseDown, target.center, Vector2.zero), overlay + " owns input ahead of edge controls");
+                Set(game, overlay, false);
+                Set(game, "suppressBoardPointerThroughFrame", Time.frameCount + 1);
+                Require(!Dispatch(game, grid, origin, EventType.MouseDown, target.center, Vector2.zero), "dismissal suppression protects edge controls too");
+                Set(game, "suppressBoardPointerThroughFrame", -1);
+                Set(game, "exploreWideView", false);
+                Require(!(bool)Invoke(game, "TryHandleExploreRegionEdgeControl", target.center, grid, origin, ViewSize, ViewSize),
+                    "Local Map cannot activate Region controls");
+                Require(Focus(game).X == state.PlayerX && Focus(game).Y == state.PlayerY && JsonUtility.ToJson(state) == before,
+                    "blocked and unsupported edge clicks never pan or mutate campaign state");
+            });
         }
 
         private static void ScrollDirectionsSupportBothPointerAxes()
@@ -139,6 +291,23 @@ namespace AshenHalls.Editor
                     Require(JsonUtility.ToJson(state) == before, overlayField + " pointer cancellation leaves campaign state unchanged");
                 });
             }
+        }
+
+        private static Rect EdgeFixtureGrid(Rect smallGrid)
+        {
+            ExplorationHudGeometry geometry = ExplorationHudScreenLayout.Calculate(Screen.width, Screen.height, false);
+            float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
+            // Batchmode's Game View can be 640x480. A fixed 400px fixture
+            // overlaps its real side rail even though the original100px board
+            // was clear, so route every edge through an actual free board area.
+            Rect grid = new Rect(smallGrid.x, smallGrid.y,
+                Mathf.Min(400f, geometry.Side.xMin - smallGrid.x - 8f * scale),
+                Mathf.Min(280f, geometry.Command.yMin - smallGrid.y - 8f * scale));
+            Require(grid.width >= 240f * scale && grid.height >= 180f * scale
+                && !geometry.Side.Overlaps(grid) && !geometry.Command.Overlaps(grid),
+                "edge fixture must fit actual board ownership; screen=" + Screen.width + "x" + Screen.height
+                + ", grid=" + grid + ", side=" + geometry.Side + ", command=" + geometry.Command);
+            return grid;
         }
 
         private static void WithFixture(bool region, Action<AshenHallsGame, GameState, Rect, Point> check)

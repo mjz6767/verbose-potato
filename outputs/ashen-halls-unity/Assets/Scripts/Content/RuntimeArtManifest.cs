@@ -36,6 +36,7 @@ namespace AshenHalls
         public const string WorldMapTokenSpriteAtlas = "world-map-token-sprite-atlas-runtime-v1.91.0.png";
         public const string WorldMapPropAtlas = "world-map-prop-atlas-runtime-v1.29.0.png";
         public const string WorldMapBiomePropAtlas = "world-map-biome-prop-atlas-runtime-v1.29.0.png";
+        public const string EnvironmentDetailAtlas = "world-environment-detail-atlas-runtime-v2.37.0.png";
         public const string WorldMapLandmarkAtlas = "world-map-landmark-atlas-runtime-v1.29.0.png";
         public const string WorldMapRegionLandmarkAtlas = "world-map-region-landmark-atlas-runtime-v1.65.0.png";
         public const string WorldMapRegionMarkerAtlas = "world-map-region-marker-atlas-runtime-v2.2.0.png";
@@ -107,6 +108,7 @@ namespace AshenHalls
             WorldMapTokenSpriteAtlas,
             WorldMapPropAtlas,
             WorldMapBiomePropAtlas,
+            EnvironmentDetailAtlas,
             WorldMapLandmarkAtlas,
             WorldMapRegionLandmarkAtlas,
             WorldMapRegionMarkerAtlas,

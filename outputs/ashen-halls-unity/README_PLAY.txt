@@ -1,4 +1,16 @@
-Ash & Brimstone v2.36.0 - Steel and Study
+Ash & Brimstone v2.37.0 - Roads and Resonance
+
+Release version: v2.37.0. Save schema: v27.
+
+Spell schools and martial techniques have clearer, more distinct sound effects. Reduced-audio and volume controls still apply. The town and wilderness gain sparse foliage, stones, reeds and ground details, with quieter path borders and fewer disconnected box marks. Existing NPC and building artwork is preserved.
+
+In Region Map, click an edge arrow to pan, or PARTY to return to the company. Hover identifies the control. The route header's +N is the continuation distance from the visible edge; the side panel still gives your immediate next step. Tab switches Local and Region views, and Home recenters Region Map.
+
+Loot is already collected when its receipt appears. Continue safely returns to play; Review tradeoff opens the full equipment comparison. Resources, item traits and relevant equipment changes are separated for clarity. Moving a missile weapon between heroes warns if its previous owner will lose shooting techniques or reach. Edda and Maud have new follow-up conversations after their optional stories, without duplicate rewards.
+
+Existing v27 saves remain compatible. Extract the whole ZIP into a new folder and keep AshAndBrimstone_Data beside AshAndBrimstone.exe. Final package verification is recorded in Docs/ReleaseEvidence/v2.37.0-summary.json after packaging. For a first-session route and feedback prompts, see Docs/FRIENDS_PLAYTEST.md.
+
+Previous release: v2.36.0 - Steel and Study
 
 Release version: v2.36.0. Save schema: v27.
 

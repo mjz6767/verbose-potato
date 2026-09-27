@@ -255,29 +255,29 @@ namespace AshenHalls
                 // Warrior.
                 case "charge": return Skill("charge", "charge", "swingheavy", "chargeimpact", "crit", 2, 0.18f, 0.96f, true, true, false);
                 case "rally": return Skill("rally", "rally", "guard", "ward", "resonance", 1, 0.10f, 1.02f, false, false, true);
-                case "shieldbash": return Skill("shieldbash", "guard", "swingheavy", "counter", "impactshield", 1, 0.16f, 0.94f, true, false, false);
+                case "shieldbash": return Skill("shieldbash", "shieldbrace", "swingheavy", "shieldbashhit", "", 1, 0.16f, 0.94f, true, false, false);
                 case "execute": return Skill("execute", "execute", "swingheavy", "executeimpact", "blade", 2, 0.18f, 0.92f, true, true, false);
-                case "cleave": return Skill("cleave", "blade", "swingheavy", "attack", "bladecontact", 1, 0.16f, 0.98f, true, false, false);
+                case "cleave": return Skill("cleave", "blade", "swingheavy", "cleavehit", "", 1, 0.16f, 0.98f, true, false, false);
                 case "whirlwind": return Skill("whirlwind", "whirlwind", "swing", "whirlwindimpact", "attack", 3, 0.10f, 0.94f, true, true, false, 0.04f);
-                case "sunder": return Skill("sunder", "swingheavy", "swingheavy", "impactshield", "breakcover", 2, 0.18f, 0.90f, true, true, false);
+                case "sunder": return Skill("sunder", "shieldbrace", "swingheavy", "sunderhit", "", 2, 0.18f, 0.90f, true, false, false);
 
                 // Rogue.
                 case "stealth": return Skill("stealth", "stealth", "", "status", "", 1, 0.08f, 1.04f, false, false, true);
                 case "ambush": return Skill("ambush", "ambush", "thrust", "ambushimpact", "crit", 2, 0.17f, 1.04f, true, false, false);
-                case "throwknife": return Skill("throwknife", "blade", "thrust", "bladecontact", "", 1, 0.20f, 1.06f, false, false, false);
-                case "smokebomb": return Skill("smokebomb", "smoke", "", "smoke", "status", 2, 0.08f, 0.98f, false, false, true);
-                case "hamstring": return Skill("hamstring", "eviscerate", "swing", "blade", "pinning", 1, 0.17f, 1.00f, true, false, false);
+                case "throwknife": return Skill("throwknife", "blade", "kniferelease", "thrustcontact", "", 1, 0.20f, 1.06f, false, false, false);
+                case "smokebomb": return Skill("smokebomb", "smokeprimer", "", "smokeburst", "", 2, 0.08f, 0.98f, false, false, false);
+                case "hamstring": return Skill("hamstring", "ambush", "thrust", "hamstringhit", "", 1, 0.17f, 1.00f, true, false, false);
                 case "eviscerate": return Skill("eviscerate", "eviscerate", "swingheavy", "eviscerateimpact", "death", 3, 0.18f, 0.94f, true, true, false, 0.04f);
                 case "shadowstep": return Skill("shadowstep", "stealth", "releaseveil", "ambushimpact", "bladecontact", 2, 0.22f, 1.02f, true, false, true);
 
                 // Ranger.
-                case "aimedshot": return Skill("aimedshot", "aimedshot", "arrowrelease", "arrowcontact", "bow", 1, 0.20f, 1.02f, false, false, false);
-                case "pinningshot": return Skill("pinningshot", "pinning", "arrowrelease", "arrowcontact", "fieldsnare", 1, 0.20f, 0.98f, false, false, false);
+                case "aimedshot": return Skill("aimedshot", "bowdraw", "arrowrelease", "arrowcontact", "", 1, 0.20f, 1.02f, false, false, false);
+                case "pinningshot": return Skill("pinningshot", "bowdraw", "arrowrelease", "arrowcontact", "fieldsnare", 1, 0.20f, 0.98f, false, false, false);
                 case "scoutmark": return Skill("scoutmark", "scoutmark", "arrowrelease", "mark", "status", 1, 0.20f, 1.05f, false, false, true);
                 case "volley": return Skill("volley", "volley", "arrowrelease", "arrowrain", "bow", 3, 0.34f, 0.98f, true, true, false, 0.04f);
-                case "broadheadshot": return Skill("broadheadshot", "aimedshot", "arrowrelease", "arrowcontact", "blade", 2, 0.20f, 0.96f, true, false, false);
-                case "disruptingshot": return Skill("disruptingshot", "aimedshot", "arrowrelease", "counter", "shock", 2, 0.20f, 1.04f, true, false, true);
-                case "quickshot": return Skill("quickshot", "aimedshot", "arrowrelease", "arrowcontact", "bow", 2, 0.24f, 1.06f, true, false, false);
+                case "broadheadshot": return Skill("broadheadshot", "bowdraw", "arrowrelease", "broadheadhit", "", 2, 0.20f, 0.96f, true, false, false);
+                case "disruptingshot": return Skill("disruptingshot", "bowdraw", "arrowrelease", "staggerhit", "", 2, 0.20f, 1.04f, true, false, false);
+                case "quickshot": return Skill("quickshot", "bowdraw", "twinshotrelease", "twinshothit", "", 2, 0.24f, 1.06f, false, false, false);
 
                 // Warlock demon-form skills.
                 case "riftpounce": return Skill("riftpounce", "riftpounce", "releasepact", "riftpounceimpact", "resonance", 3, 0.22f, 0.92f, true, true, true, 0.06f);

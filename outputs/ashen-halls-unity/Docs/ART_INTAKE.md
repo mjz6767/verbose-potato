@@ -3,6 +3,14 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
+## Active v2.37.0 environment detail contract
+
+`world-environment-detail-atlas-runtime-v2.37.0.png` is the unmodified transparent output from built-in ImageGen: 1774 by 887 pixels, four columns and two rows with fractional 443.5-pixel square UV cells. The eight row-major clusters are mossy rocks/ferns, bracken/roots, ruined stones, dry scrub, wet reeds/pebbles, a fallen mossy log, town cobbles/weeds and leaf litter. Preserve its pixels and alpha; do not resample it to the dimensions requested in the prompt. The accepted SHA-256 is `BE4B7E3BC08EB0DDABA2788EF920C0C7294365AA6384D36F421FA571CC2B4DEF`.
+
+The exact generation prompt and measured alpha/gutter/hash report are the sibling `world-environment-detail-atlas-v2.37.0-prompt.md` and `world-environment-detail-atlas-runtime-v2.37.0-validation.json`. Runtime and editor gates require the pinned geometry, readable transparency, populated cells, at least 16 pixels of visible-alpha gutter and no visible magenta residue. Only the PNG enters player packages. Existing NPC, building and terrain atlases remain unchanged.
+
+Placement is deterministic and sparse, replaces a competing ambient prop, and excludes paths, interiors, unknown cells, objects, threats, nearby party/objectives and route guidance. This adds presentation only: no collision, interaction, map generation or saved state. Missing or invalid art retains existing scenery. Final package evidence is recorded in `ReleaseEvidence/v2.37.0-summary.json` after packaging.
+
 ## Active v2.28.0 character, UI and building contracts
 
 Five original opaque `character-portrait-{human,dusk-elf,stoneborn,fenkin,ashling}-atlas-runtime-v2.28.0.png` sheets provide all 40 race/class portraits. Each unmodified ImageGen output is 1774 by 887 pixels, four columns by two rows. Fractional UVs retain original pixels; the common reading order is Rogue, Warrior, Ranger, Wizard, Mage, Warlock, Priest, Paladin. These are exact-pinned independent portrait families. See `CHARACTER_CREATION_v2.28.md`, `CHARACTER_CREATION_ART_PROMPTS_v2.28.md` and `CHARACTER_PORTRAIT_VALIDATION_v2.28.json` for mappings, original prompts, hashes and opaque/unique-content validation. No runtime AI service is involved.

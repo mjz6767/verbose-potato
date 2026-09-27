@@ -135,11 +135,14 @@ namespace AshenHalls.Editor
             CombatInputSmoke.RunOrThrow();
             CombatEffectsQualitySmoke.RunOrThrow();
             CombatAudioPolishSmoke.RunOrThrow();
+            SkillSpellAudioSmoke.RunOrThrow();
             DemonicCombatAudioSmoke.RunOrThrow();
             CombatImpactReadabilitySmoke.RunOrThrow();
             CombatDecisionPolishSmoke.RunOrThrow();
             CampaignRewardBalanceSmoke.RunOrThrow();
             TownConversationSmoke.RunOrThrow();
+            TownStoryFollowupSmoke.RunOrThrow();
+            LootRewardPresentationSmoke.RunOrThrow();
             RemembranceQuestSmoke.RunOrThrow();
             RemembranceItemSmoke.RunOrThrow();
             HonestWeightQuestSmoke.RunOrThrow();
@@ -166,6 +169,7 @@ namespace AshenHalls.Editor
             ExplorationHudScreenLayoutFitsSupportedResolutions();
             WorldMapHudAuditSmoke.RunOrThrow();
             WorldMapScenePresentationSmoke.RunOrThrow();
+            EnvironmentDetailPresentationSmoke.RunOrThrow();
             WorldMapNavigationAuditSmoke.RunOrThrow();
             WorldMapGuidanceAuditSmoke.RunOrThrow();
             WorldMapInspectionAuditSmoke.RunOrThrow();
@@ -337,6 +341,7 @@ namespace AshenHalls.Editor
             };
             expectedKeys = expectedKeys.Concat(GameAudioCueRules.EverydayCueKeys)
                 .Concat(PartySetupAudioRules.CueKeys)
+                .Concat(SkillSpellAudioRules.CueKeys)
                 .Concat(GameAudioCueRules.VariedFootstepKeys.SelectMany(key => new[] { key + "__v1", key + "__v2" }))
                 .ToArray();
             string[] paths = AssetDatabase.FindAssets(
@@ -3451,7 +3456,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.36.0", VersionInfo.PackageVersion, "package version marks Steel and Study");
+            AssertEqual("v2.37.0", VersionInfo.PackageVersion, "package version marks Roads and Resonance");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -3513,10 +3518,10 @@ namespace AshenHalls.Editor
             AssertEqual("ash-and-brimstone-icon-runtime-v1.61.0.png", RuntimeArtManifest.GameIcon, "approved v1.61 game-icon pin");
             AssertEqual("roaming-threat-atlas-runtime-v1.62.0.png", RuntimeArtManifest.RoamingThreatAtlas, "approved v1.62 roaming-threat atlas pin");
             AssertEqual(
-                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png|unique-item-atlas-runtime-v2.20.0.png|remembrance-item-atlas-runtime-v2.32.0.png|honest-weight-item-atlas-runtime-v2.34.0.png|road-stock-item-atlas-runtime-v2.35.0.png|title-backdrop-runtime-v2.4.0.png|character-workshop-backdrop-runtime-v2.29.0.png|tavern-ui-atlas-runtime-v1.5.9.png|ui-hearth-divider-runtime-v2.28.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|title-menu-icon-atlas-runtime-v2.16.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v2.28.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-road-surface-atlas-runtime-v2.21.0.png|midgaard-npc-atlas-runtime-v2.32.0.png|world-npc-citizen-atlas-runtime-v2.32.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|character-portrait-human-atlas-runtime-v2.28.0.png|character-portrait-dusk-elf-atlas-runtime-v2.28.0.png|character-portrait-stoneborn-atlas-runtime-v2.28.0.png|character-portrait-fenkin-atlas-runtime-v2.28.0.png|character-portrait-ashling-atlas-runtime-v2.28.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
+                "ability-icon-atlas-runtime-v2.9.0.png|signature-spell-icon-atlas-runtime-v2.9.0.png|lightning-spell-icon-atlas-runtime-v1.97.0.png|power-book-state-icon-atlas-runtime-v1.97.0.png|combat-command-icon-atlas-runtime-v1.99.0.png|magic-ui-atlas-runtime-v1.31.0.png|spell-animation-atlas-runtime-v1.49.0.png|combat-spell-effects-atlas-runtime-v2.9.0.png|mage-warlock-spell-vfx-atlas-runtime-v2.13.0.png|support-hex-spell-vfx-atlas-runtime-v2.14.0.png|class-skill-vfx-atlas-runtime-v2.14.0.png|combat-power-travel-vfx-atlas-runtime-v2.15.0.png|combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png|unique-item-atlas-runtime-v2.20.0.png|remembrance-item-atlas-runtime-v2.32.0.png|honest-weight-item-atlas-runtime-v2.34.0.png|road-stock-item-atlas-runtime-v2.35.0.png|title-backdrop-runtime-v2.4.0.png|character-workshop-backdrop-runtime-v2.29.0.png|tavern-ui-atlas-runtime-v1.5.9.png|ui-hearth-divider-runtime-v2.28.png|title-menu-scroll-runtime-v2.12.1.png|title-menu-focus-runtime-v2.12.1.png|title-menu-icon-atlas-runtime-v2.16.0.png|midgaard-gate-atlas-runtime-v1.93.0.png|midgaard-wall-atlas-runtime-v1.91.0.png|world-map-exploration-tile-atlas-runtime-v1.68.0.png|world-map-material-atlas-runtime-v1.92.0.png|world-map-overlay-atlas-runtime-v0.80.png|world-map-progression-overlay-atlas-runtime-v0.63.png|world-map-ui-atlas-runtime-v1.6.0.png|world-map-token-sprite-atlas-runtime-v1.91.0.png|world-map-prop-atlas-runtime-v1.29.0.png|world-map-biome-prop-atlas-runtime-v1.29.0.png|world-environment-detail-atlas-runtime-v2.37.0.png|world-map-landmark-atlas-runtime-v1.29.0.png|world-map-region-landmark-atlas-runtime-v1.65.0.png|world-map-region-marker-atlas-runtime-v2.2.0.png|world-area-setpiece-atlas-runtime-v2.3.0.png|world-threat-habitat-atlas-runtime-v2.4.0.png|player-exploration-role-atlas-runtime-v2.4.0.png|midgaard-town-atlas-runtime-v2.28.0.png|midgaard-tile-atlas-runtime-v1.6.3.png|midgaard-city-prop-atlas-runtime-v1.29.0.png|midgaard-street-life-atlas-runtime-v1.50.0.png|midgaard-paving-decal-atlas-runtime-v1.50.0.png|midgaard-road-surface-atlas-runtime-v2.21.0.png|midgaard-npc-atlas-runtime-v2.32.0.png|world-npc-citizen-atlas-runtime-v2.32.0.png|route-scaffold-atlas-runtime-v1.30.0.png|kobold-route-atlas-runtime-v1.30.0.png|midgaard-sewer-atlas-runtime-v1.30.0.png|npc-portrait-atlas-runtime-v1.60.0.png|character-combat-atlas-runtime-v1.93.0.png|character-portrait-human-atlas-runtime-v2.28.0.png|character-portrait-dusk-elf-atlas-runtime-v2.28.0.png|character-portrait-stoneborn-atlas-runtime-v2.28.0.png|character-portrait-fenkin-atlas-runtime-v2.28.0.png|character-portrait-ashling-atlas-runtime-v2.28.0.png|enemy-sprite-atlas-runtime-v1.77.0.png|demon-summon-atlas-runtime-v1.4.0.png|midgaard-interior-prop-atlas-runtime-v1.61.0.png|midgaard-interior-tile-atlas-runtime-v1.61.0.png|grand-hearth-floor-atlas-runtime-v2.7.0.png|grand-hearth-setpiece-atlas-runtime-v2.7.0.png|grand-hearth-ambience-atlas-runtime-v2.8.0.png|ash-and-brimstone-title-card-runtime-v1.64.0.png|ash-and-brimstone-icon-runtime-v1.61.0.png|roaming-threat-atlas-runtime-v1.62.0.png",
                 string.Join("|", RuntimeArtManifest.ApprovedRuntimeFiles),
                 "approved runtime atlas manifest");
-            AssertEqual(68, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
+            AssertEqual(69, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct().Count(), "approved runtime atlas pins are unique");
 
             Dictionary<ExplorationMaterial, int> materialIndices = new Dictionary<ExplorationMaterial, int>
             {
@@ -9354,8 +9359,8 @@ namespace AshenHalls.Editor
             AssertEqual(false, SignatureItemCatalog.RepairIdentity(proceduralLookalike), "procedural lookalike remains mutation-free during repair");
 
             AssertEqual("unique-item-atlas-runtime-v2.20.0.png", RuntimeArtManifest.UniqueItemAtlas, "signature-item art uses the exact approved v2.20 atlas");
-            AssertEqual(68, RuntimeArtManifest.ApprovedRuntimeFiles.Length, "approved runtime manifest includes all 68 exact pins");
-            AssertEqual(68, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct(StringComparer.Ordinal).Count(), "approved runtime manifest has no duplicate pins");
+            AssertEqual(69, RuntimeArtManifest.ApprovedRuntimeFiles.Length, "approved runtime manifest includes all 69 exact pins");
+            AssertEqual(69, RuntimeArtManifest.ApprovedRuntimeFiles.Distinct(StringComparer.Ordinal).Count(), "approved runtime manifest has no duplicate pins");
             AssertEqual(1, RuntimeArtManifest.ApprovedRuntimeFiles.Count(file => file == RuntimeArtManifest.UniqueItemAtlas), "signature-item atlas appears once in the approved runtime manifest");
 
             Texture2D atlas = null;

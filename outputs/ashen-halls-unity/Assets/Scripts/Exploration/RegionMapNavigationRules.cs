@@ -72,6 +72,103 @@ namespace AshenHalls
         public const float RepeatInterval = 0.10f;
         public const float PointerDragThreshold = 7f;
 
+        // Rendering and input share one exact rectangle: a painted edge button
+        // never secretly selects the map tile beneath it.
+        public static Rect EdgeControlRect(Rect grid, float scale, ExplorationMapEdge edge, bool party)
+        {
+            scale = Mathf.Max(0.75f, scale);
+            if (grid.width < 240f * scale || grid.height < 180f * scale) return Rect.zero;
+            float width = (party ? 60f : 32f) * scale;
+            float height = 28f * scale;
+            float inset = 6f * scale;
+            switch (edge)
+            {
+                case ExplorationMapEdge.West: return new Rect(grid.x + inset, grid.center.y - height * 0.5f, width, height);
+                case ExplorationMapEdge.East: return new Rect(grid.xMax - inset - width, grid.center.y - height * 0.5f, width, height);
+                case ExplorationMapEdge.North: return new Rect(grid.center.x - width * 0.5f, grid.y + inset, width, height);
+                case ExplorationMapEdge.South: return new Rect(grid.center.x - width * 0.5f, grid.yMax - inset - height, width, height);
+                default: return Rect.zero;
+            }
+        }
+
+        public static bool CanPanEdge(ExplorationMapEdge edge, Point origin, int viewWidth, int viewHeight, int mapWidth, int mapHeight)
+        {
+            if (origin == null || viewWidth <= 0 || viewHeight <= 0) return false;
+            switch (edge)
+            {
+                case ExplorationMapEdge.West: return origin.X > 0;
+                case ExplorationMapEdge.East: return origin.X + viewWidth < mapWidth;
+                case ExplorationMapEdge.North: return origin.Y > 0;
+                case ExplorationMapEdge.South: return origin.Y + viewHeight < mapHeight;
+                default: return false;
+            }
+        }
+
+        public static bool TryHitEdgeControl(Vector2 position, Rect grid, float scale, Point origin,
+            int viewWidth, int viewHeight, int mapWidth, int mapHeight, int playerX, int playerY,
+            out ExplorationMapEdge edge, out bool party)
+        {
+            edge = ExplorationMapEdge.None;
+            party = false;
+            if (!grid.Contains(position)) return false;
+            ExplorationMapEdge partyEdge = PartyEdge(playerX, playerY, origin, viewWidth, viewHeight);
+            for (int i = (int)ExplorationMapEdge.North; i <= (int)ExplorationMapEdge.West; i++)
+            {
+                ExplorationMapEdge candidate = (ExplorationMapEdge)i;
+                if (!CanPanEdge(candidate, origin, viewWidth, viewHeight, mapWidth, mapHeight)) continue;
+                bool isParty = candidate == partyEdge;
+                Rect target = EdgeControlRect(grid, scale, candidate, isParty);
+                if (target.width <= 0f || !target.Contains(position)) continue;
+                edge = candidate;
+                party = isParty;
+                return true;
+            }
+            return false;
+        }
+
+        public static string EdgeControlLabel(ExplorationMapEdge edge, bool party)
+        {
+            if (edge == ExplorationMapEdge.None) return "";
+            if (party) return "Return to party";
+            switch (edge)
+            {
+                case ExplorationMapEdge.North: return "Pan north";
+                case ExplorationMapEdge.East: return "Pan east";
+                case ExplorationMapEdge.South: return "Pan south";
+                case ExplorationMapEdge.West: return "Pan west";
+                default: return "";
+            }
+        }
+
+        public static ExplorationMapEdge PartyEdge(int playerX, int playerY, Point origin, int viewWidth, int viewHeight)
+        {
+            if (origin == null || viewWidth <= 0 || viewHeight <= 0) return ExplorationMapEdge.None;
+            int dx = playerX < origin.X ? playerX - origin.X
+                : playerX >= origin.X + viewWidth ? playerX - (origin.X + viewWidth - 1) : 0;
+            int dy = playerY < origin.Y ? playerY - origin.Y
+                : playerY >= origin.Y + viewHeight ? playerY - (origin.Y + viewHeight - 1) : 0;
+            if (dx != 0 && Mathf.Abs(dx) >= Mathf.Abs(dy))
+                return dx < 0 ? ExplorationMapEdge.West : ExplorationMapEdge.East;
+            if (dy != 0) return dy < 0 ? ExplorationMapEdge.North : ExplorationMapEdge.South;
+            return ExplorationMapEdge.None;
+        }
+
+        public static Point EdgePanDelta(ExplorationMapEdge edge, int viewWidth, int viewHeight)
+        {
+            // One quarter-screen keeps context between clicks without dozens
+            // of single-cell presses. ClampFocus still owns map boundaries.
+            int horizontal = Mathf.Max(1, viewWidth / 4);
+            int vertical = Mathf.Max(1, viewHeight / 4);
+            switch (edge)
+            {
+                case ExplorationMapEdge.West: return new Point(-horizontal, 0);
+                case ExplorationMapEdge.East: return new Point(horizontal, 0);
+                case ExplorationMapEdge.North: return new Point(0, -vertical);
+                case ExplorationMapEdge.South: return new Point(0, vertical);
+                default: return new Point(0, 0);
+            }
+        }
+
         public static Point ClampFocus(int focusX, int focusY, int mapWidth, int mapHeight)
         {
             int lastX = Mathf.Max(0, mapWidth - 1);

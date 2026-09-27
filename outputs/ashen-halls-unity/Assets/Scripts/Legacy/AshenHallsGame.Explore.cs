@@ -1686,7 +1686,6 @@ namespace AshenHalls
                 int x = origin.X + vx;
                 int y = origin.Y + vy;
                 Rect c = new Rect(grid.x + vx * cell, grid.y + vy * cell, cell, cell);
-                int distance = Distance(x, y, state.PlayerX, state.PlayerY);
                 int tile = TileAt(state.Map, x, y);
                 if (exploreWideView && !IsExploreCellCharted(x, y))
                 {
@@ -1696,15 +1695,9 @@ namespace AshenHalls
                 string tileKind = ExploreTileKind(x, y, tile);
                 bool drewTileArt = TryDrawExploreEnvironmentTile(c, x, y, tile, tileKind);
                 if (!drewTileArt) DrawExploreTileMotif(c, x, y, tile);
-                else if (!tileKind.StartsWith("midgaard")
-                    && ExplorationReadabilityRules.ShouldDrawProceduralGroundAccent(
-                        distance,
-                        ObjectAt(state.Map, x, y) != null,
-                        exploreWideView,
-                        ExploreNoise(x, y, 211)))
-                {
-                    DrawExploreTileAccent(c, x, y, tile, tileKind);
-                }
+                // Authored surfaces already own cracks, gravel and grain.
+                // The old rectangular accent layer made textured ground look
+                // like a debug grid; procedural motifs remain the art fallback.
                 DrawExploreMaterialFeather(c, x, y, tile);
                 bool midgaardInterior = IsMidgaardInteriorCell(x, y, state.Map, state.Depth);
                 if (midgaardInterior || !ExplorationSurfaceRules.IsPath(ExploreRolesAt(x, y)))
@@ -2217,6 +2210,7 @@ namespace AshenHalls
                 // Exterior passersby are soft scenery. A selected silhouette
                 // replaces the procedural prop in its cell.
                 if (TryDrawWorldExteriorAmbientCitizen(c, x, y, tile, guidanceCells)) continue;
+                if (TryDrawExploreEnvironmentDetail(c, x, y, tile, guidanceCells)) continue;
                 DrawMidgaardAmbientProp(c, x, y, tile, tileKind, guidanceCells);
                 DrawExploreBiomeAmbientProp(c, x, y, tile, tileKind, guidanceCells);
             }
@@ -3426,51 +3420,66 @@ namespace AshenHalls
             float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
             int labelSize = ExplorationHudScreenLayout.FontSize(9, Screen.width, Screen.height);
             GUIStyle hintStyle = CenterStyle(labelSize, Hex("f3ead7", 0.88f));
-            int partyOffsetX = state.PlayerX < origin.X
-                ? state.PlayerX - origin.X
-                : state.PlayerX >= origin.X + viewW
-                    ? state.PlayerX - (origin.X + viewW - 1)
-                    : 0;
-            int partyOffsetY = state.PlayerY < origin.Y
-                ? state.PlayerY - origin.Y
-                : state.PlayerY >= origin.Y + viewH
-                    ? state.PlayerY - (origin.Y + viewH - 1)
-                    : 0;
-            bool partyOnHorizontalEdge = partyOffsetX != 0
-                && Mathf.Abs(partyOffsetX) >= Mathf.Abs(partyOffsetY);
-            bool partyOnVerticalEdge = partyOffsetY != 0 && !partyOnHorizontalEdge;
-            bool partyLeft = partyOnHorizontalEdge && partyOffsetX < 0;
-            bool partyRight = partyOnHorizontalEdge && partyOffsetX > 0;
-            bool partyUp = partyOnVerticalEdge && partyOffsetY < 0;
-            bool partyDown = partyOnVerticalEdge && partyOffsetY > 0;
-
-            if (canPanLeft) DrawExploreRegionPanHint(
-                new Rect(grid.x + 8f * scale, grid.center.y - 11f * scale, (partyLeft ? 56f : 24f) * scale, 22f * scale),
-                partyLeft ? "PARTY" : "<",
-                hintStyle,
-                partyLeft ? teal : gold);
-            if (canPanRight) DrawExploreRegionPanHint(
-                new Rect(grid.xMax - (partyRight ? 64f : 32f) * scale, grid.center.y - 11f * scale, (partyRight ? 56f : 24f) * scale, 22f * scale),
-                partyRight ? "PARTY" : ">",
-                hintStyle,
-                partyRight ? teal : gold);
-            if (canPanUp) DrawExploreRegionPanHint(
-                new Rect(grid.center.x - (partyUp ? 28f : 12f) * scale, grid.y + 8f * scale, (partyUp ? 56f : 24f) * scale, 22f * scale),
-                partyUp ? "PARTY" : "^",
-                hintStyle,
-                partyUp ? teal : gold);
-            if (canPanDown) DrawExploreRegionPanHint(
-                new Rect(grid.center.x - (partyDown ? 28f : 12f) * scale, grid.yMax - 30f * scale, (partyDown ? 56f : 24f) * scale, 22f * scale),
-                partyDown ? "PARTY" : "v",
-                hintStyle,
-                partyDown ? teal : gold);
+            ExplorationMapEdge partyEdge = RegionMapNavigationRules.PartyEdge(state.PlayerX, state.PlayerY, origin, viewW, viewH);
+            ExplorationMapEdge hoveredEdge = ExplorationMapEdge.None;
+            if (Event.current != null)
+                TryResolveExploreRegionEdgeControl(Event.current.mousePosition, grid, origin, viewW, viewH, out hoveredEdge, out _);
+            for (int i = (int)ExplorationMapEdge.North; i <= (int)ExplorationMapEdge.West; i++)
+            {
+                ExplorationMapEdge side = (ExplorationMapEdge)i;
+                if (!RegionMapNavigationRules.CanPanEdge(side, origin, viewW, viewH, state.Map.Width, state.Map.Height)) continue;
+                bool party = side == partyEdge;
+                Rect target = RegionMapNavigationRules.EdgeControlRect(grid, scale, side, party);
+                if (target.width <= 0f) continue;
+                string arrow = side == ExplorationMapEdge.North ? "^" : side == ExplorationMapEdge.East ? ">" : side == ExplorationMapEdge.South ? "v" : "<";
+                DrawExploreRegionPanHint(target, party ? "PARTY" : arrow, hintStyle, party ? teal : gold, side == hoveredEdge);
+            }
         }
 
-        private void DrawExploreRegionPanHint(Rect rect, string text, GUIStyle style, Color accent)
+        private void DrawExploreRegionPanHint(Rect rect, string text, GUIStyle style, Color accent, bool hovered)
         {
-            DrawRect(rect, Hex("030607", 0.78f));
-            DrawBorder(rect, accent.WithAlpha(0.58f), 1);
+            DrawRect(rect, Hex(hovered ? "27332e" : "030607", 0.88f));
+            DrawBorder(rect, accent.WithAlpha(hovered ? 0.96f : 0.58f), 1);
             GUI.Label(rect, text, style);
+        }
+
+        private bool TryHandleExploreRegionEdgeControl(Vector2 position, Rect grid, Point origin, int viewW, int viewH)
+        {
+            if (!TryResolveExploreRegionEdgeControl(position, grid, origin, viewW, viewH, out ExplorationMapEdge side, out bool party)) return false;
+            ResetRegionMapPointerGesture();
+            ReleaseRegionMapHudSelection();
+            if (party) ResetRegionMapFocusToParty();
+            else
+            {
+                Point delta = RegionMapNavigationRules.EdgePanDelta(side, viewW, viewH);
+                Point focus = EnsureRegionMapFocus();
+                // The selected cell can sit against a clamped map edge.
+                // Pan from the viewport center on the requested axis so a
+                // visible arrow always moves the camera on its first click.
+                SetRegionMapFocus(
+                    delta.X != 0 ? origin.X + viewW / 2 + delta.X : focus.X,
+                    delta.Y != 0 ? origin.Y + viewH / 2 + delta.Y : focus.Y);
+            }
+            return true;
+        }
+
+        private bool CanHoverExploreBoard(Vector2 position, Rect grid)
+        {
+            return state?.Map != null && state.Mode == GameMode.Explore && !IsBoardPointerSuppressed()
+                && ScreenInputRules.ShouldRouteBoardPointer(CurrentUiOverlay(),
+                    UnityEngine.EventSystems.EventSystem.current != null && UnityEngine.EventSystems.EventSystem.current.IsPointerOverGameObject(),
+                    grid.Contains(position), SidePanelRect().Contains(position), ExploreCommandBarRect().Contains(position));
+        }
+
+        private bool TryResolveExploreRegionEdgeControl(Vector2 position, Rect grid, Point origin, int viewW, int viewH,
+            out ExplorationMapEdge side, out bool party)
+        {
+            side = ExplorationMapEdge.None;
+            party = false;
+            return exploreWideView && CanHoverExploreBoard(position, grid)
+                && RegionMapNavigationRules.TryHitEdgeControl(position, grid,
+                    ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height), origin,
+                    viewW, viewH, state.Map.Width, state.Map.Height, state.PlayerX, state.PlayerY, out side, out party);
         }
 
         private void DrawExploreRegionFocus(Rect grid, float cell, Point origin, int viewW, int viewH)
@@ -3543,12 +3552,15 @@ namespace AshenHalls
                 string.IsNullOrEmpty(routeLabel) ? 0f : routeStyle.CalcSize(new GUIContent(routeLabel)).x);
             // Hover inspection takes the otherwise repeated location slot;
             // the side rail retains the actual location and objective.
-            bool hoverHeading = !exploreWideView && !string.IsNullOrEmpty(exploreHoverHeading)
+            bool hoverHeading = (!exploreWideView || exploreHoverMapX < 0) && !string.IsNullOrEmpty(exploreHoverHeading)
                 && (exploreHoverMapX != state.PlayerX || exploreHoverMapY != state.PlayerY);
             if (hoverHeading) region = exploreHoverHeading;
             string threatWarning = !exploreWideView && !hoverHeading ? ExploreNearbyThreatLine() : "";
             if (!string.IsNullOrEmpty(threatWarning)) region = threatWarning;
-            int regionBaseSize = hoverHeading || !string.IsNullOrEmpty(threatWarning) ? 12 : region.Length > 20 ? 14 : 16;
+            bool routeHovered = !string.IsNullOrEmpty(routeLabel) && Event.current != null
+                && columns.Route.Contains(Event.current.mousePosition);
+            if (routeHovered) region = ExplorationScenePresentationRules.RouteExitDescription(routeExit);
+            int regionBaseSize = hoverHeading || routeHovered || !string.IsNullOrEmpty(threatWarning) ? 12 : region.Length > 20 ? 14 : 16;
             int regionSize = ExplorationHudScreenLayout.FontSize(regionBaseSize, Screen.width, Screen.height);
             int statusSize = ExplorationHudScreenLayout.FontSize(11, Screen.width, Screen.height);
             GUI.Label(columns.Location, FitText(region, columns.Location.width, CenterLeftStyle(regionSize, Hex("e3ba63"))), CenterLeftStyle(regionSize, Hex("e3ba63")));
@@ -3560,15 +3572,30 @@ namespace AshenHalls
             {
                 DrawRect(columns.Route, Hex("030405", 0.94f));
                 DrawBorder(columns.Route, gold.WithAlpha(markedWaypoint ? 0.98f : 0.84f), markedWaypoint ? 2 : 1);
-                GUI.Label(columns.Route, routeLabel, routeStyle);
+                GUI.Label(columns.Route, new GUIContent(routeLabel, ExplorationScenePresentationRules.RouteExitDescription(routeExit)), routeStyle);
             }
         }
 
         private void UpdateExploreHoverLook(Rect grid, float cell, Point origin, int viewW, int viewH)
         {
-            if (Event.current == null || !grid.Contains(Event.current.mousePosition)) return;
-            if (SidePanelRect().Contains(Event.current.mousePosition)) return;
-            if (!TryExploreGridToMap(grid, cell, origin, viewW, viewH, Event.current.mousePosition, out int x, out int y)) return;
+            if (Event.current == null) return;
+            UpdateExploreHoverLookAt(Event.current.mousePosition, grid, cell, origin, viewW, viewH);
+        }
+
+        private void UpdateExploreHoverLookAt(Vector2 position, Rect grid, float cell, Point origin, int viewW, int viewH)
+        {
+            exploreHoverLookLine = "";
+            exploreHoverHeading = "";
+            exploreHoverMapX = -1;
+            exploreHoverMapY = -1;
+            if (!CanHoverExploreBoard(position, grid)) return;
+            if (TryResolveExploreRegionEdgeControl(position, grid, origin, viewW, viewH, out ExplorationMapEdge edge, out bool party))
+            {
+                exploreHoverHeading = RegionMapNavigationRules.EdgeControlLabel(edge, party);
+                exploreHoverLookLine = exploreHoverHeading + " / browse only; the party stays in place";
+                return;
+            }
+            if (!TryExploreGridToMap(grid, cell, origin, viewW, viewH, position, out int x, out int y)) return;
             exploreHoverMapX = x;
             exploreHoverMapY = y;
             exploreHoverLookLine = ExploreLookLineWithHeading(x, y, out exploreHoverHeading);
@@ -3582,8 +3609,8 @@ namespace AshenHalls
             int viewH,
             HashSet<int> guidanceCells)
         {
-            if (Event.current == null || !grid.Contains(Event.current.mousePosition)) return;
-            if (SidePanelRect().Contains(Event.current.mousePosition)) return;
+            if (Event.current == null || !CanHoverExploreBoard(Event.current.mousePosition, grid)) return;
+            if (TryResolveExploreRegionEdgeControl(Event.current.mousePosition, grid, origin, viewW, viewH, out _, out _)) return;
             if (!TryExploreGridToMap(grid, cell, origin, viewW, viewH, Event.current.mousePosition, out int x, out int y)) return;
 
             Rect tile = new Rect(grid.x + (x - origin.X) * cell, grid.y + (y - origin.Y) * cell, cell, cell);
@@ -5302,6 +5329,7 @@ namespace AshenHalls
             // A wheel event reports button zero too. Only an explicit left
             // press may travel or interact in Local Map.
             if (pointer.Type != EventType.MouseDown || pointer.Button != 0) return false;
+            if (TryHandleExploreRegionEdgeControl(pointer.Position, grid, origin, viewW, viewH)) return true;
             if (!TryExploreGridToMap(grid, cell, origin, viewW, viewH, pointer.Position, out int x, out int y)) return false;
             if (exploreWideView)
             {
@@ -5751,6 +5779,9 @@ namespace AshenHalls
             if (!plan.Draw) return;
 
             ExploreRoadPalette(plan, material, out Color shoulder, out Color core, out Color detail, out Color rut);
+            ExplorationRoadPresentationRules.GroundStrokeOpacityScale(plan, out float shoulderOpacity, out float coreOpacity);
+            shoulder.a *= shoulderOpacity;
+            core.a *= coreOpacity;
             float shoulderWidth = rect.width * plan.ShoulderFraction;
             float coreWidth = rect.width * plan.CoreFraction;
             if (plan.ConnectorMask != 0)

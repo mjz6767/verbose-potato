@@ -105,10 +105,9 @@ namespace AshenHalls
             bool equippable = InventoryEquipmentRules.IsEquippable(item);
             PartyMember owner = equippable ? EquippedMember(item) : null;
             PartyMember best = null;
-            int bestComparisonScore = 0;
             if (equippable && owner == null)
             {
-                best = BestLootInventoryFit(item, out _, out bestComparisonScore);
+                best = BestLootInventoryFit(item, out _, out _);
             }
             bool requiresReview = best != null
                 && InventoryChangeRequiresReview(item, best);
@@ -117,6 +116,8 @@ namespace AshenHalls
             if (hasItem) TryGetInventoryItemIcon(item, out iconTexture, out iconUv);
             bool canReview = hasItem && state?.Inventory != null && state.Inventory.Contains(item);
             bool canQuickEquip = canReview && equippable && owner == null && best != null && !requiresReview;
+            string comparisonStats = best == null ? "" : InventoryComparisonLine(item, best);
+            string comparisonGrade = best == null ? "" : InventoryGradeLabelFor(item, best);
             string comparison = !hasItem
                 ? ""
                 : !equippable
@@ -125,7 +126,7 @@ namespace AshenHalls
                         ? ""
                         : best == null
                             ? ""
-                            : $"Best fit: {best.Name}  •  {InventoryGradeLabelFor(item, best)}  •  {InventoryComparisonLine(item, best)}";
+                            : $"Best fit: {best.Name}  •  {comparisonGrade}  •  {comparisonStats}";
             return new LootPopupView
             {
                 Visible = state != null
@@ -146,6 +147,15 @@ namespace AshenHalls
                         ? "Quest item secured"
                         : owner != null ? $"Equipped by {owner.Name}" : "Added to inventory",
                 Comparison = comparison,
+                ComparisonTitle = !hasItem ? "" : !equippable
+                    ? "Quest reward"
+                    : owner != null ? "Current equipment"
+                    : best != null ? $"Best fit: {best.Name}  ·  {comparisonGrade}" : "Equipment",
+                ComparisonSummary = !hasItem ? "" : !equippable
+                    ? "Kept with your quest items.\nDoes not replace equipped gear."
+                    : owner != null ? $"Equipped by {owner.Name}.\nReview in Inventory to reassign."
+                    : best == null ? "No available adventurer can equip this now.\nSafely kept in your inventory."
+                    : LootRewardPresentationRules.ComparisonPreview(comparisonStats),
                 ReviewActionLabel = !hasItem
                     ? ""
                     : !equippable

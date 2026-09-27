@@ -1,0 +1,164 @@
+{
+  "tool": "built-in image_gen",
+  "output": "world-environment-detail-atlas-runtime-v2.37.0.png",
+  "sha256": "be4b7e3bc08eb0ddaba2788ef920c0c7294365aa6384d36f421fa571cc2b4def",
+  "width": 1774,
+  "height": 887,
+  "columns": 4,
+  "rows": 2,
+  "alphaUnmodified": true,
+  "cells": [
+    {
+      "cell": 0,
+      "visibleAlpha16": 64196,
+      "transparent": 116584,
+      "lowAlpha1to8": 15617,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        35,
+        112,
+        417,
+        374
+      ],
+      "guttersLTRB": [
+        35,
+        112,
+        27,
+        70
+      ]
+    },
+    {
+      "cell": 1,
+      "visibleAlpha16": 75849,
+      "transparent": 104058,
+      "lowAlpha1to8": 15702,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        21,
+        93,
+        427,
+        378
+      ],
+      "guttersLTRB": [
+        21,
+        93,
+        16,
+        66
+      ]
+    },
+    {
+      "cell": 2,
+      "visibleAlpha16": 58034,
+      "transparent": 124699,
+      "lowAlpha1to8": 13072,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        37,
+        125,
+        425,
+        368
+      ],
+      "guttersLTRB": [
+        37,
+        125,
+        18,
+        76
+      ]
+    },
+    {
+      "cell": 3,
+      "visibleAlpha16": 57980,
+      "transparent": 124201,
+      "lowAlpha1to8": 13639,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        37,
+        107,
+        405,
+        368
+      ],
+      "guttersLTRB": [
+        37,
+        107,
+        39,
+        76
+      ]
+    },
+    {
+      "cell": 4,
+      "visibleAlpha16": 71883,
+      "transparent": 99727,
+      "lowAlpha1to8": 23418,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        32,
+        32,
+        422,
+        376
+      ],
+      "guttersLTRB": [
+        32,
+        32,
+        22,
+        67
+      ]
+    },
+    {
+      "cell": 5,
+      "visibleAlpha16": 57859,
+      "transparent": 122218,
+      "lowAlpha1to8": 15430,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        31,
+        114,
+        422,
+        330
+      ],
+      "guttersLTRB": [
+        31,
+        114,
+        21,
+        113
+      ]
+    },
+    {
+      "cell": 6,
+      "visibleAlpha16": 81504,
+      "transparent": 96230,
+      "lowAlpha1to8": 17072,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        22,
+        74,
+        422,
+        371
+      ],
+      "guttersLTRB": [
+        22,
+        74,
+        21,
+        72
+      ]
+    },
+    {
+      "cell": 7,
+      "visibleAlpha16": 52201,
+      "transparent": 127936,
+      "lowAlpha1to8": 15500,
+      "magentaResidue": 0,
+      "boundsXYXY": [
+        32,
+        107,
+        411,
+        345
+      ],
+      "guttersLTRB": [
+        32,
+        107,
+        33,
+        98
+      ]
+    }
+  ]
+}

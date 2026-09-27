@@ -135,6 +135,13 @@ namespace AshenHalls
                 && tier == ExplorationRoadVisualTier.OldRoad
                 && join == ExplorationRoadJoin.Straight;
             bool civicSurface = UsesCivicCobbleSurface(tier, roles);
+            // A disconnected earthen role is ground, not a tiny outlined box.
+            // Keep genuine endpoints/branches and semantic civic, bridge and
+            // doorway surfaces, including when they have no path neighbors.
+            bool retainApron = (mainMask | connectorMask) != 0
+                || civicSurface
+                || bridge
+                || (roles & ExplorationCellRole.Threshold) != 0;
             return new ExplorationRoadVisualPlan(
                 tier,
                 join,
@@ -144,7 +151,22 @@ namespace AshenHalls
                 core,
                 centerWear,
                 civicSurface,
-                ShouldDrawJunctionApron(join));
+                retainApron && ShouldDrawJunctionApron(join));
+        }
+
+        public static void GroundStrokeOpacityScale(
+            ExplorationRoadVisualPlan plan,
+            out float shoulder,
+            out float core)
+        {
+            bool earthen = !plan.CivicSurface
+                && (plan.Tier == ExplorationRoadVisualTier.Trail
+                    || plan.Tier == ExplorationRoadVisualTier.Road
+                    || plan.Tier == ExplorationRoadVisualTier.OldRoad);
+            // Preserve the route's full geometry and procedural fallback while
+            // allowing underlying terrain to show through its heavy dark rim.
+            shoulder = earthen ? 0.55f : 1f;
+            core = earthen ? 0.85f : 1f;
         }
 
         public static bool ShouldDrawJunctionApron(ExplorationRoadJoin join)

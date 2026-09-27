@@ -46,8 +46,27 @@ namespace AshenHalls
                 case ExplorationMapEdge.West: bearing = "W"; break;
                 default: return "";
             }
-            return (markedWaypoint ? "MARK  " : "NEXT  ") + bearing
+            // This is the route's viewport exit, not the party's next move.
+            // The distance begins at that edge; the side rail owns the full
+            // party-to-destination distance and actual next movement key.
+            return (markedWaypoint ? "MARK " : "ROUTE ") + bearing + " +"
                 + cue.RemainingSteps.ToString(CultureInfo.InvariantCulture);
+        }
+
+        public static string RouteExitDescription(ExplorationMapExitCue cue)
+        {
+            string bearing;
+            switch (cue.Edge)
+            {
+                case ExplorationMapEdge.North: bearing = "north"; break;
+                case ExplorationMapEdge.East: bearing = "east"; break;
+                case ExplorationMapEdge.South: bearing = "south"; break;
+                case ExplorationMapEdge.West: bearing = "west"; break;
+                default: return "";
+            }
+            return "Route continues " + bearing + "; "
+                + cue.RemainingSteps.ToString(CultureInfo.InvariantCulture)
+                + " steps from the edge.";
         }
 
         public static ExplorationSceneHeaderGeometry Header(

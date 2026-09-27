@@ -602,6 +602,7 @@ namespace AshenHalls
             BuildDemonicSoundClips();
             BuildEverydaySoundClips();
             BuildPartySetupSoundClips();
+            BuildSkillSpellSoundClips();
             ApplyImportedSfxOverrides();
             RebuildSfxVariantBank();
         }
@@ -1171,7 +1172,7 @@ namespace AshenHalls
                 }
                 else if (voice == "smoke")
                 {
-                    envelope = attack * Mathf.Pow(Mathf.Sin(progress * Mathf.PI), 0.62f);
+                    envelope = attack * Mathf.Pow(Mathf.Clamp01(Mathf.Sin(progress * Mathf.PI)), 0.62f);
                 }
                 else if (voice == "rustle" || voice == "slash")
                 {
@@ -1254,7 +1255,7 @@ namespace AshenHalls
                         body = (brightNoise * 0.36f + bandNoise * 0.24f + tone * 0.17f)
                             * (0.70f + 0.30f * Mathf.Sin(progress * Mathf.PI * 6f));
                         tail = edge * Mathf.Exp(-progress * 3.6f) * 0.10f;
-                        envelope = Mathf.Clamp01(t / 0.005f) * Mathf.Pow(Mathf.Sin(progress * Mathf.PI), 0.48f);
+                        envelope = Mathf.Clamp01(t / 0.005f) * Mathf.Pow(Mathf.Clamp01(Mathf.Sin(progress * Mathf.PI)), 0.48f);
                         break;
                     case "execute":
                         body = sub * (0.24f + progress * 0.16f) + edge * progress * 0.22f + bandNoise * 0.20f;
@@ -1306,11 +1307,11 @@ namespace AshenHalls
                     case "stealth":
                         body = bandNoise * 0.30f + lowNoise * 0.23f + tone * 0.15f + edge * 0.12f;
                         tail = edge * Mathf.Exp(-progress * 2.6f) * 0.16f;
-                        envelope = Mathf.Pow(Mathf.Sin(progress * Mathf.PI), 0.72f);
+                        envelope = Mathf.Pow(Mathf.Clamp01(Mathf.Sin(progress * Mathf.PI)), 0.72f);
                         break;
                     case "smoke":
                         body = lowNoise * 0.46f + airNoise * 0.28f + bandNoise * 0.16f + sub * 0.08f;
-                        envelope = Mathf.Clamp01(t / 0.018f) * Mathf.Pow(Mathf.Sin(progress * Mathf.PI), 0.58f);
+                        envelope = Mathf.Clamp01(t / 0.018f) * Mathf.Pow(Mathf.Clamp01(Mathf.Sin(progress * Mathf.PI)), 0.58f);
                         break;
                     case "rally":
                         body = tone * 0.38f + Mathf.Sin(phase * 2.01f) * 0.22f + Mathf.Sin(phase * 3.02f) * 0.12f + sub * 0.14f;
@@ -3515,6 +3516,7 @@ namespace AshenHalls
             worldMapRegionMarkerAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapRegionMarkerAtlas, 0.20f, "world map regional markers", 0.12f);
             worldAreaSetpieceAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldAreaSetpieceAtlas, 0.20f, "world area set-pieces", 0.12f);
             LoadV24WorldMapArtAtlases();
+            LoadWorldEnvironmentDetailAtlas();
             worldMapOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapOverlayAtlas, 0.20f, "world map overlays", 0.04f)
                 ?? LoadLatestExternalPngWithAlpha("world-map-overlay-atlas-runtime-", "", 0.20f, "world map overlays", 0.04f);
             worldMapProgressionOverlayAtlas = LoadApprovedExternalPngWithAlpha(RuntimeArtManifest.WorldMapProgressionOverlayAtlas, 0.20f, "world map progression overlays", 0.04f)
@@ -3699,6 +3701,7 @@ namespace AshenHalls
             ValidateSpriteAtlasAlpha(worldMapRegionMarkerAtlas, "world map regional markers", 0.20f, 0.12f);
             ValidateSpriteAtlasAlpha(worldAreaSetpieceAtlas, "world area set-pieces", 0.20f, 0.12f);
             ValidateV24WorldMapArtContracts();
+            ValidateWorldEnvironmentDetailAtlas();
             ValidateSpriteAtlasAlpha(worldMapOverlayAtlas, "world map overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapProgressionOverlayAtlas, "world map progression overlays", 0.20f, 0.04f);
             ValidateSpriteAtlasAlpha(worldMapUiAtlas, "world map UI icons", 0.20f, 0.10f);
