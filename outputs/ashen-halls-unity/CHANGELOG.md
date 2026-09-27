@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.34.0 - The Honest Weight
+
+- Add Maud's optional magical-contract investigation after Varkh: explicitly inspect two Chapter III inscriptions in either order, then choose a one-time 30-gold settlement or permanent 8-gold Dusk Market supply trades. Both branches award 120 base XP and an independent equipment choice; saves retain every stage and ordinary site services stay available.
+- Add the +3 Counterweight Knife and +3 Measurekeeper Jack with stable item identity, distinct combat intrinsics and original transparent inventory art. Eleven signature items now offer different equipment choices.
+- Correct crossbow attack speed and Borin's armor label/quote to match the underlying item. Quest-specific pricing is shared by service charges, journal descriptions and map hints.
+- Tune only the three authored Chapter VI formations and HP floors after actual-turn testing; the stationary Heart can answer attacks within six cells while strict stone cover still blocks its pulse. Vhal's ordinary unspent-party fights average 5.3 rounds across three seeds, up from 3.3. Prepared parties remain strong; this is a fixed-policy observation, not a human win-rate claim.
+- Keep Maud's quest and enchantment services visible within the four-choice dialogue screen, with her rune explanation and personal story under a craft topic. Native button regression checks protect the new favor and Edda's existing contacts.
+- Keep save schema v27 and preserve earlier release archives. Exact validation and remaining human-playtest limitations are recorded separately after packaging.
+
 ## v2.33.0 - The Last Dawn
 
 - Open an authored Chapter VI after Yara's final briefing: secure the crownwatch return road, break the ritual heart, and confront Vhal Rakh. Ordered encounters, retreat/recall, route guidance, journal steps and a durable saved ending work together. The heart cannot prematurely trigger campaign victory.

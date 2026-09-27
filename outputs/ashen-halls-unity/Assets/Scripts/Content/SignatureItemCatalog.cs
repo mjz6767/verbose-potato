@@ -162,6 +162,8 @@ namespace AshenHalls
         public const string CrownwardWarbladeId = "crownward_warblade";
         public const string TravelersKnotId = "travelers_knot_bow";
         public const string VigilkeeperWrapId = "vigilkeeper_wrap";
+        public const string CounterweightKnifeId = "counterweight_knife";
+        public const string MeasurekeeperJackId = "measurekeeper_jack";
 
         private static readonly IReadOnlyList<SignatureItemDefinition> Definitions =
             Array.AsReadOnly(new[]
@@ -254,7 +256,25 @@ namespace AshenHalls
                     "Cold Vigil",
                     "Reduce cold damage taken by 1.",
                     "vigilkeeper", "lined wool", "wool mantle", "insulated", "armor",
-                    2, 0, 1, 0, 0, 0, 0, 0, "quest", "")
+                    2, 0, 1, 0, 0, 0, 0, 0, "quest", ""),
+                new SignatureItemDefinition(
+                    CounterweightKnifeId,
+                    9,
+                    "+3 Counterweight Knife",
+                    "Maud replaced a false weight with an honest brass pommel. The short blade now answers the hand without pulling it off line.",
+                    "Measured Cut",
+                    "Basic hits: 20% base chance to bleed for 2 turns, adjusted by Intelligence and resistance. Refreshes without stacking.",
+                    "counterweighted", "brass-set steel", "knife", "measured", "weapon",
+                    3, 0, 0, 1, 0, 3, 7, 11, "quest", "physical"),
+                new SignatureItemDefinition(
+                    MeasurekeeperJackId,
+                    10,
+                    "+3 Measurekeeper Jack",
+                    "A quarry measurer's short road coat, restored with a true-weight clasp. Its close quilting spreads a blow without the burden of mail.",
+                    "Load Bearing",
+                    "Reduce physical damage taken by 1. Damage cannot fall below 1.",
+                    "true-weight", "quilted leather", "road jack", "load bearing", "armor",
+                    3, 0, 0, 1, 0, 0, 0, 0, "quest", "")
             });
 
         public static IReadOnlyList<SignatureItemDefinition> All => Definitions;
@@ -360,5 +380,7 @@ namespace AshenHalls
         public static InventoryItem CreateCrownwardWarblade() => Create(CrownwardWarbladeId);
         public static InventoryItem CreateTravelersKnot() => Create(TravelersKnotId);
         public static InventoryItem CreateVigilkeeperWrap() => Create(VigilkeeperWrapId);
+        public static InventoryItem CreateCounterweightKnife() => Create(CounterweightKnifeId);
+        public static InventoryItem CreateMeasurekeeperJack() => Create(MeasurekeeperJackId);
     }
 }

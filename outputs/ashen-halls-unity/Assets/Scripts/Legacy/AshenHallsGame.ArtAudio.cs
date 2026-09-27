@@ -106,6 +106,7 @@ namespace AshenHalls
 
         private Texture2D uniqueItemAtlas;
         private Texture2D remembranceItemAtlas;
+        private Texture2D honestWeightItemAtlas;
 
         private Texture2D combatHudUiAtlas;
 
@@ -3542,6 +3543,8 @@ namespace AshenHalls
                     0.04f);
             remembranceItemAtlas = LoadApprovedExternalPngWithAlpha(
                 RuntimeArtManifest.RemembranceItemAtlas, 0.65f, "remembrance reward icons", 0.15f);
+            honestWeightItemAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.HonestWeightItemAtlas, 0.65f, "honest weight reward icons", 0.15f);
             combatHudUiAtlas = LoadLatestExternalPng("combat-hud-ui-atlas-runtime-", "combat-hud-ui-atlas-runtime-v0.49.png");
             combatSpellFloatAtlas = LoadLatestExternalPng("combat-spell-float-atlas-runtime-", "combat-spell-float-atlas-runtime-v0.49.png");
             enemyWorldObjectAtlas = LoadLatestExternalPng("enemy-world-object-atlas-runtime-", "enemy-world-object-atlas-runtime-v0.49.png");
@@ -5839,6 +5842,11 @@ namespace AshenHalls
 
         private bool TryDrawUniqueItemAtlasIcon(Rect rect, int index, Color tint)
         {
+            if (index >= 9 && index <= 10)
+            {
+                if (!IsHonestWeightItemAtlas()) return false;
+                return DrawTextureRegionTint(honestWeightItemAtlas, rect, AtlasCell(honestWeightItemAtlas, index - 9, 2, 1), tint);
+            }
             if (index >= 7 && index <= 8)
             {
                 if (!IsRemembranceItemAtlas()) return false;
@@ -5851,6 +5859,11 @@ namespace AshenHalls
         private bool IsRemembranceItemAtlas()
         {
             return remembranceItemAtlas != null && remembranceItemAtlas.width == 1774 && remembranceItemAtlas.height == 887;
+        }
+
+        private bool IsHonestWeightItemAtlas()
+        {
+            return honestWeightItemAtlas != null && honestWeightItemAtlas.width == 1774 && honestWeightItemAtlas.height == 887;
         }
 
         private bool IsUniqueItemAtlas()

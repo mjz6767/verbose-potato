@@ -3812,7 +3812,7 @@ namespace AshenHalls
         private bool RequiresExplicitWorldSiteRepeatUse(MapObject obj)
         {
             if (!TryRegionalSite(state?.Map, obj, out WorldMapSite site)) return false;
-            if (!WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile profile)) return false;
+            if (!WorldSiteInteractionRules.TryGet(site.Id, state?.StoryFlags, out WorldSiteInteractionProfile profile)) return false;
             if (!profile.RequiresExplicitRepeatUse) return false;
             return WorldSiteInteractionRules.RewardClaimed(state?.StoryFlags, state?.Depth ?? 1, site.Id);
         }
@@ -5064,7 +5064,7 @@ namespace AshenHalls
                 return HasStoryFlag(StoryFlags.GlassAndAshExpeditionAccepted) ? "Cross frontier" : "Survey frontier";
             }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite)
-                && WorldSiteInteractionRules.TryGet(regionalSite.Id, out WorldSiteInteractionProfile interaction))
+                && WorldSiteInteractionRules.TryGet(regionalSite.Id, state?.StoryFlags, out WorldSiteInteractionProfile interaction))
             {
                 if (state?.Depth == 4
                     && ContentSetCatalog.AllowGlassAndAshChapter(activeContentSet, state.StoryFlags)
@@ -5101,6 +5101,7 @@ namespace AshenHalls
                     state?.StoryFlags,
                     state?.Depth ?? 1,
                     regionalSite.Id);
+                if (!string.IsNullOrEmpty(HonestWeightSiteHint(regionalSite))) return "Inspect measure";
                 return WorldSiteInteractionRules.ContextVerb(interaction, rewardClaimed);
             }
             if (MidgaardInteriorRules.IsPortal(obj)) return obj.Type == ObjectType.InteriorDoor ? "Leave" : "Enter";
@@ -8305,7 +8306,7 @@ namespace AshenHalls
                         return regionalSite.Summary + " Varkh's recovered tally fits the outer sigils.";
                     }
                 }
-                if (!WorldSiteInteractionRules.TryGet(regionalSite.Id, out WorldSiteInteractionProfile interaction))
+                if (!WorldSiteInteractionRules.TryGet(regionalSite.Id, state?.StoryFlags, out WorldSiteInteractionProfile interaction))
                 {
                     return regionalSite.Summary;
                 }
@@ -8314,7 +8315,9 @@ namespace AshenHalls
                     state?.Depth ?? 1,
                     regionalSite.Id);
                 string availability = rewardClaimed ? "Repeat service" : "Reward ready";
-                return $"{regionalSite.Summary} {availability} — {interaction.ServiceName}: {WorldSiteInteractionRules.Status(interaction, rewardClaimed)}";
+                string honestWeightHint = HonestWeightSiteHint(regionalSite);
+                return $"{regionalSite.Summary} {availability} — {interaction.ServiceName}: {WorldSiteInteractionRules.Status(interaction, rewardClaimed)}"
+                    + (string.IsNullOrEmpty(honestWeightHint) ? "" : " " + honestWeightHint);
             }
             string interiorHint = InteriorObjectHint(obj);
             if (!string.IsNullOrEmpty(interiorHint)) return interiorHint;

@@ -716,6 +716,12 @@ namespace AshenHalls
             if (item == null) return false;
 
             int uniqueIndex = UniqueItemIconIndex(item);
+            if (uniqueIndex >= 9 && uniqueIndex <= 10 && IsHonestWeightItemAtlas())
+            {
+                texture = honestWeightItemAtlas;
+                uv = NormalizeAtlasRect(texture, AtlasCell(texture, uniqueIndex - 9, 2, 1));
+                return true;
+            }
             if (uniqueIndex >= 7 && uniqueIndex <= 8 && IsRemembranceItemAtlas())
             {
                 texture = remembranceItemAtlas;

@@ -5,6 +5,7 @@ namespace AshenHalls
     public static class SignatureItemRules
     {
         public const float ConductionStunChance = 0.30f;
+        public const float MeasuredCutBleedChance = 0.20f;
 
         public static int GuardActionBonus(InventoryItem weapon)
         {
@@ -13,14 +14,14 @@ namespace AshenHalls
 
         public static string BasicHitStatus(InventoryItem weapon)
         {
-            return Is(weapon, SignatureItemCatalog.StormglassConductorId) ? "stun" : "";
+            if (Is(weapon, SignatureItemCatalog.StormglassConductorId)) return "stun";
+            return Is(weapon, SignatureItemCatalog.CounterweightKnifeId) ? "bleed" : "";
         }
 
         public static float BasicHitStatusChance(InventoryItem weapon)
         {
-            return Is(weapon, SignatureItemCatalog.StormglassConductorId)
-                ? ConductionStunChance
-                : 0f;
+            if (Is(weapon, SignatureItemCatalog.StormglassConductorId)) return ConductionStunChance;
+            return Is(weapon, SignatureItemCatalog.CounterweightKnifeId) ? MeasuredCutBleedChance : 0f;
         }
 
         public static int DamageReduction(InventoryItem armor, string damageType)
@@ -43,6 +44,10 @@ namespace AshenHalls
             if (Is(armor, SignatureItemCatalog.VigilkeeperWrapId))
             {
                 return Same(type, "cold") ? 1 : 0;
+            }
+            if (Is(armor, SignatureItemCatalog.MeasurekeeperJackId))
+            {
+                return Same(type, "physical") ? 1 : 0;
             }
             return 0;
         }

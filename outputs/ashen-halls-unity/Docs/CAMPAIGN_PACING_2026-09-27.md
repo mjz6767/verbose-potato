@@ -1,5 +1,11 @@
 # Campaign pacing review — 2026-09-27
 
+**v2.34 update:** The authored Chapter VI endurance/formation tuning raises seed 727's direct-route ending from 4,633 to **4,691 base XP**. The extra 58 XP comes from the existing HP-based combat-reward calculation; the milestone ladder and XP curve are unchanged. The ending remains **human level 15 / nonhuman level 14**. See [the tactical audit](CAMPAIGN_TACTICAL_AUDIT_2026-09-27.md) for actual-turn baseline/tuned evidence, including all nine tuned Vhal trials reaching the real final-victory mode and completion flag. The current production ledger is `QA/campaign-pacing-report.md`.
+
+## Historical v2.33 review and ledger
+
+The following discussion, enemy statistics and 4,633-XP ledger preserve the verified v2.33 baseline before that authored Chapter VI tuning.
+
 The required Chapter I–V route previously brought the starter party to level 8 across all ten audited seeds. This left level-12/16 martial abilities and most later spells unreachable without extensive optional encounters or repeated fights. The direct nonhuman route supplied 1,612–1,685 XP; level 12 costs 3,300 and level 16 costs 5,700.
 
 The implemented correction grants 2,650 XP in seven individually receipted chapter milestones, using the existing XP curve and survivor rules. Across the same ten seeds, the required campaign now reaches level 12 after the Chapter V debrief, enters the final chapter around levels 13–14, and finishes at human level 15 / mage level 14. Seed 727 reaches 4,633 base XP after the eighteen authored battles. The 250 XP Heart milestone unlocks level-14 tools before the sovereign fight. These rewards also catch up old saves once; they do not make recurring patrols more profitable.

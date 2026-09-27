@@ -2,10 +2,11 @@
 
 ## Current Release
 
-v2.32.0 — Names Beneath the Water — adds an optional branching Edda/Sera/Brann story, two signature equipment sidegrades with original item art, more natural reactive town conversations, and protection against farming ritual reinforcements for XP/loot. Existing Chapter I–V content and save schema v27 remain supported; the v2.31 retail and Beta archives are preserved.
+v2.34.0 — The Honest Weight — adds Maud's optional magical-contract investigation, two signature equipment choices with original art, persistent market discounts, and corrected crossbow/armor descriptions. The six-chapter campaign and save schema v27 remain supported. Earlier release archives are preserved.
 
-The Full Unity audit, all 13 repeated Windows build gates and clean-extracted startup pass. The 249,933,778-byte retail ZIP has SHA-256 `4976428d89fbafe3352dad2e24aef41e40d3e65c38039525950583d237b50160`; all 346 entries pass CRC verification and all 100 packaged PNGs match source hashes. Twelve native editor quest/item captures pass review at 960×600 and 1280×720. Exact evidence and scope are recorded in `Docs/ReleaseEvidence/v2.32.0-summary.json`. Complete human campaign play, physical-controller feel, subjective audio balance and final standalone quest-screen capture remain follow-ups.
+Release checks and their exact scope are recorded in `Docs/ReleaseEvidence/v2.34.0-summary.json` after packaging. Native editor captures cover every new dialogue page plus Pack, loot and Journal at 960×600 and 1280×720. The actual-turn tactical report distinguishes observed encounter results from assumed prior campaign progress and fresh-rest preparation; it is not a human win-rate estimate.
 
+Start with `Docs/FRIENDS_PLAYTEST.md` for a short first-session route and useful feedback prompts. A complete human campaign, physical-controller comfort, subjective audio balance and player understanding remain the most useful checks.
 
 ## The Wayfinder's Atlas v2.23 - Release Gates Pass
 

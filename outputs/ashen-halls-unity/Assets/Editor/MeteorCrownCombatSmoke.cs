@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Linq;
 using UnityEditor;
 using UnityEngine;
 
@@ -18,6 +19,7 @@ namespace AshenHalls.Editor
         public static void RunOrThrow()
         {
             GeneratedCampaignEncountersExcludeUniqueBosses();
+            AuthoredEnduranceIsScopedIdempotentAndReadable();
             Require(CombatPowerPresentationRules.EnemyPowerTitle("crownfire") == "Crownfire"
                 && CombatPowerPresentationRules.EnemyPowerFormulaArtCode("crownfire") == "FBL",
                 "Crownfire has its own readable cue using established fireball art");
@@ -112,6 +114,84 @@ namespace AshenHalls.Editor
                 damage = 100 - target.Hp;
             });
             return damage;
+        }
+
+        private static void AuthoredEnduranceIsScopedIdempotentAndReadable()
+        {
+            WithFixture("ritualheart", (game, state, boss, target, adjacent, distant) =>
+            {
+                Set(game, "activeContentSet", ContentSetCatalog.SewerSlice);
+                state.Seed = 727;
+                foreach (EncounterId id in new[] { EncounterId.MeteorCrownSentries, EncounterId.MeteorCrownHeart, EncounterId.MeteorCrownSovereign })
+                {
+                    EncounterDefinition encounter = EncounterCatalog.For(id);
+                    List<CombatUnit> enemies = encounter.EnemyIds.Select((role, i) => (CombatUnit)Call(game, "MakeEnemy", role, i, null)).ToList();
+                    int[] originalHp = enemies.Select(e => e.MaxHp).ToArray();
+                    int[] originalPower = enemies.Select(e => e.Power).ToArray();
+                    int[] originalResist = enemies.Select(e => e.MagicResist).ToArray();
+                    state.Combat.Units = enemies;
+                    Call(game, "ApplyEncounterPlacements", state.Combat, encounter);
+                    int bonus = id == EncounterId.MeteorCrownSentries ? 24 : id == EncounterId.MeteorCrownHeart ? 18 : 28;
+                    for (int i = 0; i < enemies.Count; i++)
+                    {
+                        int expected = enemies[i].Role == "ritualheart" ? 160 : enemies[i].Role == "meteorlich" ? 210 : originalHp[i] + bonus;
+                        Require(enemies[i].MaxHp == expected && enemies[i].Hp == expected, "authored setup applies its exact endurance floor");
+                        Require(enemies[i].Power == originalPower[i] && enemies[i].MagicResist == originalResist[i], "endurance does not increase damage or erase spell counters");
+                        Require(!encounter.Obstacles.Any(o => o.X == enemies[i].X && o.Y == enemies[i].Y), "authored unit does not start in an obstacle");
+                        foreach (CombatUnit other in enemies.Where(e => e != enemies[i]))
+                            Require(Mathf.Abs(other.X - enemies[i].X) + Mathf.Abs(other.Y - enemies[i].Y) >= 3,
+                                "initial enemy spacing exceeds ordinary lightning jump distance");
+                    }
+                    int[] maxima = enemies.Select(e => e.MaxHp).ToArray();
+                    enemies[0].Hp -= 7;
+                    enemies[1].Hp = 0;
+                    Call(game, "ApplyEncounterPlacements", state.Combat, encounter);
+                    Require(enemies.Select(e => e.MaxHp).SequenceEqual(maxima) && enemies[0].Hp == maxima[0] - 7 && enemies[1].Hp == 0,
+                        "repeat setup cannot stack endurance, erase wounds or revive fallen enemies");
+                    enemies[0].MaxHp += 20;
+                    enemies[0].Hp += 20;
+                    int higherHp = enemies[0].MaxHp;
+                    Call(game, "ApplyMeteorCrownEncounterTuning", state.Combat, encounter);
+                    Require(enemies[0].MaxHp == higherHp, "a higher legitimate maximum is retained");
+                }
+                foreach (string content in new[] { ContentSetCatalog.SewerSlice, ContentSetCatalog.FullPrototype })
+                {
+                    Set(game, "activeContentSet", content);
+                    foreach (int depth in new[] { 5, 6 })
+                    {
+                        state.Depth = depth;
+                        CombatUnit untouched = (CombatUnit)Call(game, "MakeEnemy", "meteorlich", 0, null);
+                        int hp = untouched.MaxHp;
+                        state.Combat.Units = new List<CombatUnit> { untouched };
+                        Call(game, "ApplyMeteorCrownEncounterTuning", state.Combat, EncounterCatalog.For(EncounterId.FinalGate));
+                        Require(untouched.MaxHp == hp && untouched.Hp == hp, "prototype Final Gate is outside authored tuning scope");
+                        if (content == ContentSetCatalog.FullPrototype || depth != 6)
+                        {
+                            Call(game, "ApplyMeteorCrownEncounterTuning", state.Combat, EncounterCatalog.For(EncounterId.MeteorCrownSovereign));
+                            Require(untouched.MaxHp == hp, "content-set and depth gates prevent tuning leakage");
+                        }
+                    }
+                }
+                Set(game, "activeContentSet", ContentSetCatalog.SewerSlice);
+                state.Depth = 6;
+                CombatUnit heart = (CombatUnit)Call(game, "MakeEnemy", "ritualheart", 0, null);
+                state.Combat.Units = new List<CombatUnit> { heart, target };
+                Call(game, "ApplyEncounterPlacements", state.Combat, EncounterCatalog.For(EncounterId.MeteorCrownHeart));
+                target.X = heart.X - 6; target.Y = heart.Y;
+                Require(heart.Range == 6 && (int)Call(game, "UnitMoveAllowance", heart) == 0,
+                    "authored Heart gains explicit six-tile pressure and stays anchored");
+                Require((bool)Call(game, "CanEnemySpecialReach", heart, target), "range-six threat preview matches actual pulse reach");
+                Require((bool)Call(game, "TryMeteorCrownBossSpecial", heart, target) && target.Hp >= 86 && target.Hp < 100,
+                    "range-six pulse resolves with its original fourteen-damage cap");
+                target.Hp = 100; target.X--;
+                Require(!(bool)Call(game, "CanEnemySpecialReach", heart, target)
+                    && !(bool)Call(game, "TryMeteorCrownBossSpecial", heart, target), "seven-tile attacks remain outside Heart reach");
+                target.X++;
+                state.Combat.Obstacles.Add(new Point(heart.X - 3, heart.Y, "stone"));
+                Require(!(bool)Call(game, "CanEnemySpecialReach", heart, target)
+                    && !(bool)Call(game, "TryMeteorCrownBossSpecial", heart, target) && target.Hp == 100,
+                    "stone still counters the expanded pulse and its preview");
+            });
         }
 
         private static void GeneratedCampaignEncountersExcludeUniqueBosses()

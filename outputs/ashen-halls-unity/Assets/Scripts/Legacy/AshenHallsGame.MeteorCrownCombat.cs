@@ -5,6 +5,29 @@ namespace AshenHalls
 {
     public sealed partial class AshenHallsGame
     {
+        // Authored finale endurance follows the actual level-13/14 campaign
+        // party. Floors make setup repeatable without stacking HP or healing
+        // wounds if a saved board is ever placed again. Ordinary templates and
+        // the prototype Final Gate keep their original statistics.
+        private void ApplyMeteorCrownEncounterTuning(CombatState combat, EncounterDefinition encounter)
+        {
+            if (combat?.Units == null || encounter == null || state?.Depth != 6
+                || !ContentSetCatalog.IsSewerSlice(activeContentSet)) return;
+            int companionBonus = encounter.Id == EncounterId.MeteorCrownSentries ? 24
+                : encounter.Id == EncounterId.MeteorCrownHeart ? 18
+                : encounter.Id == EncounterId.MeteorCrownSovereign ? 28 : 0;
+            if (companionBonus == 0) return;
+            foreach (CombatUnit enemy in combat.Units.Where(unit => unit != null && unit.Side == UnitSide.Enemy))
+            {
+                int floor = enemy.Role == "ritualheart" ? 160 : enemy.Role == "meteorlich" ? 210
+                    : EnemyTemplate.For(enemy.Role).Hp + 6 * 4 + EnemyRankBonus(enemy) * 7 + companionBonus;
+                int added = Mathf.Max(0, floor - enemy.MaxHp);
+                enemy.MaxHp += added;
+                if (enemy.Hp > 0) enemy.Hp = Mathf.Min(enemy.MaxHp, enemy.Hp + added);
+                if (enemy.Role == "ritualheart") enemy.Range = Mathf.Max(enemy.Range, 6);
+            }
+        }
+
         // The normal enemy turn owns action use and the chance roll. These
         // focused boss actions resolve once and return to that same turn flow.
         private bool TryMeteorCrownBossSpecial(CombatUnit enemy, CombatUnit target)

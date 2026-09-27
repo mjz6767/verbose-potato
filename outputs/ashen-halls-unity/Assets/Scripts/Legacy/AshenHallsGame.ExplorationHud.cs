@@ -1011,7 +1011,7 @@ namespace AshenHalls
                         x,
                         y,
                         out WorldMapSite site)
-                    && WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
+                    && WorldSiteInteractionRules.TryGet(site.Id, state?.StoryFlags, out WorldSiteInteractionProfile interaction))
                 {
                     bool rewardClaimed = WorldSiteInteractionRules.RewardClaimed(
                         state.StoryFlags,

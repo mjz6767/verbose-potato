@@ -9087,8 +9087,9 @@ namespace AshenHalls
             if (TryResolveGlassAndAshStorySite(site)) return true;
             if (TryResolveMeteorCrownStorySite(site)) return true;
             if (TryResolveRedGateStorySite(site)) return true;
+            if (TryResolveHonestWeightSite(site)) return true;
 
-            if (!WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
+            if (!WorldSiteInteractionRules.TryGet(site.Id, state.StoryFlags, out WorldSiteInteractionProfile interaction))
             {
                 PushLog(site.Summary, Tone.Normal);
             }
@@ -9425,6 +9426,7 @@ namespace AshenHalls
         private void ApplyWorldSiteRepeatService(WorldSiteInteractionProfile profile)
         {
             if (profile == null) return;
+            profile = WorldSiteInteractionRules.ForStoryState(profile, state?.StoryFlags);
             string status = WorldSiteInteractionRules.Status(profile, true);
             if (profile.IsInformationalRepeat)
             {
@@ -10946,10 +10948,10 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Weapon Enchanter",
                 "Maud",
-                TownConversationCatalog.Greeting(NpcId.Maud, state),
+                HonestWeightMaudGreeting(TownConversationCatalog.Greeting(NpcId.Maud, state)),
                 ObjectType.Enchanter,
                 violet,
-                new[]
+                AddHonestWeightChoice(new[]
                 {
                     MakeDialogueChoice(
                         "temporary",
@@ -10971,12 +10973,34 @@ namespace AshenHalls
                         canBind),
                     MakeDialogueChoice("affinity", "What can the four runes do?", "Fire, ice, storm, and radiant affinities."),
                     MakeDialogueChoice("personal", "What was your first enchantment?", "A story from Maud's apprenticeship.")
+                }),
+                ResolveMaudDialogueChoice);
+        }
+
+        private void ShowMaudCraftConversation()
+        {
+            ShowDialogueChoices(
+                "Weapon Enchanter", "Maud",
+                "The mark is the easy part. Knowing what you want it to do takes longer. What would you like to know?",
+                ObjectType.Enchanter, violet,
+                new[]
+                {
+                    MakeDialogueChoice("affinity", "What can the four runes do?", "Fire, ice, storm, and radiant affinities."),
+                    MakeDialogueChoice("personal", "What was your first enchantment?", "A story from Maud's apprenticeship."),
+                    MakeDialogueChoice("back", "Let's return to your work.", "Return to Maud's services and the weigh-lamp.")
                 },
                 ResolveMaudDialogueChoice);
         }
 
+        private void ReturnToMaudCraftConversation()
+        {
+            if (HonestWeightQuestRules.Available(state?.StoryFlags) || HonestWeightQuestRules.Accepted(state?.StoryFlags)) ShowMaudCraftConversation();
+            else ShowMaudConversation();
+        }
+
         private void ResolveMaudDialogueChoice(string choice)
         {
+            if (TryResolveHonestWeightMaudChoice(choice)) return;
             switch (choice)
             {
                 case "temporary":
@@ -10985,8 +11009,14 @@ namespace AshenHalls
                 case "permanent":
                     ShowMaudWeaponChoices(true);
                     break;
+                case "craft":
+                    ShowMaudCraftConversation();
+                    break;
+                case "back":
+                    ShowMaudConversation();
+                    break;
                 case "personal":
-                    ShowDialogueResponse("Weapon Enchanter", "Maud", TownConversationCatalog.PersonalStory(NpcId.Maud), ObjectType.Enchanter, violet, ShowMaudConversation);
+                    ShowDialogueResponse("Weapon Enchanter", "Maud", TownConversationCatalog.PersonalStory(NpcId.Maud), ObjectType.Enchanter, violet, ReturnToMaudCraftConversation);
                     break;
                 default:
                     ShowDialogueResponse(
@@ -10995,7 +11025,7 @@ namespace AshenHalls
                         "Fire catches webbing and gas. Ice punishes anything that fears the cold. Storm worries at wards and may stun on a clean strike. Radiance is the sure choice against things from graves and rifts. The mark changes what kind of harm the weapon deals, so choose for the road ahead.",
                         ObjectType.Enchanter,
                         violet,
-                        ShowMaudConversation);
+                        ReturnToMaudCraftConversation);
                     break;
             }
         }
@@ -11880,7 +11910,7 @@ namespace AshenHalls
                 Bonus = 2,
                 HealthBonus = 1,
                 Rarity = "common",
-                DisplayName = "+1 serviceable iron chain hauberk"
+                DisplayName = "+2 serviceable iron chain hauberk"
             };
         }
 
@@ -12655,8 +12685,8 @@ namespace AshenHalls
             string text = $"{form} {quality} {material} {trait}".ToLowerInvariant();
             int speed = 7;
             if (text.Contains("epee") || text.Contains("sabre") || text.Contains("knife") || text.Contains("darts")) speed = 11;
-            else if (text.Contains("bow") || text.Contains("sling")) speed = 9;
             else if (text.Contains("crossbow") || text.Contains("war hammer") || text.Contains("tower")) speed = 5;
+            else if (text.Contains("bow") || text.Contains("sling")) speed = 9;
             else if (text.Contains("spear") || text.Contains("pike") || text.Contains("halberd")) speed = 7;
             else if (text.Contains("focus") || text.Contains("orb") || text.Contains("scepter") || text.Contains("staff")) speed = 8;
             if (text.Contains("balanced") || text.Contains("elven") || text.Contains("haste") || text.Contains("weightless") || text.Contains("mithril")) speed += 2;
@@ -13118,6 +13148,8 @@ namespace AshenHalls
                     marshal.Name = "Marshal of the Crownroad";
                 }
             }
+
+            ApplyMeteorCrownEncounterTuning(combat, encounter);
 
             if (encounter.WoundFirstEnemy && enemies.Count > 0)
             {

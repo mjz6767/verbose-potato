@@ -94,5 +94,12 @@ namespace AshenHalls
         public const string MeteorCrownSentriesDefeated = "meteor_crown_sentries_defeated";
         public const string MeteorCrownHeartBroken = "meteor_crown_heart_broken";
         public const string MeteorCrownDefeated = "meteor_crown_defeated";
+
+        public const string HonestWeightAccepted = "honest_weight_accepted";
+        public const string HonestWeightContractRead = "honest_weight_contract_read";
+        public const string HonestWeightCalibrationRead = "honest_weight_calibration_read";
+        public const string HonestWeightBroken = "honest_weight_broken";
+        public const string HonestWeightRetuned = "honest_weight_retuned";
+        public const string HonestWeightRewardClaimed = "honest_weight_reward_claimed";
     }
 }

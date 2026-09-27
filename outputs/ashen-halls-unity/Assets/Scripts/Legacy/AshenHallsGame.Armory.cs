@@ -849,6 +849,7 @@ namespace AshenHalls
                 AddMeteorCrownJournalRows(rows);
                 AddChartedRegionalSiteJournalRows(rows);
                 AddRemembranceJournalRows(rows);
+                AddHonestWeightJournalRows(rows);
                 return rows;
             }
 
@@ -901,6 +902,7 @@ namespace AshenHalls
             AddJournalContactRows(rows);
             AddJournalScaffoldRows(rows);
             AddRemembranceJournalRows(rows);
+            AddHonestWeightJournalRows(rows);
             return rows;
         }
 
@@ -1153,7 +1155,7 @@ namespace AshenHalls
             {
                 WorldMapSite site = sites[i];
                 if (!HasStoryFlag(WorldSiteInteractionRules.ChartFlag(state.Depth, site.Id))
-                    || !WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile profile))
+                    || !WorldSiteInteractionRules.TryGet(site.Id, state?.StoryFlags, out WorldSiteInteractionProfile profile))
                 {
                     continue;
                 }

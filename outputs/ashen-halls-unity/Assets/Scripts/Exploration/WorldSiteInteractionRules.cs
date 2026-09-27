@@ -218,6 +218,26 @@ namespace AshenHalls
             return rewardClaimed ? profile.ClaimedStatus : profile.ReadyStatus;
         }
 
+        public static bool TryGet(string siteId, IReadOnlyCollection<string> flags, out WorldSiteInteractionProfile profile)
+        {
+            if (!TryGet(siteId, out profile)) return false;
+            profile = ForStoryState(profile, flags);
+            return true;
+        }
+
+        public static WorldSiteInteractionProfile ForStoryState(WorldSiteInteractionProfile profile, IReadOnlyCollection<string> flags)
+        {
+            if (profile == null || profile.SiteId != "dusk-market-hideout") return profile;
+            int cost = HonestWeightQuestRules.MarketTradeCost(flags);
+            if (cost == profile.RepeatGoldCost) return profile;
+            return new WorldSiteInteractionProfile(
+                profile.SiteId, profile.ServiceName, profile.ReadyVerb, profile.RepeatVerb,
+                profile.ReadyStatus,
+                "The scout cache is claimed; Maud's true measure keeps supplies at " + cost + " gold.",
+                profile.RewardSummary, "Trade " + cost + " gold for 1 supply.", profile.RewardKind,
+                profile.RepeatSupplyCost, cost, profile.RepeatHealing, profile.RepeatMana, profile.RepeatSupplies);
+        }
+
         public static string ContextVerb(WorldSiteInteractionProfile profile, bool rewardClaimed)
         {
             if (profile == null) return "Use";

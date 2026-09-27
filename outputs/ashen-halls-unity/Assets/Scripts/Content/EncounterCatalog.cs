@@ -422,7 +422,7 @@ namespace AshenHalls
                 Intro = "The crownwatch bars the return road. Break its line before following the glass conduit to the ritual heart.",
                 EnemyIds = new[] { "drowcrossbow", "drowmage", "gloamknight", "cinderling" },
                 FixedEnemyCount = 4,
-                EnemyPlacements = new[] { new Point(10, 2), new Point(10, 5), new Point(8, 3), new Point(9, 6) },
+                EnemyPlacements = new[] { new Point(8, 0), new Point(10, 7), new Point(8, 3), new Point(10, 4) },
                 Obstacles = new[] { new Point(5, 1, "stone"), new Point(5, 6, "stone"), new Point(7, 2, "fire", 5), new Point(7, 5, "ice", 5) }
             },
             new EncounterDefinition
@@ -433,7 +433,7 @@ namespace AshenHalls
                 Intro = "The library's mirrored floor opens over a stolen heart. Break it and its keepers; Vhal Rakh will lose the road that feeds his crown.",
                 EnemyIds = new[] { "ritualheart", "bonepriest", "reaver", "shade" },
                 FixedEnemyCount = 4,
-                EnemyPlacements = new[] { new Point(10, 3), new Point(9, 6), new Point(8, 2), new Point(8, 5) },
+                EnemyPlacements = new[] { new Point(9, 3), new Point(9, 7), new Point(7, 0), new Point(7, 5) },
                 Obstacles = new[] { new Point(5, 2, "stone"), new Point(5, 5, "stone"), new Point(7, 3, "web", 5), new Point(7, 6, "gas", 5) }
             },
             new EncounterDefinition
@@ -444,7 +444,7 @@ namespace AshenHalls
                 Intro = "The ritual heart is silent. Vhal Rakh has only the fire he brought with him. Spread before his last court and end the road's long hunger.",
                 EnemyIds = new[] { "meteorlich", "lesserdemon", "drowpriest", "cinderling" },
                 FixedEnemyCount = 4,
-                EnemyPlacements = new[] { new Point(10, 3), new Point(8, 2), new Point(10, 6), new Point(9, 5) },
+                EnemyPlacements = new[] { new Point(9, 3), new Point(7, 0), new Point(10, 7), new Point(8, 6) },
                 Obstacles = new[] { new Point(5, 1, "stone"), new Point(5, 6, "stone"), new Point(7, 2, "fire", 5), new Point(7, 5, "fire", 5) }
             }
         };

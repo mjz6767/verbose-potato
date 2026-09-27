@@ -88,7 +88,7 @@ namespace AshenHalls
             string armorName = TrimGearName(offer.DisplayName);
             string review =
                 $"Borin turns the {armorName} inside out. \"Look at the joins, not the shine.\" "
-                + $"It grants +{offer.Bonus} armor and +{offer.HealthBonus} health. Price: {cost} gold. Balance after fitting: {state.Gold - cost} gold.";
+                + $"It grants {ArmorDefenseBonus(offer)} armor (+{offer.Bonus} quality, +1 chain) and +{offer.HealthBonus} health. Price: {cost} gold. Balance after fitting: {state.Gold - cost} gold.";
             ShowDialogueChoices(
                 "Review Borin's Fitting",
                 "Borin",

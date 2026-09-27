@@ -1,4 +1,16 @@
-Ash & Brimstone v2.33.0 - The Last Dawn
+Ash & Brimstone v2.34.0 - The Honest Weight
+
+Release version: v2.34.0. Save schema: v27.
+
+After defeating Varkh, ask Maud about her brass weigh-lamp. Inspect the lamp at Chapter III's Dusk Market and the maker's scale at the Old Quarry Forge, in either order, then return to her. Ordinary site services remain available. This optional favor can also be completed after the campaign ending.
+
+Break the faulty charm for 30 gold, or retune it for permanent 8-gold supply trades at every Dusk Market. Either settlement awards 120 base XP and lets you choose one item: the fast +3 Counterweight Knife (Agility +1, resisted bleed chance) or the +3 Measurekeeper Jack (Agility +1, physical damage taken reduced by 1). Both have original artwork. The Journal tracks the favor separately from the main campaign.
+
+Newly generated crossbows now use their intended slower attack speed, and Borin's armor quote matches the piece's actual defense. Chapter VI enemies fight in more separated formations, and the Heart and Vhal can withstand more opening damage. The Heart remains anchored but can pulse within six cells; stone cover breaks its sight line. The full six-chapter campaign, earlier optional quest and all eleven signature items are included. Existing v27 saves remain compatible. Extract the whole ZIP to a new folder before running AshAndBrimstone.exe; keep the Data folder beside it.
+
+For a first session, recruit the default party, clear the sewer contract, spend earned Growth points, and try Edda's optional favor. Report the version, party levels, location, expected result and actual result when something feels unclear or unfair. Verification and remaining human-playtest limits are recorded in Docs/ReleaseEvidence/v2.34.0-summary.json after packaging.
+
+Previous release: v2.33.0 - The Last Dawn
 
 Release version: v2.33.0. Save schema: v27.
 
