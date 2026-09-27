@@ -37,6 +37,7 @@ namespace AshenHalls.Editor
                     Check("Character workshop", PartySetupWorkshopSmoke.RunOrThrow);
                     Check("Combat UI", RuntimeBootSmoke.RunCombatUiOrThrow);
                     Check("Runtime boot", RuntimeBootSmoke.RunOrThrow);
+                    Check("Beta Lab class coverage", BetaLabClassCoverageSmoke.RunOrThrow);
                 }
                 Debug.Log("PROJECT AUDIT PASSED: " + suite);
                 EditorApplication.Exit(0);

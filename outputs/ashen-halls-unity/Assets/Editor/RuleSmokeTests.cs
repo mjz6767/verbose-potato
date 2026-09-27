@@ -7373,11 +7373,11 @@ namespace AshenHalls.Editor
         private static void BetaLabToolbarRulesStayResponsiveAndAccessible()
         {
             AssertEqual(
-                "Refill|Mage|Warlock|Craft|Stage|Hazards|Spawn|Reset|VisualTour",
+                "Refill|Mage|Warlock|Priest|MartialLab|Stage|Hazards|Spawn|Reset|VisualTour",
                 string.Join("|", BetaLabToolbarRules.Actions(BetaLabKind.Caster).Select(action => action.Id.ToString())),
                 "caster Beta Lab keeps its exact action order");
             AssertEqual(
-                "Refill|Promote|Wound|Cluster|Reset|Spawn|VisualTour",
+                "Refill|Warrior|Rogue|Ranger|CasterLab|Wound|Cluster|Reset|Spawn|VisualTour",
                 string.Join("|", BetaLabToolbarRules.Actions(BetaLabKind.Martial).Select(action => action.Id.ToString())),
                 "martial Beta Lab keeps its exact action order");
             BetaLabToolbarActionDefinition visualTour = BetaLabToolbarRules.Actions(BetaLabKind.Caster).Last();
@@ -7401,12 +7401,12 @@ namespace AshenHalls.Editor
             }
 
             AssertEqual(0, BetaLabToolbarRules.NextIndex(BetaLabKind.Caster, -1), "unset Beta selection recovers to first action");
-            AssertEqual(0, BetaLabToolbarRules.NextIndex(BetaLabKind.Caster, 8), "caster Beta next wraps after Visual-only Tour");
-            AssertEqual(8, BetaLabToolbarRules.PreviousIndex(BetaLabKind.Caster, 0), "caster Beta previous wraps before Refill");
+            AssertEqual(0, BetaLabToolbarRules.NextIndex(BetaLabKind.Caster, 9), "caster Beta next wraps after Visual-only Tour");
+            AssertEqual(9, BetaLabToolbarRules.PreviousIndex(BetaLabKind.Caster, 0), "caster Beta previous wraps before Refill");
             AssertEqual(4, BetaLabToolbarRules.Navigate(BetaLabKind.Caster, 0, BetaLabToolbarNavigation.Left), "caster horizontal navigation wraps within its first row");
             AssertEqual(5, BetaLabToolbarRules.Navigate(BetaLabKind.Caster, 0, BetaLabToolbarNavigation.Down), "caster vertical navigation maps by button center into row two");
             AssertEqual(0, BetaLabToolbarRules.Navigate(BetaLabKind.Caster, 5, BetaLabToolbarNavigation.Up), "caster vertical navigation returns to the aligned first-row action");
-            AssertEqual(6, BetaLabToolbarRules.Navigate(BetaLabKind.Martial, 0, BetaLabToolbarNavigation.Previous), "martial bumper navigation wraps linearly");
+            AssertEqual(9, BetaLabToolbarRules.Navigate(BetaLabKind.Martial, 0, BetaLabToolbarNavigation.Previous), "martial bumper navigation wraps linearly");
             AssertEqual(true, BetaLabToolbarRules.KeyboardNavigationHint.Contains("Enter/Space"), "Beta toolbar publishes keyboard activation guidance");
             AssertEqual(true, BetaLabToolbarRules.ControllerNavigationHint.Contains("A: use"), "Beta toolbar publishes controller activation guidance");
             AssertEqual(false, BetaLabToolbarRules.ControllerNavigationHint.Contains("D-pad"), "Beta toolbar does not advertise an unconfigured controller D-pad axis");

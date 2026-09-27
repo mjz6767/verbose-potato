@@ -156,6 +156,8 @@ namespace AshenHalls.Editor
             Debug.Log(VersionInfo.ProductName + " build combat UI runtime smoke passed.");
             RuntimeBootSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build runtime boot smoke passed.");
+            BetaLabClassCoverageSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build Beta Lab class coverage smoke passed.");
 
             string artifactName = BetaLabBuildFlavorRules.WindowsArtifactName(
                 VersionInfo.ExecutableBaseName,
@@ -264,6 +266,8 @@ namespace AshenHalls.Editor
                 Environment.NewLine +
                 "In combat: press F10 or controller Back/Select to focus the responsive lab controls;" + Environment.NewLine +
                 "use arrows/left stick to choose an action and Enter/Space/A to activate it." + Environment.NewLine +
+                "Choose Priest for all 16 healing, protection, and holy spells; Stage prepares wounded and afflicted allies." + Environment.NewLine +
+                "Choose Skills Lab, then Warrior, Rogue, or Ranger for all seven class skills. Spells Lab returns to casters." + Environment.NewLine +
                 "From the title screen, press T (or Ctrl+Shift+B) to open the broader testing panel and choose Martial Lab." + Environment.NewLine +
                 "The Visual-only Tour previews effects and audio without resolving a gameplay action." + Environment.NewLine;
             File.WriteAllText(path, text);

@@ -659,6 +659,10 @@ namespace AshenHalls
                 {
                     PromoteWarlockTester(tester);
                 }
+                else if (requestedSchool == "mend")
+                {
+                    PromotePriestTester(tester);
+                }
                 else
                 {
                     PromoteMageTester(tester);

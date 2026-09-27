@@ -23,7 +23,13 @@ namespace AshenHalls
         VisualTour,
         Promote,
         Wound,
-        Cluster
+        Cluster,
+        Priest,
+        Warrior,
+        Rogue,
+        Ranger,
+        MartialLab,
+        CasterLab
     }
 
     public enum BetaLabToolbarNavigation
@@ -193,8 +199,9 @@ namespace AshenHalls
             Action(BetaLabToolbarActionId.Refill, "Refill", "Refill", "Restore party health, mana, elixirs, and clear afflictions."),
             Action(BetaLabToolbarActionId.Mage, "Mage", "Mage", "Prepare a maximum-level Mage and open the production Spellbook."),
             Action(BetaLabToolbarActionId.Warlock, "Warlock", "Warlock", "Prepare a maximum-level Warlock and open the production Spellbook."),
-            Action(BetaLabToolbarActionId.Craft, "Craft", "Craft", "Unlock the appropriate spell schools for every test caster."),
-            Action(BetaLabToolbarActionId.Stage, "Stage", "Stage", "Arrange legal Mage or Warlock targets and reopen the production Spellbook."),
+            Action(BetaLabToolbarActionId.Priest, "Priest", "Priest", "Prepare a maximum-level Priest and open all healing, protection, and holy spells."),
+            Action(BetaLabToolbarActionId.MartialLab, "Skills Lab", "Skills", "Switch to fully unlocked Warrior, Rogue, and Ranger skill testing."),
+            Action(BetaLabToolbarActionId.Stage, "Stage", "Stage", "Arrange targets for the selected Mage, Warlock, or Priest and reopen the Spellbook."),
             Action(BetaLabToolbarActionId.Hazards, "Hazards", "Fields", "Refresh tree, stone, web, gas, fire, and ice test fields."),
             Action(BetaLabToolbarActionId.Spawn, "Spawn", "Spawn", "Add caster-pressure enemies on safe open cells."),
             Action(BetaLabToolbarActionId.Reset, "Reset", "Reset", "Rebuild the save-blocked caster lab encounter."),
@@ -209,7 +216,10 @@ namespace AshenHalls
         private static readonly BetaLabToolbarActionDefinition[] MartialActions =
         {
             Action(BetaLabToolbarActionId.Refill, "Refill", "Refill", "Restore party health, resources, and clear afflictions."),
-            Action(BetaLabToolbarActionId.Promote, "Promote", "Promote", "Unlock the production skill kits for martial testers."),
+            Action(BetaLabToolbarActionId.Warrior, "Warrior", "Warrior", "Activate a maximum-level Warrior and open all seven skills."),
+            Action(BetaLabToolbarActionId.Rogue, "Rogue", "Rogue", "Activate a maximum-level Rogue and open all seven skills."),
+            Action(BetaLabToolbarActionId.Ranger, "Ranger", "Ranger", "Activate a maximum-level Ranger and open all seven skills."),
+            Action(BetaLabToolbarActionId.CasterLab, "Spells Lab", "Spells", "Switch to fully unlocked Mage, Warlock, and Priest spell testing."),
             Action(BetaLabToolbarActionId.Wound, "Wound", "Wound", "Prepare one bleeding enemy below execute range."),
             Action(BetaLabToolbarActionId.Cluster, "Cluster", "Cluster", "Arrange adjacent enemies for melee-area skill testing."),
             Action(BetaLabToolbarActionId.Reset, "Reset", "Reset", "Rebuild the save-blocked martial lab encounter."),

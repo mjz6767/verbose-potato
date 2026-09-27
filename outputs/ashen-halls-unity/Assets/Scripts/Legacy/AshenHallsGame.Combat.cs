@@ -6349,6 +6349,24 @@ namespace AshenHalls
                 case BetaLabToolbarActionId.Warlock:
                     PromoteWarlockTester(active);
                     break;
+                case BetaLabToolbarActionId.Priest:
+                    PromotePriestTester(active);
+                    break;
+                case BetaLabToolbarActionId.Warrior:
+                    PromoteMartialTester(active, "warrior");
+                    break;
+                case BetaLabToolbarActionId.Rogue:
+                    PromoteMartialTester(active, "rogue");
+                    break;
+                case BetaLabToolbarActionId.Ranger:
+                    PromoteMartialTester(active, "ranger");
+                    break;
+                case BetaLabToolbarActionId.MartialLab:
+                    StartMartialCombatLab();
+                    break;
+                case BetaLabToolbarActionId.CasterLab:
+                    StartBetaCombatLab();
+                    break;
                 case BetaLabToolbarActionId.Craft:
                     EmpowerSpellLabCasters();
                     break;
@@ -6774,6 +6792,87 @@ namespace AshenHalls
             PlaySfx("spell", 0.92f);
         }
 
+        private void PromotePriestTester(CombatUnit active)
+        {
+            CombatUnit unit = ConfigurePriestTester();
+            if (unit == null)
+            {
+                PushLog("Beta Lab needs a living party member for the Priest test kit.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return;
+            }
+            ActivateBetaSpellTester(unit, true);
+            AddFloat(unit.X, unit.Y, "priest lab", teal);
+            PushLog("Beta Lab Priest kit ready: every mend spell is unlocked. Stage prepares wounded allies, afflictions, protective ground, and enemy targets.", Tone.Good);
+            ShowBanner("Priest test ready");
+            PlaySfx("heal", 0.92f);
+        }
+
+        private void ApplyPriestTesterKit(PartyMember member)
+        {
+            if (member == null) return;
+            if (member.Skills == null) member.Skills = new SkillSet();
+            member.ClassKey = "priest";
+            member.Role = "mender";
+            member.Spell = "mend";
+            member.Level = ProgressionRules.MaximumLevel;
+            member.Skills.Mend = Mathf.Max(member.Skills.Mend, 36);
+            member.Skills.Guard = Mathf.Max(member.Skills.Guard, 12);
+            member.MaxMana = Mathf.Max(member.MaxMana, 64);
+            member.Mana = member.MaxMana;
+            member.Power = Mathf.Max(member.Power, 9);
+            member.Range = Mathf.Max(member.Range, 4);
+            member.WeaponName = "lab dawn focus";
+            member.WeaponDamageType = "light";
+        }
+
+        private void ApplyPriestTesterKit(CombatUnit unit)
+        {
+            if (unit == null) return;
+            if (unit.Skills == null) unit.Skills = new SkillSet();
+            unit.ClassKey = "priest";
+            unit.Role = "mender";
+            unit.Spell = "mend";
+            unit.Level = ProgressionRules.MaximumLevel;
+            unit.Skills.Mend = Mathf.Max(unit.Skills.Mend, 36);
+            unit.Skills.Guard = Mathf.Max(unit.Skills.Guard, 12);
+            unit.MaxMana = Mathf.Max(unit.MaxMana, 64);
+            unit.Mana = unit.MaxMana;
+            unit.Power = Mathf.Max(unit.Power, 9);
+            unit.Range = Mathf.Max(unit.Range, 4);
+            unit.WeaponName = "lab dawn focus";
+            unit.DamageType = "light";
+            unit.Color = RoleColor("mender").ToHex();
+        }
+
+        private CombatUnit ConfigurePriestTester()
+        {
+            if (state?.Combat?.Units == null) return null;
+            CombatUnit unit = state.Combat.Units
+                .Where(candidate => candidate != null && candidate.Side == UnitSide.Party
+                    && !candidate.Summoned && candidate.Hp > 0)
+                .OrderBy(candidate => string.Equals(candidate.ClassKey, "priest", StringComparison.OrdinalIgnoreCase) ? 0
+                    : string.Equals(candidate.Role, "mender", StringComparison.OrdinalIgnoreCase) ? 1
+                    : string.Equals(candidate.ClassKey, "paladin", StringComparison.OrdinalIgnoreCase) ? 2 : 10)
+                .ThenBy(candidate => candidate.PartyIndex < 0 ? int.MaxValue : candidate.PartyIndex)
+                .FirstOrDefault();
+            if (unit == null) return null;
+            ApplyPriestTesterKit(unit);
+            if (state.Party != null && unit.PartyIndex >= 0 && unit.PartyIndex < state.Party.Count)
+            {
+                ApplyPriestTesterKit(state.Party[unit.PartyIndex]);
+            }
+            return unit;
+        }
+
+        private static bool IsPriestBetaLabTester(CombatUnit unit)
+        {
+            if (unit == null || unit.Side != UnitSide.Party || unit.Summoned || unit.Hp <= 0) return false;
+            return string.Equals(unit.ClassKey, "priest", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(unit.Role, "mender", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(unit.Spell, "mend", StringComparison.OrdinalIgnoreCase);
+        }
+
         private void ApplyMageTesterKit(PartyMember member)
         {
             if (member == null) return;
@@ -6884,6 +6983,7 @@ namespace AshenHalls
             aiActAt = -1f;
             ClearFormulaEntry();
             ClearAbilityEntry();
+            ClearCombatBoardCursor(false);
             showSpellbook = false;
             showAbilityPanel = false;
             unit.Stunned = 0;
@@ -6969,6 +7069,11 @@ namespace AshenHalls
             {
                 if (ReferenceEquals(member, mage) || ReferenceEquals(member, warlock)) continue;
                 ApplySpellLabCraft(member);
+                if (member.ClassKey == "warrior" || member.ClassKey == "rogue" || member.ClassKey == "ranger")
+                {
+                    PromoteMemberForMartialTesting(member);
+                    member.Hp = member.MaxHp;
+                }
             }
         }
 
@@ -6989,19 +7094,23 @@ namespace AshenHalls
             else if (cls == "wizard" || role == "hex" || role == "ember")
             {
                 member.Spell = MergeSpellSchools(member.Spell, "ember", "hex", "pact");
-                member.Level = Mathf.Max(member.Level, 3);
+                member.Level = ProgressionRules.MaximumLevel;
                 member.Skills.Ember = Mathf.Max(member.Skills.Ember, 22);
                 member.Skills.Hex = Mathf.Max(member.Skills.Hex, 22);
                 member.MaxMana = Mathf.Max(member.MaxMana, 42);
                 member.Mana = member.MaxMana;
             }
-            else if (cls == "priest" || cls == "paladin" || role == "mender" || role == "ward")
+            else if (cls == "priest" || role == "mender")
+            {
+                ApplyPriestTesterKit(member);
+            }
+            else if (cls == "paladin" || role == "ward")
             {
                 member.Spell = MergeSpellSchools(member.Spell, "mend");
-                member.Level = Mathf.Max(member.Level, 2);
-                member.Skills.Mend = Mathf.Max(member.Skills.Mend, 20);
-                member.Skills.Guard = Mathf.Max(member.Skills.Guard, 5);
-                member.MaxMana = Mathf.Max(member.MaxMana, 36);
+                member.Level = ProgressionRules.MaximumLevel;
+                member.Skills.Mend = Mathf.Max(member.Skills.Mend, 36);
+                member.Skills.Guard = Mathf.Max(member.Skills.Guard, 12);
+                member.MaxMana = Mathf.Max(member.MaxMana, 64);
                 member.Mana = member.MaxMana;
             }
         }
@@ -7025,20 +7134,24 @@ namespace AshenHalls
             else if (cls == "wizard" || role == "hex" || role == "ember")
             {
                 unit.Spell = MergeSpellSchools(unit.Spell, "ember", "hex", "pact");
-                unit.Level = Mathf.Max(unit.Level, 3);
+                unit.Level = ProgressionRules.MaximumLevel;
                 unit.Skills.Ember = Mathf.Max(unit.Skills.Ember, 22);
                 unit.Skills.Hex = Mathf.Max(unit.Skills.Hex, 22);
                 unit.MaxMana = Mathf.Max(unit.MaxMana, 42);
                 unit.Mana = unit.MaxMana;
                 AddFloat(unit.X, unit.Y, "all craft", violet);
             }
-            else if (cls == "priest" || cls == "paladin" || role == "mender" || role == "ward")
+            else if (cls == "priest" || role == "mender")
+            {
+                ApplyPriestTesterKit(unit);
+            }
+            else if (cls == "paladin" || role == "ward")
             {
                 unit.Spell = MergeSpellSchools(unit.Spell, "mend");
-                unit.Level = Mathf.Max(unit.Level, 2);
-                unit.Skills.Mend = Mathf.Max(unit.Skills.Mend, 20);
-                unit.Skills.Guard = Mathf.Max(unit.Skills.Guard, 5);
-                unit.MaxMana = Mathf.Max(unit.MaxMana, 36);
+                unit.Level = ProgressionRules.MaximumLevel;
+                unit.Skills.Mend = Mathf.Max(unit.Skills.Mend, 36);
+                unit.Skills.Guard = Mathf.Max(unit.Skills.Guard, 12);
+                unit.MaxMana = Mathf.Max(unit.MaxMana, 64);
                 unit.Mana = unit.MaxMana;
                 AddFloat(unit.X, unit.Y, "mend craft", teal);
             }
@@ -7086,10 +7199,11 @@ namespace AshenHalls
         private void StageSpellLabTargets(CombatUnit active)
         {
             if (state?.Combat?.Units == null) return;
+            bool priest = IsPriestBetaLabTester(active);
             bool warlock = IsWarlockBetaLabTester(active);
             CancelCombatResolutionBeat(false);
             aiActAt = -1f;
-            CombatUnit caster = ConfigureBetaSpellTester(warlock);
+            CombatUnit caster = priest ? ConfigurePriestTester() : ConfigureBetaSpellTester(warlock);
             if (caster == null)
             {
                 PushLog("Spell Lab needs a living party caster before it can stage targets.", Tone.Warn);
@@ -7098,13 +7212,18 @@ namespace AshenHalls
             }
 
             List<CombatUnit> enemies = PrepareBetaLabFormation(caster);
-            int staged = warlock
-                ? StageWarlockSpellLab(caster, enemies)
-                : StageMageSpellLab(caster, enemies);
+            int staged = priest
+                ? StagePriestSpellLab(caster, enemies)
+                : warlock ? StageWarlockSpellLab(caster, enemies) : StageMageSpellLab(caster, enemies);
             RebuildInitiativeQueue(state.Combat);
             ActivateBetaSpellTester(caster, true);
             SyncPartyFromCombat();
-            if (warlock)
+            if (priest)
+            {
+                PushLog($"Priest Lab stages wounded, afflicted allies for healing and Cleanse, open ground for protection, and {staged} enemies for light spells.", Tone.Warn);
+                ShowBanner("Priest arena staged");
+            }
+            else if (warlock)
             {
                 PushLog($"Warlock Lab stages {staged} adjacent targets for Pact Brand, opens three summon bays, and wounds {caster.Name} for Drain Life and Abyssal Ascendance testing.", Tone.Warn);
                 ShowBanner("Warlock arena staged");
@@ -7177,6 +7296,38 @@ namespace AshenHalls
             AddBetaLabFieldUnderTarget(7, 2, "web", 9);
             AddBetaLabFieldUnderTarget(7, 4, "ice", 9);
             AddFloat(caster.X, caster.Y, "fireball line", ember);
+            return staged;
+        }
+
+        private int StagePriestSpellLab(CombatUnit caster, List<CombatUnit> enemies)
+        {
+            Point[] enemySpots =
+            {
+                new Point(6, 3), new Point(6, 2), new Point(6, 4), new Point(7, 3)
+            };
+            int staged = StageBetaLabEnemies(enemies, enemySpots);
+            Point[] allySpots = { new Point(4, 2), new Point(4, 3), new Point(4, 4) };
+            ClearBetaLabCells(allySpots.Concat(new[] { new Point(5, 2), new Point(5, 3), new Point(5, 4) }));
+            AddBetaLabFieldUnderTarget(5, 4, "gas", 9);
+            List<CombatUnit> allies = state.Combat.Units
+                .Where(unit => unit != null && unit.Side == UnitSide.Party && !unit.Summoned
+                    && unit.Hp > 0 && unit.Id != caster.Id)
+                .OrderBy(unit => unit.PartyIndex).ToList();
+            for (int i = 0; i < allies.Count && i < allySpots.Length; i++)
+            {
+                CombatUnit ally = allies[i];
+                MoveBetaLabUnit(ally, allySpots[i].X, allySpots[i].Y);
+                ally.Hp = Mathf.Max(1, Mathf.FloorToInt(ally.MaxHp * 0.45f));
+                ally.Shielded = 0;
+                ally.Regenerating = 0;
+                ally.Poisoned = 3;
+                ally.Bleeding = 3;
+                ally.Hexed = 3;
+                AddFloat(ally.X, ally.Y, "mend test", teal);
+            }
+            caster.Shielded = 0;
+            caster.Regenerating = 0;
+            caster.Mana = caster.MaxMana;
             return staged;
         }
 
@@ -7265,30 +7416,79 @@ namespace AshenHalls
             AddFlash(x, y, TerrainHighlightColor(field, 0.8f));
         }
 
+        private void PromoteMartialTester(CombatUnit active, string classKey)
+        {
+            if (state?.Combat?.Units == null
+                || (classKey != "warrior" && classKey != "rogue" && classKey != "ranger")) return;
+            CombatUnit unit = state.Combat.Units
+                .Where(candidate => candidate != null && candidate.Side == UnitSide.Party
+                    && !candidate.Summoned && candidate.Hp > 0 && candidate.ClassKey == classKey)
+                .OrderBy(candidate => candidate.PartyIndex).FirstOrDefault();
+            if (unit == null)
+            {
+                PushLog("Martial Lab has no living " + DisplayClass(classKey) + " tester. Reset restores all three martial classes.", Tone.Warn);
+                PlaySfx("blocked", 0.62f);
+                return;
+            }
+            ApplyMartialTesterKit(unit);
+            ActivateBetaMartialTester(unit);
+            PushLog("Martial Lab " + DisplayClass(classKey) + " kit ready: every class skill is unlocked. Wound and Cluster prepare finishing blows and area attacks.", Tone.Good);
+            ShowBanner(DisplayClass(classKey) + " test ready");
+            PlaySfx("shrine", 0.72f);
+        }
+
+        private void ApplyMartialTesterKit(CombatUnit unit)
+        {
+            if (unit == null) return;
+            unit.Level = ProgressionRules.MaximumLevel;
+            if (unit.Skills == null) unit.Skills = new SkillSet().Normalize();
+            unit.Skills.Arms = Mathf.Max(unit.Skills.Arms, 36);
+            if (unit.ClassKey == "warrior") unit.Skills.Guard = Mathf.Max(unit.Skills.Guard, 24);
+            if (unit.ClassKey == "rogue") unit.Skills.Missile = Mathf.Max(unit.Skills.Missile, 20);
+            if (unit.ClassKey == "ranger") unit.Skills.Missile = Mathf.Max(unit.Skills.Missile, 36);
+            if (state?.Party != null && unit.PartyIndex >= 0 && unit.PartyIndex < state.Party.Count)
+            {
+                PartyMember member = state.Party[unit.PartyIndex];
+                PromoteMemberForMartialTesting(member);
+                unit.MaxHp = member.MaxHp;
+                unit.MaxMana = member.MaxMana;
+                unit.Skills = member.Skills.Clone();
+                member.Hp = member.MaxHp;
+                member.Mana = member.MaxMana;
+            }
+            unit.Hp = unit.MaxHp;
+            unit.Mana = unit.MaxMana;
+            unit.Poisoned = 0;
+            unit.Bleeding = 0;
+            unit.Hexed = 0;
+            unit.DemonFormTurns = 0;
+        }
+
+        private void ActivateBetaMartialTester(CombatUnit unit)
+        {
+            // Share the turn takeover/reset path with caster presets, then open
+            // the real skill deck for this actor instead of the spell deck.
+            ActivateBetaSpellTester(unit, false);
+            if (unit == null || unit.Hp <= 0 || state?.Combat?.ActiveId != unit.Id) return;
+            selectedAction = ActionMode.Ability;
+            showSpellbook = false;
+            showAbilityPanel = true;
+            MarkUiDirty();
+        }
+
         private void PromoteMartialLabUnits()
         {
             if (state?.Combat?.Units == null) return;
             int promoted = 0;
-            foreach (CombatUnit unit in state.Combat.Units.Where(u => u.Side == UnitSide.Party && (u.ClassKey == "warrior" || u.ClassKey == "rogue" || u.ClassKey == "ranger")))
+            foreach (CombatUnit unit in state.Combat.Units.Where(u => u.Side == UnitSide.Party && !u.Summoned && u.Hp > 0
+                && (u.ClassKey == "warrior" || u.ClassKey == "rogue" || u.ClassKey == "ranger")))
             {
-                unit.Level = Mathf.Max(unit.Level, 3);
-                if (unit.Skills == null) unit.Skills = new SkillSet().Normalize();
-                unit.Skills.Arms = Mathf.Max(unit.Skills.Arms, 18);
-                if (unit.ClassKey == "warrior") unit.Skills.Guard = Mathf.Max(unit.Skills.Guard, 12);
-                if (unit.ClassKey == "rogue") unit.Skills.Missile = Mathf.Max(unit.Skills.Missile, 10);
-                if (unit.ClassKey == "ranger") unit.Skills.Missile = Mathf.Max(unit.Skills.Missile, 20);
-                unit.Hp = unit.MaxHp;
+                ApplyMartialTesterKit(unit);
                 AddFloat(unit.X, unit.Y, "promote", gold);
                 promoted++;
             }
-            foreach (PartyMember member in state.Party.Where(p => p.ClassKey == "warrior" || p.ClassKey == "rogue" || p.ClassKey == "ranger"))
-            {
-                PromoteMemberForMartialTesting(member);
-                member.Hp = member.MaxHp;
-                member.Mana = member.MaxMana;
-            }
             SyncPartyFromCombat();
-            PushLog($"Martial Lab promotes {promoted} warrior/rogue/ranger testers to unlock skill gates.", Tone.Good);
+            PushLog($"Martial Lab promotes {promoted} warrior/rogue/ranger testers to maximum level and unlocks every class skill.", Tone.Good);
             ShowBanner("Skills unlocked");
             PlaySfx("shrine", 0.72f);
         }
@@ -12906,7 +13106,7 @@ namespace AshenHalls
             PlaceUnit(warrior, placements, 0);
             if (warrior != null)
             {
-                warrior.Level = Mathf.Max(warrior.Level, 3);
+                warrior.Level = ProgressionRules.MaximumLevel;
                 warrior.Skills.Arms = Mathf.Max(warrior.Skills.Arms, 18);
                 warrior.Skills.Guard = Mathf.Max(warrior.Skills.Guard, 12);
             }
@@ -12914,7 +13114,7 @@ namespace AshenHalls
             PlaceUnit(rogue, placements, 1);
             if (rogue != null)
             {
-                rogue.Level = Mathf.Max(rogue.Level, 3);
+                rogue.Level = ProgressionRules.MaximumLevel;
                 rogue.Skills.Arms = Mathf.Max(rogue.Skills.Arms, 18);
                 rogue.Skills.Missile = Mathf.Max(rogue.Skills.Missile, 10);
                 rogue.Stealthed = Mathf.Max(rogue.Stealthed, 1);

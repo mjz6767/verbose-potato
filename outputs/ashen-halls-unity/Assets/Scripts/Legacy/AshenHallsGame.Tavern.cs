@@ -196,7 +196,7 @@ namespace AshenHalls
             labSaveBlocked = true;
             StartCombat("lab");
             PushLog("Beta Combat Lab: caster-heavy battle loaded for stress testing spells, hazards, enemy magic, and audio.", Tone.Good);
-            PushLog("Spell Lab craft is enabled here: use Mage for ember/fire/cold/shock testing, Craft for all casters, and Vesh for priest wards and mending.", Tone.Good);
+            PushLog("Choose Mage, Warlock, or Priest to open a fully unlocked Spellbook. Stage prepares targets for that caster; Skills Lab opens Warrior, Rogue, and Ranger skill testing.", Tone.Good);
             ShowBanner(BuildStage);
             TestSfx();
         }
@@ -211,6 +211,8 @@ namespace AshenHalls
         {
             SetActiveContentSet(ContentSetCatalog.FullPrototype);
             state.Party = MakeDefaultParty();
+            PartyMember rogueTester = state.Party.FirstOrDefault(member => member.ClassKey == "mage");
+            if (rogueTester != null) ApplyClass(rogueTester, "rogue");
             EnsurePartyCustomization();
             state.Depth = 3;
             state.Gold = Mathf.Max(state.Gold, 160);
@@ -236,7 +238,8 @@ namespace AshenHalls
             betaLabMode = true;
             labSaveBlocked = true;
             StartCombat("martiallab");
-            PushLog("Martial Lab: warrior, rogue, and ranger skills are unlocked and nearby targets are staged for stress testing.", Tone.Good);
+            PromoteMartialTester(null, "warrior");
+            PushLog("Martial Lab: choose Warrior, Rogue, or Ranger for all seven class skills. Wound prepares finishers; Cluster prepares area attacks; Spells Lab returns to spell testing.", Tone.Good);
             ShowBanner("Martial Lab");
             TestSfx();
         }
@@ -476,21 +479,21 @@ namespace AshenHalls
         private void PromoteMemberForMartialTesting(PartyMember member)
         {
             if (member == null) return;
-            member.Level = Mathf.Max(member.Level, 3);
+            member.Level = ProgressionRules.MaximumLevel;
             if (member.Skills == null) member.Skills = StartingSkills(member.ClassKey).Normalize();
             if (member.ClassKey == "warrior")
             {
-                member.Skills.Arms = Mathf.Max(member.Skills.Arms, 18);
-                member.Skills.Guard = Mathf.Max(member.Skills.Guard, 12);
+                member.Skills.Arms = Mathf.Max(member.Skills.Arms, 36);
+                member.Skills.Guard = Mathf.Max(member.Skills.Guard, 24);
             }
             else if (member.ClassKey == "rogue")
             {
-                member.Skills.Arms = Mathf.Max(member.Skills.Arms, 18);
-                member.Skills.Missile = Mathf.Max(member.Skills.Missile, 10);
+                member.Skills.Arms = Mathf.Max(member.Skills.Arms, 36);
+                member.Skills.Missile = Mathf.Max(member.Skills.Missile, 36);
             }
             else if (member.ClassKey == "ranger")
             {
-                member.Skills.Missile = Mathf.Max(member.Skills.Missile, 20);
+                member.Skills.Missile = Mathf.Max(member.Skills.Missile, 36);
                 member.Skills.Arms = Mathf.Max(member.Skills.Arms, 8);
             }
             RecalculateMember(member);
