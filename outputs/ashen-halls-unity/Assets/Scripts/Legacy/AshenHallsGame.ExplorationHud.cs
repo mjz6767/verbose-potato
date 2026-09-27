@@ -871,17 +871,17 @@ namespace AshenHalls
                 {
                     Title = "World Map",
                     RouteLine = GameSubtitle,
-                    FocusHint = "Preparing the road...",
+                    FocusHint = "",
                     ZoneName = HomeTownName,
-                    ZoneDetail = "Muster not ready",
-                    LookLine = "Preparing the road...",
+                    ZoneDetail = "",
+                    LookLine = "",
                     ObjectiveLine = "",
                     ObjectiveSummary = "Preparing the road...",
-                    WaypointLine = "No marked route yet.",
-                    NearbyLine = "Nothing nearby.",
+                    WaypointLine = "",
+                    NearbyLine = "",
                     GrowthLine = "",
-                    ActionLabel = "No Action",
-                    ActionTarget = "Nothing nearby"
+                    ActionLabel = "Use",
+                    ActionTarget = ""
                 };
             }
 
@@ -912,11 +912,11 @@ namespace AshenHalls
             string lookLine;
             if (!exploreWideView && !string.IsNullOrEmpty(exploreHoverLookLine))
             {
-                lookLine = "Look: " + exploreHoverLookLine.Replace("\n", " / ");
+                lookLine = exploreHoverLookLine.Replace("\n", " / ");
             }
             else if (exploreWideView && state.Map != null)
             {
-                lookLine = "Focus: " + ExploreLookLine(focus.X, focus.Y).Replace("\n", " / ");
+                lookLine = ExploreLookLine(focus.X, focus.Y).Replace("\n", " / ");
             }
             else if (!string.IsNullOrEmpty(nearbyAction))
             {
@@ -932,7 +932,7 @@ namespace AshenHalls
             }
             else
             {
-                lookLine = "Nearby: roads, fog, and old markers.";
+                lookLine = "";
             }
 
             return new ExplorationHudView
@@ -953,16 +953,16 @@ namespace AshenHalls
                         ? regionAction.Target.Name
                         : hasRegionalSite ? regionalSite.Name : zone?.Name ?? HomeTownName,
                 ZoneDetail = !focusCharted
-                    ? $"BROWSE FOCUS {focus.X},{focus.Y} / travel closer to reveal"
+                    ? $"Uncharted {focus.X},{focus.Y} · travel closer to reveal"
                     : focusIsExactJunction
-                        ? $"CHARTED JUNCTION {focus.X},{focus.Y} / Space, E, or A marks the route"
+                        ? $"Charted junction {focus.X},{focus.Y}"
                     : exploreWideView && !focusTerrainCharted
-                        ? $"CHARTED LANDMARK {focus.X},{focus.Y} / Space, E, or A marks the route"
+                        ? $"Charted landmark {focus.X},{focus.Y}"
                     : ExploreLocationDetailAt(zone, focus.X, focus.Y, hasRegionalSite),
                 DangerLabel = zone == null ? "" : focusDangerKnown ? TravelDangerLabel(zone) : "UNKNOWN",
                 DangerColorHex = zone == null || !focusDangerKnown ? "8da6b2" : ColorHtml(ZoneDangerColor(zone)),
                 LookLine = lookLine,
-                ObjectiveLine = string.IsNullOrEmpty(state.ActiveStory) ? "Follow the road and mark what the party learns." : state.ActiveStory,
+                ObjectiveLine = state.ActiveStory ?? "",
                 ObjectiveSummary = ExploreObjectiveSummaryLine(),
                 WaypointLine = ExploreWaypointLine(),
                 NearbyLine = exploreHudCollapsed ? "" : ExploreNearbySummaryLine(),
@@ -972,12 +972,12 @@ namespace AshenHalls
                     ? regionAction.HasAction
                         ? regionAction.Clearing ? "Clear Route" : "Mark Route"
                         : "No Route"
-                    : interaction.HasTarget ? interaction.Verb : "No Action",
+                    : interaction.HasTarget ? interaction.Verb : "Use",
                 ActionTarget = exploreWideView
                     ? regionAction.HasAction
                         ? regionAction.Target.Name
                         : "Choose a charted landmark"
-                    : interaction.HasTarget ? interaction.TargetName : "Nothing nearby",
+                    : interaction.HasTarget ? interaction.TargetName : "",
                 Party = BuildExplorationHudPartyViews(),
                 Logs = exploreHudCollapsed ? Array.Empty<ExplorationHudLogView>() : BuildExplorationHudLogViews()
             };

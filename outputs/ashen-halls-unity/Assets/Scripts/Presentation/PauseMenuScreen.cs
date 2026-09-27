@@ -202,20 +202,21 @@ namespace AshenHalls
             settingsText.text = view.SettingsOpen ? "Hide Settings" : "Settings";
             returnText.text = view.ShowRetreat
                 ? view.ConfirmRetreat
-                    ? $"Confirm Retreat ({CombatRetreatRules.SupplyCost} Supply)"
+                    ? $"Confirm Retreat · {CombatRetreatRules.SupplyCost} Supply"
                     : view.RetreatEnabled
-                        ? $"Retreat to Midgaard ({CombatRetreatRules.SupplyCost} Supply)"
+                        ? $"Retreat · {CombatRetreatRules.SupplyCost} Supply"
                         : "Retreat (No Supplies)"
                 : view.ConfirmReturnToTavern ? "Confirm Return" : "Return to Tavern";
             returnButton.interactable = !view.ShowRetreat || view.RetreatEnabled;
             newText.text = view.ConfirmNewGame ? "Confirm New Game" : "New Game";
             statusText.text = view.ConfirmRetreat
-                ? "Spend one supply, abandon this fight and its loot, then recover at Temple Square."
+                ? $"Spend {CombatRetreatRules.SupplyCost} supply. Leave the fight and its loot; recover at Temple Square."
                 : view.ShowRetreat && !view.RetreatEnabled
-                    ? "Retreat needs one supply. Continue fighting or restore the pre-fight checkpoint."
+                    ? $"Requires {CombatRetreatRules.SupplyCost} supply. Fight on or load the pre-fight checkpoint."
                     : view.ConfirmReturnToTavern || view.ConfirmNewGame
-                        ? "This will leave the current run in memory. Save first if you want to keep it."
-                        : "Esc / B to close";
+                        ? "Save before leaving to keep your current progress."
+                        : "";
+            statusText.gameObject.SetActive(!string.IsNullOrWhiteSpace(statusText.text));
             settingsPanel.gameObject.SetActive(view.SettingsOpen);
             audioText.text = view.AudioLine ?? "";
             sfxText.text = view.SfxLine ?? "";
@@ -260,11 +261,11 @@ namespace AshenHalls
             settingsPanel = AddPanel("Settings Panel", panel, Hex("080b0d", 0.54f), Hex("3c4544", 0.28f));
             audioButton = AddButton("Audio", settingsPanel, "Audio", () => bindings?.ToggleAudio?.Invoke(), false);
             audioText = audioButton.GetComponentInChildren<Text>();
-            volumeDownButton = AddButton("Volume Down", settingsPanel, "- Volume", () => bindings?.VolumeDown?.Invoke(), false);
-            volumeUpButton = AddButton("Volume Up", settingsPanel, "+ Volume", () => bindings?.VolumeUp?.Invoke(), false);
+            volumeDownButton = AddButton("Volume Down", settingsPanel, "−", () => bindings?.VolumeDown?.Invoke(), false);
+            volumeUpButton = AddButton("Volume Up", settingsPanel, "+", () => bindings?.VolumeUp?.Invoke(), false);
             sfxText = AddText("SFX Value", settingsPanel, "SFX", 12, Hex("e1dacb", 1f), TextAnchor.MiddleCenter);
-            musicVolumeDownButton = AddButton("Music Down", settingsPanel, "- Music", () => bindings?.MusicVolumeDown?.Invoke(), false);
-            musicVolumeUpButton = AddButton("Music Up", settingsPanel, "+ Music", () => bindings?.MusicVolumeUp?.Invoke(), false);
+            musicVolumeDownButton = AddButton("Music Down", settingsPanel, "−", () => bindings?.MusicVolumeDown?.Invoke(), false);
+            musicVolumeUpButton = AddButton("Music Up", settingsPanel, "+", () => bindings?.MusicVolumeUp?.Invoke(), false);
             musicValueButton = AddButton("Music Toggle", settingsPanel, "Music", () => bindings?.ToggleMusic?.Invoke(), false);
             musicText = musicValueButton.GetComponentInChildren<Text>();
             reducedMotionButton = AddButton("Reduced Motion", settingsPanel, "Reduced Motion", () => bindings?.ToggleReducedMotion?.Invoke(), false);

@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.30.0 - Clearer Choices
+
+- Simplify character creation around portraits, names, race/class choices and concise mechanical summaries. Remove repeated selection instructions, role summaries, progress boilerplate and routine party advice.
+- Keep stat allocation notices contextual: completed companions stay quiet; unfinished points still block Begin with an explicit warning. Show current talent ranks directly on their controls.
+- Reduce repeated hints and headings in exploration, loot, Armory, pause, title, dialogue and end screens. Keep objectives, costs, comparison outcomes, target details, save recovery and NPC dialogue.
+- Shorten Help while retaining controls and useful mechanics. Remove inactive combat filler and a leftover developer art note.
+- Preserve all 40 portraits, music and sound effects, animations, Reduced Motion, game rules and save schema v27. Preserve the v2.29 archive.
+
 ## v2.29.0 - The Living Folio
 
 - Introduce The Ember Oath, an original sixty-second title theme with a distinct horn signature, contrasting intimate middle and returning company theme. Bring its opening into focus with a shorter cold-start fade and quieter reveal accents while preserving music preferences and the established title source gain.

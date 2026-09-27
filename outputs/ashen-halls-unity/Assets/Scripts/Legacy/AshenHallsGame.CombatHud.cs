@@ -129,9 +129,9 @@ namespace AshenHalls
                     Supplies = state?.Supplies.ToString() ?? "0",
                     Elixirs = state?.Elixirs.ToString() ?? "0",
                     RoundLine = "",
-                    PhaseLine = "Combat HUD ready",
+                    PhaseLine = "",
                     TacticalLine = "",
-                    CommandPrompt = "Combat commands will appear when initiative begins.",
+                    CommandPrompt = "",
                     PlayerTurn = false,
                     TimelineExpanded = combatTimelineExpanded,
                     CanUndoMove = false,
@@ -164,7 +164,7 @@ namespace AshenHalls
             return new CombatHudView
             {
                 Title = CombatEncounterTitle(),
-                RouteLine = $"{GameSubtitle} / Depth {state.Depth} / Combat",
+                RouteLine = $"Depth {state.Depth}",
                 ObjectiveLine = objectiveLine,
                 LivingEnemyCount = livingEnemyCount,
                 LivingPartyCount = livingPartyCount,

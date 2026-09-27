@@ -112,11 +112,11 @@ namespace AshenHalls.Editor
                 LootPopupScreen screen = host.AddComponent<LootPopupScreen>();
                 screen.Bind(new LootPopupBindings { View = () => new LootPopupView {
                     Visible = true, HasItem = item, CanReview = item, CanQuickEquip = item,
-                    Title = "Loot recovered", ItemName = item ? "Roadwarden's Longsword" : "Victory spoils",
-                    ItemType = "Sword", Rarity = "Rare", TraitLine = item ? "A balanced blade with a weathered brass guard." : "Gold and supplies were added to the company stores.",
+                    Title = "Loot recovered", ItemName = item ? "Roadwarden's Longsword" : "Rewards",
+                    ItemType = "Sword", Rarity = "Rare", TraitLine = item ? "Melee / 4-7 dmg / spd 2" : "",
                     Comparison = item ? "Cairn: +2 attack • current weapon: Iron Sword" : "",
                     Outcome = item ? "Stored in inventory" : "Added to company stores",
-                    EquipNote = item ? "Choose Equip best fit to arm Cairn, or compare equipment in the inventory." : "Ready for the next leg of the journey.",
+                    EquipNote = "", QuickEquipActionLabel = "Equip to Cairn", ReviewActionLabel = "Compare others",
                     Gold = 12, Supplies = 1, Elixirs = 1, AccentHex = "d7a84e",
                     IconTexture = icon, IconUv = new Rect(0f, 0.75f, 0.2f, 0.25f), IconLabel = "SPOILS"
                 }});

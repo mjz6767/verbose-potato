@@ -1347,11 +1347,9 @@ namespace AshenHalls
         {
             if (tab == (int)ArmoryTab.Pack) return "";
             if (tab == (int)ArmoryTab.Spells) return FormulaCasterSummary();
-            if (tab == (int)ArmoryTab.Journal) return ContentSetCatalog.ShowPrototypeScaffold(activeContentSet)
-                ? "Story beats, city errands, charted roads, selectable waypoints, and future scaffold hooks."
-                : "Active road campaign: Midgaard Cisterns, Kobold Smoke, the Bone Road, and charted regional services.";
+            if (tab == (int)ArmoryTab.Journal) return "";
             if (tab == (int)ArmoryTab.Growth) return ArmoryGrowthSubtitle();
-            return "Review every adventurer's current weapon, armor, and combat-facing stats.";
+            return "";
         }
 
         private string ArmoryFooterLine()
@@ -1361,13 +1359,10 @@ namespace AshenHalls
 
         private string ArmoryFooterLine(int tab)
         {
-            if (tab == (int)ArmoryTab.Party) return "Equipment: select an adventurer for a complete loadout readout.";
-            if (tab == (int)ArmoryTab.Pack) return "Select an item  •  Equip on the right  •  Esc closes";
-            if (tab == (int)ArmoryTab.Spells) return "Spells tab: choose Ability in combat, select a formula, then click a highlighted target.";
+            if (tab == (int)ArmoryTab.Party || tab == (int)ArmoryTab.Pack) return "";
+            if (tab == (int)ArmoryTab.Spells) return "Cast spells in combat.";
             if (tab == (int)ArmoryTab.Growth) return ArmoryGrowthFooter();
-            return ContentSetCatalog.ShowPrototypeScaffold(activeContentSet)
-                ? "Journal tab: mark any charted road turn to draw a path and replace automatic guidance."
-                : "Journal tab: follow the active road campaign; charted sites record one-time rewards and repeat services.";
+            return "";
         }
 
         private string LampRoundJournalStatus()

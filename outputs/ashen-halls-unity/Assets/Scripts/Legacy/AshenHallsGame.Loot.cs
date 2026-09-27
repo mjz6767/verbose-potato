@@ -122,11 +122,11 @@ namespace AshenHalls
             string comparison = !hasItem
                 ? ""
                 : !equippable
-                    ? "A quest item, not equipment. It will not replace anyone's loadout."
+                    ? "Quest item · not equipment."
                     : owner != null
-                        ? $"{InventoryEquipmentRules.SlotLabel(item.Slot, item.Form)} is active on {owner.Name}."
+                        ? ""
                         : best == null
-                            ? "Stored safely with the party's other gear."
+                            ? ""
                             : $"Best fit: {best.Name}  •  {InventoryGradeLabelFor(item, best)}  •  {InventoryComparisonLine(item, best)}";
             return new LootPopupView
             {
@@ -137,7 +137,7 @@ namespace AshenHalls
                 CanReview = canReview,
                 CanQuickEquip = canQuickEquip,
                 Title = lootPanelTitle,
-                ItemName = hasItem ? item.DisplayName : "Victory spoils",
+                ItemName = hasItem ? item.DisplayName : "Rewards",
                 ItemType = hasItem ? InventoryEquipmentRules.SlotLabel(item.Slot, item.Form) : "",
                 Rarity = hasItem ? InventoryEquipmentRules.RarityLabel(item.Rarity) : "",
                 TraitLine = lootPanelTraitLine,

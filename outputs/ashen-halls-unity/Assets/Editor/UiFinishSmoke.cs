@@ -14,6 +14,7 @@ namespace AshenHalls.Editor
             OrnamentsShareAndReleaseArtWithoutInterceptingInput();
             PauseNavigationRetainsUsableFocus();
             ExpandedExplorationPartySubtitlesRemainVisible();
+            EquipmentSelectionKeepsAVisibleNativeControl();
         }
 
         private static void OrnamentsShareAndReleaseArtWithoutInterceptingInput()
@@ -154,6 +155,55 @@ namespace AshenHalls.Editor
                 screen.SetVisible(false);
             }
             finally { UnityEngine.Object.DestroyImmediate(host); }
+        }
+
+        private static void EquipmentSelectionKeepsAVisibleNativeControl()
+        {
+            EventSystem eventSystem = UiRuntime.EnsureEventSystemReady();
+            GameObject previousSelection = eventSystem.currentSelectedGameObject;
+            GameObject host = new GameObject("UI finish equipment selection smoke");
+            try
+            {
+                ArmoryRowView[] rows = {
+                    new ArmoryRowView { Key = 41, Title = "Cairn", Subtitle = "Warrior / L1 / HP 32/32", Badge = "Warrior", ActionLabel = "Viewing", ActionEnabled = true, Selected = true },
+                    new ArmoryRowView { Key = 73, Title = "Seren", Subtitle = "Ranger / L1 / HP 24/24", Badge = "Ranger", ActionLabel = "Inspect", ActionEnabled = true }
+                };
+                ArmoryOverlayView view = new ArmoryOverlayView { Visible = true, ActiveTab = 0, Rows = rows };
+                int invokedKey = -1;
+                ArmoryOverlayScreen screen = host.AddComponent<ArmoryOverlayScreen>();
+                screen.Bind(new ArmoryOverlayBindings { View = () => view, RunRowAction = key => invokedKey = key });
+                screen.SetVisible(true);
+                screen.Refresh();
+                RectTransform content = Field<RectTransform>(screen, "contentRoot");
+                Transform first = content.Find("Row 0");
+                Transform second = content.Find("Row 1");
+                Require(!first.Find("Action").gameObject.activeInHierarchy
+                    && first.GetComponent<Button>().interactable
+                    && eventSystem.currentSelectedGameObject == first.gameObject,
+                    "the selected equipment row remains a visible, focused control after redundant Viewing is hidden");
+                screen.InvokeFocusedRowForTest();
+                Require(invokedKey == rows[0].Key, "the selected equipment row still submits its own durable key");
+
+                screen.FocusRowForTest(1);
+                Require(eventSystem.currentSelectedGameObject == second.Find("Action").gameObject,
+                    "an unselected companion remains reachable through Inspect");
+                rows[0].Selected = false;
+                rows[0].ActionLabel = "Inspect";
+                rows[1].Selected = true;
+                rows[1].ActionLabel = "Viewing";
+                screen.Refresh();
+                Require(!second.Find("Action").gameObject.activeInHierarchy
+                    && second.GetComponent<Button>().interactable
+                    && eventSystem.currentSelectedGameObject == second.gameObject,
+                    "committing a companion moves focus off the newly hidden action onto its row");
+                screen.InvokeFocusedRowForTest();
+                Require(invokedKey == rows[1].Key, "the replacement row control submits the newly selected companion");
+            }
+            finally
+            {
+                eventSystem.SetSelectedGameObject(previousSelection);
+                UnityEngine.Object.DestroyImmediate(host);
+            }
         }
 
         private static void Move(EventSystem eventSystem, MoveDirection direction)

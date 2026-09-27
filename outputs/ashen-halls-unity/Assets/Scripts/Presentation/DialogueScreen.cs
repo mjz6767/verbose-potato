@@ -266,6 +266,7 @@ namespace AshenHalls
             titleText.color = titleAccent;
             titleText.text = string.IsNullOrWhiteSpace(view.Title) ? "Midgaard" : view.Title;
             speakerText.text = string.IsNullOrWhiteSpace(view.Speaker) ? "Traveler" : view.Speaker;
+            titleText.gameObject.SetActive(!string.Equals(titleText.text.Trim(), speakerText.text.Trim(), StringComparison.OrdinalIgnoreCase));
             bodyText.text = string.IsNullOrWhiteSpace(view.Body) ? "..." : view.Body;
             Canvas.ForceUpdateCanvases();
             UpdateBodyContentLayout();
@@ -276,6 +277,7 @@ namespace AshenHalls
             portraitText.gameObject.SetActive(portraitSprite == null);
             portraitText.text = PortraitInitials(view.Speaker, view.Focus);
             pageText.text = view.PageLabel ?? "";
+            pageText.gameObject.SetActive(!string.IsNullOrWhiteSpace(pageText.text));
             SetButtonLabel(closeButton, string.IsNullOrWhiteSpace(view.ContinueLabel) ? "Continue" : view.ContinueLabel);
             choicesPanel.gameObject.SetActive(choiceCount > 0);
             for (int i = 0; i < choiceButtons.Length; i++)
@@ -572,6 +574,8 @@ namespace AshenHalls
             int index = Mathf.Clamp(selectedChoiceIndex, 0, Mathf.Min(choiceButtons.Length, choices.Length) - 1);
             DialogueChoiceView selected = index >= 0 && index < choices.Length ? choices[index] : null;
             hintText.text = selected == null ? "" : selected.Hint ?? "";
+            if (selected != null && string.Equals(hintText.text.Trim(), selected.Label?.Trim(), StringComparison.OrdinalIgnoreCase))
+                hintText.text = "";
         }
 
         private Button AddButton(string name, Transform parent, string label, Action action)

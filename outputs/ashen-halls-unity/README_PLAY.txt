@@ -1,6 +1,10 @@
-Ash & Brimstone v2.29.0 - The Living Folio
+Ash & Brimstone v2.30.0 - Clearer Choices
 
-Release version: v2.29.0. Save schema: v27.
+Release version: v2.30.0. Save schema: v27.
+
+Clearer Choices removes repeated instructions and filler from character creation and the surrounding game screens. Portraits and direct race/class choices take priority, with brief bonuses and class summaries. Attributes & details keeps stats, visible talent ranks, appearance and equipment; unspent points still explain why Begin is unavailable.
+
+Exploration, loot, Armory, menus and combat use shorter labels and less repeated guidance. Decision information, story dialogue, comparisons, costs, target outcomes and recovery warnings remain available. Music, artwork, effects, Reduced Motion and campaign saves are preserved. Save schema remains v27. Release verification is recorded separately after the immutable package is built.
 
 The Living Folio brings character creation to life with a dedicated musical arrangement, distinct sounds for your choices, and an original candlelit workshop painting. Portrait transitions, class-colored accents and subtle firelight accompany the existing illustrated party cards and direct race/class choices.
 

@@ -507,11 +507,9 @@ namespace AshenHalls
                 Title = GameTitle,
                 Subtitle = GameSubtitle,
                 BackdropArt = tavernBackdropArt,
-                SummaryLine = () => $"Tavern Muster / {PartySummaryLine()}",
                 WorkshopBackdropArt = PartySetupWorkshopBackdrop,
                 ReducedMotion = () => state != null && state.ReducedMotion,
                 TabChanged = PlayPartySetupTabCue,
-                WeaknessLine = PartyWeaknessLine,
                 Members = PartySetupMemberViews,
                 SelectedIndex = () => selectedBuilderIndex,
                 SelectedMember = SelectedPartySetupMemberView,
@@ -624,11 +622,7 @@ namespace AshenHalls
                 RaceDescription = race.Description ?? "",
                 ClassDescription = characterClass.Description ?? "",
                 RaceClassLine = $"{DisplayRace(member.Race)} / {DisplayClass(member.ClassKey)}",
-                RoleLine = RoleIdentityLine(member),
-                GearLine = GearShortLine(member),
-                ProgressLine = ProgressLine(member) + " / " + EffectiveStatsLine(member),
-                UnlockLine = ProgressionUnlockLine(member),
-                BestSkillLine = $"{BestSkillLabel(member)} {BestSkillValue(member)} ({SkillAdjective(BestSkillValue(member))})",
+                GearLine = GearShortLine(member).Replace(" / ", "\n"),
                 ColorHex = member.SpriteColor,
                 Strength = member.Stats.Strength,
                 Intelligence = member.Stats.Intelligence,
@@ -639,7 +633,8 @@ namespace AshenHalls
                 CanIncreaseStats = total < StatPointBudget || member.StatPoints > 0,
                 CanDecreaseStats = new[] { member.Stats.Strength > 3, member.Stats.Intelligence > 3, member.Stats.Dexterity > 3, member.Stats.Health > 3 },
                 CanBoostTalents = canBoostTalents.Any(value => value),
-                CanBoostTalentByIndex = canBoostTalents
+                CanBoostTalentByIndex = canBoostTalents,
+                TalentValues = new[] { member.Skills?.Arms ?? 0, member.Skills?.Missile ?? 0, member.Skills?.Mend ?? 0, member.Skills?.Ember ?? 0, member.Skills?.Hex ?? 0, member.Skills?.Guard ?? 0 }
             };
         }
 

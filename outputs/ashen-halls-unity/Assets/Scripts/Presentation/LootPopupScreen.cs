@@ -242,13 +242,19 @@ namespace AshenHalls
             headerText.text = string.IsNullOrWhiteSpace(view.Title) ? "Loot recovered" : view.Title;
             eyebrowText.text = view.HasItem
                 ? $"{SafeUpper(view.Rarity, "Common")}  ·  {SafeUpper(view.ItemType, "Item")}"
-                : "COMPANY SPOILS";
+                : "";
             eyebrowText.color = accent;
-            itemTitleText.text = string.IsNullOrWhiteSpace(view.ItemName) ? "Victory spoils" : view.ItemName;
+            itemTitleText.text = string.IsNullOrWhiteSpace(view.ItemName) ? "Rewards" : view.ItemName;
             bodyText.text = BuildBody(view);
-            outcomeTitleText.text = string.IsNullOrWhiteSpace(view.Outcome) ? "Stored in inventory" : view.Outcome;
+            outcomeTitleText.text = string.IsNullOrWhiteSpace(view.Outcome)
+                ? view.HasItem ? "Stored in inventory" : "Collected"
+                : view.Outcome;
             outcomeTitleText.color = accent;
-            outcomeDetailText.text = view.EquipNote ?? "";
+            outcomeDetailText.text = !string.Equals(view.EquipNote?.Trim(), outcomeTitleText.text.Trim(), StringComparison.OrdinalIgnoreCase)
+                ? view.EquipNote ?? "" : "";
+            eyebrowText.gameObject.SetActive(!string.IsNullOrWhiteSpace(eyebrowText.text));
+            bodyText.gameObject.SetActive(!string.IsNullOrWhiteSpace(bodyText.text));
+            outcomeDetailText.gameObject.SetActive(!string.IsNullOrWhiteSpace(outcomeDetailText.text));
 
             RefreshResourceChip(goldText, view.Gold, view.Gold == 1 ? "+1 gold" : $"+{view.Gold} gold");
             RefreshResourceChip(suppliesText, view.Supplies, view.Supplies == 1 ? "+1 supply" : $"+{view.Supplies} supplies");
@@ -278,7 +284,8 @@ namespace AshenHalls
                 : view.ReviewActionLabel;
             inputHintText.text = view.SecondsRemaining > 0.5f
                 ? $"{Mathf.CeilToInt(view.SecondsRemaining)}s"
-                : "Enter / A: select\nEsc / B: close";
+                : "";
+            inputHintText.gameObject.SetActive(!string.IsNullOrWhiteSpace(inputHintText.text));
             ConfigureActionNavigation(view.CanQuickEquip, view.CanReview);
             if (IsVisible && !IsUsableCanvasSelection(EventSystem.current)) FocusDefaultAction(EventSystem.current);
             Canvas.ForceUpdateCanvases();
@@ -302,11 +309,11 @@ namespace AshenHalls
 
         private static string BuildBody(LootPopupView view)
         {
-            string trait = string.IsNullOrWhiteSpace(view.TraitLine)
-                ? view.HasItem ? "Serviceable adventuring gear." : "Gold and supplies were added to the company stores."
-                : view.TraitLine;
-            string comparison = string.IsNullOrWhiteSpace(view.Comparison) ? "" : "\n" + view.Comparison;
-            return trait + comparison;
+            string trait = view.HasItem ? (view.TraitLine ?? "").Trim() : "";
+            string comparison = (view.Comparison ?? "").Trim();
+            if (string.IsNullOrEmpty(trait)) return comparison;
+            if (string.IsNullOrEmpty(comparison) || string.Equals(trait, comparison, StringComparison.OrdinalIgnoreCase)) return trait;
+            return trait + "\n" + comparison;
         }
 
         private static string SafeUpper(string value, string fallback)

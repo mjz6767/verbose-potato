@@ -3432,7 +3432,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.29.0", VersionInfo.PackageVersion, "package version marks the living character folio release");
+            AssertEqual("v2.30.0", VersionInfo.PackageVersion, "package version marks the living character folio release");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -8712,39 +8712,31 @@ namespace AshenHalls.Editor
             HelpOverlayView muster = HelpOverlayContent.Build(GameMode.Muster, false, 6, "Midgaard");
             HelpOverlayView victory = HelpOverlayContent.Build(GameMode.Victory, false, 6, "Midgaard");
             HelpOverlayView defeat = HelpOverlayContent.Build(GameMode.Defeat, false, 6, "Midgaard");
+            bool HasGuidance(HelpOverlayView view, params string[] terms) => view.Lines.Any(line =>
+                terms.All(term => line.IndexOf(term, StringComparison.OrdinalIgnoreCase) >= 0));
 
             AssertEqual(true, tavern.Title.Contains("Tavern"), "tavern help title");
-            AssertEqual(true, tavern.Lines.Any(line => line.Contains("Beta Lab")), "developer tavern help names the direct Beta Lab row");
-            AssertEqual(true, tavern.Lines.Any(line => line.Contains("broader combat, martial, and route testing panel")), "developer tavern help retains the broader testing-panel route");
+            AssertEqual(true, HasGuidance(tavern, "Beta Lab"), "developer tavern help names the direct Beta Lab row");
+            AssertEqual(true, HasGuidance(tavern, "T opens", "testing panel"), "developer tavern help retains the broader testing-panel route");
             AssertEqual(false, retailTavern.Lines.Any(line => line.Contains("Beta Lab") || line.Contains("testing panel")), "retail tavern help does not advertise hidden developer routes");
-            AssertEqual(true, retailTavern.Lines.Any(line => line.Contains("whole app") && line.Contains("independently of campaign saves")), "tavern help explains app-wide settings persistence");
-            AssertEqual(true, explore.Lines.Any(line => line.Contains("Space / E")), "exploration help mentions contextual use");
-            AssertEqual(true, explore.Lines.Any(line => line.Contains("Space/E/A") && line.Contains("Home / gamepad X")), "exploration help explains Region route marking and party recenter controls");
-            AssertEqual(true, explore.Lines.Any(line => line.Contains("Space/E/A beside it")), "exploration blocked-path help includes controller A");
-            AssertEqual(true, explore.Lines.Any(line => line.Contains("Growth tab")), "exploration help points earned progression to I > Growth");
-            AssertEqual(true, explore.Lines.Any(line => line.IndexOf("east and west gates", StringComparison.OrdinalIgnoreCase) >= 0), "exploration help mentions pass-through gates");
-            AssertEqual(
-                true,
-                explore.Lines.Any(line =>
-                    line.IndexOf("patrons", StringComparison.OrdinalIgnoreCase) >= 0
-                    && line.IndexOf("Town Hall's Grand Hearth", StringComparison.OrdinalIgnoreCase) >= 0
-                    && line.IndexOf("storm doors", StringComparison.OrdinalIgnoreCase) >= 0
-                    && line.IndexOf("begin the journey", StringComparison.OrdinalIgnoreCase) >= 0),
+            AssertEqual(true, HasGuidance(retailTavern, "music", "sound", "Reduced Motion", "across campaigns"), "tavern help explains app-wide settings persistence");
+            AssertEqual(true, HasGuidance(explore, "Space / E / A", "nearby object"), "exploration contextual use includes keyboard and controller A");
+            AssertEqual(true, HasGuidance(explore, "Region map", "Space / E / A", "route", "Home / gamepad X", "party"), "exploration help explains Region route marking and party recenter controls");
+            AssertEqual(true, HasGuidance(explore, "I:", "Armory", "Growth"), "exploration help points earned progression to Armory Growth");
+            AssertEqual(true, HasGuidance(explore, "east and west", "gates", "roads"), "exploration help mentions pass-through gates");
+            AssertEqual(true, HasGuidance(explore, "first", "leave", "Town Hall", "storm doors"),
                 "exploration help explains the Town Hall gathering and required first departure");
-            AssertEqual(true, combat.Lines.Any(line => line.Contains("Tree Cover")), "combat help mentions tree cover");
-            AssertEqual(true, combat.Lines.Any(line => line.Contains("undo this turn's movement")), "combat help explains pre-action movement undo");
-            AssertEqual(true, combat.Lines.Any(line => line.Contains("cancels an armed target")), "combat help explains non-destructive target cancellation");
-            AssertEqual(true, combat.Lines.Any(line => line.Contains("retreat for one supply")), "combat help explains the retreat safety valve");
-            AssertEqual(true, combat.Lines.Any(line => line.Contains("review-only")), "combat help explains that growth spending waits until combat ends");
-            AssertEqual(true, muster.Lines.Any(line => line.Contains("50-point")), "muster help mentions stat budget");
-            AssertEqual(true, tavern.Lines.Any(line => line.IndexOf("muster", StringComparison.OrdinalIgnoreCase) >= 0)
+            AssertEqual(true, HasGuidance(combat, "Tree Cover", "6 rounds", "blocking arrows", "Arcing spells"), "combat help retains cover duration and projectile behavior");
+            AssertEqual(true, HasGuidance(combat, "U / Backspace", "undo movement", "before", "action"), "combat help explains pre-action movement undo");
+            AssertEqual(true, HasGuidance(combat, "Esc / right-click", "cancel targeting", "without spending"), "combat help explains non-destructive target cancellation");
+            AssertEqual(true, HasGuidance(combat, "Retreat", CombatRetreatRules.SupplyCost.ToString(), "supply"), "combat help explains the retreat cost");
+            AssertEqual(true, HasGuidance(combat, "Growth", "after combat"), "combat help explains that growth spending waits until combat ends");
+            AssertEqual(true, HasGuidance(muster, "50", "attribute points", "continue"), "muster help mentions the complete stat budget requirement");
+            AssertEqual(true, HasGuidance(tavern, "New Game", "character creation")
                 && !tavern.Lines.Any(line => line.Contains("Customize Party")), "title help names the current new-company path without a removed choice");
-            AssertEqual(
-                true,
-                tavern.Lines.Any(line => line.IndexOf("Town Hall's Grand Hearth", StringComparison.OrdinalIgnoreCase) >= 0),
-                "title help sends the new company to Town Hall's Grand Hearth");
             AssertEqual(true, victory.Title.Contains("Victory"), "victory help title");
             AssertEqual(true, defeat.Title.Contains("Defeat"), "defeat help title");
+            AssertEqual(true, HasGuidance(defeat, "Tavern", "Continue", "saved checkpoint"), "defeat help preserves saved-campaign recovery");
         }
 
         private static void EndStateScreenLayoutFitsSupportedResolutions()

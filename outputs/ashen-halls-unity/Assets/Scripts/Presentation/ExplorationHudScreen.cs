@@ -570,10 +570,10 @@ namespace AshenHalls
             objectiveText.text = view.DetailsOpen ? view.ObjectiveLine ?? "" : view.ObjectiveSummary ?? "";
             growthText.text = view.GrowthLine ?? "";
             actionLabelText.text = string.IsNullOrEmpty(view.ActionLabel)
-                ? view.HasAction ? "Use" : "No Action"
+                ? "Use"
                 : view.ActionLabel;
             actionTargetText.text = string.IsNullOrEmpty(view.ActionTarget)
-                ? "Nothing nearby"
+                ? ""
                 : view.ActionTarget;
             actionButton.interactable = view.HasAction;
             actionKeyText.text = view.HasAction ? "E" : "";
@@ -589,6 +589,8 @@ namespace AshenHalls
             partyButtonText.text = "Party\nF";
             menuButtonText.text = "Menu\nEsc";
             SetModeObjectsVisible(view.DetailsOpen);
+            // Chart progress belongs in Details; browse focus remains useful on the Region Map.
+            focusText.gameObject.SetActive(view.DetailsOpen || regionMap);
 
             IReadOnlyList<ExplorationHudPartyMemberView> party = view.Party ?? Array.Empty<ExplorationHudPartyMemberView>();
             for (int i = 0; i < partyRows.Count; i++)
@@ -611,6 +613,7 @@ namespace AshenHalls
             }
 
             IReadOnlyList<ExplorationHudLogView> logs = view.Logs ?? Array.Empty<ExplorationHudLogView>();
+            latestTitleText.gameObject.SetActive(view.DetailsOpen && detailLogCapacity > 0 && logs.Count > 0);
             for (int i = 0; i < logRows.Count; i++)
             {
                 bool visible = view.DetailsOpen && i < logs.Count && i < detailLogCapacity;
@@ -836,9 +839,9 @@ namespace AshenHalls
 
         private void SetModeObjectsVisible(bool detailsOpen)
         {
-            waypointTitleText.gameObject.SetActive(true);
-            objectiveTitleText.gameObject.SetActive(true);
-            nearbyTitleText.gameObject.SetActive(detailsOpen);
+            waypointTitleText.gameObject.SetActive(!string.IsNullOrWhiteSpace(sideDetailText.text));
+            objectiveTitleText.gameObject.SetActive(!string.IsNullOrWhiteSpace(objectiveText.text));
+            nearbyTitleText.gameObject.SetActive(detailsOpen && !string.IsNullOrWhiteSpace(lookText.text));
             lookText.gameObject.SetActive(detailsOpen);
             objectiveText.gameObject.SetActive(true);
             // Growth already begins with the party's level. Use it as the

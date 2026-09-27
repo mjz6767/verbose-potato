@@ -76,19 +76,19 @@ namespace AshenHalls
                 return new HelpOverlayView
                 {
                     Title = "Combat Help",
-                    Subtitle = "Turn tactics, abilities, and spell targeting",
+                    Subtitle = "Controls and tactics",
                     Lines = new[]
                     {
-                        "WASD / arrows quick-step while the board cursor is closed; with it open, WASD / arrows / left stick move the cursor.",
-                        "U / Backspace: undo this turn's movement before committing an action.",
-                        "1 / Z: Move cursor. F: Attack or Shoot cursor. Rangers shoot by default unless engaged.",
-                        "C: Ability. Casters open the Spellbook; martial classes open skills. Esc or right-click cancels an armed target without spending the action.",
-                        "Tab / E / right bumper: next legal target. Q / left bumper: previous. The top face button returns to combat commands.",
-                        "Enter / Space / controller Submit confirms an open cursor; with no cursor, Space remains End Turn.",
-                        "G: Guard. H: Elixir. I: Armory; Growth is review-only until combat ends. Esc: Menu. Campaign fights can retreat for one supply.",
-                        "Standing still focuses casting: lower MP, longer reach, and harder hits.",
-                        "Tree Cover lasts " + Math.Max(1, summonedTreeDuration) + " rounds. It blocks arrows/direct bolts, but arcing spells can pass over it.",
-                        "Hover tiles and targets for range, line-of-sight, cover, and damage notes."
+                        "WASD / arrows: walk, or move an open board cursor. Left stick moves the cursor.",
+                        "U / Backspace: undo movement before taking an action.",
+                        "1 / Z: Move. F: Attack / Shoot. Rangers shoot unless engaged.",
+                        "C: Spells / Skills. Esc / right-click: cancel targeting without spending the action.",
+                        "Tab / E / right bumper: next legal target. Q / left bumper: previous. Top face button: commands.",
+                        "Enter / Space / Submit: confirm the open cursor. Space with no cursor: End Turn.",
+                        "G: Guard. H: Elixir. I: Armory. Esc: Menu. Retreat costs 1 supply; Growth unlocks after combat.",
+                        "Stand still for lower spell costs, longer reach, and stronger hits.",
+                        "Tree Cover lasts " + Math.Max(1, summonedTreeDuration) + " rounds, blocking arrows and direct bolts. Arcing spells pass over it.",
+                        "Hover a tile or target for range, cover, and damage."
                     }
                 };
             }
@@ -98,18 +98,16 @@ namespace AshenHalls
                 return new HelpOverlayView
                 {
                     Title = "Exploration Help",
-                    Subtitle = homeTownName + ", the Old Road, and contextual use",
+                    Subtitle = "Travel and interaction",
                     Lines = new[]
                     {
-                        "Local Map: hold WASD / arrows / left stick to keep walking; tap for one tile. Click adjacent tiles to walk.",
-                        "Space / E / controller A: use the highlighted nearby target: talk, loot, enter, recall, or descend.",
-                        "Q: Details. Tab / gamepad Y: Local/Region. Region Map: pan with keys, stick, drag, or wheel; Space/E/A marks a charted route marker; Home / gamepad X finds the party.",
-                        "I: Armory. Its Growth tab previews and spends earned points. J: Journal. C: spell reference.",
-                        "P or Esc: Menu for save, load, settings, return, or new game.",
-                        "You begin among the patrons in Town Hall's Grand Hearth: follow NEXT to leave through its storm doors and begin the journey.",
-                        "Midgaard begins the sewer contract: speak with the king, gather supplies, then clear the rat den.",
-                        "East and west gates are pass-through roads. North and south gates are sealed for now.",
-                        "If a path feels blocked, bump the object or use Space/E/A beside it."
+                        "WASD / arrows / left stick: walk. Hold to keep moving, or click an adjacent tile.",
+                        "Space / E / A: talk, loot, or use the highlighted nearby object.",
+                        "Q: Details. Tab / Y: Local / Region map.",
+                        "Region map: keys, stick, drag, or wheel pan. Space / E / A marks a charted route; Home / gamepad X finds the party.",
+                        "I: Armory and Growth. J: Journal. C: spell reference. P / Esc: Menu.",
+                        "Follow NEXT: first leave Town Hall's Grand Hearth through the storm doors.",
+                        "East and west gates lead to the roads; north and south remain sealed."
                     }
                 };
             }
@@ -119,16 +117,14 @@ namespace AshenHalls
                 return new HelpOverlayView
                 {
                     Title = "Party Setup Help",
-                    Subtitle = "Four-person starter party",
+                    Subtitle = "Create four companions",
                     Lines = new[]
                     {
-                        "Begin starts the current party.",
-                        "Quick Start uses Warrior, Ranger, Mage, and Priest.",
-                        "Advanced choices let you adjust class, race, name, look, gear, color, and stats.",
-                        "Attributes use a 50-point budget.",
-                        "Later levels earn points that can be previewed and spent in I > Growth.",
-                        "Reroll Gear changes starting equipment. Reroll Look changes visual identity.",
-                        "The first slice is balanced around melee, ranged pressure, elemental magic, and healing."
+                        "Select a companion, then choose a race and class.",
+                        "Attributes & details opens stats, talents, appearance, and equipment. Assign all 50 attribute points to continue.",
+                        "Reroll Gear changes starting equipment; Reroll Look changes appearance.",
+                        "Begin starts with your choices. Quick Start uses Warrior, Ranger, Mage, and Priest.",
+                        "Spend points earned later in Armory > Growth."
                     }
                 };
             }
@@ -138,21 +134,17 @@ namespace AshenHalls
                 return new HelpOverlayView
                 {
                     Title = mode == GameMode.Victory ? "Victory Screen Help" : "Defeat Screen Help",
-                    Subtitle = "End-state actions",
-                    Lines = new[]
-                    {
-                        "New Party returns to the tavern muster.",
-                        "Victory also offers Tavern to return to the first screen.",
-                        "Development builds may show Beta Lab for isolated combat testing.",
-                        "F1 or Esc closes this Help overlay."
-                    }
+                    Subtitle = "",
+                    Lines = mode == GameMode.Victory
+                        ? new[] { "New Party opens character creation. Tavern returns to the title screen." }
+                        : new[] { "Tavern → Continue loads the last saved checkpoint. New Party opens character creation." }
                 };
             }
 
             return new HelpOverlayView
             {
                 Title = "Tavern Help",
-                Subtitle = "Starting, continuing, and testing",
+                Subtitle = "Campaign and settings",
                 Lines = TavernLines(developerTestingVisible)
             };
         }
@@ -161,11 +153,9 @@ namespace AshenHalls
         {
             string[] normal =
             {
-                "Continue stays visible and becomes available when a campaign save exists.",
-                "New Game opens the four-person muster before Town Hall's Grand Hearth.",
-                "Quick Start accepts the default company; Begin uses the current muster choices.",
-                "Settings controls audio volume and reduced motion for the whole app, independently of campaign saves.",
-                "F5 saves and F9 loads during gameplay. Esc opens the gameplay menu."
+                "Continue loads your saved campaign. New Game opens character creation.",
+                "Settings controls music, sound effects, and Reduced Motion across campaigns.",
+                "During gameplay: F5 saves, F9 loads, and Esc opens the menu."
             };
 
             if (!developerTestingVisible) return normal;
@@ -254,7 +244,9 @@ namespace AshenHalls
             lastBody = body;
             bodyText.rectTransform.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(bodyViewport.rect.height, bodyText.preferredHeight));
             if (contentChanged) bodyScroll.verticalNormalizedPosition = 1f;
-            hintText.text = "Wheel / PgUp / PgDn to scroll. Esc / F1 closes.";
+            hintText.text = bodyText.preferredHeight > bodyViewport.rect.height
+                ? "Wheel / PgUp / PgDn: scroll   ·   Esc / F1: close"
+                : "Esc / F1: close";
             Canvas.ForceUpdateCanvases();
             lastRefreshSucceeded = true;
         }

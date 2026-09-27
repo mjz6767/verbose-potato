@@ -39,6 +39,7 @@ namespace AshenHalls
         public bool[] CanDecreaseStats;
         public bool CanBoostTalents = true;
         public bool[] CanBoostTalentByIndex;
+        public int[] TalentValues;
     }
 
     public sealed class PartySetupScreenBindings
@@ -246,6 +247,7 @@ namespace AshenHalls
         private static readonly Color Cream = Hex("f0dfb9");
         private static readonly Color Gold = Hex("caa66b");
         private static readonly Color Bronze = Hex("765435");
+        private static readonly string[] TalentNames = { "Arms", "Missile", "Mend", "Ember", "Hex", "Guard" };
         private readonly List<Button> rosterButtons = new List<Button>();
         private readonly List<RawImage> rosterPortraits = new List<RawImage>();
         private readonly List<Text> rosterNames = new List<Text>();
@@ -361,15 +363,15 @@ namespace AshenHalls
                 SetButtonSelected(rosterButtons[i], i == selected, false);
                 rosterNames[i].text = member.Name;
                 rosterSubtitles[i].text = member.RaceClassLine;
-                rosterMarkers[i].text = i == selected ? "EDITING CHARACTER " + (i + 1) : "CHARACTER " + (i + 1);
+                rosterMarkers[i].text = "";
                 rosterMarkers[i].color = i == selected ? Gold : Hex("b6a181");
                 rosterSwatches[i].color = ParseColor(member.ColorHex, Gold);
                 SetPortrait(rosterPortraits[i], member.RaceKey, member.ClassKey);
             }
-            summaryText.text = bindings.SummaryLine?.Invoke() ?? bindings.Subtitle ?? "Choose four companions. Shape their stories.";
+            summaryText.text = "";
             bool canBegin = bindings.CanBegin?.Invoke() ?? HasAssignedAttributes(members);
             beginButton.interactable = canBegin;
-            if (!canBegin) summaryText.text = "Assign all attribute points before setting out. Open Attributes & details for each unfinished companion.";
+            if (!canBegin) summaryText.text = "Assign all attribute points in Attributes & details before beginning.";
             PartySetupMemberView current = bindings.SelectedMember?.Invoke();
             foreach (Selectable control in editorPanel.GetComponentsInChildren<Selectable>(true))
                 control.interactable = current != null;
@@ -381,9 +383,9 @@ namespace AshenHalls
                 suppressNameEvent = false;
             }
             lastSelected = selected;
-            selectedMemberTitle.text = "CHARACTER " + (selected + 1) + "  /  " + members.Count;
+            selectedMemberTitle.text = "";
             selectedRaceClass.text = current.RaceClassLine;
-            selectedRole.text = FormatRoleLine(current.RoleLine);
+            selectedRole.text = "";
             raceDescription.text = current.RaceDescription;
             classDescription.text = current.ClassDescription;
             SetPortrait(selectedPortrait, current.RaceKey, current.ClassKey);
@@ -397,14 +399,18 @@ namespace AshenHalls
                 statDownButtons[i].interactable = current.CanDecreaseStats == null || i >= current.CanDecreaseStats.Length || current.CanDecreaseStats[i];
             }
             for (int i = 0; i < skillButtons.Count; i++)
+            {
                 skillButtons[i].interactable = current.CanBoostTalents && (current.CanBoostTalentByIndex == null || i >= current.CanBoostTalentByIndex.Length || current.CanBoostTalentByIndex[i]);
+                string rank = current.TalentValues != null && i < current.TalentValues.Length ? " " + current.TalentValues[i] : "";
+                SetButtonLabel(skillButtons[i], TalentNames[i] + rank + (skillButtons[i].interactable ? "  +" : ""));
+            }
             int remaining = Mathf.Max(0, current.StatCap - current.StatTotal);
-            budgetText.text = current.StatTotal + " / " + current.StatCap + " assigned  ·  " + remaining + " points available";
+            budgetText.text = remaining > 0 ? remaining + (remaining == 1 ? " point to assign" : " points to assign") : "";
             SetButtonLabel(originButton, "Origin: " + current.Origin + "   >");
             SetButtonLabel(sigilButton, "Sigil: " + current.Sigil + "   >");
-            SetButtonLabel(colorButton, "Change heraldic colour   >");
-            detailsBody.text = current.GearLine + "\n\n" + current.BestSkillLine + "\n" + current.ProgressLine + "\n" + current.UnlockLine;
-            noteText.text = bindings.WeaknessLine?.Invoke() ?? "";
+            SetButtonLabel(colorButton, "Colour   >");
+            detailsBody.text = current.GearLine;
+            noteText.text = "";
             RefreshTabs();
             folioEffects?.SetSelection(selected < rosterButtons.Count ? rosterButtons[selected] : null,
                 ChoiceButton(bindings.RaceChoices, raceButtons, current.RaceKey),
@@ -443,9 +449,8 @@ namespace AshenHalls
             folio.anchoredPosition = Vector2.zero;
             folio.sizeDelta = new Vector2(DesignWidth, DesignHeight);
 
-            Text title = PlaceText("Title", folio, "Gather your fellowship", 27, Cream, new Rect(26, 13, 690, 37));
+            Text title = PlaceText("Title", folio, "Your party", 27, Cream, new Rect(26, 25, 690, 37));
             title.font = UiRuntime.TitleFont;
-            PlaceText("Subtitle", folio, "THE TAVERN MUSTER   /   CHOOSE A COMPANION TO CUSTOMIZE", 12, Gold, new Rect(28, 54, 750, 20));
             PlaceButton("Tavern", folio, "Tavern", () => bindings?.BackToTavern?.Invoke(), new Rect(873, 25, 92, 37));
             PlaceButton("Quick Start", folio, "Quick start", () => bindings?.QuickStart?.Invoke(), new Rect(975, 25, 114, 37));
             beginButton = PlaceButton("Begin", folio, "Begin adventure", () => bindings?.Begin?.Invoke(), new Rect(1099, 25, 155, 37), true);
@@ -455,21 +460,21 @@ namespace AshenHalls
             SetLocalRect(editorPanel, new Rect(26, 206, 1228, 471));
             selectedMemberTitle = PlaceText("Selected Member", editorPanel, "", 12, Gold, new Rect(16, 8, 284, 20));
             RectTransform portraitFrame = AddPanel("Portrait Frame", editorPanel, Hex("120f0d"), Gold);
-            SetLocalRect(portraitFrame, new Rect(16, 34, 276, 276));
+            SetLocalRect(portraitFrame, new Rect(16, 16, 276, 276));
             PlaceText("Portrait Fallback", portraitFrame, "ASHEN\nHALLS", 29, Bronze, new Rect(25, 84, 226, 90), TextAnchor.MiddleCenter);
             selectedPortrait = AddRawImage("Selected Portrait", portraitFrame);
             SetLocalRect(selectedPortrait.rectTransform, new Rect(3, 3, 270, 270));
-            PlaceText("Name Label", editorPanel, "CHARACTER NAME", 12, Gold, new Rect(16, 319, 276, 19));
+            PlaceText("Name Label", editorPanel, "Name", 12, Gold, new Rect(16, 306, 276, 19));
             nameField = AddInput("Name Field", editorPanel);
-            SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(16, 342, 214, 36));
+            SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(16, 331, 214, 36));
             nameField.onEndEdit.AddListener(value =>
             {
                 UiRuntime.NotifyTextInputEnded();
                 if (!suppressNameEvent) bindings?.SetName?.Invoke(value);
                 Refresh();
             });
-            PlaceButton("Random Name", editorPanel, "Roll", () => bindings?.RandomName?.Invoke(), new Rect(238, 342, 54, 36));
-            selectedRaceClass = PlaceText("Selected Race Class", editorPanel, "", 17, Cream, new Rect(16, 389, 278, 27));
+            PlaceButton("Random Name", editorPanel, "Roll", () => bindings?.RandomName?.Invoke(), new Rect(238, 331, 54, 36));
+            selectedRaceClass = PlaceText("Selected Race Class", editorPanel, "", 17, Cream, new Rect(16, 383, 278, 27));
             selectedRaceClass.font = UiRuntime.DialogueEmphasisFont;
             selectedRole = PlaceText("Selected Role", editorPanel, "", 13, Hex("c1af8c"), new Rect(16, 423, 276, 37));
             selectedRole.resizeTextForBestFit = true;
@@ -480,7 +485,6 @@ namespace AshenHalls
             SetLocalRect(sheet, new Rect(309, 12, 907, 447));
             identityTab = PlaceButton("Identity Tab", sheet, "Race & class", () => ChangeTab(false), new Rect(15, 12, 189, 34), true);
             detailsTab = PlaceButton("Details Tab", sheet, "Attributes & details", () => ChangeTab(true), new Rect(213, 12, 222, 34));
-            PlaceText("Folio Hint", sheet, "Every race. Every calling. A different story.", 13, MutedInk, new Rect(448, 14, 440, 29), TextAnchor.MiddleRight);
             identityPage = NewRect("Identity Page", sheet);
             SetLocalRect(identityPage, new Rect(15, 55, 877, 382));
             detailsPage = NewRect("Details Page", sheet);
@@ -532,14 +536,6 @@ namespace AshenHalls
             }
         }
 
-        private static string FormatRoleLine(string line)
-        {
-            if (string.IsNullOrEmpty(line) || line.Length <= 40) return line;
-            int first = line.IndexOf(" / ", StringComparison.Ordinal);
-            int second = first < 0 ? -1 : line.IndexOf(" / ", first + 3, StringComparison.Ordinal);
-            return second < 0 ? line : line.Substring(0, second) + "\n" + line.Substring(second + 3);
-        }
-
         private static Button ChoiceButton(IReadOnlyList<PartySetupChoiceView> choices, List<Button> buttons, string key)
         {
             if (choices == null) return null;
@@ -550,7 +546,7 @@ namespace AshenHalls
 
         private void BuildIdentityPage()
         {
-            PlaceText("Race Heading", identityPage, "1   CHOOSE A RACE", 14, Ink, new Rect(0, 0, 480, 22));
+            PlaceText("Race Heading", identityPage, "Race", 14, Ink, new Rect(0, 0, 480, 22));
             IReadOnlyList<PartySetupChoiceView> races = bindings.RaceChoices ?? Array.Empty<PartySetupChoiceView>();
             float raceWidth = (877f - Mathf.Max(0, races.Count - 1) * 7f) / Mathf.Max(1, races.Count);
             for (int i = 0; i < races.Count; i++)
@@ -559,16 +555,16 @@ namespace AshenHalls
                 Button button = PlaceButton("Race " + choice.Key, identityPage, "", () => bindings?.SetRace?.Invoke(choice.Key), new Rect(i * (raceWidth + 7), 29, raceWidth, 55), false, true);
                 RawImage portrait = AddRawImage("Race Portrait", button.transform);
                 SetLocalRect(portrait.rectTransform, new Rect(4, 4, 47, 47));
-                Text label = PlaceText("Race Name", button.transform, choice.Name, 15, Ink, new Rect(58, 3, raceWidth - 64, 28));
+                Text label = PlaceText("Race Name", button.transform, choice.Name, 15, Ink, new Rect(58, 13, raceWidth - 80, 28));
                 label.fontStyle = FontStyle.Bold;
-                Text marker = PlaceText("Race Selection", button.transform, "", 10, MutedInk, new Rect(58, 30, raceWidth - 63, 20));
+                Text marker = PlaceText("Race Selection", button.transform, "", 14, Ink, new Rect(raceWidth - 22, 17, 16, 22), TextAnchor.MiddleCenter);
                 raceButtons.Add(button);
                 racePortraits.Add(portrait);
                 raceMarkers.Add(marker);
             }
             raceDescription = PlaceText("Race Description", identityPage, "", 13, MutedInk, new Rect(1, 93, 876, 32));
             AddRule(identityPage, new Rect(0, 130, 877, 1));
-            PlaceText("Class Heading", identityPage, "2   CHOOSE A CLASS", 14, Ink, new Rect(0, 139, 480, 22));
+            PlaceText("Class Heading", identityPage, "Class", 14, Ink, new Rect(0, 139, 480, 22));
             IReadOnlyList<PartySetupChoiceView> classes = bindings.ClassChoices ?? Array.Empty<PartySetupChoiceView>();
             const float cardWidth = 214f;
             for (int i = 0; i < classes.Count; i++)
@@ -577,10 +573,9 @@ namespace AshenHalls
                 Button button = PlaceButton("Class " + choice.Key, identityPage, "", () => bindings?.SetClass?.Invoke(choice.Key), new Rect((i % 4) * 221f, 169f + (i / 4) * 84f, cardWidth, 77f), false, true);
                 RawImage portrait = AddRawImage("Class Portrait", button.transform);
                 SetLocalRect(portrait.rectTransform, new Rect(3, 3, 71, 71));
-                Text label = PlaceText("Class Name", button.transform, choice.Name, 16, Ink, new Rect(83, 7, 125, 25));
+                Text label = PlaceText("Class Name", button.transform, choice.Name, 16, Ink, new Rect(83, 25, 107, 27));
                 label.fontStyle = FontStyle.Bold;
-                PlaceText("Class Role", button.transform, ClassRole(choice.Key), 11, MutedInk, new Rect(83, 32, 123, 20));
-                Text marker = PlaceText("Class Selection", button.transform, "", 10, MutedInk, new Rect(83, 53, 123, 18));
+                Text marker = PlaceText("Class Selection", button.transform, "", 14, Ink, new Rect(192, 28, 16, 22), TextAnchor.MiddleCenter);
                 classButtons.Add(button);
                 classPortraits.Add(portrait);
                 classMarkers.Add(marker);
@@ -590,7 +585,7 @@ namespace AshenHalls
 
         private void BuildDetailsPage()
         {
-            PlaceText("Attributes Heading", detailsPage, "ATTRIBUTES", 15, Ink, new Rect(0, 0, 340, 24));
+            PlaceText("Attributes Heading", detailsPage, "Attributes", 15, Ink, new Rect(0, 0, 340, 24));
             budgetText = PlaceText("Attribute Budget", detailsPage, "", 13, MutedInk, new Rect(0, 29, 390, 23));
             string[] names = { "Strength", "Intelligence", "Agility", "Health" };
             string[] uses = { "Melee & carrying", "Spells & mana", "Accuracy & evasion", "Life & endurance" };
@@ -604,23 +599,21 @@ namespace AshenHalls
                 statValues.Add(PlaceText("Stat Value " + i, detailsPage, "0", 17, Ink, new Rect(204, y, 53, 32), TextAnchor.MiddleCenter));
                 statUpButtons.Add(PlaceButton("Stat Up " + i, detailsPage, "+", () => bindings?.ChangeStat?.Invoke(statCode, 1), new Rect(261, y, 34, 32), false, true));
             }
-            PlaceText("Training Heading", detailsPage, "TRAINING", 15, Ink, new Rect(0, 233, 340, 23));
-            PlaceText("Training Hint", detailsPage, "Improve a talent. Each has a training limit.", 12, MutedInk, new Rect(0, 259, 393, 24));
-            string[] talentNames = { "Arms", "Missile", "Mend", "Ember", "Hex", "Guard" };
+            PlaceText("Training Heading", detailsPage, "Talents", 15, Ink, new Rect(0, 233, 340, 23));
             for (int i = 0; i < PartySetupScreenLayout.TalentKeys.Count; i++)
             {
                 string key = PartySetupScreenLayout.TalentKeys[i];
-                skillButtons.Add(PlaceButton("Skill " + key, detailsPage, "+ " + talentNames[i], () => bindings?.BoostTalent?.Invoke(key), new Rect((i % 3) * 122, 290 + (i / 3) * 39, 114, 32), false, true));
+                skillButtons.Add(PlaceButton("Skill " + key, detailsPage, TalentNames[i] + "  +", () => bindings?.BoostTalent?.Invoke(key), new Rect((i % 3) * 122, 275 + (i / 3) * 44, 114, 36), false, true));
             }
             AddRule(detailsPage, new Rect(394, 0, 1, 367));
-            PlaceText("Background Heading", detailsPage, "BACKGROUND & APPEARANCE", 15, Ink, new Rect(418, 0, 455, 24));
+            PlaceText("Background Heading", detailsPage, "Appearance", 15, Ink, new Rect(418, 0, 455, 24));
             originButton = PlaceButton("Origin", detailsPage, "Origin", () => bindings?.CycleOrigin?.Invoke(), new Rect(418, 35, 455, 34), false, true);
             sigilButton = PlaceButton("Sigil", detailsPage, "Sigil", () => bindings?.CycleSigil?.Invoke(), new Rect(418, 77, 455, 34), false, true);
             colorButton = PlaceButton("Color", detailsPage, "Colour", () => bindings?.CycleColor?.Invoke(), new Rect(418, 119, 248, 34), false, true);
             PlaceButton("Reroll Look", detailsPage, "Randomize look", () => bindings?.RerollLook?.Invoke(), new Rect(674, 119, 199, 34), false, true);
-            PlaceText("Equipment Heading", detailsPage, "EQUIPMENT & TALENTS", 15, Ink, new Rect(418, 170, 283, 26));
+            PlaceText("Equipment Heading", detailsPage, "Equipment", 15, Ink, new Rect(418, 170, 283, 26));
             PlaceButton("Reroll Gear", detailsPage, "Reroll gear", () => bindings?.RerollGear?.Invoke(), new Rect(749, 168, 124, 31), false, true);
-            detailsBody = PlaceText("Details Body", detailsPage, "", 12, MutedInk, new Rect(418, 210, 455, 124), TextAnchor.UpperLeft);
+            detailsBody = PlaceText("Details Body", detailsPage, "", 14, MutedInk, new Rect(418, 218, 455, 116), TextAnchor.UpperLeft);
             noteText = PlaceText("Party Advice", detailsPage, "", 11, MutedInk, new Rect(418, 343, 455, 36), TextAnchor.UpperLeft);
         }
 
@@ -650,8 +643,8 @@ namespace AshenHalls
                 rosterButtons[i].gameObject.SetActive(i < count);
                 SetLocalRect(rosterButtons[i].GetComponent<RectTransform>(), new Rect(i * (width + 10f), 0, width, 104));
                 SetLocalRect(rosterPortraits[i].rectTransform, new Rect(5, 5, 94, 94));
-                SetLocalRect(rosterNames[i].rectTransform, new Rect(110, 28, width - 120, 30));
-                SetLocalRect(rosterSubtitles[i].rectTransform, new Rect(110, 62, width - 120, 30));
+                SetLocalRect(rosterNames[i].rectTransform, new Rect(110, 20, width - 120, 30));
+                SetLocalRect(rosterSubtitles[i].rectTransform, new Rect(110, 55, width - 120, 30));
                 SetLocalRect(rosterMarkers[i].rectTransform, new Rect(110, 7, width - 120, 20));
                 SetLocalRect(rosterSwatches[i].rectTransform, new Rect(width - 4, 4, 2, 96));
             }
@@ -664,7 +657,7 @@ namespace AshenHalls
             {
                 bool chosen = string.Equals(choices[i].Key, selected, StringComparison.OrdinalIgnoreCase);
                 SetButtonSelected(buttons[i], chosen, true);
-                markers[i].text = chosen ? "SELECTED" : (isRace ? "CHOOSE RACE" : "CHOOSE CLASS");
+                markers[i].text = chosen ? "●" : "";
                 markers[i].fontStyle = chosen ? FontStyle.Bold : FontStyle.Normal;
                 SetPortrait(portraits[i], isRace ? choices[i].Key : other, isRace ? other : choices[i].Key);
             }
@@ -718,22 +711,6 @@ namespace AshenHalls
             if (folio == null) return;
             folio.anchoredPosition = Vector2.zero;
             folio.sizeDelta = new Vector2(DesignWidth, DesignHeight);
-        }
-
-        private static string ClassRole(string key)
-        {
-            switch ((key ?? "").ToLowerInvariant())
-            {
-                case "rogue": return "Blades & cunning";
-                case "warrior": return "Arms & endurance";
-                case "ranger": return "Bows & wildcraft";
-                case "wizard": return "Arcane mastery";
-                case "mage": return "Elemental power";
-                case "warlock": return "Hexes & shadows";
-                case "priest": return "Healing & faith";
-                case "paladin": return "Steel & devotion";
-                default: return "Choose your calling";
-            }
         }
 
         private InputField AddInput(string name, Transform parent)

@@ -1173,9 +1173,8 @@ namespace AshenHalls
             turnQueueText.text = hasTurns ? "" : "FORMING...";
             turnQueueText.gameObject.SetActive(!hasTurns);
             RefreshTurnChips(view.Turns);
-            tacticalPlanText.text = string.IsNullOrWhiteSpace(view.TacticalLine)
-                ? "TACTICAL READ  /  Hover a unit or tile to inspect danger and outcomes."
-                : "OPENING PLAN  /  " + view.TacticalLine;
+            tacticalPlanText.text = view.TacticalLine ?? "";
+            tacticalPlanPanel.gameObject.SetActive(view.TimelineExpanded && !string.IsNullOrWhiteSpace(view.TacticalLine));
 
             RefreshUnitCard(view.ActiveUnit, activeTitle, activeName, activeHeader, activeState, activeStatus, activePortrait, activePortraitFallback, activeHpFill, activeManaFill, "ACTIVE UNIT");
             string targetContext = string.IsNullOrWhiteSpace(view.TargetTitle) ? "UNIT" : view.TargetTitle.ToUpperInvariant();
@@ -1804,7 +1803,7 @@ namespace AshenHalls
             if (unit == null)
             {
                 name.text = activeCard ? "Waiting" : "Hover a unit";
-                header.text = activeCard ? "No active combatant." : "Inspect the board when you need details.";
+                header.text = "";
                 state.text = "";
                 state.color = StateToneColor(CombatHudStateTone.Neutral);
                 status.text = "";

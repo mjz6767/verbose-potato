@@ -2106,12 +2106,10 @@ namespace AshenHalls
             showSpellbook = false;
             showAbilityPanel = false;
             lootPanelTitle = string.IsNullOrEmpty(title) ? "Loot recovered" : title;
-            lootPanelTraitLine = item == null ? "No gear dropped this time." : ItemTraitLine(item);
-            lootPanelEquipNote = string.IsNullOrWhiteSpace(equipNote)
-                ? item == null ? "These rewards have already been added to the company stores." : ""
-                : equipNote;
+            lootPanelTraitLine = item == null ? "" : ItemTraitLine(item);
+            lootPanelEquipNote = string.IsNullOrWhiteSpace(equipNote) ? "" : equipNote;
             lootPanelBody = item == null
-                ? $"Victory spoils\n{lootPanelTraitLine}\n{lootPanelEquipNote}"
+                ? $"Rewards\n{lootPanelEquipNote}"
                 : $"{item.DisplayName}\n{lootPanelTraitLine}\n{lootPanelEquipNote}";
             lootPanelItem = item;
             lootPanelGold = goldFound;
@@ -2140,8 +2138,8 @@ namespace AshenHalls
                     goldFound,
                     suppliesFound,
                     elixirsFound,
-                    "These rewards have already been added to the company stores.",
-                    "Victory spoils");
+                    "",
+                    "Rewards");
                 return;
             }
 
@@ -2167,11 +2165,7 @@ namespace AshenHalls
             queuedDialogueLootGold += goldFound;
             queuedDialogueLootSupplies += suppliesFound;
             queuedDialogueLootElixirs += elixirsFound;
-            if (string.IsNullOrWhiteSpace(queuedDialogueLootTitle)) queuedDialogueLootTitle = "Victory spoils";
-            if (string.IsNullOrWhiteSpace(queuedDialogueLootEquipNote))
-            {
-                queuedDialogueLootEquipNote = "These rewards have already been added to the company stores.";
-            }
+            if (string.IsNullOrWhiteSpace(queuedDialogueLootTitle)) queuedDialogueLootTitle = "Rewards";
             MarkUiDirty();
         }
 

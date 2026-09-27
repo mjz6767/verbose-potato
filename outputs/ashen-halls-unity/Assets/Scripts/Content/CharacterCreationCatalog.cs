@@ -12,24 +12,24 @@ namespace AshenHalls
 
         public static readonly IReadOnlyList<CharacterCreationChoice> Races = Array.AsReadOnly(new[]
         {
-            new CharacterCreationChoice("human", "Human", "Resourceful travelers of the hearthlands. +1 Health.", 0, 0, 0, 1),
-            new CharacterCreationChoice("dusk elf", "Dusk Elf", "Watchful wanderers of the twilight woods. +2 Agility, -1 Health.", 0, 0, 2, -1),
-            new CharacterCreationChoice("stoneborn", "Stoneborn", "Stalwart folk of the mountain halls. +2 Strength, +2 Health, -1 Agility.", 2, 0, -1, 2),
-            new CharacterCreationChoice("fenkin", "Fenkin", "Quick-witted folk of the misty wetlands. +1 Intelligence, +1 Agility.", 0, 1, 1, 0),
-            new CharacterCreationChoice("ashling", "Ashling", "Ember-touched seekers from the ashlands. +2 Intelligence, -1 Health.", 0, 2, 0, -1)
+            new CharacterCreationChoice("human", "Human", "+1 Health", 0, 0, 0, 1),
+            new CharacterCreationChoice("dusk elf", "Dusk Elf", "+2 Agility, -1 Health", 0, 0, 2, -1),
+            new CharacterCreationChoice("stoneborn", "Stoneborn", "+2 Strength, +2 Health, -1 Agility", 2, 0, -1, 2),
+            new CharacterCreationChoice("fenkin", "Fenkin", "+1 Intelligence, +1 Agility", 0, 1, 1, 0),
+            new CharacterCreationChoice("ashling", "Ashling", "+2 Intelligence, -1 Health", 0, 2, 0, -1)
         });
 
         // Order is the top-left to bottom-right reading order in every race atlas.
         public static readonly IReadOnlyList<CharacterCreationChoice> Classes = Array.AsReadOnly(new[]
         {
-            new CharacterCreationChoice("rogue", "Rogue", "A swift, lightly armored duelist. Favors Agility and Strength; opens with an epee and Arms training."),
-            new CharacterCreationChoice("warrior", "Warrior", "A sturdy front-line defender. Favors Strength and Health; opens with a broadsword, armor, and Guard training."),
-            new CharacterCreationChoice("ranger", "Ranger", "A long-range archer who pressures distant foes. Favors Agility; opens with a longbow and Missile training."),
-            new CharacterCreationChoice("wizard", "Wizard", "A versatile arcanist who studies Ember and Hex magic. Favors Intelligence; opens with an ember focus."),
-            new CharacterCreationChoice("mage", "Mage", "An elemental specialist devoted to Ember magic. Favors Intelligence; opens with an ember focus and stronger Ember training."),
-            new CharacterCreationChoice("warlock", "Warlock", "A dark caster who studies Hex and Pact magic. Favors Intelligence; opens with a bone focus and Hex training."),
-            new CharacterCreationChoice("priest", "Priest", "A healer who sustains the company with Mend magic. Favors Intelligence and Health; opens with a prayer focus."),
-            new CharacterCreationChoice("paladin", "Paladin", "An armored oathkeeper who blends melee, Guard, and Mend magic. Favors Strength and Health; opens with a mace and ward shield.")
+            new CharacterCreationChoice("rogue", "Rogue", "Fast melee. Favors Agility and Strength."),
+            new CharacterCreationChoice("warrior", "Warrior", "Front line. Favors Strength and Health."),
+            new CharacterCreationChoice("ranger", "Ranger", "Long-range bows. Favors Agility."),
+            new CharacterCreationChoice("wizard", "Wizard", "Ember and Hex spells. Favors Intelligence."),
+            new CharacterCreationChoice("mage", "Mage", "Stronger Ember magic. Favors Intelligence."),
+            new CharacterCreationChoice("warlock", "Warlock", "Hex and Pact magic. Favors Intelligence."),
+            new CharacterCreationChoice("priest", "Priest", "Mend healing. Favors Intelligence and Health."),
+            new CharacterCreationChoice("paladin", "Paladin", "Melee, Guard and Mend. Favors Strength and Health.")
         });
 
         public static bool TryGetRace(string key, out CharacterCreationChoice choice) => TryFind(Races, key, out choice);

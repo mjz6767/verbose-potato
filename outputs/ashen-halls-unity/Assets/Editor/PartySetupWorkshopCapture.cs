@@ -33,6 +33,8 @@ namespace AshenHalls.Editor
                 if (polishReview)
                     foreach (string motion in new[] { "transition", "reduced" })
                         if (CaptureOne(game, directory, "fenkin", "wizard", 2, false, new Vector2Int(1280, 720), capturedNames, motion)) count++;
+                if (Environment.GetCommandLineArgs().Contains("-ashen-party-budget-review")
+                    && CaptureOne(game, directory, "human", "mage", 1, true, new Vector2Int(960, 600), capturedNames, unspentPoint: true)) count++;
                 if (Environment.GetCommandLineArgs().Contains("-ashen-capture-all-portraits"))
                     foreach (CharacterCreationChoice race in CharacterCreationCatalog.Races)
                         foreach (CharacterCreationChoice vocation in CharacterCreationCatalog.Classes)
@@ -53,17 +55,27 @@ namespace AshenHalls.Editor
             }
         }
 
-        private static bool CaptureOne(AshenHallsGame game, string directory, string race, string classKey, int member, bool details, Vector2Int size, HashSet<string> capturedNames, string motion = "settled")
+        private static bool CaptureOne(AshenHallsGame game, string directory, string race, string classKey, int member, bool details, Vector2Int size, HashSet<string> capturedNames, string motion = "settled", bool unspentPoint = false)
         {
             string name = race.Replace(' ', '-') + "-" + classKey + (details ? "-details" : "")
+                + (unspentPoint ? "-unspent-point" : "")
                 + (motion == "settled" ? "" : "-" + motion) + "-" + size.x + "x" + size.y;
             if (!capturedNames.Add(name)) return false;
             PartySetupWorkshopSmoke.Stage(game, race, classKey, member, details, motion == "reduced");
+            PartySetupScreen screen = PartySetupWorkshopSmoke.Field<PartySetupScreen>(game, "partySetupScreen");
+            if (unspentPoint)
+            {
+                PartySetupWorkshopSmoke.Click(screen, "Stat Down 0");
+                GameState state = PartySetupWorkshopSmoke.Field<GameState>(game, "state");
+                PartySetupWorkshopSmoke.Require(state.Party[member].Stats.Total == 49, "budget review releases one real attribute point");
+                PartySetupWorkshopSmoke.Require(!screen.ViewCanvas.GetComponentsInChildren<UnityEngine.UI.Button>(true)
+                    .Single(button => button.name == "Begin").interactable, "budget review blocks beginning the adventure");
+            }
             string[] motionArgs = motion == "transition" ? new[] { "-ashen-party-transition-smoke" } : Array.Empty<string>();
             PartySetupWorkshopSmoke.Invoke(game, "PreparePartySetupCaptureMotion", (object)motionArgs);
-            PartySetupScreen screen = PartySetupWorkshopSmoke.Field<PartySetupScreen>(game, "partySetupScreen");
             string path = Path.Combine(directory, name + ".png");
             PartySetupCaptureRenderer.Write(screen, size.x, size.y, path);
+            PartySetupWorkshopSmoke.AssertAttributeGuidance(screen, unspentPoint, unspentPoint ? 1 : 0);
             Texture2D pixels = new Texture2D(2, 2, TextureFormat.RGB24, false);
             try
             {

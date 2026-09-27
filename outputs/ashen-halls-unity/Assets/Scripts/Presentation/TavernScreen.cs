@@ -177,7 +177,7 @@ namespace AshenHalls
             Rect menu = new Rect(menuX, menuY, menuW, menuH);
 
             float settingsW = Mathf.Max(288f, menuW);
-            float settingsH = 352f;
+            float settingsH = 280f;
             float settingsX = menu.xMax - settingsW;
             float settingsY = Mathf.Clamp(menu.y, 24f, height - settingsH - 32f);
             Rect settings = new Rect(settingsX, settingsY, settingsW, settingsH);
@@ -600,17 +600,18 @@ namespace AshenHalls
             settingsPanel.gameObject.SetActive(settingsVisible);
             testingPanel.gameObject.SetActive(devVisible && testingVisible);
             versionText.text = bindings.VersionLine == null ? "" : bindings.VersionLine();
+            versionText.gameObject.SetActive(settingsVisible || testingVisible);
 
             bool muted = bindings.AudioMuted != null && bindings.AudioMuted();
             bool musicMuted = bindings.MusicMuted != null && bindings.MusicMuted();
             int volume = bindings.VolumePercent == null ? 100 : Mathf.Clamp(bindings.VolumePercent(), 25, 100);
             int musicVolume = bindings.MusicVolumePercent == null ? 65 : Mathf.Clamp(bindings.MusicVolumePercent(), 25, 100);
             bool reduced = bindings.ReducedMotion != null && bindings.ReducedMotion();
-            settingsStateText.text = $"Window {Screen.width} x {Screen.height}\nSFX {(muted ? "muted" : volume + "%")} / Music {(musicMuted ? "muted" : musicVolume + "%")} / Motion {(reduced ? "reduced" : "normal")}";
+            settingsStateText.text = "";
             audioButtonText.text = muted ? "Enable SFX" : "Mute SFX";
             sfxVolumeText.text = muted ? "SFX Muted" : $"SFX {volume}%";
             musicVolumeText.text = musicMuted ? "Music Muted" : $"Music {musicVolume}%";
-            motionButtonText.text = reduced ? "Normal Motion" : "Reduced Motion";
+            motionButtonText.text = reduced ? "Reduced Motion: On" : "Reduced Motion: Off";
 
             string title = string.IsNullOrWhiteSpace(bindings.Title) ? VersionInfo.ProductName : bindings.Title;
             SplitForgedTitle(title, out string ashLine, out string brimstoneLine);
@@ -866,7 +867,8 @@ namespace AshenHalls
             }
             SetProceduralMenuGraphicsActive(!useAuthoredScroll);
 
-            menuTitleText = AddText("Menu Title", menuPanel, "Main Menu", 22, scrollStyle.Ink, TextAnchor.MiddleCenter);
+            menuTitleText = AddText("Menu Title", menuPanel, "", 22, scrollStyle.Ink, TextAnchor.MiddleCenter);
+            menuTitleText.gameObject.SetActive(false);
             menuTitleText.font = UiRuntime.TitleFont ?? font;
             menuTitleText.fontStyle = FontStyle.Normal;
             DisableTextShadow(menuTitleText);
@@ -910,8 +912,10 @@ namespace AshenHalls
 
             settingsPanel = AddPanel("Settings", canvas.transform, Hex("080b0d", 0.96f), Hex("58b7a5", 0.86f));
             settingsTitleText = AddText("Settings Title", settingsPanel, "Settings", 20, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
-            settingsHintText = AddText("Settings Hint", settingsPanel, "SFX, music, and motion settings apply immediately.", 11, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            settingsHintText = AddText("Settings Hint", settingsPanel, "", 11, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
             settingsStateText = AddText("Settings State", settingsPanel, "", 12, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
+            settingsHintText.gameObject.SetActive(false);
+            settingsStateText.gameObject.SetActive(false);
             Button audio = AddButton("Audio", settingsPanel, "Mute Audio", bindings?.ToggleAudio, false);
             audioButtonText = audio.GetComponentInChildren<Text>();
             volumeDownButton = AddButton("Volume Down", settingsPanel, "-", bindings?.VolumeDown, false);
@@ -1071,7 +1075,7 @@ namespace AshenHalls
                     geometry.Menu.width,
                     developerTestingVisible));
             bool compactMenu = TavernScreenLayout.IsCompactMenu(geometry.Menu.width);
-            menuTitleText.text = "Main Menu";
+            menuTitleText.text = "";
             menuTitleText.resizeTextForBestFit = compactMenu;
             menuTitleText.resizeTextMinSize = 15;
             menuTitleText.resizeTextMaxSize = compactMenu ? 18 : 22;
@@ -1100,14 +1104,14 @@ namespace AshenHalls
             SetLocalRect(settingsTitleText.rectTransform, new Rect(18f, 14f, geometry.Settings.width - 36f, 26f));
             SetLocalRect(settingsHintText.rectTransform, new Rect(18f, 48f, geometry.Settings.width - 36f, 22f));
             SetLocalRect(settingsStateText.rectTransform, new Rect(18f, 76f, geometry.Settings.width - 36f, 44f));
-            SetLocalRect(audioButtonText.transform.parent.GetComponent<RectTransform>(), new Rect(18f, 122f, geometry.Settings.width - 36f, 32f));
-            SetLocalRect(volumeDownButton.GetComponent<RectTransform>(), new Rect(18f, 162f, 42f, 34f));
-            SetLocalRect(sfxVolumeText.transform.parent.GetComponent<RectTransform>(), new Rect(68f, 162f, geometry.Settings.width - 136f, 34f));
-            SetLocalRect(volumeUpButton.GetComponent<RectTransform>(), new Rect(geometry.Settings.width - 60f, 162f, 42f, 34f));
-            SetLocalRect(musicVolumeDownButton.GetComponent<RectTransform>(), new Rect(18f, 204f, 42f, 34f));
-            SetLocalRect(musicVolumeText.transform.parent.GetComponent<RectTransform>(), new Rect(68f, 204f, geometry.Settings.width - 136f, 34f));
-            SetLocalRect(musicVolumeUpButton.GetComponent<RectTransform>(), new Rect(geometry.Settings.width - 60f, 204f, 42f, 34f));
-            SetLocalRect(motionButtonText.transform.parent.GetComponent<RectTransform>(), new Rect(18f, 246f, geometry.Settings.width - 36f, 30f));
+            SetLocalRect(audioButtonText.transform.parent.GetComponent<RectTransform>(), new Rect(18f, 56f, geometry.Settings.width - 36f, 32f));
+            SetLocalRect(volumeDownButton.GetComponent<RectTransform>(), new Rect(18f, 98f, 42f, 34f));
+            SetLocalRect(sfxVolumeText.transform.parent.GetComponent<RectTransform>(), new Rect(68f, 98f, geometry.Settings.width - 136f, 34f));
+            SetLocalRect(volumeUpButton.GetComponent<RectTransform>(), new Rect(geometry.Settings.width - 60f, 98f, 42f, 34f));
+            SetLocalRect(musicVolumeDownButton.GetComponent<RectTransform>(), new Rect(18f, 140f, 42f, 34f));
+            SetLocalRect(musicVolumeText.transform.parent.GetComponent<RectTransform>(), new Rect(68f, 140f, geometry.Settings.width - 136f, 34f));
+            SetLocalRect(musicVolumeUpButton.GetComponent<RectTransform>(), new Rect(geometry.Settings.width - 60f, 140f, 42f, 34f));
+            SetLocalRect(motionButtonText.transform.parent.GetComponent<RectTransform>(), new Rect(18f, 182f, geometry.Settings.width - 36f, 30f));
             SetLocalRect(closeSettingsButton.GetComponent<RectTransform>(), new Rect(18f, geometry.Settings.height - 48f, geometry.Settings.width - 36f, 30f));
 
             SetLocalRect(testingTitleText.rectTransform, new Rect(18f, 12f, geometry.Testing.width - 36f, 22f));

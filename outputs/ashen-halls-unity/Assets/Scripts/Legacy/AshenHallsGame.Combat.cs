@@ -14374,7 +14374,7 @@ namespace AshenHalls
                 EnsureInventoryList();
                 AddInventoryItem(relic);
                 string equipNote = AutoEquipItem(relic);
-                relicEquipNote = string.IsNullOrEmpty(equipNote) ? "A future art pass can give this final relic unique artwork." : equipNote;
+                relicEquipNote = equipNote ?? "";
             }
             state.Mode = GameMode.Victory;
             state.Combat = null;

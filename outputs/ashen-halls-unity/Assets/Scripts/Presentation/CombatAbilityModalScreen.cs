@@ -1710,7 +1710,7 @@ namespace AshenHalls
             detailNotes.gameObject.SetActive(!string.IsNullOrWhiteSpace(detailNotes.text));
             detailNotesLabel.gameObject.SetActive(detailNotes.gameObject.activeSelf);
             detailPrompt.text = previewing
-                ? "Preview only. Click or focus the card to select it."
+                ? "Click or focus the card to select it."
                 : RelevantContext(card);
             detailPrompt.gameObject.SetActive(!string.IsNullOrWhiteSpace(detailPrompt.text));
             detailPrompt.color = previewing

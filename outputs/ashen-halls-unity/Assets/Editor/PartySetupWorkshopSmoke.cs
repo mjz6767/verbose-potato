@@ -41,6 +41,7 @@ namespace AshenHalls.Editor
                 Require(Field<bool>(game, "visualSmokeSaveBlocked"), "capture staging blocks campaign persistence");
                 Require(state.Mode == GameMode.Muster, "capture staging reaches the real setup screen");
                 Require(screen.ViewCanvas.gameObject.activeInHierarchy, "setup canvas is visible");
+                AssertAttributeGuidance(screen, false, 0);
                 // Edit-mode lifecycle checks use the same ensured host as UiRuntime:
                 // Unity does not register EventSystem.current outside Play Mode.
                 EventSystem navigation = EventSystem.current ?? (!Application.isPlaying ? UiRuntime.EnsureEventSystemReady() : null);
@@ -103,11 +104,19 @@ namespace AshenHalls.Editor
                 Require(navigation.currentSelectedGameObject == Button(screen, "Identity Tab").gameObject,
                     "hiding the focused attribute control moves focus to the visible identity tab");
                 Click(screen, "Details Tab");
+                AssertAttributeGuidance(screen, false, 0);
                 Click(screen, "Stat Down 0");
                 Require(state.Party[2].Stats.Total == 49, "attribute decrement releases a point");
                 Require(!Button(screen, "Begin").interactable, "Begin stays unavailable while a recruit has an unspent point");
+                AssertAttributeGuidance(screen, true, 1);
+                Click(screen, "Roster 0");
+                Require(state.Party[0].Stats.Total == 50 && !Button(screen, "Begin").interactable,
+                    "viewing a complete recruit does not hide another recruit's unfinished budget");
+                AssertAttributeGuidance(screen, true, 0);
+                Click(screen, "Roster 2");
                 Click(screen, "Stat Up 0");
                 Require(state.Party[2].Stats.Total == 50 && Button(screen, "Begin").interactable, "allocating the point restores Begin");
+                AssertAttributeGuidance(screen, false, 0);
                 string[] chosenParty = state.Party.Select(RecruitIdentity).ToArray();
                 Click(screen, "Begin");
                 Invoke(game, "LateUpdate");
@@ -171,7 +180,7 @@ namespace AshenHalls.Editor
             return button;
         }
 
-        private static void Click(PartySetupScreen screen, string name)
+        internal static void Click(PartySetupScreen screen, string name)
         {
             Button button = Button(screen, name);
             Require(button.gameObject.activeInHierarchy && button.interactable, "native button is available: " + name);
@@ -193,6 +202,42 @@ namespace AshenHalls.Editor
         {
             return string.Join("|", screen.ViewCanvas.GetComponentsInChildren<Text>(true)
                 .Where(text => text.name == "Race Selection").Select(text => text.text));
+        }
+
+        internal static void AssertAttributeGuidance(PartySetupScreen screen, bool partyUnfinished, int selectedPointsRemaining)
+        {
+            Text summary = Field<Text>(screen, "summaryText");
+            Text budget = Field<Text>(screen, "budgetText");
+            if (partyUnfinished)
+            {
+                Require(!string.IsNullOrWhiteSpace(summary.text)
+                    && summary.text.IndexOf("attribute", StringComparison.OrdinalIgnoreCase) >= 0
+                    && summary.text.IndexOf("point", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "a blocked adventure explains that attribute points need assigning");
+                AssertReadableText(summary, "unfinished-party guidance");
+            }
+            else Require(string.IsNullOrWhiteSpace(summary.text), "a ready party has no routine instructional footer");
+
+            if (selectedPointsRemaining > 0)
+            {
+                Require(budget.text.IndexOf(selectedPointsRemaining.ToString(), StringComparison.Ordinal) >= 0
+                    && budget.text.IndexOf("point", StringComparison.OrdinalIgnoreCase) >= 0,
+                    "the selected recruit reports the number of points still to assign");
+                AssertReadableText(budget, "remaining attribute points");
+            }
+            else Require(string.IsNullOrWhiteSpace(budget.text), "a complete recruit has no redundant allocation notice");
+        }
+
+        private static void AssertReadableText(Text text, string label)
+        {
+            Canvas.ForceUpdateCanvases();
+            Require(text.enabled && text.gameObject.activeInHierarchy && text.color.a > 0f, label + " is visible");
+            TextGenerationSettings settings = text.GetGenerationSettings(text.rectTransform.rect.size);
+            text.cachedTextGenerator.Populate(text.text, settings);
+            Require(text.cachedTextGenerator.characterCountVisible > 0, label + " generates visible characters");
+            settings.verticalOverflow = VerticalWrapMode.Overflow;
+            float height = text.cachedTextGeneratorForLayout.GetPreferredHeight(text.text, settings) / text.pixelsPerUnit;
+            Require(height <= text.rectTransform.rect.height + 0.5f, label + " fits without truncation");
         }
 
         private static void AssertQuietRefreshAndUnchangedChoices(AshenHallsGame game, PartySetupScreen screen, GameState state)

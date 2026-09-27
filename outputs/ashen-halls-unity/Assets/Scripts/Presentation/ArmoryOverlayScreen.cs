@@ -408,18 +408,19 @@ namespace AshenHalls
             }
 
             titleText.text = string.IsNullOrWhiteSpace(view.Title) ? "Inventory & Equipment" : view.Title;
-            subtitleText.text = string.IsNullOrWhiteSpace(view.Subtitle) ? "Inspect equipment and choose who should use each find." : view.Subtitle;
+            subtitleText.text = view.Subtitle ?? "";
             subtitleText.gameObject.SetActive(!string.IsNullOrWhiteSpace(view.Subtitle));
             summaryText.text = view.Summary ?? "";
             footerText.text = view.Footer ?? "";
+            footerText.gameObject.SetActive(!string.IsNullOrWhiteSpace(footerText.text));
             RefreshTabs(view.ActiveTab);
             RefreshFilters(view.Filters, view.ActiveFilter, detailVisible);
             visibleRowCount = view.Rows.Count;
             EnsureRowCount(visibleRowCount);
             emptyText.gameObject.SetActive(view.Rows.Count == 0);
             emptyText.text = view.ActiveTab == 1
-                ? view.ActiveFilter == 3 ? "No clear upgrades in this inventory." : "No items match this filter."
-                : "Nothing to show yet.";
+                ? view.ActiveFilter == 3 ? "No upgrades." : "No matching items."
+                : "No entries.";
 
             for (int i = 0; i < rowControls.Count; i++)
             {
@@ -428,6 +429,16 @@ namespace AshenHalls
                 row.Root.gameObject.SetActive(visible);
                 if (!visible) continue;
                 RefreshRow(row, view.Rows[i], i);
+                if (view.ActiveTab == 0)
+                {
+                    // The equipment roster already names each class in its vital line.
+                    row.BadgeRoot.gameObject.SetActive(false);
+                    if (view.Rows[i].Selected)
+                    {
+                        row.Action.gameObject.SetActive(false);
+                        row.SelectButton.interactable = view.Rows[i].ActionEnabled;
+                    }
+                }
             }
 
             LayoutRows();
@@ -909,9 +920,14 @@ namespace AshenHalls
 
         private void ApplyLayout(bool detailVisible, int filterCount, bool extendedDetailSummary, int detailActionCount)
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
-            ArmoryOverlayGeometry geometry = ArmoryOverlayLayout.Calculate(Screen.width, Screen.height);
+            ApplyLayout(detailVisible, filterCount, extendedDetailSummary, detailActionCount, Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(bool detailVisible, int filterCount, bool extendedDetailSummary, int detailActionCount, float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
+            ArmoryOverlayGeometry geometry = ArmoryOverlayLayout.Calculate(width, height);
             SetScreenRect(backdrop, geometry.Backdrop);
             SetScreenRect(panel, geometry.Panel);
             SetLocalRect(accentStrip, new Rect(0f, 0f, 5f, geometry.Panel.height));

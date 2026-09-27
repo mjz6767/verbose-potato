@@ -130,10 +130,10 @@ namespace AshenHalls
                 ShowBetaLabButton = showBetaLab,
                 Title = "The Old Road Is Sealed",
                 Subtitle = "Vhal Rakh's meteor crown breaks above the ritual heart. " + homeTownName + " has one more dawn.",
-                SummaryTitle = "Party Ledger",
-                SummaryLine = $"Survivors {living}/{partyCount} / Avg level {Mathf.Max(1, averageLevel)} / Gold {gold} / Depth {depth}",
+                SummaryTitle = "Company",
+                SummaryLine = $"Survivors {living}/{partyCount} · Avg level {Mathf.Max(1, averageLevel)} · {gold} gold · Depth {depth}",
                 PartyRows = partyRows ?? Array.Empty<string>(),
-                RouteTitle = "Beta Route Complete",
+                RouteTitle = "Road Complete",
                 RouteRows = new[]
                 {
                     "I  Midgaard Cisterns",
@@ -143,7 +143,7 @@ namespace AshenHalls
                     "V  Red Gate",
                     "VI Meteor Crown"
                 },
-                Footer = "Next passes can turn this scaffold into hand-authored dungeons, NPC quests, and multi-phase boss rules."
+                Footer = ""
             };
         }
 
@@ -156,19 +156,16 @@ namespace AshenHalls
                 ShowBetaLabButton = false,
                 Title = "The Party Has Fallen",
                 Subtitle = "A new oath may yet be sworn. The old road waits beyond " + homeTownName + ".",
-                SummaryTitle = "Final Ledger",
-                SummaryLine = "No one remains standing.",
+                SummaryTitle = "Company",
+                SummaryLine = "",
                 PartyRows = partyRows ?? Array.Empty<string>(),
-                RouteTitle = "What Carries Forward",
+                RouteTitle = "Recovery",
                 RouteRows = new[]
                 {
-                    "Return to the Tavern and Continue from the last checkpoint.",
-                    "Try a new party mix.",
-                    "Guard before enemy pressure peaks.",
-                    "Use elixirs before the final collapse.",
-                    "Rangers should keep distance; casters can shape terrain."
+                    "Tavern → Continue resumes the last checkpoint.",
+                    "New Party starts a fresh journey."
                 },
-                Footer = "Tavern offers the last checkpoint or a fresh party."
+                Footer = ""
             };
         }
     }
@@ -231,6 +228,8 @@ namespace AshenHalls
             routeTitleText.text = view.RouteTitle ?? "";
             routeText.text = FormatRows(view.RouteRows);
             footerText.text = view.Footer ?? "";
+            footerText.gameObject.SetActive(!string.IsNullOrWhiteSpace(footerText.text));
+            summaryLineText.gameObject.SetActive(!string.IsNullOrWhiteSpace(summaryLineText.text));
             tavernButton.gameObject.SetActive(view.ShowTavernButton);
             betaLabButton.gameObject.SetActive(view.ShowBetaLabButton);
 
