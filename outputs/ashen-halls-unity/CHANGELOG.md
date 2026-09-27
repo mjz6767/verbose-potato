@@ -9,6 +9,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Reduce repeated hints and headings in exploration, loot, Armory, pause, title, dialogue and end screens. Keep objectives, costs, comparison outcomes, target details, save recovery and NPC dialogue.
 - Shorten Help while retaining controls and useful mechanics. Remove inactive combat filler and a leftover developer art note.
 - Preserve all 40 portraits, music and sound effects, animations, Reduced Motion, game rules and save schema v27. Preserve the v2.29 archive.
+- Pass all twelve audit/build gates, clean-extracted startup and 41 character/menu visual captures. Exact evidence and manual-review limits are recorded in Docs/ReleaseEvidence/v2.30.0-summary.json.
 
 ## v2.29.0 - The Living Folio
 

@@ -1,0 +1,219 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v2.30.0",
+  "sourceCommit": "9f129634e3b3a69751875ed97657847aed8f7d49",
+  "review": {
+    "finalPlayer": {
+      "method": "actual-retail-player-native-canvas-through-offscreen-camera",
+      "captureDirectory": "QA/party-setup/player-20260927-021916-5fc90e9c",
+      "captureCount": 8,
+      "captureSetSha256": "e27d9e8cd1cf0da4bda2fc593aa391e55de48e07b1e78ad05c9764024f7d8c36",
+      "deterministicPassed": true,
+      "coverage": [
+        "Identity and details at 960x600, 1280x720 and 1920x1080",
+        "Portrait transition and Reduced Motion at 1280x720"
+      ],
+      "assistantVisualReview": "Root and character_ui personally reviewed all eight final-player images; no blocking findings.",
+      "captures": [
+        {
+          "file": "fenkin-wizard-reduced-1280x720.png",
+          "sha256": "4294d586c752293b82b2ca2666400ba6184552367de099fe5cb786b01fec3f67"
+        },
+        {
+          "file": "fenkin-wizard-transition-1280x720.png",
+          "sha256": "88de04e2483bb00c80e687eee574edd5d3d8c8585b0c6610daba28b4d6276d89"
+        },
+        {
+          "file": "human-mage-details-1280x720.png",
+          "sha256": "ee7b0846c13d7e827970b1a3438df077cc72af6595d862208a4d789df929020e"
+        },
+        {
+          "file": "human-mage-details-1920x1080.png",
+          "sha256": "f1e3812d00396dcd3c96d76ba3dea81736710825f5be98d30b2aba823b3c3342"
+        },
+        {
+          "file": "human-mage-details-960x600.png",
+          "sha256": "a821bbc9757782d7dddddbc61cac581dd5315baf444e049b45925c81752d5bc0"
+        },
+        {
+          "file": "human-warrior-1280x720.png",
+          "sha256": "73a74dda5245b3905b7c4c0fa6ad8fa87968bc92d085f8cc3cb8d090d2acb1e8"
+        },
+        {
+          "file": "human-warrior-1920x1080.png",
+          "sha256": "e1d1561487b2a71296b0fe74c6541b1011c921c06d67070616c7b875f05f5b25"
+        },
+        {
+          "file": "human-warrior-960x600.png",
+          "sha256": "0d9038c3da74fbad530de14b1c59746ca327bcd6a168232a3bb537627d739766"
+        }
+      ]
+    },
+    "editorCharacter": {
+      "captureDirectory": "QA/party-setup/editor-20260927-020500-935",
+      "captureCount": 9,
+      "passed": true,
+      "coverage": "Identity/details at three sizes, transition, Reduced Motion, and real unspent-point warning at 960x600.",
+      "assistantVisualReview": "All nine reviewed by character_ui; root also reviewed compact warning and representative larger states.",
+      "limitation": "Previews precede only the final conditional removal of the plus symbol from disabled talent controls; final-player captures follow that change.",
+      "captures": [
+        {
+          "file": "fenkin-wizard-reduced-1280x720.png",
+          "sha256": "4393b9daaa1fbd1e5112a575e57a5fdec1c6cb3af29da0d25454d3f6682dd93d"
+        },
+        {
+          "file": "fenkin-wizard-transition-1280x720.png",
+          "sha256": "30dfd6e16cc708a28046a27027bb5af15f3606ee8a4bd6186d9f0cb7d532276c"
+        },
+        {
+          "file": "human-mage-details-1280x720.png",
+          "sha256": "67aee0f49e81f837234e9e6c6543fc1a279e387d51a6e902ea06ea3ffcfe3a23"
+        },
+        {
+          "file": "human-mage-details-1920x1080.png",
+          "sha256": "f9b867296d5e6b8125946d144944b21610fe6f3606a52f242f5f2d6baed97d3b"
+        },
+        {
+          "file": "human-mage-details-960x600.png",
+          "sha256": "70ebdd1d0b1bd5ebb80f8b91b171e5e324ee182f555dc835a2573ae21a5904eb"
+        },
+        {
+          "file": "human-mage-details-unspent-point-960x600.png",
+          "sha256": "4de7beb9882455033ac5fc52f72c03877fd8a56646f8f30c5ca714f957e447f7"
+        },
+        {
+          "file": "human-warrior-1280x720.png",
+          "sha256": "07c8dd8f9e7e1e8d445b89521cbcef828b4e2358117acdb42ac09a2fd6d3a3a5"
+        },
+        {
+          "file": "human-warrior-1920x1080.png",
+          "sha256": "ec2682b27648207a436c4deff80c0f47c49e05721679c0dad16c21e3849a90b6"
+        },
+        {
+          "file": "human-warrior-960x600.png",
+          "sha256": "45ccad16e2346aba84294d125cffc15bed76554f81330b00abff3c8b982af509"
+        }
+      ]
+    },
+    "editorUi": {
+      "captureDirectory": "QA/ui-finish/20260927-020540-921",
+      "captureCount": 18,
+      "passed": true,
+      "coverage": "Exploration compact/details, pause compact/settings, equipment/resource loot at 960x600, 1280x720 and 1920x1080.",
+      "assistantVisualReview": "All eighteen personally reviewed by release_review; root reviewed six compact/representative states. No clipping or blocked controls.",
+      "captures": [
+        {
+          "file": "exploration-1280x720.png",
+          "sha256": "b4913d5d060248fc47c93b7874e80ab6f2d76c9bc1fbb900e92f4eb4ff499e7e"
+        },
+        {
+          "file": "exploration-1920x1080.png",
+          "sha256": "bfe5a1a04ed16f1a7e1581f28791192ef93fce891a63feef0e2d7e6c2e61ce7d"
+        },
+        {
+          "file": "exploration-960x600.png",
+          "sha256": "60801e6b236a94ca7a3ae7349d3594c11f40a61b6fffde46e9e3ac2b6626c958"
+        },
+        {
+          "file": "exploration-details-1280x720.png",
+          "sha256": "a4839e7623748b4e21abf63437174edfc7a61aad951bb9418106353d31a258c5"
+        },
+        {
+          "file": "exploration-details-1920x1080.png",
+          "sha256": "219d4f3072f801b5609bbeca2a3dde6aeae6dc93b31fc1ce13a3149809b99f12"
+        },
+        {
+          "file": "exploration-details-960x600.png",
+          "sha256": "97480dc240b981bbcf0125ad35a36254e73029242c1ed19a4075525d7928bb77"
+        },
+        {
+          "file": "loot-equipment-1280x720.png",
+          "sha256": "16026042a1d4d241935de4cf7582f9491a4371e585331de50c33ed4127e95d37"
+        },
+        {
+          "file": "loot-equipment-1920x1080.png",
+          "sha256": "50ec8c37c2f1f5a152828ea19d53bf9498a300907b783599779308850886561c"
+        },
+        {
+          "file": "loot-equipment-960x600.png",
+          "sha256": "78e4483295aaffb006a1f988f9cbbdc7e79ba826c874e12f60f4756f99b4fa80"
+        },
+        {
+          "file": "loot-supplies-1280x720.png",
+          "sha256": "2443513a009a7fd8e282f23466b6c8a198a442ab718705fc3153033aed351263"
+        },
+        {
+          "file": "loot-supplies-1920x1080.png",
+          "sha256": "6ad8618fece662cba2f15ff45bff6cf37590c03f626115684f4554d703ddcb26"
+        },
+        {
+          "file": "loot-supplies-960x600.png",
+          "sha256": "8367db070a4d04b303e43c4b63da6af3fd4164efd05770f6bc2132ecc1ad4308"
+        },
+        {
+          "file": "pause-1280x720.png",
+          "sha256": "875a959338ac7051ade1faaf1c41763192b5323b2fd665db7f6351d15e6de991"
+        },
+        {
+          "file": "pause-1920x1080.png",
+          "sha256": "a5d6c41f5e97de4f67d46cffd2d967906d3fc3c677671d2c764d9e8cbfbe1e82"
+        },
+        {
+          "file": "pause-960x600.png",
+          "sha256": "619e4e185c41cc280b2794f4aa63ab38d72712e804e3dfa9aea3a68c07319089"
+        },
+        {
+          "file": "pause-settings-1280x720.png",
+          "sha256": "a5c31c5b43882134fe376eed72606424203ca58f1bab3439cd1fd4fe588a5f87"
+        },
+        {
+          "file": "pause-settings-1920x1080.png",
+          "sha256": "70c39e8b109d8aafe4a829bf7a14ec71c5b506637b5d7d8207207ca5139709e4"
+        },
+        {
+          "file": "pause-settings-960x600.png",
+          "sha256": "5d4f4096446070d1bded250e0c16bf920bf48b1112a16c7de7a8c4da08ba9da5"
+        }
+      ]
+    },
+    "editorSupporting": {
+      "captureDirectory": "QA/ui-declutter/20260927-021519-931",
+      "captureCount": 6,
+      "passed": true,
+      "coverage": "Title settings and selected equipment at 960x600/1280x720; combat Help top/bottom at 960x600.",
+      "assistantVisualReview": "Root and character_backend reviewed the final states; no blocking findings.",
+      "captures": [
+        {
+          "file": "equipment-selected-1280x720.png",
+          "sha256": "b9e93469d013db2dc320c024cc1e06f4c2d796080d2f62aba7a9316252a6bcc0"
+        },
+        {
+          "file": "equipment-selected-960x600.png",
+          "sha256": "f2eda676a28b6e25d6afddb273c791c9747c4d0986faf3411204a8f3fed5ecb2"
+        },
+        {
+          "file": "help-bottom-960x600.png",
+          "sha256": "2ee0b8c416e3b97b3ce4957703ba0921d6ee26b794a202cfce926d2dda451df0"
+        },
+        {
+          "file": "help-top-960x600.png",
+          "sha256": "6a3e10cfb7bf50b56092ca04fc719e6c1387c87b105a76c54f69fd982adbcf5a"
+        },
+        {
+          "file": "tavern-settings-1280x720.png",
+          "sha256": "6d75fe6272fb5803917af598697efa1d59bb04d5ce694b20d8d9daaf65de4c1b"
+        },
+        {
+          "file": "tavern-settings-960x600.png",
+          "sha256": "d218e15a823b8c64297a523d50854a7d8b74e61cf20c80d76af2c04402d8facc"
+        }
+      ]
+    },
+    "humanVisualReviewClaimed": false,
+    "limitations": [
+      "Native editor fixtures isolate controls and text; they do not establish world rendering or physical-controller feel.",
+      "Final-player still images do not establish subjective animation or audio quality.",
+      "Loot outcomes and pause panels retain some spare space."
+    ]
+  }
+}

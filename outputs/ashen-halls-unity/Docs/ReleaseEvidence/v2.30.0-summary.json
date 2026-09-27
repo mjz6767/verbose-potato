@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.30.0",
+  "releaseStage": "Clearer Choices",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-09-27T02:22:17.1330011Z",
+  "sourceCommit": "9f129634e3b3a69751875ed97657847aed8f7d49",
+  "sourceDirty": false,
+  "developmentPackage": false,
+  "scope": [
+    "Character creation text declutter and visible talent ranks",
+    "Contextual allocation warnings and preserved native selection controls",
+    "Shorter exploration, loot, Armory, menus, combat and Help copy"
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.30.0.zip",
+    "packageBytes": 249025594,
+    "packageSha256": "d577b59345983931c931bb7016bf64584654679fb82ce6eb6262cb5467adb19c",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "a28b6343e37bab39b0695570b2170776598299e45e0d22378bd5f941794d37d7",
+    "cleanExtractLaunch": true,
+    "packagedBootMode": "batchmode-explore-smoke",
+    "playerExitCode": 0,
+    "packagedArtCount": 99,
+    "previousV229ArchivePreserved": true,
+    "previousV229Sha256": "b9a19f8db45828299eba589ec7248f1f2306d578541fff233a89bd5d412e6280"
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "exitCode": 0,
+    "repeatedDuringWindowsBuild": true,
+    "rejectsLoggedErrors": true,
+    "passed": [
+      "Rules",
+      "UI finish",
+      "Building atlas alpha",
+      "Audio lifecycle",
+      "Title music experience",
+      "Character workshop audio",
+      "Everyday sound effects",
+      "Inventory and loot",
+      "Sprite art",
+      "Character workshop",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "focusedCoverage": [
+      "All 40 portraits and race/class controls",
+      "Completed-character silence; unspent-point warning, cross-companion blocking and recovery",
+      "Selected equipment focus survives removal of redundant Viewing action",
+      "Costs, comparisons, blocked reasons, Help controls and checkpoint recovery",
+      "Existing music, sound, Reduced Motion, animation and disposal checks"
+    ]
+  },
+  "visualEvidence": "Docs/VisualEvidence/ui-declutter-v2.30.json",
+  "captureCounts": {
+    "finalPlayer": 8,
+    "editorCharacter": 9,
+    "editorUi": 18,
+    "editorSupporting": 6,
+    "total": 41
+  },
+  "assets": {
+    "portraitCount": 40,
+    "approvedPins": 65,
+    "packagedPngs": 99,
+    "newArt": 0,
+    "newAudio": 0,
+    "runtimeAiService": false
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/project-audit/20260927-021150-34069557/unity.log",
+      "sha256": "5b2374bdfad1b969c409d4989a45d1db8e5fff434555c43e8db70fad290fa111",
+      "tracked": false
+    },
+    {
+      "path": "build-v2.30.0.log",
+      "sha256": "9bb09ec931e54bfbf4cef0d389e58c4464362f574b4346f109abde76ae528ca4",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.30.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "c4281f7028513b794fc73ce2eaf0251c160e082d6d1ca2e2258aa01f4d9e6e7b",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.30.0-release-integrity/clean-extract-boot.log",
+      "sha256": "8b4d2a9150da17af579ef951be64eecbbd34a3c99e187e4ff339a6f4d8bd8014",
+      "tracked": false
+    },
+    {
+      "path": "QA/declutter-v2.30-Workshop.log",
+      "sha256": "94894dd7b3374039c1bec1c35499ff0d9a5ecf6d8709fe7db8048e63afd8d022",
+      "tracked": false
+    },
+    {
+      "path": "QA/declutter-v2.30-UiFinish.log",
+      "sha256": "7b74df9110c188745d6a79c7150b512a49b7976ab34ff0a2d86ce66c71442e94",
+      "tracked": false
+    },
+    {
+      "path": "QA/declutter-v2.30-Supporting.log",
+      "sha256": "c6cacc6fb157ac14e8f4bad6b88ba7b2ad05e17a8a1b3485d2bb88990cfd7667",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "Physical-controller feel and a complete human campaign remain manual checks.",
+    "Screenshots use real native canvases rendered offscreen; supporting screens use isolated presentation fixtures.",
+    "Raw screenshots, logs and Windows ZIP remain local; tracked evidence records hashes and scope.",
+    "Evidence follows the immutable package, which retains its source-commit documentation snapshot."
+  ]
+}
