@@ -6,7 +6,9 @@ v2.36.0 — Steel and Study — makes equipment reach consistent, gives ranger s
 
 Six connected automated campaigns reach the ending with 108 required and 34 roaming victories. Primary skills finish below 99, and Chapter VI causes more damage, but the informed policy still retains ample resources and finishes Vhal in two or three rounds. The gear-score policy sometimes equips a sword on the ranger; these runs are not optimized ranger play or a human difficulty estimate. See `Docs/STEEL_AND_STUDY_BALANCE.md` for the reasoning and remaining balance questions.
 
-All thirteen Full audit gates pass at this source checkpoint, with 170 runtime and 69 Editor files compiling without diagnostics. Thirty-six native content captures at 960x600 and 1280x720 pass review, covering Growth, weapon comparisons, shooting eligibility and Tessa's weapon advice. Windows packaging and clean-extracted startup verification follow this checkpoint; their final evidence will be recorded in `Docs/ReleaseEvidence/v2.36.0-summary.json`. Native editor presentation review does not replace a human campaign, physical-controller or audio check.
+All thirteen Full audit gates pass, with 170 runtime and 69 Editor files compiling without diagnostics. Thirty-six native content captures at 960x600 and 1280x720 pass review, covering Growth, weapon comparisons, shooting eligibility and Tessa's weapon advice. Native editor presentation review does not replace a human campaign, physical-controller or audio check.
+
+The Windows package was built from clean source `bd0333e`, passed all thirteen repeated build gates, and passed its clean-extracted startup check. All 367 ZIP entries pass CRC verification; all 102 packaged PNGs and the managed assembly match the source/build evidence. The 251,696,927-byte ZIP has SHA-256 `2103174ae826006e66b63605635a1f15b779ba11ed239733ac1b3aa062bc7464`. Artwork and the previous v2.35 archive remain unchanged. Exact evidence is recorded in `Docs/ReleaseEvidence/v2.36.0-summary.json` after immutable packaging; the archive's documentation retains its clean source checkpoint.
 
 ## Previous Release: v2.35.0
 

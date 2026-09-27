@@ -1,0 +1,773 @@
+{
+  "schemaVersion": 3,
+  "releaseVersion": "v2.36.0",
+  "releaseName": "Steel and Study",
+  "recordedUtc": "2026-09-27T21:55:15.502722+00:00",
+  "sourceCommit": "bd0333e97cb03dfd16f9fde06caccebc1b71ff12",
+  "sourceCleanAtPackaging": true,
+  "saveVersion": 27,
+  "changes": [
+    "Shared equipped-weapon profiles determine basic reach, line of sight and ranged technique eligibility.",
+    "Equipment comparisons disclose delivery and reach changes; quick equip requires deliberate review when delivery changes or reach shrinks, while explicit Pack assignment and item scoring remain available.",
+    "Encounter-local skill practice is bounded and persists across combat saves; Growth retains old values and points.",
+    "Accuracy mastery above rank 25 has diminishing contribution, while actual skill continues to determine damage.",
+    "Deliberate Guard gains bounded training benefits and mages can spend Arms as a secondary talent.",
+    "Editor-only combat telemetry observes actual connected campaign actions without changing state or RNG."
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.36.0.zip",
+    "packageBytes": 251696927,
+    "packageSha256": "2103174ae826006e66b63605635a1f15b779ba11ed239733ac1b3aa062bc7464",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "bf5a61a9cc9e8b960d9d93ee177658b2c4392dea48dc55b4c7909a02b756f87e",
+    "cleanExtractLaunch": true,
+    "playerExitCode": 0,
+    "packagedArtCount": 102
+  },
+  "packageVerification": {
+    "allZipEntriesCrcValid": true,
+    "entryCount": 367,
+    "allPackagedPngsMatchZipAndSource": true,
+    "managedAssemblyMatchesArchive": true,
+    "manifest": {
+      "file": "QA/v2.36.0-release-integrity/release-integrity-manifest.json",
+      "bytes": 19824,
+      "sha256": "6143b43c8a1a99a5d71a9cdf6af38164d0d9c4caa4b5d596f8b7d05363ad99c2"
+    }
+  },
+  "validation": {
+    "sourceCompile": {
+      "path": "QA/source-compile/20260927-215108-8c6f6e43",
+      "sourceCounts": {
+        "Assembly-CSharp": 170,
+        "Assembly-CSharp-Editor": 69
+      },
+      "diagnostics": 0
+    },
+    "fullAudit": {
+      "file": "QA/project-audit/20260927-215134-1d1c6f94/unity.log",
+      "bytes": 153273,
+      "sha256": "30fa07d023c6e62462affec4c4ecf0f672e60b2e3cd0f3e87043c51de15d5d75",
+      "gateCount": 13,
+      "gates": [
+        "Rules (12.1 seconds)",
+        "UI finish (0.1 seconds)",
+        "Building atlas alpha (0.0 seconds)",
+        "Audio lifecycle (0.0 seconds)",
+        "Title music experience (0.2 seconds)",
+        "Character workshop audio (0.2 seconds)",
+        "Everyday sound effects (1.1 seconds)",
+        "Inventory and loot (0.1 seconds)",
+        "Sprite art (6.6 seconds)",
+        "Character workshop (6.7 seconds)",
+        "Combat UI (7.2 seconds)",
+        "Runtime boot (12.9 seconds)",
+        "Beta Lab class coverage (0.2 seconds)"
+      ]
+    },
+    "finalBuild": {
+      "file": "build-v2.36.0.log",
+      "bytes": 291754,
+      "sha256": "e822edd2df97e594fff86b93682724285b3b91fa0f4f4669c1e8c1e317808c34",
+      "gateCount": 13,
+      "gates": [
+        "Ash & Brimstone build rule smoke tests passed.",
+        "Ash & Brimstone build UI finish smoke passed.",
+        "Ash & Brimstone build building-atlas alpha smoke passed.",
+        "Ash & Brimstone build audio lifecycle smoke passed.",
+        "Ash & Brimstone build title music experience smoke passed.",
+        "Ash & Brimstone build character workshop audio smoke passed.",
+        "Ash & Brimstone build everyday sound effects smoke passed.",
+        "Ash & Brimstone build inventory/loot experience smoke passed.",
+        "Ash & Brimstone build sprite-art runtime smoke passed.",
+        "Ash & Brimstone build character workshop smoke passed.",
+        "Ash & Brimstone build combat UI runtime smoke passed.",
+        "Ash & Brimstone build runtime boot smoke passed.",
+        "Ash & Brimstone build Beta Lab class coverage smoke passed."
+      ]
+    },
+    "newSmokeSuites": [
+      "CombatAccuracySmoke",
+      "WeaponTrainingSmoke",
+      "SkillProgressionSmoke"
+    ],
+    "focusedLogs": [
+      {
+        "file": "QA/CombatAccuracySmoke-v236.log",
+        "bytes": 20421,
+        "sha256": "3facd730200c801deadd80da3f1367d6fa60294a2440b1c2df71d10a23a8efe4"
+      },
+      {
+        "file": "QA/skill-progression-v236-bound-screen.log",
+        "bytes": 19570,
+        "sha256": "bf993f21b37f3cd2cd3a31825faca3b2808b63b453b2320fbe12fabda0e5ef37"
+      },
+      {
+        "file": "QA/weapon-training-v236-final.log",
+        "bytes": 19477,
+        "sha256": "9f6e7cc3b2728eb2087fdcb61e6b0dbab6e789877c643c7c7e2ca3bcd8b69f65"
+      },
+      {
+        "file": "QA/combat-ui-v236-final.log",
+        "bytes": 32327,
+        "sha256": "ed230b29ad9a1bf3fbe7a6c59ff6a68633aaa09aec4c4140f734c86a07a3be22"
+      }
+    ],
+    "combatExperiment": {
+      "report": {
+        "file": "Docs/CAMPAIGN_COMBAT_TELEMETRY_2026-09-27.md",
+        "bytes": 21208,
+        "sha256": "0490253f5d5152b421475d844a1c14189e9e8c7d9bd97ae2898af7c174621d9e"
+      },
+      "baseline": {
+        "runs": 6,
+        "campaignVictories": 6,
+        "outcomes": {
+          "campaign victory": 6
+        },
+        "results": [
+          {
+            "seed": 42,
+            "policy": "prudent",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 7,
+            "camps": 0,
+            "summaryRow": "| 42 | prudent | campaign victory | 18/18 | 7 | 0 | 0 / 3 | 754 | 9 / 40 | 16/16/15/15 | 408/410; 132/176 | 1301/28/20 |"
+          },
+          {
+            "seed": 42,
+            "policy": "conserve",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 7,
+            "camps": 0,
+            "summaryRow": "| 42 | conserve | campaign victory | 18/18 | 7 | 0 | 0 / 3 | 754 | 9 / 40 | 16/16/15/15 | 408/410; 132/176 | 1301/28/20 |"
+          },
+          {
+            "seed": 727,
+            "policy": "prudent",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 4,
+            "camps": 1,
+            "summaryRow": "| 727 | prudent | campaign victory | 18/18 | 4 | 1 | 0 / 3 | 704 | 9 / 40 | 16/16/15/15 | 408/411; 145/175 | 1174/27/20 |"
+          },
+          {
+            "seed": 727,
+            "policy": "conserve",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 4,
+            "camps": 0,
+            "summaryRow": "| 727 | conserve | campaign victory | 18/18 | 4 | 0 | 0 / 3 | 704 | 9 / 40 | 16/16/15/15 | 408/411; 145/175 | 1174/28/20 |"
+          },
+          {
+            "seed": 1337,
+            "policy": "prudent",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 6,
+            "camps": 1,
+            "summaryRow": "| 1337 | prudent | campaign victory | 18/18 | 6 | 1 | 0 / 3 | 708 | 9 / 40 | 16/16/15/15 | 392/411; 135/176 | 1242/27/26 |"
+          },
+          {
+            "seed": 1337,
+            "policy": "conserve",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 6,
+            "camps": 0,
+            "summaryRow": "| 1337 | conserve | campaign victory | 18/18 | 6 | 0 | 0 / 3 | 708 | 9 / 40 | 16/16/15/15 | 397/411; 124/175 | 1308/28/24 |"
+          }
+        ],
+        "observedBattleOutcomes": {
+          "mandatory:victory": 108,
+          "roaming:victory": 34
+        },
+        "observerCompleted": true,
+        "files": [
+          {
+            "file": "QA/campaign-journey-v236-baseline-report.md",
+            "bytes": 48849,
+            "sha256": "66eea685179da4735df63bd092728f1c40f4b3245d2bb175418468c6410d82c4"
+          },
+          {
+            "file": "QA/campaign-journey-v236-baseline.log",
+            "bytes": 21515,
+            "sha256": "9e50c2d0f8b3996365a9ca3e4c9847728c32fade86095c0096389f038a0a432d"
+          },
+          {
+            "file": "QA/campaign-journey-v236-baseline-turns.txt",
+            "bytes": 651408,
+            "sha256": "46d27de071350538b2b782e6ceb7bbaac57ad5431bda12f834cd7448485f766c"
+          },
+          {
+            "file": "QA/campaign-journey-v236-baseline-combat.md",
+            "bytes": 112984,
+            "sha256": "e5bd2d898e2087795e91fa0a75238c8c054e5f01bf9d5240db6f507db706d7cd"
+          },
+          {
+            "file": "QA/campaign-journey-v236-baseline-combat.jsonl",
+            "bytes": 107427212,
+            "sha256": "971f92adf1f81c552a2a2bbe70e207cd10ce5b1fbc92c180abc7a7d1969d0c50"
+          }
+        ]
+      },
+      "candidate": {
+        "runs": 6,
+        "campaignVictories": 6,
+        "outcomes": {
+          "campaign victory": 6
+        },
+        "results": [
+          {
+            "seed": 42,
+            "policy": "prudent",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 7,
+            "camps": 3,
+            "summaryRow": "| 42 | prudent | campaign victory | 18/18 | 7 | 3 | 0 / 3 | 754 | 9 / 40 | 16/16/15/15 | 389/409; 119/175 | 1366/25/29 |"
+          },
+          {
+            "seed": 42,
+            "policy": "conserve",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 7,
+            "camps": 0,
+            "summaryRow": "| 42 | conserve | campaign victory | 18/18 | 7 | 0 | 0 / 3 | 754 | 9 / 40 | 16/16/15/15 | 389/409; 119/175 | 1366/28/29 |"
+          },
+          {
+            "seed": 727,
+            "policy": "prudent",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 4,
+            "camps": 6,
+            "summaryRow": "| 727 | prudent | campaign victory | 18/18 | 4 | 6 | 0 / 3 | 704 | 9 / 40 | 16/16/15/15 | 395/412; 139/173 | 1146/22/26 |"
+          },
+          {
+            "seed": 727,
+            "policy": "conserve",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 4,
+            "camps": 0,
+            "summaryRow": "| 727 | conserve | campaign victory | 18/18 | 4 | 0 | 0 / 3 | 704 | 9 / 40 | 16/16/15/15 | 395/412; 139/173 | 1166/28/25 |"
+          },
+          {
+            "seed": 1337,
+            "policy": "prudent",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 6,
+            "camps": 2,
+            "summaryRow": "| 1337 | prudent | campaign victory | 18/18 | 6 | 2 | 0 / 3 | 708 | 9 / 40 | 16/16/15/15 | 370/410; 100/177 | 1246/26/22 |"
+          },
+          {
+            "seed": 1337,
+            "policy": "conserve",
+            "outcome": "campaign victory",
+            "mandatoryWins": 18,
+            "mandatoryRouteLength": 18,
+            "extraFights": 6,
+            "camps": 0,
+            "summaryRow": "| 1337 | conserve | campaign victory | 18/18 | 6 | 0 | 0 / 3 | 708 | 9 / 40 | 16/16/15/15 | 400/412; 114/177 | 1251/28/21 |"
+          }
+        ],
+        "observedBattleOutcomes": {
+          "mandatory:victory": 108,
+          "roaming:victory": 34
+        },
+        "observerCompleted": true,
+        "files": [
+          {
+            "file": "QA/campaign-journey-v236-candidate-report.md",
+            "bytes": 49255,
+            "sha256": "1e2b38038efe522cf2a81b956a5cd4db4e7541e40505b10e0073e569c7e3e4fd"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate.log",
+            "bytes": 20070,
+            "sha256": "6f049527e38d03663c7527c518bbdfb8efca3ad0b08ec152c0c94dccb3047191"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-turns.txt",
+            "bytes": 693346,
+            "sha256": "bf09a3440f593647ac0ad5f5aa0cde504a7781046bc0899a30b54a1e19310f92"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-combat.md",
+            "bytes": 113011,
+            "sha256": "bedd1396e561455bdf01d739df540048c2dabcf366c8d32efbd71d4dffdfb3af"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-combat.jsonl",
+            "bytes": 119673776,
+            "sha256": "6b192ec461780f771dfc36df138a259a411fb1aeffc6a4b7c40b8ba4c04cadfe"
+          }
+        ]
+      },
+      "preservedObsoletePolicyEvidence": {
+        "explanation": "Five candidate policy stops came from duplicated ritual LOS eligibility; one campaign completed. The harness now calls production CanAttackCombatObstacle. These were policy assertions, not battle defeats.",
+        "files": [
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-combat.jsonl",
+            "bytes": 21764124,
+            "sha256": "97ed814092cd9a69a7c0a606c90b3e3002c8edae578a538a643d6c5e5b58ebff"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-combat.md",
+            "bytes": 46732,
+            "sha256": "ec8d148bbf20d8363be4790feed82fc89848cd931237ca1a1d50aa1889812808"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-report.md",
+            "bytes": 38870,
+            "sha256": "d2663cf634b75ffc3990c1656519a7fa4a14cc022b2a6ed831fefa3b1b0a5ca7"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-stop-1337-prudent.json",
+            "bytes": 228106,
+            "sha256": "14df804e01312cadc04fa6a370d5525e48371609d75a1bef71fb7b14703f98b3"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-stop-42-conserve.json",
+            "bytes": 226174,
+            "sha256": "78167697d2086493cc2c121a3055bd22a7eb13c8f458bb7b8b716e83038be20b"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-stop-42-prudent.json",
+            "bytes": 226174,
+            "sha256": "c0d3c44f2cc49b7fc8d1b86a2c7f7e5d837ab2d7834d97c5d5bf7c78d21b8843"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-stop-727-conserve.json",
+            "bytes": 227110,
+            "sha256": "598199d92cc058dd829dfaaf12a3a0e03cf9ea712736570c5ebaf6f41e62c823"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-stop-727-prudent.json",
+            "bytes": 227110,
+            "sha256": "508bdb1b10f4c885427efaf16de52ed3fe5c402743ed1d311b0d0e5784260adc"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-turns.txt",
+            "bytes": 345120,
+            "sha256": "1caae80f434aad191c5d474ca9d2812675895c814a73c374759e5fbb751e2bb4"
+          },
+          {
+            "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy.log",
+            "bytes": 19320,
+            "sha256": "b3d3cce25e912e4da1fa4190a57da9de60b7fe0f8b8442f19837d38ecb31e240"
+          }
+        ],
+        "observation": {
+          "runs": 6,
+          "campaignVictories": 1,
+          "outcomes": {
+            "Tactical audit: production accepted selected action ritual": 5,
+            "campaign victory": 1
+          },
+          "results": [
+            {
+              "seed": 42,
+              "policy": "prudent",
+              "outcome": "Tactical audit: production accepted selected action ritual",
+              "mandatoryWins": 7,
+              "mandatoryRouteLength": 18,
+              "extraFights": 1,
+              "camps": 1,
+              "summaryRow": "| 42 | prudent | Tactical audit: production accepted selected action ritual | 7/18 | 1 | 1 | 0 / 0 | 73 | 3 / 12 | 6/6/6/6 | 225/229; 85/100 | 394/11/12 |"
+            },
+            {
+              "seed": 42,
+              "policy": "conserve",
+              "outcome": "Tactical audit: production accepted selected action ritual",
+              "mandatoryWins": 7,
+              "mandatoryRouteLength": 18,
+              "extraFights": 1,
+              "camps": 0,
+              "summaryRow": "| 42 | conserve | Tactical audit: production accepted selected action ritual | 7/18 | 1 | 0 | 0 / 0 | 73 | 3 / 12 | 6/6/6/6 | 225/229; 85/100 | 394/12/12 |"
+            },
+            {
+              "seed": 727,
+              "policy": "prudent",
+              "outcome": "Tactical audit: production accepted selected action ritual",
+              "mandatoryWins": 7,
+              "mandatoryRouteLength": 18,
+              "extraFights": 1,
+              "camps": 2,
+              "summaryRow": "| 727 | prudent | Tactical audit: production accepted selected action ritual | 7/18 | 1 | 2 | 0 / 0 | 73 | 3 / 12 | 6/6/6/6 | 227/229; 86/105 | 386/10/12 |"
+            },
+            {
+              "seed": 727,
+              "policy": "conserve",
+              "outcome": "Tactical audit: production accepted selected action ritual",
+              "mandatoryWins": 7,
+              "mandatoryRouteLength": 18,
+              "extraFights": 1,
+              "camps": 0,
+              "summaryRow": "| 727 | conserve | Tactical audit: production accepted selected action ritual | 7/18 | 1 | 0 | 0 / 0 | 73 | 3 / 12 | 6/6/6/6 | 227/229; 86/105 | 386/12/12 |"
+            },
+            {
+              "seed": 1337,
+              "policy": "prudent",
+              "outcome": "Tactical audit: production accepted selected action ritual",
+              "mandatoryWins": 8,
+              "mandatoryRouteLength": 18,
+              "extraFights": 0,
+              "camps": 2,
+              "summaryRow": "| 1337 | prudent | Tactical audit: production accepted selected action ritual | 8/18 | 0 | 2 | 0 / 0 | 73 | 3 / 13 | 6/6/6/6 | 227/228; 94/105 | 421/10/11 |"
+            },
+            {
+              "seed": 1337,
+              "policy": "conserve",
+              "outcome": "campaign victory",
+              "mandatoryWins": 18,
+              "mandatoryRouteLength": 18,
+              "extraFights": 6,
+              "camps": 0,
+              "summaryRow": "| 1337 | conserve | campaign victory | 18/18 | 6 | 0 | 0 / 3 | 708 | 9 / 40 | 16/16/15/15 | 400/412; 114/177 | 1251/28/21 |"
+            }
+          ],
+          "observedBattleOutcomes": {
+            "mandatory:victory": 54,
+            "roaming:victory": 10
+          },
+          "observerCompleted": true,
+          "files": [
+            {
+              "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-report.md",
+              "bytes": 38870,
+              "sha256": "d2663cf634b75ffc3990c1656519a7fa4a14cc022b2a6ed831fefa3b1b0a5ca7"
+            },
+            {
+              "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy.log",
+              "bytes": 19320,
+              "sha256": "b3d3cce25e912e4da1fa4190a57da9de60b7fe0f8b8442f19837d38ecb31e240"
+            },
+            {
+              "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-turns.txt",
+              "bytes": 345120,
+              "sha256": "1caae80f434aad191c5d474ca9d2812675895c814a73c374759e5fbb751e2bb4"
+            },
+            {
+              "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-combat.md",
+              "bytes": 46732,
+              "sha256": "ec8d148bbf20d8363be4790feed82fc89848cd931237ca1a1d50aa1889812808"
+            },
+            {
+              "file": "QA/campaign-journey-v236-candidate-obsolete-ritual-policy-combat.jsonl",
+              "bytes": 21764124,
+              "sha256": "97ed814092cd9a69a7c0a606c90b3e3002c8edae578a538a643d6c5e5b58ebff"
+            }
+          ]
+        }
+      },
+      "scope": "Persistent parties and actual production combat/admissions/travel/recovery; detailed phases IV-VI. Observation asserts unchanged serialized state and RNG. Combined changes and GUID ties prevent isolated causal attribution."
+    },
+    "visualReview": {
+      "scope": "Native editor production fixtures. Image dimensions, hashes and nonblank content verified by this helper; visual judgments are in the separate review record.",
+      "count": 36,
+      "resolutions": [
+        [
+          960,
+          600
+        ],
+        [
+          1280,
+          720
+        ]
+      ],
+      "reviewRecord": {
+        "file": "QA/steel-and-study-content/20260927-213431-357/VISUAL_REVIEW.md",
+        "bytes": 1874,
+        "sha256": "431ae7e3da9874cbb35d8b7b67dd89bba2c230f6a51a1e25408649b539afd19e"
+      },
+      "captures": [
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-mage-cap-finish-1280x720.png",
+          "bytes": 118511,
+          "sha256": "cf94aa3bc5863e1ff246719c1a7060300c5594eeaa49b6baa9a1820d2e16698c",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-mage-cap-finish-960x600.png",
+          "bytes": 87642,
+          "sha256": "f04e216f9eb689ca58282420209c58e1e9390cb602ca90a8c2c53a2c87cb897a",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-mage-fallback-1280x720.png",
+          "bytes": 114317,
+          "sha256": "80ecc0788e6e1b3ca8a3a08d9414fed113eed7a8e3c68cc60e9dd036af9bc932",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-mage-fallback-960x600.png",
+          "bytes": 84277,
+          "sha256": "01dcae3054ea3651cb881c1480d177324593ce3d5a1e4979a2744ff118fde5a3",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-paladin-maximum-1280x720.png",
+          "bytes": 112620,
+          "sha256": "f72f2890808489d245035f3621daf2c100d2fc8e099a7e1153deb59565b17c9b",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-paladin-maximum-960x600.png",
+          "bytes": 83816,
+          "sha256": "43fb64fd1f62f6dadee664925482a722b1246a04338424db6ccb77e9b13cc803",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-priest-before-threshold-1280x720.png",
+          "bytes": 112628,
+          "sha256": "0d14a8c591aa7e571c1b7ea7dd8c9d5c5a3ae4af94bd5041ccad72769388850c",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-priest-before-threshold-960x600.png",
+          "bytes": 83399,
+          "sha256": "4124c2ed68671a2bd2c382ffbdbe9cd8068cc90f5455786cd162494a2e37d4aa",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-priest-threshold-1280x720.png",
+          "bytes": 113084,
+          "sha256": "b1faf3992cdc6bb023dfbbb4dcb5144959dc9c79296a443b84d65eacac78335f",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-priest-threshold-960x600.png",
+          "bytes": 83823,
+          "sha256": "762f7f16e75859d414d557193b774aafb0e6b2c7cd9e5c9f93cdab450fc9e477",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-warrior-mixed-1280x720.png",
+          "bytes": 117118,
+          "sha256": "7c81a7f9f68b594f45bf41bedde31bf0f8eef993f8b3e33cd9809f65b02586ea",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/growth-warrior-mixed-960x600.png",
+          "bytes": 87964,
+          "sha256": "05b5138bc8d54d0fe2401bba9c6370cb7f8b8f2db9e1ff0a6d624b2d92002746",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/mage-focus-pack-1280x720.png",
+          "bytes": 72980,
+          "sha256": "a4e14093275ba7c638135dc267e9e371b52c754d8d921e31756e97203176033d",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/mage-focus-pack-960x600.png",
+          "bytes": 56117,
+          "sha256": "9d796a9ff380946442731be5eece086bd2433401efd8de3d8382e624f20de9bd",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/mage-knife-pack-1280x720.png",
+          "bytes": 75172,
+          "sha256": "3ca91694fde278a384bf644a18d7246b9473dcc872d7379fa098dbe4acd9c0de",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/mage-knife-pack-960x600.png",
+          "bytes": 57421,
+          "sha256": "a6f1dda495a0699d26e65920bce6148851523601da584bd02186a58549f04be5",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/priest-focus-pack-1280x720.png",
+          "bytes": 59840,
+          "sha256": "a3b540f837874ab1b1c8fd2a766803b4446fdcc39253d4e40c3b0e616e38c30a",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/priest-focus-pack-960x600.png",
+          "bytes": 45100,
+          "sha256": "f2c13e39bbb2a9accfb74bf8a9c3ef7197ea502f3a7d3d8049bbb27f1fa430b4",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-broadhead-longbow-ready-1280x720.png",
+          "bytes": 101232,
+          "sha256": "9755483fbcbf2f22bdba2b67677c0a2ab1243da6fc9be723e4f0acc415b90162",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-broadhead-longbow-ready-960x600.png",
+          "bytes": 86186,
+          "sha256": "f30bfc2773d3c2e4e042958a80805b5225d31964b62082ae7b5f0b6fe3394750",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-broadhead-sword-blocked-1280x720.png",
+          "bytes": 108888,
+          "sha256": "aca3f29ecf9e4e32cc868171d006bd9b1aff9ba06e9376ce7640e2b32fcf8bba",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-broadhead-sword-blocked-960x600.png",
+          "bytes": 89916,
+          "sha256": "464e15bc845b134b7111b973176e012eab80cd0c08a84e64f245cb12520a6656",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-crownward-pack-comparison-1280x720.png",
+          "bytes": 91066,
+          "sha256": "e13fe2aae4c7d75bab2724f01f20916db2b745e7c13470ec9302d0b1ebea6e30",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-crownward-pack-comparison-960x600.png",
+          "bytes": 71876,
+          "sha256": "58e49a1a1e6897546d8add4e4ea08291b0d3367c519242a428e2ad3c6944c258",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-restore-longbow-pack-comparison-1280x720.png",
+          "bytes": 79175,
+          "sha256": "6de6672d879d01735b7c9b3ff201b084a628fa9f539bffb93012458bf614d09b",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/ranger-restore-longbow-pack-comparison-960x600.png",
+          "bytes": 62411,
+          "sha256": "8683ef21612d2a91ca2ae5bdd1c2b471d3c3664bf22ea2964f41aece0f236c75",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-forms-page1-1280x720.png",
+          "bytes": 59984,
+          "sha256": "759180538ad609b2563628a64d37b94b19693f676b99ae57e81ab5057ad3aa07",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-forms-page1-960x600.png",
+          "bytes": 53997,
+          "sha256": "b7705387e0db595b7641a88cc460c332b6fbcf5d2b8d269fabeab0d3a99dd69b",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-forms-page2-1280x720.png",
+          "bytes": 50756,
+          "sha256": "d429d6014f15d068725b2638e32aca09abbff58239e14a592ac57974f37e9092",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-forms-page2-960x600.png",
+          "bytes": 45247,
+          "sha256": "7ef3ddfb9bd93326e8196ff299ab95a1f6d7fa1d2ed04c31ebace7cd6bbf498b",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-range-page1-1280x720.png",
+          "bytes": 56298,
+          "sha256": "045d18c858daf67e49a815666fe8ee002cb5a6aab62cd4bb7f186e001cb1a0c0",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-range-page1-960x600.png",
+          "bytes": 51154,
+          "sha256": "9e8c582be564f491b025eef76d05b7331b1b8ec377c68756641bbf4b865d3875",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-range-page2-1280x720.png",
+          "bytes": 55987,
+          "sha256": "fa404a6f9916e927e2fa19196e8bbfca178c424cb8033165037005facefad9cc",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-range-page2-960x600.png",
+          "bytes": 51504,
+          "sha256": "e0d0a3413db5fec8c2e4f1666b3bbc602a47f69e2b91d66802fe0ffca63824bd",
+          "width": 960,
+          "height": 600
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-root-page1-1280x720.png",
+          "bytes": 77777,
+          "sha256": "6506167f476f4bd7edd0a51ab15fe45b514fcf3b7897ae87f1db6c72a5a0bd84",
+          "width": 1280,
+          "height": 720
+        },
+        {
+          "file": "QA/steel-and-study-content/20260927-213431-357/tessa-root-page1-960x600.png",
+          "bytes": 71647,
+          "sha256": "452cd9057bf3d2fbf538132c59a5e89eb43e048d59db69165607698226a93b91",
+          "width": 960,
+          "height": 600
+        }
+      ]
+    }
+  },
+  "art": {
+    "mode": "No new or changed artwork; packaged art names and hashes match v2.35."
+  },
+  "preservedArchives": [
+    {
+      "file": "AshAndBrimstone-Windows-v2.35.0.zip",
+      "sha256": "29bfb024eae84899aa7ef7f3155fad391b3df72c155a68dce667977e19b06849"
+    }
+  ],
+  "limits": [
+    "Policy outcomes are observed, not a human win-rate estimate or an optimal play claim.",
+    "No physical-controller or subjective audio review is inferred from these automated checks.",
+    "Visual review uses native editor fixtures, not final-player captures.",
+    "Local Windows archive only; no public upload or remote Git push."
+  ],
+  "archiveNotes": "Evidence recorded after immutable packaging; archive documentation remains from its clean source commit."
+}

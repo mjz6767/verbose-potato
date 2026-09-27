@@ -11,6 +11,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Preserve accuracy through rank 25, then add one accuracy per three further ranks. Damage and healing still use the actual skill value; high skill can no longer erase as much of Guard's accuracy penalty.
 - Complete six connected candidate campaigns with 108 required and 34 roaming victories. Primary skills finish below 99; Chapter VI damage taken rises, but all runs retain ample resources and the ending remains short under this informed policy. Preserve the earlier harness failures and document the ranger equipment-policy limitation.
 - Add observed combat-phase telemetry and focused production-path regressions. Preserve save schema v27 and previous archives. All thirteen Full audit gates and 36 native content captures pass at the source checkpoint; immutable package evidence follows packaging.
+- Verified from clean source `bd0333e`: all thirteen repeated build gates, clean-extracted Windows startup, 367 ZIP CRC entries and all 102 packaged art hashes pass. Package size is 251,696,927 bytes; SHA-256 `2103174ae826006e66b63605635a1f15b779ba11ed239733ac1b3aa062bc7464`. Exact evidence: `Docs/ReleaseEvidence/v2.36.0-summary.json`. The v2.35 archive and artwork remain unchanged; human campaign difficulty, controller feel and subjective audio remain playtest follow-ups.
 
 ## v2.35.0 — Roads Remember
 
