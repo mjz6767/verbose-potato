@@ -1,0 +1,513 @@
+{
+  "schemaVersion": 2,
+  "releaseVersion": "v2.34.0",
+  "releaseName": "The Honest Weight",
+  "recordedUtc": "2026-09-27",
+  "sourceCommit": "8c00cf896a14caa70458462904926a5a3f418a26",
+  "sourceCleanAtPackaging": true,
+  "saveVersion": 27,
+  "changes": [
+    "Optional Maud magical-contract investigation with two inspections, two permanent dispositions and independent equipment reward.",
+    "Counterweight Knife and Measurekeeper Jack with original pinned transparent art and stable identity.",
+    "Shared market pricing across journal, map hints and actual charges; visible quest/craft dialogue grouping.",
+    "Crossbow generation speed and Borin armor quote corrections.",
+    "Measured Chapter VI encounter tuning; actual production-turn tactical evidence and scoped limitations."
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.34.0.zip",
+    "packageBytes": 251114517,
+    "packageSha256": "f02a24147c26dbf8c472fd5ecf11c0d953a806fde400bfdc37d728cbe21ae7e8",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "3eb9cd925e48360a44727c436742565544c167825d3180f933c15de908583e98",
+    "cleanExtractLaunch": true,
+    "playerExitCode": 0,
+    "packagedArtCount": 101
+  },
+  "packageVerification": {
+    "allZipEntriesCrcValid": true,
+    "entryCount": 356,
+    "allPackagedPngsMatchZipAndSource": true,
+    "managedAssemblyMatchesArchive": true,
+    "manifest": "QA/v2.34.0-release-integrity/release-integrity-manifest.json",
+    "manifestSha256": "03a347d7df1e287b892c4bb9133536528b5a7b2618ae056d7eacb6df55a74beb"
+  },
+  "validation": {
+    "sourceCompile": {
+      "path": "QA/source-compile/20260927-195557-95c83542",
+      "sourceCounts": {
+        "Assembly-CSharp": 164,
+        "Assembly-CSharp-Editor": 59
+      },
+      "diagnostics": 0
+    },
+    "fullAudit": {
+      "path": "QA/project-audit/20260927-195604-b410096a/unity.log",
+      "sha256": "e3d5724cbf86ced497947aed73e6f1dea3a670342767c31af7ca831d1e04d919",
+      "gateCount": 13,
+      "gates": [
+        "Rules (10.4 seconds)",
+        "UI finish (0.1 seconds)",
+        "Building atlas alpha (0.0 seconds)",
+        "Audio lifecycle (0.0 seconds)",
+        "Title music experience (0.2 seconds)",
+        "Character workshop audio (0.2 seconds)",
+        "Everyday sound effects (1.1 seconds)",
+        "Inventory and loot (0.1 seconds)",
+        "Sprite art (6.6 seconds)",
+        "Character workshop (6.7 seconds)",
+        "Combat UI (7.0 seconds)",
+        "Runtime boot (12.5 seconds)",
+        "Beta Lab class coverage (0.2 seconds)"
+      ]
+    },
+    "finalBuild": {
+      "path": "build-v2.34.0.log",
+      "sha256": "6485c72b74edfbb0e10efa98ece715f5653de7c0a969afd08d2d960ae26366ff",
+      "gateCount": 13,
+      "gates": [
+        "Ash & Brimstone build rule smoke tests passed.",
+        "Ash & Brimstone build UI finish smoke passed.",
+        "Ash & Brimstone build building-atlas alpha smoke passed.",
+        "Ash & Brimstone build audio lifecycle smoke passed.",
+        "Ash & Brimstone build title music experience smoke passed.",
+        "Ash & Brimstone build character workshop audio smoke passed.",
+        "Ash & Brimstone build everyday sound effects smoke passed.",
+        "Ash & Brimstone build inventory/loot experience smoke passed.",
+        "Ash & Brimstone build sprite-art runtime smoke passed.",
+        "Ash & Brimstone build character workshop smoke passed.",
+        "Ash & Brimstone build combat UI runtime smoke passed.",
+        "Ash & Brimstone build runtime boot smoke passed.",
+        "Ash & Brimstone build Beta Lab class coverage smoke passed."
+      ]
+    },
+    "newSmokeSuites": [
+      "HonestWeightQuestSmoke",
+      "HonestWeightItemSmoke"
+    ],
+    "tactical": {
+      "report": "Docs/CAMPAIGN_TACTICAL_AUDIT_2026-09-27.md",
+      "sha256": "0c792b5bbeb8c8b593ff0ca7ab886ad32b35a053b5893fc32225dddf8808a78a",
+      "baselineFights": 63,
+      "tunedFights": 63,
+      "tunedWins": 63,
+      "tunedTimeouts": 0,
+      "tunedFourSurvivorOutcomes": 63,
+      "tunedElixirsUsed": 0,
+      "authoredEndingTransitionsVerified": 9,
+      "baselineLogSha256": "cee44f1a859e90a695fb4d9117d4697daae9489f2ec290237d354642d02caeeb",
+      "tunedLogSha256": "57738724517959639a981e75936d0430272619949f374866af3da82429f03d2b",
+      "limits": "Prepared parties still clear the finale in two to three rounds; the proposed four-to-six-round prepared target was not achieved. Production GUID ties prevent guaranteed seed-identical replay.",
+      "scope": "Observed production-turn encounters under a fixed policy, default party, attainable earned equipment/growth and fresh rest. Prior victories assumed for entering XP; not human win rates."
+    },
+    "visualReview": {
+      "scope": "Native editor fixtures of production dialogue, Pack, loot and Journal adapters at both sizes; all dialogue pages.",
+      "count": 62,
+      "resolutions": [
+        [
+          960,
+          600
+        ],
+        [
+          1280,
+          720
+        ]
+      ],
+      "review": "All 50 initial screens visually inspected. Final set: 44 decoded-pixel identical; 6 changed and 12 new screens directly inspected and passed. Hidden fifth Maud choice and compact knife trait truncation corrected.",
+      "reviewRecord": "QA/honest-weight-content/20260927-195418-804/VISUAL_REVIEW.md",
+      "reviewRecordSha256": "8e59c4c2e72367b2385349fc0cc2119962ab8df9618cb28e105e41200f7533fe",
+      "captures": [
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/counterweight-knife-loot-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "67836d28814755cf2a450d3ad50ff26d9ab34a0b857e39b687c99ce1778c9148"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/counterweight-knife-loot-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "654f82a8c7ff82a84757ae0bbd2fdb6606baf33396dadb146dc10c03154beefb"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/counterweight-knife-pack-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "7da5d46c4d3f78eebfa74d6bdf4662c13e1ab3ed0a79c269804c516177136574"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/counterweight-knife-pack-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "6402f9ca07a00e6dd5dad071b29562212faf9b3a277642164ff40b6c553c3919"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/journal-honest-weight-complete-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "76c8601200a8b4f8ef94febc9acb2aac9135ea7f6d459232aefa52b45b383cb8"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/journal-honest-weight-complete-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "492831445fe791ec6e7cd8d2f2ed37084be1a7ec769ef2415588ed4b16211824"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/journal-honest-weight-progress-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "1b7c1ba37bc0d4305c02481fbb2e7236f0db1bc68a731e972b09ce085480e6b6"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/journal-honest-weight-progress-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "08f9b6053a57738b876e28a20a11794379f48c42a25aaeba673ba31d34d6bfdc"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/market-inspection-choice-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "89d37ba1e170bf89c9cf2774871d16a0735465fb47094f63d6d9e73c7a5249a9"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/market-inspection-choice-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "9044aaac3aa1a2e3c0917f6ca788a66f1f5b2f59dd6237f4592824c24d62825e"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-accepted-services-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "7b32261c1977d315375c94b9a3b2f2f03cac8fe83f846906f2d5fc1a2fa44ca1"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-accepted-services-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "8cbda0fba9957d9500080ef9457b00877b0a8b1d871e60f11340ee601fece32d"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-break-review-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "75976dd55bec83c163b928ceeaa1fe7793a7126dab6441bb05d83336e630ae6b"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-break-review-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "084f71edf672481c7912c844f325e217a6cc640c6063ebd343340fda69a76067"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-break-review-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "6cdb8f835bc8997d5514a1b12a77ba0d6620d76de2de134ff28f402281eb2392"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-break-review-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "14d3a923655e3e1760aaf81ddfdfa5a192d7bd214e4ca049c4de2225f0e98933"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-broken-account-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "44a561c04b8190612c29dfa0b7d126b5046e032e47edfb0b3a6b0cb16a42d147"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-broken-account-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "5f99ecbb3222506fd19e7141ea22c7b6fa2fb2886f7c999812cf83f4202a9721"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-broken-aftermath-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "05e7bc2506b6f1799c480c8df0465484d38e248e4f4d059c37c1405d9cf4d784"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-broken-aftermath-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "46537a72c4f457793a22b8aa59a2c20816966f16dd2018d1fa92f808fce456eb"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-craft-topics-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "925f251d026a7766d9d08393d793fea47607571b6482525520849b2a76c26569"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-craft-topics-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "017d7b5f74449edc1e60e7e9e5b17a420725d551bd5dfa351774eb07228bbd2d"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-evidence-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "bd50ec63d0587d6b94f16dd2adf0d5bc71df7c77a43d3719e0f9959a489450bf"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-evidence-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "777de7f5f0fbe67ad0f4b3a59b4f2d5dbc37995d09f2758e5b9af49e7b7be6ac"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-evidence-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "0cf40492cbf2e5d759538b46f88f87582bbb423420097f0c5de0f1c5b6917f7d"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-evidence-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "b33a6ed177414810bcced2689779897168169f2900839881b118ff3faa0bb8e6"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-first-enchantment-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "5848912cd2853f2cdad67a084585fdafeec2406e1cd4745ab77b9868cbb11cd4"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-first-enchantment-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "308ec1fb291d3028589094f5d912475f9a85f87d76c283e5540451de1de15364"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-offer-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "be56e5889c48f7c71114aac80775cfd046a35cf8d479e50242124de7ef6aa25e"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-offer-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "23e4c1729445987fcea0747608ae2bc32a64693bd269a7e0a10cdfdd7bfa865e"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-offer-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "4aac0d23197a1a07c87214baa49e1d93178d4a9ca76a613e20967430e5ca4235"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-offer-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "9dd0b7cd7cd0c658aee802398a4d6e7c150f8a1c8b550a88a631bf098046c0f9"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-offer-services-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "bdaa49de97eb2d3c138525f0810c821c33fc9a170301ce76495919a767a0494a"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-offer-services-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "0842d20acaf3795ac31620ca967c5eac52405187db859f241763f7a59fc9210d"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-progress-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "b09c4b7f4711d59b39c96f6c6f226644d5714103958bbcf88a6e1c88dad8bfe0"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-progress-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "19d28e4d4b55578b9d15d7dccffd5b5c205c3298df882e6f51455399bcfa1e64"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-restored-services-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "f76d9f8109c3abd7ad209bc6d9c53de4b9049fc63509db000a189b04b29955e6"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-restored-services-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "51c76ca8cb791075bc8c21af0cc21f2a5a63b8c84a0c49badc0d00e9f298805f"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retune-review-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "ded0cf96413ca27731759d89fb3ea1d3557d0866b83e1737045f942073b60d1b"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retune-review-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "25b7fd5573b72102850ab3eb2adbb11421092121b3fa41c57e46a136ae04e80b"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retune-review-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "6ece8ca5ffcc6dfe7ebe9bd9e1acc4f1db38c239382db256fa4b87f7ad237096"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retune-review-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "da001aba6c76978831f06b3b3a834a245a9cc0ba0652b4651e456d795c2bd9aa"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retuned-account-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "9b838f18e140ab93c9e961b19e27c7310f7906248b167148e459e356e59d44aa"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retuned-account-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "1039988ba11b78832938602ba136d5cd2492c0bdd84ba64257e3533911db8b8e"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retuned-account-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "103a32adbb1c00ffdcb01271907724cb76d62c9fa9027e50230f13595d40abb3"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retuned-account-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "111ee77576956588a658e263cfea3158d312de2bf363c09c8876f22f84597e74"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retuned-aftermath-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "13d57efbe172b043a3a20b5abe23538162826856d996180912ee51fa46695e18"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-retuned-aftermath-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "6ff206cfa741a399b416b0a7fff93a8962c69934ffee72b56aa4970bdf732a1e"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-reward-choice-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "c12f97e029977768a71ebe88598ffde597086097916f19cb5d9b3592c236dc85"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-reward-choice-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "d26745ec53e07313b7f415372990803b47576dd14667532935533743a5197302"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-reward-choice-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "346ebfc36e7473ff96bddec925ff42ad22acbc07572ac42aecb56319b08c9995"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-reward-choice-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "bc37a26298e2484eadefb23432d877142462bee7bc8a05b355b4deef30c05ccb"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-rune-explanation-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "0a03d6095daba7676e6898ba20105df78f6f2c361fb4eed68b606f2e90d1cb94"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-rune-explanation-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "92aaaf4a944fc1602c8341fe9118979afe8babe0fd5f414f4b22db838e6cae73"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-rune-explanation-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "e6e131528d8c27db4d16b901cdc215225b64e9c6621ec47563cca65df68083bc"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/maud-rune-explanation-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "c729f12d7b0de1f0d0a0199cf887dba8538dccfd9220ec56563acbeb656343fd"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/measurekeeper-jack-loot-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "abe2b2fb0fbeff3baaff38f0ae9cde8fe084fefdc0d73c30e8abf736e5c47dca"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/measurekeeper-jack-loot-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "1c0457e983ccd05098480a6d9e3ac4449badb2bf8b9a00407b10d15a3c2c790f"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/measurekeeper-jack-pack-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "c1f0e39e2af9de1664db88ed5c90fc713ead1d8d1edd70de331bf4ec904a2449"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/measurekeeper-jack-pack-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "550315331dc30c80af370e53d906f4b2a3c290dc05dbbae3e6e08acb24873f1b"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/quarry-inspection-choice-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "441a39d1a22e6fa78168c2231548c3634f1c7ce03e6eb4be02f11d17e92a1fea"
+        },
+        {
+          "file": "QA/honest-weight-content/20260927-195418-804/quarry-inspection-choice-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "7085a27250b9972bafc3f7a704434e3fcc2166f2a79168181736de2c48f4980c"
+        }
+      ]
+    }
+  },
+  "art": {
+    "mode": "built-in imagegen, new image, transparent background",
+    "file": "Docs/ArtReferences/honest-weight-item-atlas-runtime-v2.34.0.png",
+    "sha256": "d0907cfb27cd776cba60691aa58376fd13960ab7fd2ddcad6662adce8bf33c52",
+    "prompt": "Docs/ArtReferences/honest-weight-item-atlas-v2.34.0-prompt.md"
+  },
+  "preservedArchives": [
+    {
+      "file": "AshAndBrimstone-Windows-v2.33.0.zip",
+      "sha256": "77665e8809e451b5ec6f86a386b69e15bbe81250b9e0cb2fffa6b3eb67047dfa"
+    }
+  ],
+  "limits": [
+    "No complete human campaign or human win-rate estimate. Scripted independent fights start rested.",
+    "No physical-controller or subjective audio review in this pass.",
+    "Quest and item visual review uses native editor fixtures, not final-player captures.",
+    "Local shareable Windows archive only; no public upload or remote Git push."
+  ],
+  "archiveNotes": "Evidence recorded after immutable packaging; archive documentation remains from its clean source commit."
+}

@@ -10,6 +10,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Tune only the three authored Chapter VI formations and HP floors after actual-turn testing; the stationary Heart can answer attacks within six cells while strict stone cover still blocks its pulse. Vhal's ordinary unspent-party fights average 5.3 rounds across three seeds, up from 3.3. Prepared parties remain strong; this is a fixed-policy observation, not a human win-rate claim.
 - Keep Maud's quest and enchantment services visible within the four-choice dialogue screen, with her rune explanation and personal story under a craft topic. Native button regression checks protect the new favor and Edda's existing contacts.
 - Keep save schema v27 and preserve earlier release archives. Exact validation and remaining human-playtest limitations are recorded separately after packaging.
+- Verified from clean source `8c00cf8`: Full audit and all 13 repeated build gates pass, clean-extracted Windows startup passes, all 356 ZIP entries pass CRC checks, and 101 packaged PNGs match source. Sixty-two native editor screens pass review; 126 baseline/tuned actual-turn trials inform the finale changes. Package SHA-256 is `f02a24147c26dbf8c472fd5ecf11c0d953a806fde400bfdc37d728cbe21ae7e8`. See `Docs/ReleaseEvidence/v2.34.0-summary.json` for exact scope and remaining human-playtest limits.
 
 ## v2.33.0 - The Last Dawn
 

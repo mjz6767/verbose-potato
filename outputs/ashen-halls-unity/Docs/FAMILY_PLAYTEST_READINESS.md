@@ -4,7 +4,9 @@
 
 v2.34.0 — The Honest Weight — adds Maud's optional magical-contract investigation, two signature equipment choices with original art, persistent market discounts, and corrected crossbow/armor descriptions. The six-chapter campaign and save schema v27 remain supported. Earlier release archives are preserved.
 
-Release checks and their exact scope are recorded in `Docs/ReleaseEvidence/v2.34.0-summary.json` after packaging. Native editor captures cover every new dialogue page plus Pack, loot and Journal at 960×600 and 1280×720. The actual-turn tactical report distinguishes observed encounter results from assumed prior campaign progress and fresh-rest preparation; it is not a human win-rate estimate.
+The Full audit and all 13 repeated Windows build gates pass from clean source `8c00cf8`; the clean-extracted player exits successfully. All 356 archive entries pass CRC verification and all 101 packaged PNGs match source. The 251,114,517-byte ZIP has SHA-256 `f02a24147c26dbf8c472fd5ecf11c0d953a806fde400bfdc37d728cbe21ae7e8`. Exact evidence is recorded in `Docs/ReleaseEvidence/v2.34.0-summary.json`.
+
+Sixty-two native editor captures cover every new dialogue page plus Pack, loot and Journal at 960×600 and 1280×720. All new or changed screens pass direct review; unchanged images match the reviewed baseline. The 126 actual-turn combat trials distinguish observed encounter results from assumed prior campaign progress and fresh-rest preparation. All nine tuned Vhal trials reach the authored ending. Prepared parties still clear the finale quickly; this is not a human win-rate estimate.
 
 Start with `Docs/FRIENDS_PLAYTEST.md` for a short first-session route and useful feedback prompts. A complete human campaign, physical-controller comfort, subjective audio balance and player understanding remain the most useful checks.
 
