@@ -2489,7 +2489,7 @@ namespace AshenHalls
                 $"scales {WeaponPrimaryStatLabel(member)}",
                 string.IsNullOrEmpty(member.WeaponDamageType) ? "physical" : member.WeaponDamageType
             };
-            int hit = WeaponHitBonus(member.WeaponName);
+            int hit = WeaponHitBonusForItem(member.WeaponName, EquippedInventoryItem(member, true) ?? DisplayIdentityItem(member.WeaponName));
             int power = WeaponPowerBonus(member.WeaponName);
             if (hit != 0) parts.Add("hit " + Signed(hit));
             if (power != 0) parts.Add("power " + Signed(power));

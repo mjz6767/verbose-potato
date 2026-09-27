@@ -8165,14 +8165,19 @@ namespace AshenHalls.Editor
 
         private static void AssertProductionTopicConversation(AshenHallsGame game, string visitMethod, string label, params object[] args)
         {
+            GameState conversationState = GetPrivateField<GameState>(game, "state");
+            bool remembranceTopic = label == "Edda"
+                || ((label == "Sera" || label == "Brann") && RemembranceQuestRules.Accepted(conversationState?.StoryFlags));
+            int expectedChoices = label == "Orren" || remembranceTopic ? 4 : 3;
             InvokePrivate(game, visitMethod, args);
             InvokePrivate(game, "LateUpdate");
             DialogueScreen dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
-            Assert(dialogue != null && dialogue.VisibleChoiceCountForTest == 3, label + " exposes three authored topics");
+            Assert(dialogue != null && dialogue.VisibleChoiceCountForTest == expectedChoices, label + " exposes its authored topics");
             dialogue.InvokeChoiceForTest(0);
             InvokePrivate(game, "LateUpdate");
             Assert(dialogue.VisibleChoiceCountForTest == 0, label + " answer replaces the topic list while it is being read");
-            AdvanceDialogueResponseToChoices(game, dialogue, 3, label + " returns to its authored topics");
+            AdvanceDialogueResponseToChoices(game, dialogue, expectedChoices, label + " returns to its authored topics");
+            if (label == "Orren") AssertPersonalConversationTopic(game, dialogue, label);
             dialogue.InvokeContinueForTest();
             InvokePrivate(game, "LateUpdate");
             Assert(InvokePrivate<UiOverlay>(game, "CurrentUiOverlay") != UiOverlay.Dialogue, label + " conversation leaves cleanly");
@@ -8371,8 +8376,8 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             DialogueScreen dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
             DialogueChoiceView[] choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
-            Assert(dialogue != null && dialogue.VisibleChoiceCountForTest == 3, "Maud opens a three-choice temporary, permanent, and affinity service");
-            Assert(choices.Length == 3
+            Assert(dialogue != null && dialogue.VisibleChoiceCountForTest == 4, "Maud opens temporary, permanent, affinity, and personal topics");
+            Assert(choices.Length == 4
                 && choices[0].Id == "temporary"
                 && choices[1].Id == "permanent"
                 && choices[2].Id == "affinity", "Maud's opening service choices are explicit");
@@ -8383,7 +8388,8 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             Assert(state.Gold == goldBefore, "Maud's affinity information costs nothing");
             Assert(dialogue.VisibleChoiceCountForTest == 0, "Maud's affinity information uses an uncluttered response page");
-            AdvanceDialogueResponseToChoices(game, dialogue, 3, "Maud's affinity information returns to the service menu");
+            AdvanceDialogueResponseToChoices(game, dialogue, 4, "Maud's affinity information returns to the service menu");
+            AssertPersonalConversationTopic(game, dialogue, "Maud");
 
             dialogue.InvokeChoiceForTest(0);
             InvokePrivate(game, "LateUpdate");
@@ -8425,7 +8431,7 @@ namespace AshenHalls.Editor
 
             dialogue.InvokeChoiceForTest(1);
             InvokePrivate(game, "LateUpdate");
-            Assert(dialogue.VisibleChoiceCountForTest == 3
+            Assert(dialogue.VisibleChoiceCountForTest == 4
                 && state.Gold == goldBefore
                 && state.Inventory.Count == inventoryBefore
                 && temporaryTarget.WeaponName == temporaryBaseName,
@@ -8476,7 +8482,7 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
             choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
-            Assert(dialogue.VisibleChoiceCountForTest == 3
+            Assert(dialogue.VisibleChoiceCountForTest == 4
                 && choices[0].Enabled
                 && choices[1].Enabled, "Maud remains available after a temporary enchantment");
 
@@ -8495,7 +8501,7 @@ namespace AshenHalls.Editor
                 "Maud's re-enchantment review keeps the current rune and both decisions visible on one page");
             dialogue.InvokeChoiceForTest(1);
             InvokePrivate(game, "LateUpdate");
-            Assert(dialogue.VisibleChoiceCountForTest == 3
+            Assert(dialogue.VisibleChoiceCountForTest == 4
                 && state.Gold == goldBefore - WeaponEnchantmentRules.TemporaryCost
                 && temporaryItem.TemporaryEnchantmentId == "fire",
                 "backing out of a replacement rune preserves the current enchantment and balance");
@@ -8559,7 +8565,7 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "VisitWeaponEnchanter");
             InvokePrivate(game, "LateUpdate");
             choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
-            Assert(choices.Length == 3
+            Assert(choices.Length == 4
                 && choices[0].Enabled
                 && choices[1].Enabled, "Maud's temporary and permanent services remain repeatable after completed work");
             InvokePrivate(game, "CloseDialogue");
@@ -8602,15 +8608,16 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             DialogueScreen dialogue = GetPrivateField<DialogueScreen>(game, "dialogueScreen");
             DialogueChoiceView[] choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
-            Assert(dialogue != null && dialogue.VisibleChoiceCountForTest == 3, label + " service opens as a three-choice conversation");
+            Assert(dialogue != null && dialogue.VisibleChoiceCountForTest == 4, label + " service opens with purchase, advice, and personal topics");
             Assert(state.Gold == goldBefore, label + " does not spend gold merely by opening the service");
-            Assert(choices.Length == 3 && choices[0].Enabled, label + " enables the explicitly priced service when affordable");
+            Assert(choices.Length == 4 && choices[0].Enabled, label + " enables the explicitly priced service when affordable");
 
             dialogue.InvokeChoiceForTest(1);
             InvokePrivate(game, "LateUpdate");
             Assert(state.Gold == goldBefore, label + " information topic does not trigger a purchase");
             Assert(dialogue.VisibleChoiceCountForTest == 0, label + " information answer uses an uncluttered response page");
-            AdvanceDialogueResponseToChoices(game, dialogue, 3, label + " response returns to the service menu");
+            AdvanceDialogueResponseToChoices(game, dialogue, 4, label + " response returns to the service menu");
+            AssertPersonalConversationTopic(game, dialogue, label);
 
             dialogue.InvokeChoiceForTest(0);
             InvokePrivate(game, "LateUpdate");
@@ -8632,7 +8639,7 @@ namespace AshenHalls.Editor
 
             dialogue.InvokeChoiceForTest(1);
             InvokePrivate(game, "LateUpdate");
-            Assert(dialogue.VisibleChoiceCountForTest == 3 && state.Gold == goldBefore,
+            Assert(dialogue.VisibleChoiceCountForTest == 4 && state.Gold == goldBefore,
                 label + " order review returns to browsing without a charge");
 
             dialogue.InvokeChoiceForTest(0);
@@ -8664,12 +8671,29 @@ namespace AshenHalls.Editor
             InvokePrivate(game, visitMethod);
             InvokePrivate(game, "LateUpdate");
             choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
-            Assert(choices.Length == 3 && !choices[0].Enabled, label + " disables the completed one-time service");
+            Assert(choices.Length == 4 && !choices[0].Enabled, label + " disables the completed one-time service");
             InvokePrivate(game, "CloseDialogue");
             InvokePrivate(game, "LateUpdate");
             Assert(state.Gold == goldAfter, label + " cannot charge twice through the disabled service choice");
             InvokePrivate(game, "CloseDialogue");
             InvokePrivate(game, "LateUpdate");
+        }
+
+        private static void AssertPersonalConversationTopic(AshenHallsGame game, DialogueScreen dialogue, string label)
+        {
+            GameState state = GetPrivateField<GameState>(game, "state");
+            string stateBefore = JsonUtility.ToJson(state);
+            DialogueChoiceView[] choices = GetPrivateField<DialogueChoiceView[]>(game, "dialogueChoices");
+            Assert(choices.Length == 4 && choices[3].Id == "personal" && choices[3].Enabled,
+                label + " offers a personal topic independently of its paid services");
+            dialogue.InvokeChoiceForTest(3);
+            InvokePrivate(game, "LateUpdate");
+            Assert(dialogue.VisibleChoiceCountForTest == 0, label + " personal answer has its own reading page");
+            Assert(GetPrivateField<string>(game, "dialogueBody").Length > 100,
+                label + " personal topic delivers the authored story");
+            AdvanceDialogueResponseToChoices(game, dialogue, 4, label + " personal answer returns to the same conversation");
+            Assert(JsonUtility.ToJson(state) == stateBefore,
+                label + " personal conversation changes no resources, equipment, or quest state");
         }
 
         private static bool AudioClipsDiffer(AudioClip left, AudioClip right)

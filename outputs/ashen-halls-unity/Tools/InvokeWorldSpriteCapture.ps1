@@ -17,7 +17,10 @@ $shots = @(
     @{ Name = 'npc-dock-local'; Flags = '-ashen-contact-smoke dock'; Marker = 'contact=dock,' },
     @{ Name = 'npc-scholar-local'; Flags = '-ashen-contact-smoke scholar'; Marker = 'contact=scholar,' },
     @{ Name = 'npc-kate-region'; Flags = '-ashen-contact-smoke kate -ashen-region-smoke'; Marker = 'contact=kate,' },
-    @{ Name = 'landmark-region'; Flags = '-ashen-explore-smoke -ashen-region-site-smoke'; Marker = 'focused on charted site' }
+    @{ Name = 'landmark-region'; Flags = '-ashen-explore-smoke -ashen-region-site-smoke'; Marker = 'focused on charted site' },
+    @{ Name = 'npc-vann-local'; Flags = '-ashen-contact-smoke vann'; Marker = 'contact=vann,' },
+    @{ Name = 'npc-sera-local'; Flags = '-ashen-contact-smoke sera'; Marker = 'contact=sera,' },
+    @{ Name = 'npc-yara-local'; Flags = '-ashen-contact-smoke yara'; Marker = 'contact=yara,' }
 )
 $results = @()
 foreach ($shot in $shots) {

@@ -160,6 +160,8 @@ namespace AshenHalls
         public const string GloamReliquaryMailId = "gloam_reliquary_mail";
         public const string MirrorweaveRoadMantleId = "mirrorweave_road_mantle";
         public const string CrownwardWarbladeId = "crownward_warblade";
+        public const string TravelersKnotId = "travelers_knot_bow";
+        public const string VigilkeeperWrapId = "vigilkeeper_wrap";
 
         private static readonly IReadOnlyList<SignatureItemDefinition> Definitions =
             Array.AsReadOnly(new[]
@@ -234,7 +236,25 @@ namespace AshenHalls
                     "crownward", "emberglass", "broadsword", "warding", "weapon",
                     6, 2, 1, 0, 0, 8, 13, 3, "quest", "fire",
                     "+6 crownward emberglass warblade",
-                    "+6 Crownward Warblade")
+                    "+6 Crownward Warblade"),
+                new SignatureItemDefinition(
+                    TravelersKnotId,
+                    7,
+                    "+2 Traveler's Knot Bow",
+                    "Edda kept the blue cord tied where her companion's hand once rested. The knot has outlasted the journey.",
+                    "Steady Hand",
+                    "Gain +2 hit on weapon attacks.",
+                    "remembered", "ashwood", "longbow", "steady", "weapon",
+                    2, 0, 0, 1, 0, 3, 6, 9, "quest", "physical"),
+                new SignatureItemDefinition(
+                    VigilkeeperWrapId,
+                    8,
+                    "+2 Vigilkeeper Wrap",
+                    "Five stitches circle the clasp: one for each traveler who entered the water, including the one who returned.",
+                    "Cold Vigil",
+                    "Reduce cold damage taken by 1.",
+                    "vigilkeeper", "lined wool", "wool mantle", "insulated", "armor",
+                    2, 0, 1, 0, 0, 0, 0, 0, "quest", "")
             });
 
         public static IReadOnlyList<SignatureItemDefinition> All => Definitions;
@@ -338,5 +358,7 @@ namespace AshenHalls
         public static InventoryItem CreateGloamReliquaryMail() => Create(GloamReliquaryMailId);
         public static InventoryItem CreateMirrorweaveRoadMantle() => Create(MirrorweaveRoadMantleId);
         public static InventoryItem CreateCrownwardWarblade() => Create(CrownwardWarbladeId);
+        public static InventoryItem CreateTravelersKnot() => Create(TravelersKnotId);
+        public static InventoryItem CreateVigilkeeperWrap() => Create(VigilkeeperWrapId);
     }
 }

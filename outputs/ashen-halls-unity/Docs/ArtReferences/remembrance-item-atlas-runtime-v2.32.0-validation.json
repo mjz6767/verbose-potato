@@ -1,0 +1,35 @@
+{
+  "source": "built-in imagegen",
+  "processing": "Original generated RGBA bytes copied without edits",
+  "sha256": "b987f8e7c4284a16aa0692f09b80bd5f0df877a2c5f21f941e8f80fa2fc061cf",
+  "width": 1774,
+  "height": 887,
+  "columns": 2,
+  "rows": 1,
+  "transparent_fraction_at_alpha_8": 0.7420901179380479,
+  "visible_fraction_at_alpha_8": 0.2579098820619521,
+  "cells": [
+    {
+      "index": 0,
+      "item_id": "travelers_knot_bow",
+      "visible_bounds_at_alpha_8": [
+        80,
+        22,
+        860,
+        827
+      ],
+      "coverage_at_alpha_8": 0.1003280505459671
+    },
+    {
+      "index": 1,
+      "item_id": "vigilkeeper_wrap",
+      "visible_bounds_at_alpha_8": [
+        108,
+        44,
+        778,
+        857
+      ],
+      "coverage_at_alpha_8": 0.4154917135779371
+    }
+  ]
+}

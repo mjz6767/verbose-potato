@@ -2,6 +2,19 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.32.0 - Names Beneath the Water
+
+- Add an optional Edda/Sera/Brann story: recover a water-damaged crew roll from the cleared cistern alcove, restore four names, and help Edda choose a private memorial or an honest public warning. Both endings offer the same choice of keepsake; the Journal tracks the favor separately from the campaign. Existing campaigns can return for it after clearing the sewers.
+- Add two signature sidegrades with original transparent inventory artwork: the +2 Traveler's Knot Bow grants a small accuracy edge, while the +2 Vigilkeeper Wrap protects against cold. Rewards go to the Pack, remain compatible with enchantment and save v27, and can be claimed only once.
+- Give Orren, Kate, Lute, Borin, Tessa and Maud more conversational voices, personal histories and reactions to the company's accomplishments and earlier purchases.
+- Base victory XP and random equipment on the original encounter enemies. Repeated ritual reinforcements no longer inflate rewards; authored enemy rewards are unchanged.
+- Add production-path regressions for quest branches, deferred rewards, duplicate callbacks, save/load, item identity/art/intrinsics, dialogue state and repeat-summon reward exploits.
+
+- Recover complete head silhouettes for five named NPCs and four ambient citizens from the intact original artwork using Aseprite. Preserve the other 19 figures pixel-for-pixel, clean transparency, pale clothing and existing atlas cell mappings.
+- Move off-screen route text into the map header so it cannot cover roofs or heads; retain its exact directional edge marker, bearing and remaining steps.
+- Replace passive buildings' colored ground strips with quieter neutral shadows. Keep emphasis for objectives, the current interaction, hovered buildings and marked destinations.
+- Add regression checks for cropped head contours, protected artwork, route-header spacing and building emphasis. Preserve audio and save schema v27; the v2.31 archives remain available.
+
 ## v2.31.0 - Words of Power
 
 - Give 28 spells and 14 martial skills distinctive class names while preserving stable formula codes, skill IDs, costs, unlock levels, effects and save data. Keep plain mechanical descriptions and presentation aliases for previous names; document all 42 mappings in Docs/POWER_NAMES.md.

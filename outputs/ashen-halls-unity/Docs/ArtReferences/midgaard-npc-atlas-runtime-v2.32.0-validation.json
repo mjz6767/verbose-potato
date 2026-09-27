@@ -1,0 +1,152 @@
+{
+  "tool": "Aseprite",
+  "toolVersion": "1,3,18,5",
+  "source": "source-midgaard-npcs-v2.21.0.png",
+  "sourceSha256": "D808E36E60722D01634B8256410FAC06BB617EEC22B8751446F8DE80F0EE562C",
+  "referenceSha256": "4CA876765191A0A149B06FEC34F3952D0DB4B0C810BD90DBF38AEBF0DC3B3DA7",
+  "output": "midgaard-npc-atlas-runtime-v2.32.0.png",
+  "outputSha256": "C4D101694CB9D4465831158CF42BE18D15DDD708D3CCA5851F008C627A48D2DB",
+  "editable": "source-midgaard-npc-atlas-v2.32.0.aseprite",
+  "editableSha256": "ACDA003BFFC0E0E2A3FCC0A3C257ED6C10A54560CD52EEAF698D85CF5F387F67",
+  "recipeSha256": "102352CA3E5872C5932C57D9D57851D4163E3AE5E5D577FBBEE417CF95E1A0DF",
+  "result": {
+    "cells": [
+      {
+        "cell": 14,
+        "fullSourceBounds": [
+          1002,
+          621,
+          163,
+          285
+        ],
+        "negativeSpaceSeeds": [
+          [
+            84,
+            183
+          ],
+          [
+            132,
+            201
+          ],
+          [
+            175,
+            201
+          ]
+        ],
+        "normalizedSize": [
+          126,
+          220
+        ],
+        "sourceRect": [
+          980,
+          615,
+          1254,
+          914
+        ]
+      },
+      {
+        "cell": 16,
+        "fullSourceBounds": [
+          297,
+          921,
+          195,
+          277
+        ],
+        "negativeSpaceSeeds": [
+          [
+            107,
+            58
+          ],
+          [
+            130,
+            197
+          ]
+        ],
+        "normalizedSize": [
+          155,
+          220
+        ],
+        "sourceRect": [
+          251,
+          910,
+          502,
+          1254
+        ]
+      },
+      {
+        "cell": 17,
+        "fullSourceBounds": [
+          534,
+          915,
+          154,
+          282
+        ],
+        "negativeSpaceSeeds": [],
+        "normalizedSize": [
+          120,
+          220
+        ],
+        "sourceRect": [
+          502,
+          910,
+          752,
+          1254
+        ]
+      },
+      {
+        "cell": 18,
+        "fullSourceBounds": [
+          762,
+          920,
+          173,
+          282
+        ],
+        "negativeSpaceSeeds": [
+          [
+            134,
+            210
+          ]
+        ],
+        "normalizedSize": [
+          135,
+          220
+        ],
+        "sourceRect": [
+          752,
+          910,
+          1003,
+          1254
+        ]
+      },
+      {
+        "cell": 19,
+        "fullSourceBounds": [
+          1010,
+          921,
+          152,
+          283
+        ],
+        "negativeSpaceSeeds": [
+          [
+            136,
+            200
+          ]
+        ],
+        "normalizedSize": [
+          118,
+          220
+        ],
+        "sourceRect": [
+          1003,
+          910,
+          1254,
+          1254
+        ]
+      }
+    ],
+    "height": 1024,
+    "kind": "named",
+    "untouchedPixelsVerified": 983040,
+    "width": 1280
+  }
+}

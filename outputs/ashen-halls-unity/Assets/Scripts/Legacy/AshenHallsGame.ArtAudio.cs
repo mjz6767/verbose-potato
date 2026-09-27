@@ -105,6 +105,7 @@ namespace AshenHalls
         private Texture2D characterInventoryUiAtlas;
 
         private Texture2D uniqueItemAtlas;
+        private Texture2D remembranceItemAtlas;
 
         private Texture2D combatHudUiAtlas;
 
@@ -3539,6 +3540,8 @@ namespace AshenHalls
                     0.70f,
                     "signature item icons",
                     0.04f);
+            remembranceItemAtlas = LoadApprovedExternalPngWithAlpha(
+                RuntimeArtManifest.RemembranceItemAtlas, 0.65f, "remembrance reward icons", 0.15f);
             combatHudUiAtlas = LoadLatestExternalPng("combat-hud-ui-atlas-runtime-", "combat-hud-ui-atlas-runtime-v0.49.png");
             combatSpellFloatAtlas = LoadLatestExternalPng("combat-spell-float-atlas-runtime-", "combat-spell-float-atlas-runtime-v0.49.png");
             enemyWorldObjectAtlas = LoadLatestExternalPng("enemy-world-object-atlas-runtime-", "enemy-world-object-atlas-runtime-v0.49.png");
@@ -5836,8 +5839,18 @@ namespace AshenHalls
 
         private bool TryDrawUniqueItemAtlasIcon(Rect rect, int index, Color tint)
         {
-            if (!IsUniqueItemAtlas() || index < 0) return false;
+            if (index >= 7 && index <= 8)
+            {
+                if (!IsRemembranceItemAtlas()) return false;
+                return DrawTextureRegionTint(remembranceItemAtlas, rect, AtlasCell(remembranceItemAtlas, index - 7, 2, 1), tint);
+            }
+            if (!IsUniqueItemAtlas() || index < 0 || index >= 7) return false;
             return DrawTextureRegionTint(uniqueItemAtlas, rect, AtlasCell(uniqueItemAtlas, index, 5, 4), tint);
+        }
+
+        private bool IsRemembranceItemAtlas()
+        {
+            return remembranceItemAtlas != null && remembranceItemAtlas.width == 1774 && remembranceItemAtlas.height == 887;
         }
 
         private bool IsUniqueItemAtlas()

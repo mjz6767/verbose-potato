@@ -16,6 +16,7 @@ namespace AshenHalls
         public const string CombatPowerTravelVfxAtlas = "combat-power-travel-vfx-atlas-runtime-v2.15.0.png";
         public const string CombatPowerAftermathVfxAtlas = "combat-power-aftermath-vfx-atlas-runtime-v2.17.0.png";
         public const string UniqueItemAtlas = "unique-item-atlas-runtime-v2.20.0.png";
+        public const string RemembranceItemAtlas = "remembrance-item-atlas-runtime-v2.32.0.png";
         public const string TavernBackdrop = "title-backdrop-runtime-v2.4.0.png";
         public const string CharacterWorkshopBackdrop = "character-workshop-backdrop-runtime-v2.29.0.png";
         public const string TavernUiAtlas = "tavern-ui-atlas-runtime-v1.5.9.png";
@@ -45,8 +46,8 @@ namespace AshenHalls
         public const string MidgaardStreetLifeAtlas = "midgaard-street-life-atlas-runtime-v1.50.0.png";
         public const string MidgaardPavingDecalAtlas = "midgaard-paving-decal-atlas-runtime-v1.50.0.png";
         public const string MidgaardRoadSurfaceAtlas = "midgaard-road-surface-atlas-runtime-v2.21.0.png";
-        public const string MidgaardNpcAtlas = "midgaard-npc-atlas-runtime-v2.26.1.png";
-        public const string WorldNpcCitizenAtlas = "world-npc-citizen-atlas-runtime-v2.26.1.png";
+        public const string MidgaardNpcAtlas = "midgaard-npc-atlas-runtime-v2.32.0.png";
+        public const string WorldNpcCitizenAtlas = "world-npc-citizen-atlas-runtime-v2.32.0.png";
         public const string RouteScaffoldAtlas = "route-scaffold-atlas-runtime-v1.30.0.png";
         public const string KoboldRouteAtlas = "kobold-route-atlas-runtime-v1.30.0.png";
         public const string MidgaardSewerAtlas = "midgaard-sewer-atlas-runtime-v1.30.0.png";
@@ -84,6 +85,7 @@ namespace AshenHalls
             CombatPowerTravelVfxAtlas,
             CombatPowerAftermathVfxAtlas,
             UniqueItemAtlas,
+            RemembranceItemAtlas,
             TavernBackdrop,
             CharacterWorkshopBackdrop,
             TavernUiAtlas,

@@ -10188,20 +10188,21 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Novice Healer",
                 "Sera",
-                "Mira makes me explain each lesson aloud. She says that if I cannot say it plainly, I do not understand it yet. What should I try?",
+                RemembranceGreeting(ObjectType.NoviceHealer, "Mira makes me explain each lesson aloud. She says that if I cannot say it plainly, I do not understand it yet. What should I try?"),
                 ObjectType.NoviceHealer,
                 teal,
-                new[]
+                AddRemembranceChoice(ObjectType.NoviceHealer, new[]
                 {
                     MakeDialogueChoice("circle", "How do you use Hallowed Circle?", "Claiming safe ground before wounds deepen."),
                     MakeDialogueChoice("order", "Who do you heal first?", "Sera's rule for choosing under pressure."),
                     MakeDialogueChoice("plague", "How do you handle plague magic?", "Poison, gas, and the mage behind them.")
-                },
+                }),
                 ResolveSeraDialogueChoice);
         }
 
         private void ResolveSeraDialogueChoice(string choice)
         {
+            if (TryResolveRemembranceContactChoice(choice, ObjectType.NoviceHealer)) return;
             switch (choice)
             {
                 case "order":
@@ -10250,15 +10251,16 @@ namespace AshenHalls
                 "Tavern Keeper",
                 "Orren",
                 string.IsNullOrWhiteSpace(greeting)
-                    ? "Heading out? I can tell by the boots. Want packing advice, cistern gossip, or the latest from the roads?"
+                    ? TownConversationCatalog.Greeting(NpcId.Orren, state)
                     : greeting,
                 ObjectType.TavernKeeper,
                 Hex("d98b6a"),
                 new[]
                 {
                     MakeDialogueChoice("supplies", "What should we pack?", "Food, elixirs, and enough reserve to come home."),
-                    MakeDialogueChoice("cistern", "What did the survivors say?", "What returning parties learned about the ratfolk."),
-                    MakeDialogueChoice("roads", "What lies beyond the gates?", "The latest tavern talk from the western and eastern roads.")
+                    MakeDialogueChoice("cistern", TownConversationCatalog.Stage(state) >= TownStoryStage.CisternVictory ? "How is Harl doing?" : "What did the survivors say?", "News of the people who went below Midgaard."),
+                    MakeDialogueChoice("roads", "What are people saying about the roads?", "The latest tavern talk follows your progress beyond Midgaard."),
+                    MakeDialogueChoice("personal", "How did you come to keep this place?", "Orren's life before the hearth.")
                 },
                 ResolveOrrenDialogueChoice);
         }
@@ -10268,10 +10270,13 @@ namespace AshenHalls
             switch (choice)
             {
                 case "cistern":
-                    ShowDialogueResponse("Tavern Keeper", "Orren", "Harl the mason came back last week with half a shield and no eyebrows. A brute kept his crew busy while a plague caster spoiled every safe patch of floor. His exact words? 'Move the caster. Then mind the big one.'", ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("Harl survived, if you're wondering. What else?"));
+                    ShowDialogueResponse("Tavern Keeper", "Orren", TownConversationCatalog.OrrenCisternNews(state), ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("I'll tell Harl you asked. Anything else?"));
                     break;
                 case "roads":
-                    ShowDialogueResponse("Tavern Keeper", "Orren", "Westbound travelers come in wearing shrine moss and quarry dust. The eastern carts bring broken spokes, sling stones, and stories of kobold fires. Brann will have the fresher report. Mine usually arrives thirsty.", ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("That's what I've heard. Need anything else?"));
+                    ShowDialogueResponse("Tavern Keeper", "Orren", TownConversationCatalog.OrrenRoadNews(state), ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("That's what I've heard. Need anything else?"));
+                    break;
+                case "personal":
+                    ShowDialogueResponse("Tavern Keeper", "Orren", TownConversationCatalog.PersonalStory(NpcId.Orren), ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("Enough about my old cart. What about you?"));
                     break;
                 default:
                     ShowDialogueResponse("Tavern Keeper", "Orren", "Food for the walk out, food for the walk home, and one ration for bad luck. Take an elixir you'll actually drink, too. If half the pack is gone before you reach the job, turn around. The road will still be there after supper.", ObjectType.TavernKeeper, Hex("d98b6a"), () => ShowOrrenConversation("That's my sermon. Shorter than most. What else?"));
@@ -10303,20 +10308,21 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Roadside Warning",
                 "Edda",
-                "Five of us went into the cisterns. I'm the one who came back. If you're going anyway, ask me what they did—or what we did wrong.",
+                RemembranceGreeting(ObjectType.WoundedTraveler, "Five of us went into the cisterns. I'm the one who came back. If you're going anyway, ask me what they did—or what we did wrong."),
                 ObjectType.WoundedTraveler,
                 blood,
-                new[]
+                AddRemembranceChoice(ObjectType.WoundedTraveler, new[]
                 {
                     MakeDialogueChoice("rats", "How did the ratfolk fight?", "How the brutes protected a plague caster."),
                     MakeDialogueChoice("failure", "What went wrong?", "The choice that split Edda's group."),
                     MakeDialogueChoice("escape", "How did you get out?", "A broken pillar, an elixir, and a timely retreat.")
-                },
+                }),
                 ResolveEddaDialogueChoice);
         }
 
         private void ResolveEddaDialogueChoice(string choice)
         {
+            if (TryResolveRemembranceContactChoice(choice, ObjectType.WoundedTraveler)) return;
             switch (choice)
             {
                 case "failure":
@@ -10430,12 +10436,12 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Gate Captain",
                 "Brann",
-                string.IsNullOrWhiteSpace(greeting)
+                RemembranceGreeting(ObjectType.GateCaptain, string.IsNullOrWhiteSpace(greeting)
                     ? "West and east are open. North and south are sealed. What do you need clarified?"
-                    : greeting,
+                    : greeting),
                 ObjectType.GateCaptain,
                 stone,
-                new[]
+                AddRemembranceChoice(ObjectType.GateCaptain, new[]
                 {
                     MakeDialogueChoice(
                         offersGateSurvey ? "survey" : "watch",
@@ -10443,12 +10449,13 @@ namespace AshenHalls
                         offersGateSurvey ? "Review the two open exits and your progress." : "The watch's priority while the cistern writ is active."),
                     MakeDialogueChoice("roads", "How do the roads differ?", "Compare the western shrine road with the kobold country east."),
                     MakeDialogueChoice("sealed", "Why are two gates sealed?", "The condition of the north and south gatehouses.")
-                },
+                }),
                 ResolveBrannDialogueChoice);
         }
 
         private void ResolveBrannDialogueChoice(string choice)
         {
+            if (TryResolveRemembranceContactChoice(choice, ObjectType.GateCaptain)) return;
             switch (choice)
             {
                 case "roads":
@@ -10597,9 +10604,7 @@ namespace AshenHalls
                 provisionStall ? "Provision Stall" : "Kate's Diner",
                 speaker,
                 string.IsNullOrWhiteSpace(greeting)
-                    ? provisionStall
-                        ? $"Three sealed portions, ten gold. Dry, weighed, and counted twice. You've got {state.Gold}; want them?"
-                        : $"Sit down, love. The stove's warm. If you're stocking the road, four portions are twelve gold. You've got {state.Gold}."
+                    ? TownConversationCatalog.Greeting(provisionStall ? NpcId.Lute : NpcId.Kate, state)
                     : greeting,
                 focus,
                 Hex("d98b6a"),
@@ -10608,7 +10613,7 @@ namespace AshenHalls
                     MakeDialogueChoice("buy", serviceLabel, serviceHint, canBuy),
                     MakeDialogueChoice("packing", "How much food should we carry?", "A practical rule for provisions, water, and the return trip."),
                     MakeDialogueChoice("safe", "Where can we rest safely?", "Reliable places for light, water, and help in Midgaard."),
-                    MakeDialogueChoice("sewer", "What food keeps in the cisterns?", "Packing a meal that survives damp and a long fight.")
+                    MakeDialogueChoice("sewer", provisionStall ? "Why check every knot twice?" : "You know the cisterns?", "How to pack food for the damp, and who taught the cook.")
                 },
                 choice => ResolveKateDialogueChoice(choice, provisionStall, focus));
         }
@@ -10641,9 +10646,7 @@ namespace AshenHalls
                     ShowDialogueResponse(
                         provisionStall ? "Provision Stall" : "Kate's Diner",
                         speaker,
-                        provisionStall
-                            ? "Hard bread, smoked meat, waxed wrapping. Keep it above the damp and open only what you'll finish. Eat before the Cistern Den. Food carried home unopened helped no one."
-                            : "Bread, smoked meat, apples—wrap them well and they'll keep. Eat before the last chamber, not after it. I've seen too many people save supper until they were too sick to touch it.",
+                        TownConversationCatalog.FoodForTheCisterns(provisionStall),
                         focus,
                         Hex("d98b6a"),
                         returnToKate);
@@ -10732,9 +10735,7 @@ namespace AshenHalls
                 "Midgaard Armorer",
                 "Borin",
                 string.IsNullOrWhiteSpace(greeting)
-                    ? bought
-                        ? "The hauberk is in your Pack. Compare the fit before choosing who will wear it."
-                        : $"Plain iron, good rings—twenty-eight gold. I'll place it in the Pack until you choose the wearer. You've got {state.Gold}."
+                    ? TownConversationCatalog.Greeting(NpcId.Borin, state)
                     : greeting,
                 ObjectType.Armorer,
                 stone,
@@ -10742,7 +10743,8 @@ namespace AshenHalls
                 {
                     MakeDialogueChoice("buy", serviceLabel, serviceHint, canBuy),
                     MakeDialogueChoice("pelts", "What can you make from rat hide?", "The armor Borin can craft from clean sewer proof."),
-                    MakeDialogueChoice("guard", "How should we use heavy armor?", "Why armor works best with Guard and a stable front.")
+                    MakeDialogueChoice("guard", "How should we use heavy armor?", "Why armor works best with Guard and a stable front."),
+                    MakeDialogueChoice("personal", "Who taught you the trade?", "Borin sets down the rivet hammer for a moment.")
                 },
                 ResolveBorinDialogueChoice);
         }
@@ -10754,6 +10756,9 @@ namespace AshenHalls
             {
                 case "buy":
                     ShowBorinPurchaseReview();
+                    break;
+                case "personal":
+                    ShowDialogueResponse("Midgaard Armorer", "Borin", TownConversationCatalog.PersonalStory(NpcId.Borin), ObjectType.Armorer, stone, returnToBorin);
                     break;
                 case "pelts":
                     ShowDialogueResponse("Midgaard Armorer", "Borin", HasStoryFlag(StoryFlags.MidgaardRatPeltArmorMade)
@@ -10822,9 +10827,7 @@ namespace AshenHalls
                 "Weapon Vendor",
                 "Tessa",
                 string.IsNullOrWhiteSpace(greeting)
-                    ? bought
-                        ? "Still sound. Use it long enough and it'll tell you what the next weapon should do better."
-                        : $"I can match a sound weapon to your lead fighter for thirty-two gold. Tell me how they move; I'll choose the balance. You've got {state.Gold}."
+                    ? TownConversationCatalog.Greeting(NpcId.Tessa, state)
                     : greeting,
                 ObjectType.WeaponVendor,
                 gold,
@@ -10832,7 +10835,8 @@ namespace AshenHalls
                 {
                     MakeDialogueChoice("buy", serviceLabel, serviceHint, canBuy),
                     MakeDialogueChoice("forms", "Which weapon suits which fighter?", "The tradeoffs between blades, axes, spears, bows, and staves."),
-                    MakeDialogueChoice("range", "When should an archer draw steel?", "Using distance and reach without getting trapped by them.")
+                    MakeDialogueChoice("range", "When should an archer draw steel?", "Using distance and reach without getting trapped by them."),
+                    MakeDialogueChoice("personal", "Have you carried these on the road?", "How Tessa learned to fit a weapon to its wielder.")
                 },
                 ResolveTessaDialogueChoice);
         }
@@ -10846,6 +10850,9 @@ namespace AshenHalls
                     break;
                 case "forms":
                     ShowDialogueResponse("Weapon Vendor", "Tessa", "Quick hands like daggers and epees. Strong shoulders can make room for an axe or heavy blade. Spears buy you a step; bows need a lane; a staff should earn its keep as a focus. Look at the wielder first. The rack comes second.", ObjectType.WeaponVendor, gold, () => ShowTessaConversation("That's the shape of it. Need another answer?"));
+                    break;
+                case "personal":
+                    ShowDialogueResponse("Weapon Vendor", "Tessa", TownConversationCatalog.PersonalStory(NpcId.Tessa), ObjectType.WeaponVendor, gold, () => ShowTessaConversation("You can try the doorway too, if you like. Anything else?"));
                     break;
                 default:
                     ShowDialogueResponse("Weapon Vendor", "Tessa", "Shoot while the lane is clear. The moment an enemy can touch the bow, draw steel; string won't stop a blade. Spears are the same lesson backward: enjoy the reach, then shorten your grip or give ground when the gap closes.", ObjectType.WeaponVendor, gold, () => ShowTessaConversation("Need another answer, or a weapon?"));
@@ -10916,9 +10923,7 @@ namespace AshenHalls
             ShowDialogueChoices(
                 "Weapon Enchanter",
                 "Maud",
-                hasWeapon
-                    ? $"Two sorts of work: a quick temper for the next {WeaponEnchantmentRules.TemporaryVictories} victories, or a true binding that stays with the weapon. You have {state.Gold} gold."
-                    : "Bring me a weapon with a name and an edge, or a focus with a memory. Then we'll see what the runes are willing to hold.",
+                TownConversationCatalog.Greeting(NpcId.Maud, state),
                 ObjectType.Enchanter,
                 violet,
                 new[]
@@ -10941,7 +10946,8 @@ namespace AshenHalls
                                 ? "The party has no weapon Maud can bind."
                                 : $"Need {Mathf.Max(0, WeaponEnchantmentRules.PermanentCost - state.Gold)} more gold.",
                         canBind),
-                    MakeDialogueChoice("affinity", "What can the four runes do?", "Fire, ice, storm, and radiant affinities.")
+                    MakeDialogueChoice("affinity", "What can the four runes do?", "Fire, ice, storm, and radiant affinities."),
+                    MakeDialogueChoice("personal", "What was your first enchantment?", "A story from Maud's apprenticeship.")
                 },
                 ResolveMaudDialogueChoice);
         }
@@ -10955,6 +10961,9 @@ namespace AshenHalls
                     break;
                 case "permanent":
                     ShowMaudWeaponChoices(true);
+                    break;
+                case "personal":
+                    ShowDialogueResponse("Weapon Enchanter", "Maud", TownConversationCatalog.PersonalStory(NpcId.Maud), ObjectType.Enchanter, violet, ShowMaudConversation);
                     break;
                 default:
                     ShowDialogueResponse(
@@ -11721,7 +11730,7 @@ namespace AshenHalls
             if (!state.DiscoveredZones.Contains(key)) state.DiscoveredZones.Add(key);
         }
 
-        private void EnterMidgaardSewer()
+        private void EnterMidgaardSewerContract()
         {
             if (!HasStoryFlag(StoryFlags.MidgaardRatQuestGiven))
             {
@@ -12351,7 +12360,7 @@ namespace AshenHalls
         private InventoryItem MakeCombatLootItem(string encounterStyle, bool bossLoot)
         {
             if (state?.Combat?.Units == null) return null;
-            List<CombatUnit> enemies = state.Combat.Units.Where(u => u.Side == UnitSide.Enemy).ToList();
+            List<CombatUnit> enemies = state.Combat.Units.Where(CombatRewardRules.IsEncounterRewardEnemy).ToList();
             if (enemies.Count == 0) return null;
             if (bossLoot)
             {
@@ -14596,16 +14605,7 @@ namespace AshenHalls
 
         private int CombatExperienceReward()
         {
-            if (state?.Combat?.Units == null) return 0;
-            int reward = 0;
-            foreach (CombatUnit enemy in state.Combat.Units.Where(u => u.Side == UnitSide.Enemy))
-            {
-                reward += Mathf.Max(6, enemy.MaxHp / 2 + enemy.Power * 2 + enemy.Defense * 3 + enemy.Range * 2);
-                if (enemy.Rank == "veteran") reward += 12;
-                if (enemy.Rank == "elite") reward += 28;
-                if (IsCasterEnemy(enemy)) reward += 10;
-            }
-            return Mathf.Max(12, reward / Mathf.Max(1, state.Party.Count));
+            return CombatRewardRules.ExperienceForVictory(state?.Combat?.Units, state?.Party?.Count ?? 0);
         }
 
         private void AwardWorldExperience(int amount, string reason)
@@ -17635,7 +17635,7 @@ namespace AshenHalls
             if (target.Hexed > 0) statusShift += 10;
             if (target.Webbed > 0) statusShift += 8;
             if (target.Sleeping > 0) statusShift += 18;
-            return Mathf.Clamp(62 + skillValue + attacker.Agility * 2 + attacker.AttackSpeed + attacker.WeaponBonus * 4 + WeaponHitBonus(attacker.WeaponName) + RaceHitBonus(attacker) + statusShift - target.Agility * 3 - (target.Defense + target.ArmorBonus) * 3 - guard * 8, 18, 95);
+            return Mathf.Clamp(62 + skillValue + attacker.Agility * 2 + attacker.AttackSpeed + attacker.WeaponBonus * 4 + WeaponHitBonusForItem(attacker.WeaponName, CombatEquipmentItem(attacker, true)) + RaceHitBonus(attacker) + statusShift - target.Agility * 3 - (target.Defense + target.ArmorBonus) * 3 - guard * 8, 18, 95);
         }
 
         private bool CastFormula(CombatUnit caster, string code, CombatUnit target, int x, int y)
@@ -19458,8 +19458,13 @@ namespace AshenHalls
 
         private int WeaponHitBonus(string weaponName)
         {
+            return WeaponHitBonusForItem(weaponName, DisplayIdentityItem(weaponName));
+        }
+
+        private int WeaponHitBonusForItem(string weaponName, InventoryItem item)
+        {
             string text = (weaponName ?? "").ToLowerInvariant();
-            int bonus = SignatureItemRules.WeaponHitBonus(DisplayIdentityItem(weaponName));
+            int bonus = SignatureItemRules.WeaponHitBonus(item);
             if (text.Contains("epee") || text.Contains("sabre") || text.Contains("balanced") || text.Contains("elven")) bonus += 5;
             if (text.Contains("crossbow")) bonus += 4;
             if (text.Contains("war hammer") || text.Contains("tower")) bonus -= 3;

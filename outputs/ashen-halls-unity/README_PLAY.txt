@@ -1,6 +1,16 @@
-Ash & Brimstone v2.31.0 - Words of Power
+Ash & Brimstone v2.32.0 - Names Beneath the Water
 
-Release version: v2.31.0. Save schema: v27.
+Release version: v2.32.0. Save schema: v27.
+
+Edda, the wounded traveler west of the tavern, has an optional favor: bring back the names of the companions she lost below Midgaard. Speak with her, clear Foul Runoff, then inspect the alcove through the Sewer entrance. Sera can help read the roll. Edda will help decide whether the names belong in a quiet memorial or a public warning. The Journal keeps track without replacing your campaign objective.
+
+Either ending lets you choose one keepsake: the +2 Traveler's Knot Bow (+2 weapon hit, +1 Agility) or the +2 Vigilkeeper Wrap (+1 Intelligence, cold damage taken reduced by 1). Both have new item art and enter your Pack for you to equip. You can return later if you have already cleared the sewers.
+
+Town conversations now remember your progress and purchases, and several familiar faces have personal stories to tell. Letting hostile rituals repeatedly summon enemies no longer increases victory XP or equipment rewards. The repaired NPC heads and quieter map presentation are also included. Existing v27 saves remain compatible; v2.31 archives are preserved.
+
+Verification and remaining playtest limits are recorded in Docs/ReleaseEvidence/v2.32.0-summary.json after packaging.
+
+Previous release: v2.31.0 - Words of Power
 
 Words of Power gives 28 spells and 14 martial skills more distinctive class names, including Mercy's Light, Dawnlance, Vanguard Rush and Arrowstorm. These 42 display-name changes preserve formula codes, skill IDs, costs, unlock levels and mechanics; descriptions keep the practical rules clear. Existing names remain supported by presentation aliases. See Docs/POWER_NAMES.md for the complete naming map.
 

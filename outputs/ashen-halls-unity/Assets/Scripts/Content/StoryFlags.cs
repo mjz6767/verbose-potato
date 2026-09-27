@@ -26,6 +26,15 @@ namespace AshenHalls
         public const string MidgaardNoviceHealerMet = "midgaard_novice_healer_met";
         public const string MidgaardTavernKeeperMet = "midgaard_tavern_keeper_met";
         public const string MidgaardWoundedTravelerHelped = "midgaard_wounded_traveler_helped";
+        public const string RemembranceAccepted = "remembrance_accepted";
+        public const string RemembranceLedgerRecovered = "remembrance_ledger_recovered";
+        public const string RemembranceNamesRead = "remembrance_names_read";
+        public const string RemembrancePrivateChosen = "remembrance_private_chosen";
+        public const string RemembrancePublicChosen = "remembrance_public_chosen";
+        public const string RemembranceDelivered = "remembrance_delivered";
+        public const string RemembranceRewardClaimed = "remembrance_reward_claimed";
+        public const string RemembranceBowChosen = "remembrance_bow_chosen";
+        public const string RemembranceWrapChosen = "remembrance_wrap_chosen";
         public const string MidgaardStableHandMet = "midgaard_stable_hand_met";
         public const string MidgaardGateCaptainMet = "midgaard_gate_captain_met";
         public const string MidgaardTavernHeard = "midgaard_tavern_heard";

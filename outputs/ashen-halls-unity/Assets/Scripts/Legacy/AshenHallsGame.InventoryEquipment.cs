@@ -715,8 +715,14 @@ namespace AshenHalls
             uv = Rect.zero;
             if (item == null) return false;
 
-            int uniqueIndex = UniqueItemIconIndex(item.DisplayName);
-            if (uniqueIndex >= 0 && IsUniqueItemAtlas())
+            int uniqueIndex = UniqueItemIconIndex(item);
+            if (uniqueIndex >= 7 && uniqueIndex <= 8 && IsRemembranceItemAtlas())
+            {
+                texture = remembranceItemAtlas;
+                uv = NormalizeAtlasRect(texture, AtlasCell(texture, uniqueIndex - 7, 2, 1));
+                return true;
+            }
+            if (uniqueIndex >= 0 && uniqueIndex < 7 && IsUniqueItemAtlas())
             {
                 texture = uniqueItemAtlas;
                 uv = NormalizeAtlasRect(texture, AtlasCell(texture, uniqueIndex, 5, 4));

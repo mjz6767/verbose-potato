@@ -364,10 +364,15 @@ namespace AshenHalls
 
         private void ApplyLayout(int choiceCount)
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
+            ApplyLayout(choiceCount, Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(int choiceCount, float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
             lastChoiceCount = choiceCount;
-            DialogueScreenGeometry geometry = DialogueScreenLayout.Calculate(Screen.width, Screen.height, choiceCount);
+            DialogueScreenGeometry geometry = DialogueScreenLayout.Calculate(width, height, choiceCount);
             SetScreenRect(backdrop, geometry.Backdrop);
             SetScreenRect(panel, geometry.Panel);
             SetLocalRect(accentStrip, new Rect(0f, 0f, 4f, geometry.Panel.height));

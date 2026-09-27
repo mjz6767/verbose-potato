@@ -40,12 +40,17 @@ namespace AshenHalls
             {
                 return Same(type, "physical") ? 0 : 1;
             }
+            if (Is(armor, SignatureItemCatalog.VigilkeeperWrapId))
+            {
+                return Same(type, "cold") ? 1 : 0;
+            }
             return 0;
         }
 
         public static int WeaponHitBonus(InventoryItem weapon)
         {
-            return Is(weapon, SignatureItemCatalog.UnfathomableSwordId) ? 3 : 0;
+            if (Is(weapon, SignatureItemCatalog.UnfathomableSwordId)) return 3;
+            return Is(weapon, SignatureItemCatalog.TravelersKnotId) ? 2 : 0;
         }
 
         public static int WeaponPowerBonus(InventoryItem weapon)

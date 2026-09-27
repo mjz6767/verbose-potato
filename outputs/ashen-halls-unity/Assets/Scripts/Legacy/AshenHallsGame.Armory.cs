@@ -804,7 +804,7 @@ namespace AshenHalls
         {
             int partyCount = state?.Party?.Count(member => member != null) ?? 0;
             int inventoryCount = state?.Inventory?.Count(item => item != null) ?? 0;
-            return $"{partyCount} adventurers  •  {inventoryCount} items  •  {state?.Gold ?? 0} gold";
+            return $"{partyCount} {(partyCount == 1 ? "adventurer" : "adventurers")}  •  {inventoryCount} {(inventoryCount == 1 ? "item" : "items")}  •  {state?.Gold ?? 0} gold";
         }
 
         private IReadOnlyList<ArmoryRowView> BuildArmoryFormulaRows()
@@ -847,6 +847,7 @@ namespace AshenHalls
                     AddRedGateJournalRows(rows);
                 }
                 AddChartedRegionalSiteJournalRows(rows);
+                AddRemembranceJournalRows(rows);
                 return rows;
             }
 
@@ -898,6 +899,7 @@ namespace AshenHalls
 
             AddJournalContactRows(rows);
             AddJournalScaffoldRows(rows);
+            AddRemembranceJournalRows(rows);
             return rows;
         }
 

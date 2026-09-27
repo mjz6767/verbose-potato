@@ -2,7 +2,10 @@
 
 ## Current Release
 
-`v2.23.0` is the current verified family-playtest build for the authored Chapter I-V road campaign. It preserves v2.22 stable inventory identity and save v27 while turning Region Map focus into exact charted-landmark route planning, hardening pointer/controller ownership and fog privacy, and rebuilding strategic map hierarchy across the supported resolutions. Runtime/editor compilation, all integrated Unity smoke gates, clean retail packaging and clean-extracted boot, and an eight-capture Local/Region matrix pass from release source commit `814a676f3e41c97611af7321b0d8a1dba1831557`. The verified v2.22.0, v2.21.0, and v2.19.0 packages remain preserved as rollback history.
+v2.32.0 — Names Beneath the Water — adds an optional branching Edda/Sera/Brann story, two signature equipment sidegrades with original item art, more natural reactive town conversations, and protection against farming ritual reinforcements for XP/loot. Existing Chapter I–V content and save schema v27 remain supported; the v2.31 retail and Beta archives are preserved.
+
+The Full Unity audit passes all 13 gates, including new production-path quest, dialogue, item and reward-balance regressions. Package hashes, clean-extracted startup and visual-review scope are recorded after packaging in Docs/ReleaseEvidence/v2.32.0-summary.json. Complete human campaign play, physical-controller feel and subjective audio balance remain manual playtest follow-ups.
+
 
 ## The Wayfinder's Atlas v2.23 - Release Gates Pass
 

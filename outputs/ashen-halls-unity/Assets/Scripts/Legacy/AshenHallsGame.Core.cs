@@ -1398,6 +1398,12 @@ namespace AshenHalls
                 throw new InvalidOperationException(
                     "Unknown Midgaard contact smoke target '" + requested + "'.");
             }
+            if (openDialogue && (requestedType == ObjectType.RoyalHerald
+                || requestedType == ObjectType.NoviceHealer || requestedType == ObjectType.OldRoadScout))
+            {
+                throw new InvalidOperationException(
+                    "Contact '" + requested + "' supports close-up capture only; use -ashen-contact-smoke.");
+            }
 
             List<MapObject> matches = state.Map.Objects
                 .Where(obj => obj != null && obj.Type == requestedType)
@@ -1492,6 +1498,15 @@ namespace AshenHalls
                 case "scholar":
                 case "records":
                     type = ObjectType.Scholar;
+                    return true;
+                case "vann":
+                    type = ObjectType.RoyalHerald;
+                    return true;
+                case "sera":
+                    type = ObjectType.NoviceHealer;
+                    return true;
+                case "yara":
+                    type = ObjectType.OldRoadScout;
                     return true;
                 default:
                     type = ObjectType.Town;

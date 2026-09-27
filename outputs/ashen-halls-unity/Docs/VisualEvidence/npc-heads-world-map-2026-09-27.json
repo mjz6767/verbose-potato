@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "status": "validated-local-development-preview",
+  "sourceBaseCommit": "268d16e729e15114df12b4fa686424f62e8aec51",
+  "sourceDirty": true,
+  "gameVersionLabel": "v2.31.0",
+  "artRevision": "v2.32.0",
+  "saveSchema": 27,
+  "published": false,
+  "audit": {
+    "suite": "Full",
+    "passed": true,
+    "gatesPassed": 13,
+    "log": "QA/project-audit/20260927-072542-05fd2368/unity.log"
+  },
+  "preview": {
+    "player": "QA/audit-players/20260927-072709-ba362dc3/AshAndBrimstone.exe",
+    "developmentBuild": true,
+    "buildLog": "QA/npc-heads-20260927-build.log",
+    "executableSha256": "0A4D928AC950C45822D2A7BB67D336C00E1C7240D190422006AD2C649A5FC763",
+    "gameAssemblySha256": "69D60318017131D1602B3942EE94798C3D41359999EDC6D1EA51E1F3F1AB8761",
+    "packagedNpcHashesMatch": true,
+    "packagedEditableSources": 0
+  },
+  "art": {
+    "tool": "Aseprite 1.3.18.5",
+    "recoveredNamedCells": [14, 16, 17, 18, 19],
+    "recoveredCitizenCells": [4, 5, 6, 7],
+    "unchangedCells": 19,
+    "unchangedRgbaPixelsVerified": 1572864,
+    "nativeRoundtripRgbaPixelsVerified": 2490368,
+    "geometryThresholdsRelaxed": false,
+    "namedAtlas": {
+      "file": "midgaard-npc-atlas-runtime-v2.32.0.png",
+      "sha256": "C4D101694CB9D4465831158CF42BE18D15DDD708D3CCA5851F008C627A48D2DB"
+    },
+    "citizenAtlas": {
+      "file": "world-npc-citizen-atlas-runtime-v2.32.0.png",
+      "sha256": "A6150C87154D7F7EAA10FD43CF964F998D358D479D9F538ECD09A93D16A50685"
+    }
+  },
+  "visualReview": {
+    "performed": true,
+    "method": "Direct image inspection by primary assistant and independent reviewer, separate from automated packet checks",
+    "independentReviewerInspectedAll18": true,
+    "blockingFindings": [],
+    "scenariosPerSize": [
+      "npc-kate-local", "npc-lute-local", "npc-dock-local", "npc-scholar-local",
+      "npc-kate-region", "landmark-region", "npc-vann-local", "npc-sera-local", "npc-yara-local"
+    ],
+    "captureSets": [
+      {
+        "width": 960,
+        "height": 600,
+        "directory": "QA/world-sprites/20260927-072809-5b461331",
+        "sha256": "c1191cff1aa7c0b29aa0e2e141b6c984f1454bd90b4a55f2819e143e58dbeeae",
+        "captures": 9,
+        "deterministicPassed": true,
+        "warnings": [],
+        "failures": []
+      },
+      {
+        "width": 1920,
+        "height": 1080,
+        "directory": "QA/world-sprites/20260927-073033-6c792497",
+        "sha256": "47ca7651c540bd6545a202c9900542d07404a0bed4dcf7e3488462e6698b2fb9",
+        "captures": 9,
+        "deterministicPassed": true,
+        "warnings": [],
+        "failures": []
+      }
+    ],
+    "nonblockingFollowUp": "Clarify the different meanings of header NEXT (viewport route exit) and sidebar NEXT (immediate guidance target)."
+  },
+  "sourceFileSha256": {
+    "Assets/Editor/NpcAtlasAlphaSmoke.cs": "F246A4EB0486BE37B96C5A19E660DF8D1D59CDC25E0BDDD993DD5888A0C5E56B",
+    "Assets/Editor/RuleSmokeTests.cs": "2ABAA18F03478F66A2C930485969F7DC601D2D59F92F28BBBCA27869B22D3872",
+    "Assets/Editor/WorldMapScenePresentationSmoke.cs": "DA0D139DDB5EA97A865B22C4638EF22C95A01ABE72ED7A1737E846D92327B899",
+    "Assets/Scripts/Content/RuntimeArtManifest.cs": "6553AB0F6DC43486B152FB766913141E1BA6A6C3399AC70467797C111DD6D008",
+    "Assets/Scripts/Legacy/AshenHallsGame.Core.cs": "07050DFD2B18E236DFC29AC62A00DC9AE0F09A5BA5BB21C7F3234E71E0EFDD02",
+    "Assets/Scripts/Legacy/AshenHallsGame.Explore.cs": "3779F75814A48352F543B0D6CC69FF572ACC967AB5EF43C74B39948C7FE0C9A5",
+    "Assets/Scripts/Presentation/ExplorationScenePresentationRules.cs": "57AFA722BE18690AF16B39F04A9560D03F599B65C31A4827EA529367FF8F44A1",
+    "Tools/RecoverNpcHeads.lua": "102352CA3E5872C5932C57D9D57851D4163E3AE5E5D577FBBEE417CF95E1A0DF",
+    "Tools/RecoverNpcHeads.ps1": "E642612F02D14E4AE5FBD873A6DD438AC08A17E49FB98F96B6FBBA0009FB08B9",
+    "Tools/InvokeWorldSpriteCapture.ps1": "5486EF7A861CA41B7973ED8F916395E3948B18821EE5936204D0914BEAE772A7"
+  },
+  "preservedReleaseSha256": {
+    "retailV2.31.0": "E92B231C6566F7B8CBC2F6F3E5B68A47A0CDF2725EDBB536B7FCF6AE76AB2338",
+    "betaV2.31.0": "A7E6151592E803C77465D02B4EAF5776BC7B869BB914D3B58734D3A5753F6803"
+  },
+  "limitations": [
+    "Unreleased local preview; not committed or pushed in this pass.",
+    "No new live mouse/keyboard test, physical-controller test, audio listening review or full campaign playthrough.",
+    "No measured FPS claim.",
+    "Scene artwork remains intentionally clipped at the outer world viewport boundary."
+  ]
+}

@@ -1645,23 +1645,24 @@ namespace AshenHalls
             // buildings, citizens and smoke. Input and HUD retain screen-space
             // coordinates outside this group, so clipping cannot shift clicks.
             BeginExploreWorldArtFrame();
+            ExplorationMapExitCue routeExit = default;
             GUI.BeginGroup(grid);
             try
             {
-                DrawExploreWorld(new Rect(0f, 0f, grid.width, grid.height), cell, origin, viewW, viewH, guidancePlan, guidanceCells);
+                routeExit = DrawExploreWorld(new Rect(0f, 0f, grid.width, grid.height), cell, origin, viewW, viewH, guidancePlan, guidanceCells);
             }
             finally
             {
                 GUI.EndGroup();
                 EndExploreWorldArtFrame();
             }
-            DrawExploreRegionStrip(grid);
+            DrawExploreRegionStrip(grid, routeExit, guidancePlan.MarkedWaypoint);
             DrawExploreViewportEdgeHints(grid, origin, viewW, viewH);
             DrawExploreHover(grid, cell, origin, viewW, viewH, guidanceCells);
             HandleExploreMouse(grid, cell, origin, viewW, viewH);
         }
 
-        private void DrawExploreWorld(Rect grid, float cell, Point origin, int viewW, int viewH,
+        private ExplorationMapExitCue DrawExploreWorld(Rect grid, float cell, Point origin, int viewW, int viewH,
             ExploreGuidancePlan guidancePlan, HashSet<int> guidanceCells)
         {
 
@@ -1756,7 +1757,7 @@ namespace AshenHalls
                 }
                 else
                 {
-                    DrawMidgaardBuildingFootprint(objectCell, obj);
+                    DrawMidgaardBuildingFootprint(objectCell, obj, objective);
                     objectRect = ExploreObjectRect(objectCell, obj);
                     DrawExploreObject(objectCell, objectRect, obj);
                 }
@@ -1813,10 +1814,11 @@ namespace AshenHalls
                     DrawExplorePlayerLocator(playerCell, tokenRect, leadColor);
                 }
             }
-            DrawExploreGuidanceCues(grid, cell, origin, viewW, viewH, guidancePlan);
+            ExplorationMapExitCue routeExit = DrawExploreGuidanceCues(grid, cell, origin, viewW, viewH, guidancePlan);
             if (!exploreWideView) DrawExploreUseTargetCue(grid, cell, origin, viewW, viewH);
             if (showExploreArtDebug && playerInViewport) DrawExploreArtDebugOverlay(playerCell, tokenRect, "Party");
             DrawExploreRegionFocus(grid, cell, origin, viewW, viewH);
+            return routeExit;
         }
 
         private int ExploreViewportWidth()
@@ -1936,10 +1938,17 @@ namespace AshenHalls
             return Pad(cell, cell.width * ExploreObjectPadding(obj.Type));
         }
 
-        private void DrawMidgaardBuildingFootprint(Rect cell, MapObject obj)
+        private void DrawMidgaardBuildingFootprint(Rect cell, MapObject obj, bool objective)
         {
             if (obj == null || !ExplorationArtRules.IsMidgaardBuilding(obj.Type)) return;
             bool preserveInteriorFootprint = IsMidgaardInteriorCell(obj.X, obj.Y, state?.Map, state?.Depth ?? 1);
+            bool emphasized = ExplorationScenePresentationRules.EmphasizeBuilding(
+                objective,
+                ReferenceEquals(exploreFrameInteractionTarget, obj),
+                obj.X == exploreHoverMapX && obj.Y == exploreHoverMapY,
+                IsActiveRouteWaypointObject(obj));
+            ExplorationBuildingGroundingStyle grounding = ExplorationScenePresentationRules.BuildingGrounding(
+                exploreWideView, emphasized, preserveInteriorFootprint);
             float widthInCells = preserveInteriorFootprint
                 ? exploreWideView ? 1.18f : 1.48f
                 : ExplorationArtRules.MidgaardBuildingFoundationWidthInCells(exploreWideView);
@@ -1959,17 +1968,18 @@ namespace AshenHalls
                     StringComparison.Ordinal)
                 ? Color.Lerp(gold, frost, 0.38f)
                 : MidgaardBuildingDistrictAccent(obj.Type);
-            DrawRect(foundation, Hex("030506", exploreWideView ? 0.34f : 0.42f));
+            DrawRect(foundation, Hex("030506", grounding.ShadowAlpha));
+            if (grounding.ThresholdAlpha <= 0f) return;
             DrawRect(
                 new Rect(foundation.x, foundation.yMax - Mathf.Max(2f, foundation.height * 0.12f), foundation.width, Mathf.Max(2f, foundation.height * 0.12f)),
-                accent.WithAlpha(exploreWideView ? 0.30f : 0.38f));
-            DrawBorder(foundation, accent.WithAlpha(exploreWideView ? 0.22f : 0.28f), 1);
+                accent.WithAlpha(grounding.BandAlpha));
+            DrawBorder(foundation, accent.WithAlpha(grounding.BorderAlpha), 1);
             Rect threshold = new Rect(
                 cell.center.x - cell.width * 0.27f,
                 cell.yMax - Mathf.Max(2f, cell.height * 0.10f),
                 cell.width * 0.54f,
                 Mathf.Max(2f, cell.height * 0.10f));
-            DrawRect(threshold, Color.Lerp(accent, cursorWhite, 0.18f).WithAlpha(0.42f));
+            DrawRect(threshold, Color.Lerp(accent, cursorWhite, 0.18f).WithAlpha(grounding.ThresholdAlpha));
         }
 
         private Color MidgaardBuildingDistrictAccent(ObjectType type)
@@ -3473,7 +3483,7 @@ namespace AshenHalls
             DrawRect(new Rect(tile.center.x - line, tile.center.y - cross, line * 2f, cross * 2f), accent.WithAlpha(0.82f));
         }
 
-        private void DrawExploreRegionStrip(Rect grid)
+        private void DrawExploreRegionStrip(Rect grid, ExplorationMapExitCue routeExit, bool markedWaypoint)
         {
             float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
             Rect strip = new Rect(grid.x, Mathf.Max(boardRect.y + 8f * scale, grid.y - 44f * scale), grid.width, 36f * scale);
@@ -3512,7 +3522,11 @@ namespace AshenHalls
             {
                 DrawTinyUiIcon(zoneIcon, "scroll", contextTerrainCharted ? ZoneDangerColor(zone) : frost);
             }
-            ExplorationRegionStripGeometry columns = ExplorationHudScreenLayout.RegionStrip(strip, scale);
+            string routeLabel = ExplorationScenePresentationRules.RouteExitLabel(routeExit, markedWaypoint);
+            GUIStyle routeStyle = CenterStyle(ExplorationHudScreenLayout.FontSize(10, Screen.width, Screen.height), ink);
+            ExplorationSceneHeaderGeometry columns = ExplorationScenePresentationRules.Header(
+                strip, scale, exploreWideView, !string.IsNullOrEmpty(routeLabel),
+                string.IsNullOrEmpty(routeLabel) ? 0f : routeStyle.CalcSize(new GUIContent(routeLabel)).x);
             // Hover inspection takes the otherwise repeated location slot;
             // the side rail retains the actual location and objective.
             bool hoverHeading = !exploreWideView && !string.IsNullOrEmpty(exploreHoverHeading)
@@ -3528,6 +3542,12 @@ namespace AshenHalls
                 ? RegionMapFocusIsParty() ? "PARTY HERE" : $"INSPECT {context.X},{context.Y}"
                 : "";
             GUI.Label(columns.View, FitText(viewLabel, columns.View.width, CenterRightStyle(statusSize, exploreWideView ? frost : teal)), CenterRightStyle(statusSize, exploreWideView ? frost : teal));
+            if (!string.IsNullOrEmpty(routeLabel))
+            {
+                DrawRect(columns.Route, Hex("030405", 0.94f));
+                DrawBorder(columns.Route, gold.WithAlpha(markedWaypoint ? 0.98f : 0.84f), markedWaypoint ? 2 : 1);
+                GUI.Label(columns.Route, routeLabel, routeStyle);
+            }
         }
 
         private void UpdateExploreHoverLook(Rect grid, float cell, Point origin, int viewW, int viewH)
@@ -6059,7 +6079,7 @@ namespace AshenHalls
             }
         }
 
-        private void DrawExploreGuidanceCues(
+        private ExplorationMapExitCue DrawExploreGuidanceCues(
             Rect grid,
             float cell,
             Point origin,
@@ -6074,7 +6094,7 @@ namespace AshenHalls
                 || path == null
                 || path.Count <= 1)
             {
-                return;
+                return default;
             }
 
             Color accent = gold;
@@ -6103,14 +6123,14 @@ namespace AshenHalls
                     exitCue,
                     visiblePointLimit))
             {
-                DrawExploreGuidanceEdgeCue(grid, cell, origin, exitCue, accent, plan.MarkedWaypoint);
-                return;
+                DrawExploreGuidanceEdgeCue(grid, cell, origin, exitCue, accent);
+                return exitCue;
             }
 
-            if (plan.MarkedWaypoint) return;
+            if (plan.MarkedWaypoint) return default;
             Point arrival = path[path.Count - 1];
-            if (exploreWideView && !IsExploreCellCharted(arrival.X, arrival.Y)) return;
-            if (!ExplorePointInViewport(arrival.X, arrival.Y, origin, viewW, viewH)) return;
+            if (exploreWideView && !IsExploreCellCharted(arrival.X, arrival.Y)) return default;
+            if (!ExplorePointInViewport(arrival.X, arrival.Y, origin, viewW, viewH)) return default;
             Rect arrivalCell = new Rect(
                 grid.x + (arrival.X - origin.X) * cell,
                 grid.y + (arrival.Y - origin.Y) * cell,
@@ -6129,6 +6149,7 @@ namespace AshenHalls
                     arrivalDot,
                     arrivalDot),
                 accent.WithAlpha(0.72f));
+            return default;
         }
 
         private void DrawExploreGuidanceNextStepCue(
@@ -6184,61 +6205,15 @@ namespace AshenHalls
             float cell,
             Point origin,
             ExplorationMapExitCue cue,
-            Color accent,
-            bool markedWaypoint)
+            Color accent)
         {
             Rect anchorCell = new Rect(
                 grid.x + (cue.MapX - origin.X) * cell,
                 grid.y + (cue.MapY - origin.Y) * cell,
                 cell,
                 cell);
-            float scale = ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height);
-            float chipWidth = Mathf.Clamp(cell * 2.15f, 78f * scale, 118f * scale);
-            float chipHeight = Mathf.Clamp(cell * 0.42f, 20f * scale, 28f * scale);
-            float inset = Mathf.Max(5f * scale, cell * 0.08f);
-            float x = Mathf.Clamp(
-                anchorCell.center.x - chipWidth * 0.5f,
-                grid.x + inset,
-                grid.xMax - chipWidth - inset);
-            float y = Mathf.Clamp(
-                anchorCell.center.y - chipHeight * 0.5f,
-                grid.y + inset,
-                grid.yMax - chipHeight - inset);
-
-            switch (cue.Edge)
-            {
-                case ExplorationMapEdge.North:
-                    y = grid.y + inset;
-                    break;
-                case ExplorationMapEdge.East:
-                    x = grid.xMax - chipWidth - inset;
-                    break;
-                case ExplorationMapEdge.South:
-                    y = grid.yMax - chipHeight - inset;
-                    break;
-                case ExplorationMapEdge.West:
-                    x = grid.x + inset;
-                    break;
-            }
-
-            Rect chip = new Rect(x, y, chipWidth, chipHeight);
-            DrawRect(chip, Hex("030405", 0.94f));
-            DrawBorder(chip, accent.WithAlpha(markedWaypoint ? 0.98f : 0.84f), markedWaypoint ? 2 : 1);
-            string edge = cue.Edge == ExplorationMapEdge.North ? "N"
-                : cue.Edge == ExplorationMapEdge.East ? "E"
-                : cue.Edge == ExplorationMapEdge.South ? "S"
-                : "W";
-            string prefix = markedWaypoint ? "MARK" : "NEXT";
-            string steps = cue.RemainingSteps == 1 ? "1" : cue.RemainingSteps.ToString();
-            string label = $"{prefix}  {edge}{steps}";
-            GUI.Label(
-                chip,
-                FitText(
-                    label,
-                    chip.width - 8f * scale,
-                    CenterStyle(ExplorationHudScreenLayout.FontSize(10, Screen.width, Screen.height), ink)),
-                CenterStyle(ExplorationHudScreenLayout.FontSize(10, Screen.width, Screen.height), ink));
-
+            // Keep the route's exact edge anchor, but put its text in the
+            // reserved header lane so it cannot cover a roof or actor's head.
             float edgeWidth = Mathf.Max(3f, cell * 0.07f);
             switch (cue.Edge)
             {
