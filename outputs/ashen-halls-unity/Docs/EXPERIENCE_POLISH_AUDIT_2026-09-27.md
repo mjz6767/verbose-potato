@@ -188,3 +188,18 @@ explicitly accept publication with this known limitation. No remote push occurre
 Full candidate evidence, failed-run paths and remaining limits are preserved in
 `ReleaseEvidence/v2.37.0-summary.json`; the immutable candidate ZIP still contains
 its earlier source-checkpoint documentation.
+
+### Post-reboot bounded retest
+
+After the user restarted Windows and requested another attempt, no old game
+processes remained. One save-protected retail test with a 60-second safety deadline
+responded promptly to Return (Continue) and Tab in both directions (Region/Local).
+No gameplay freeze was observed in this short test. Normal Alt-F4 closure still
+exited `0xc0000005` before the deadline, so no forced kill was required.
+Windows recorded native faults at `0xB2B2B5`
+(`PlatformAccessibilityNodeRoot::get_BoundingRectangle +0x25`) and `0xB1CBD1`
+(the previously identified accessibility-manager teardown). Local symbols were
+used again; no engine installation or source workaround was applied. No game
+process remains. Log: `QA/post-reboot-retail/20260927-233752/live-loot-map.log`.
+The restart did not resolve the publication blocker. This result does not prove
+that every freeze reported by the user has the same cause.

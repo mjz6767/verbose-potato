@@ -90,6 +90,30 @@
       "shutdownPassed": false
     }
   },
+  "postRebootRetest": {
+    "file": "QA/post-reboot-retail/20260927-233752/live-loot-map.log",
+    "preExistingGameProcesses": 0,
+    "saveProtectedFixture": true,
+    "safetyDeadlineSeconds": 60,
+    "deadlineForcedKillRequired": false,
+    "continueResponded": true,
+    "regionAndLocalMapToggleResponded": true,
+    "gameplayFreezeObservedInShortTest": false,
+    "normalAltF4ExitCode": -1073741819,
+    "nativeFaults": [
+      {
+        "eventUtc": "2026-09-27T23:38:32Z",
+        "rva": "0xB2B2B5",
+        "symbol": "PlatformAccessibilityNodeRoot::get_BoundingRectangle +0x25"
+      },
+      {
+        "eventUtc": "2026-09-27T23:38:39Z",
+        "rva": "0xB1CBD1",
+        "symbol": "RuntimeStatic<PlatformAccessibilityManager,0>::StaticDestroy +0x51"
+      }
+    ],
+    "result": "Reboot did not resolve native accessibility shutdown failure. No new game process remains. Publication remains held; this brief test does not explain every user-observed freeze."
+  },
   "blockingKnownIssue": {
     "status": "unfixed-in-current-package",
     "description": "Windows native accessibility teardown crash after desktop automation interaction; not limited to screenshot capture.",
