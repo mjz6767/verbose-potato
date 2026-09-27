@@ -8,7 +8,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Add direct Mage, Warlock and Priest selection to the Development Beta Lab. Unlock all 16 prototype Priest spells at maximum level and stage wounded or afflicted allies, enemies and a dispellable field for real spell testing.
 - Provide dedicated maximum-level Warrior, Rogue and Ranger testers with all seven skills per class. Link Skills Lab and Spells Lab, retain Wound/Cluster setup, clear stale targeting when switching, and require Reset for defeated testers.
 - Keep Beta Lab unavailable in retail, lab encounters save-blocked, and campaign content selection and balance unchanged. Preserve existing artwork, music, sound effects, save schema v27 and the v2.30 archive.
-- Add focused regression coverage for actual book access, full class unlocks, staged targets, production actions, switching and save refusal. v2.31 release verification and final package evidence are pending; no new audit, build or player-review pass is claimed yet.
+- Add focused regression coverage for actual book access, full class unlocks, staged targets, production actions, switching and save refusal. Pass all 13 Full audit gates, the repeated gates in both builds, both clean-extracted startups and 28 final-player visual captures. Exact hashes and review limits are recorded in Docs/ReleaseEvidence/v2.31.0-summary.json after immutable packaging. Unselected title-music auditions remain separate.
 
 ## v2.30.0 - Clearer Choices
 

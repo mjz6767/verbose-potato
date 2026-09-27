@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 2,
+  "releaseVersion": "v2.31.0",
+  "releaseName": "Words of Power",
+  "recordedUtc": "2026-09-27",
+  "sourceCommit": "bff40aa387aa97c03620685dae572d5b53a065be",
+  "sourceCleanAtPackaging": true,
+  "saveVersion": 27,
+  "intendedGitDestination": "https://github.com/mjz6767/verbose-potato.git / main",
+  "integration": {
+    "coordinatedChats": [
+      "Audit warrior skills and priest",
+      "Improve combat spell effects",
+      "Polish UI layout and artwork",
+      "Add richer game audio",
+      "Add rich character customization art"
+    ],
+    "newGameplaySourceCommits": [
+      "fe3c976",
+      "78fba0c"
+    ],
+    "inheritedReleaseAncestorsVerified": [
+      "47cea01",
+      "e9892c2",
+      "a706eca",
+      "1fbb499",
+      "428cfac",
+      "2802877",
+      "1d2f0df"
+    ],
+    "changes": [
+      "28 spell and 14 martial-skill display names; stable formula codes, skill IDs and non-display catalog data unchanged.",
+      "Development-only Beta Lab exposes 16 prototype Priest spells and all seven skills for each of Warrior, Rogue and Ranger.",
+      "Lab saves remain blocked; retail title keeps Beta Lab unavailable; campaign content selection and balance unchanged."
+    ],
+    "resourcesAndArtReferencesUnchangedFrom": "cdb132b",
+    "physicalMusicMasters": 54,
+    "physicalSoundEffectFiles": 210,
+    "titleTheme": {
+      "name": "The Ember Oath (currently shipped master)",
+      "sha256": "df8da67eec83d50a5d85306ba455c1a60b800208e68f77ae240e578294c1c052"
+    },
+    "unshippedAuditions": "The 48 kHz sitar and single-lead signature audition folders remain untouched outside canonical history. No selection was received before release; neither replaces the approved master."
+  },
+  "packages": [
+    {
+      "flavor": "Retail",
+      "file": "outputs/AshAndBrimstone-Windows-v2.31.0.zip",
+      "bytes": 249046152,
+      "sha256": "e92b231c6566f7b8cbc2f6f3e5b68a47a0cdf2725edbb536b7fcf6ae76ab2338",
+      "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+      "managedAssemblySha256": "4a88126974f72db9c08a06d4ec20eb197355f390be94b8d536438ed415883b4f",
+      "zipFilesHashMatchedToStaging": 338,
+      "packagedArtCount": 99,
+      "allPackagedArtMatchesSource": true,
+      "cleanExtractLaunchPassed": true,
+      "integrityManifest": "QA/v2.31.0-release-integrity/release-integrity-manifest.json",
+      "integrityManifestSha256": "08d084b85d899877a99eb1146439c69fcb8f4f03499cef56ee8fd58af8a6d739",
+      "startupLog": "QA/v2.31.0-release-integrity/clean-extract-boot.log",
+      "startupLogSha256": "54254b17480d5d52572e9ff89bb4dee971a8442f72496e3883da993390898930",
+      "buildLog": "build-v2.31.0.log",
+      "buildLogSha256": "6550c90baa3c80c457cb3d882667af197a706ca8267fb006412d5782356332bd",
+      "passedBuildGates": 13
+    },
+    {
+      "flavor": "Beta Development",
+      "file": "outputs/AshAndBrimstone-Windows-v2.31.0-beta-dev.zip",
+      "bytes": 277024571,
+      "sha256": "a7e6151592e803c77465d02b4eaf5776bc7b869bb914d3b58734d3a5753f6803",
+      "executableSha256": "0a4d928ac950c45822d2a7bb67d336c00e1c7240d190422006ad2c649a5fc763",
+      "managedAssemblySha256": "06fbd2bba26051c0a2b9a55f28d5395c6f741ea4387c331c916fab861967bd9c",
+      "zipFilesHashMatchedToStaging": 427,
+      "packagedArtCount": 99,
+      "allPackagedArtMatchesSource": true,
+      "cleanExtractLaunchPassed": true,
+      "startupLog": "QA/beta-development/AshAndBrimstone-Windows-v2.31.0-beta-dev-clean-extract.log",
+      "startupLogSha256": "c6252968da4c2e29eaa0b180e1ce2561f10c58e6abdcdae06f1505dd9b8de937",
+      "buildLog": "QA/beta-development/build-v2.31.0.log",
+      "buildLogSha256": "0962466fd4c564baeaefacca2a3e2588004b4b34a16f9f49515e012f76ffb8ea",
+      "passedBuildGates": 13
+    }
+  ],
+  "fullAudit": {
+    "passed": true,
+    "passedGates": 13,
+    "sourceCommit": "40177309cc16ea4e08b1a119d13077ffb1aa40e6",
+    "finalSourceDifference": "Only ProjectSettings bundleVersion was subsequently committed as 2.31.0. Both final builds reran all 13 gates from bff40aa.",
+    "log": "QA/project-audit/20260927-030402-f729c567/unity.log",
+    "logSha256": "f54a9636aecace447d750aea652104e7eff4ff0b94ac6b2e3ad237a61984f917",
+    "gates": [
+      "Rules",
+      "UI finish",
+      "Building atlas alpha",
+      "Audio lifecycle",
+      "Title music experience",
+      "Character workshop audio",
+      "Everyday sound effects",
+      "Inventory and loot",
+      "Sprite art",
+      "Character workshop",
+      "Combat UI",
+      "Runtime boot",
+      "Beta Lab class coverage"
+    ]
+  },
+  "visualReview": {
+    "finalPlayerCaptures": 28,
+    "deterministicPassed": true,
+    "assistantReviewPassed": true,
+    "captureMode": "Authorized visible Windows players, non-batch D3D11; runtime pixel/dimension validation plus visual QA packets.",
+    "resolutions": [
+      "1280x720",
+      "1920x1080"
+    ],
+    "batches": [
+      {
+        "scope": "Retail world map",
+        "count": 6,
+        "directory": "QA/world-sprites/20260927-030915-be513024",
+        "captureSetSha256": "77ba13df36b36c6327b2dcf8a75b6aecf40c7b6025945180a3e8761896d5775d"
+      },
+      {
+        "scope": "Retail world map",
+        "count": 6,
+        "directory": "QA/world-sprites/20260927-031033-135e2486",
+        "captureSetSha256": "f54f0b008d8f26c718bb27fde2557737e035c2d4197ad77240dc4a3325f973d8"
+      },
+      {
+        "scope": "Beta title and Priest/Warrior/Rogue/Ranger books",
+        "count": 7,
+        "directory": "QA/power-books/20260927-031205-c54a80c5",
+        "captureSetSha256": "ae1ae199a0b07c892cedcc1131e2779de395ff561dc3575976efd3fa5c3c856a"
+      },
+      {
+        "scope": "Beta title and Priest/Warrior/Rogue/Ranger books",
+        "count": 7,
+        "directory": "QA/power-books/20260927-031337-33053f30",
+        "captureSetSha256": "1d96c13ccc99581ef187773be2090f0b15c243ee57aa94ece1abf5ebced1da10"
+      },
+      {
+        "scope": "Retail title without Beta Lab",
+        "count": 2,
+        "directory": "QA/v2.31.0-title-review",
+        "captureSetSha256": "17a00349428bdc8edfff548c3075dbf8aa695a94ccdc71e7e146e2e426f12c60"
+      }
+    ],
+    "findings": [
+      "No new text overlap, broad white NPC mats or building outlines in reviewed scenes.",
+      "Names, descriptions, costs, target counts and controls fit both review sizes.",
+      "Priest book shows Known 16 / Locked 0; Ready 13 is fixture-dependent. Each martial book shows seven unlocked skills.",
+      "Retail title omits Beta Lab; Development title exposes it."
+    ]
+  },
+  "preservedArchives": {
+    "outputs/AshAndBrimstone-Windows-v2.30.0.zip": "d577b59345983931c931bb7016bf64584654679fb82ce6eb6262cb5467adb19c",
+    "outputs/AshAndBrimstone-Windows-v2.30.0-beta-dev.zip": "75acd6c51e2efdb1475a01af111068ee1b85879cba9560785634722fcf68c97b",
+    "outputs/AshAndBrimstone-Windows-v2.30.0-beta-dev-power-names.zip": "ce05a0279628e147664e93dc3fb08ba1c897beff28b8457665b2d699e6d52533"
+  },
+  "limits": [
+    "Static fixtures and automated production-action regressions do not replace physical-controller testing or a complete human campaign.",
+    "No new subjective listening or exhaustive motion/VFX assessment is claimed.",
+    "Capture filenames containing capstone select the last currently ready card under All, not necessarily the final authored power.",
+    "Blocked-action warnings were not triggered in these screenshots; automated rule/UI checks cover their contracts separately.",
+    "Prototype Priest access is lab-only: 16 prototype spells versus 10 campaign-enabled spells. Existing Sanctuary/Covenant Ward redundancy and progression gaps were not rebalanced.",
+    "Minor legacy green/cyan fringes on some prop bases remain outside the integrated NPC/building repair scope.",
+    "Packages retain their clean source-commit documentation snapshot. This evidence and post-build documentation were recorded after the immutable archives were produced.",
+    "The initial version-bump attempt stopped at a stale v2.30 release assertion; a later packaging guard stopped on Unity's generated bundleVersion change. Both were committed and final clean-source builds passed; no failed candidate was published."
+  ]
+}

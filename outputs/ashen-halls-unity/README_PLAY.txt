@@ -6,7 +6,7 @@ Words of Power gives 28 spells and 14 martial skills more distinctive class name
 
 The Development-only Beta Lab now offers direct Mage, Warlock and Priest selection, including all 16 prototype Priest spells at maximum level. Skills Lab provides dedicated maximum-level Warrior, Rogue and Ranger testers with all seven skills per class. Stage prepares appropriate targets for the selected caster; Wound and Cluster support martial testing. These are access improvements to existing powers, not additional campaign unlocks.
 
-The normal retail player keeps Beta Lab unavailable, and lab encounters remain isolated from campaign progression and blocked from saving. Existing campaigns, artwork, music and sound effects are preserved; save schema remains v27. The v2.30 Windows archive is preserved for rollback. v2.31 release verification and final package evidence are pending; no new audit, build or player-review pass is claimed here.
+The normal retail player keeps Beta Lab unavailable, and lab encounters remain isolated from campaign progression and blocked from saving. Existing campaigns, artwork, music and sound effects are preserved; save schema remains v27. The v2.30 Windows archives are preserved for rollback. Both v2.31 editions pass all 13 build gates, clean-extracted startup and 28 final-player visual captures across 1280x720 and 1920x1080. Exact package hashes, the Full audit and review limits are recorded in Docs/ReleaseEvidence/v2.31.0-summary.json. Archives retain their immutable source-commit notes; this verification was recorded afterward. The separate title-music auditions remain unshipped pending selection.
 
 Previous release: v2.30.0 - Clearer Choices
 
