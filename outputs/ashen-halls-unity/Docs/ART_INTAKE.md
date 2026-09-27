@@ -13,13 +13,17 @@ Five original opaque `character-portrait-{human,dusk-elf,stoneborn,fenkin,ashlin
 
 The six new runtime illustration files and replacement town PNG must be deliberately tracked despite local ArtReferences exclusions. This combined release preserves the original v2.21 town sheet and earlier versioned packages. Final integrated verification is recorded in `ReleaseEvidence/v2.28.0-summary.json`.
 
-## Active v2.32.0 NPC full-silhouette contract (unreleased art revision)
+## Active v2.32.0 keepsake item contract
+
+`remembrance-item-atlas-runtime-v2.32.0.png` is the unmodified 1774×887 RGBA output from built-in imagegen. Its two square cells contain Traveler's Knot Bow and Vigilkeeper Wrap. Stable signature indices 7 and 8 route to this sheet's cells 0 and 1 in both native Inventory/Loot and fallback rendering. The earlier seven-item atlas remains unchanged. The exact prompt and alpha/hash validation sit beside the PNG; only the PNG is packaged. `RemembranceItemSmoke` verifies the exact hash, real UI adapters, combat intrinsics, enchantment and save identity. Final integrated release evidence is in `ReleaseEvidence/v2.32.0-summary.json`.
+
+## Active v2.32.0 NPC full-silhouette contract
 
 `midgaard-npc-atlas-runtime-v2.32.0.png` and `world-npc-citizen-atlas-runtime-v2.32.0.png` supersede the v2.26.1 pins. Only named cells 14, 16, 17, 18 and 19 and citizen cells 4, 5, 6 and 7 change. All 19 other cells are pixel-identical to the approved alpha repair. Canvas sizes, cell order, required gutters, bottom anchors and existing coverage limits remain unchanged.
 
 The original v2.21 authoring PNGs contain complete heads. The old equal-grid extraction cut through them before normalization added clear gutters; earlier references to missing source artwork meant the cropped runtime exports, not those intact authoring sheets. `Tools/RecoverNpcHeads.ps1` and its native Aseprite Lua recipe recover reviewed nonuniform source rectangles, assert complete source silhouettes before trimming, normalize the full figures, and clean reviewed enclosed matte pockets. Do not regenerate these pins with the historical equal-grid `BuildMidgaardWorldArtAtlases.py` recipe.
 
-Keep the two layered `source-*-atlas-v2.32.0.aseprite` files and two sibling validation JSON files as source-only provenance. They preserve the approved v2.26.1 atlas as a hidden reference and record original-source, reference, export, native-file and recipe hashes. Only the runtime PNGs enter the player. `NpcAtlasAlphaSmoke` now rejects all nine historical head cuts despite their clear gutters and retains matte-hole and exact pale-detail protection. See `NPC_HEADS_AND_WORLD_MAP_AUDIT_2026-09-27.md` for validation and preview scope. The art suffix is not a claim that game v2.32 has been released.
+Keep the two layered `source-*-atlas-v2.32.0.aseprite` files and two sibling validation JSON files as source-only provenance. They preserve the approved v2.26.1 atlas as a hidden reference and record original-source, reference, export, native-file and recipe hashes. Only the runtime PNGs enter the player. `NpcAtlasAlphaSmoke` now rejects all nine historical head cuts despite their clear gutters and retains matte-hole and exact pale-detail protection. See `NPC_HEADS_AND_WORLD_MAP_AUDIT_2026-09-27.md` for the earlier preview's validation and scope. Both repaired PNGs now ship in the verified v2.32 retail archive; final package hashes are recorded in `ReleaseEvidence/v2.32.0-summary.json`.
 
 ## Historical v2.26.1 NPC alpha-repair contract (included in v2.27)
 

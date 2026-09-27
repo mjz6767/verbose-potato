@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 2,
+  "releaseVersion": "v2.32.0",
+  "releaseName": "Names Beneath the Water",
+  "recordedUtc": "2026-09-27",
+  "sourceCommit": "c224724e9e634737f7df20fa7dc38a37b341515d",
+  "sourceCleanAtPackaging": true,
+  "saveVersion": 27,
+  "changes": [
+    "Optional Edda/Sera/Brann quest: recover a roll, restore four names, consensual private/public remembrance, one independently chosen keepsake.",
+    "Two original signature items and transparent illustrations: Traveler's Knot Bow (+2 hit) and Vigilkeeper Wrap (cold damage -1), with bounded early-campaign stats.",
+    "Reactive authored conversations for six town contacts and four additional personal-history topics.",
+    "Ritual reinforcements no longer inflate encounter XP or random equipment rewards.",
+    "Previously verified NPC crown repairs and quieter world-map presentation integrated without changing old archives."
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.32.0.zip",
+    "packageBytes": 249933778,
+    "packageSha256": "4976428d89fbafe3352dad2e24aef41e40d3e65c38039525950583d237b50160",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "f9e0ed6d4b8a8a739ecdd34b25299985fa01b141a1ade3d35210e4eb74921a2f",
+    "cleanExtractLaunch": true,
+    "playerExitCode": 0,
+    "packagedArtCount": 100
+  },
+  "packageVerification": {
+    "allZipEntriesCrcValid": true,
+    "entryCount": 346,
+    "allPackagedPngsMatchZipAndSource": true,
+    "managedAssemblyMatchesArchive": true,
+    "manifest": "QA/v2.32.0-release-integrity/release-integrity-manifest.json",
+    "manifestSha256": "59a0050a89e179de703ffb7e266ab8e1c1145ac72fdb80649153cb6939575980"
+  },
+  "validation": {
+    "sourceCompile": {
+      "path": "QA/source-compile/20260927-185410-9e53312a",
+      "runtimeFiles": 157,
+      "editorFiles": 48,
+      "diagnostics": 0
+    },
+    "fullAudit": {
+      "path": "QA/project-audit/20260927-185141-763517a2/unity.log",
+      "sha256": "b476978aa8f1442853ef55853c1de23c8f577e9bfaee7737c577be8d89ec55df",
+      "gateCount": 13,
+      "gates": [
+        "Rules (5.6 seconds)",
+        "UI finish (0.1 seconds)",
+        "Building atlas alpha (0.0 seconds)",
+        "Audio lifecycle (0.0 seconds)",
+        "Title music experience (0.2 seconds)",
+        "Character workshop audio (0.2 seconds)",
+        "Everyday sound effects (1.1 seconds)",
+        "Inventory and loot (0.1 seconds)",
+        "Sprite art (6.5 seconds)",
+        "Character workshop (6.6 seconds)",
+        "Combat UI (7.1 seconds)",
+        "Runtime boot (12.7 seconds)",
+        "Beta Lab class coverage (0.2 seconds)"
+      ],
+      "scope": "Before final dialogue-copy shortening and behavior-preserving layout extraction; all gates repeated in final build."
+    },
+    "finalBuild": {
+      "path": "build-v2.32.0.log",
+      "sha256": "8081d7f65969c8787a886bfb5c7671f2b4d251a9ca09e08fdb6882e33ab8f8ea",
+      "gateCount": 13,
+      "gates": [
+        "Ash & Brimstone build rule smoke tests passed.",
+        "Ash & Brimstone build UI finish smoke passed.",
+        "Ash & Brimstone build building-atlas alpha smoke passed.",
+        "Ash & Brimstone build audio lifecycle smoke passed.",
+        "Ash & Brimstone build title music experience smoke passed.",
+        "Ash & Brimstone build character workshop audio smoke passed.",
+        "Ash & Brimstone build everyday sound effects smoke passed.",
+        "Ash & Brimstone build inventory/loot experience smoke passed.",
+        "Ash & Brimstone build sprite-art runtime smoke passed.",
+        "Ash & Brimstone build character workshop smoke passed.",
+        "Ash & Brimstone build combat UI runtime smoke passed.",
+        "Ash & Brimstone build runtime boot smoke passed.",
+        "Ash & Brimstone build Beta Lab class coverage smoke passed."
+      ]
+    },
+    "newSmokeSuites": [
+      "RemembranceQuestSmoke",
+      "RemembranceItemSmoke",
+      "TownConversationSmoke",
+      "CampaignRewardBalanceSmoke"
+    ],
+    "questCases": [
+      "both endings crossed with both rewards",
+      "late acceptance after cleared sewers",
+      "legacy prototype clear",
+      "invalid and repeated callbacks",
+      "deferred rewards",
+      "production SaveService disk roundtrip at every stage",
+      "no main-objective override or automatic equipment"
+    ],
+    "art": {
+      "file": "Docs/ArtReferences/remembrance-item-atlas-runtime-v2.32.0.png",
+      "sha256": "b987f8e7c4284a16aa0692f09b80bd5f0df877a2c5f21f941e8f80fa2fc061cf",
+      "generation": "built-in imagegen",
+      "prompt": "Docs/ArtReferences/remembrance-item-atlas-runtime-v2.32.0-prompt.txt"
+    },
+    "visualReview": {
+      "scope": "Native editor fixture screens backed by production dialogue, inventory and loot adapters; not final standalone-player captures.",
+      "count": 12,
+      "resolutions": [
+        [
+          960,
+          600
+        ],
+        [
+          1280,
+          720
+        ]
+      ],
+      "captureSetSha256": "db3c2348287451b6da3247e07b89e0fbe1431324bd71c136d9a93353bebb69b2",
+      "review": "Independent assistant inspected all 12 final PNGs individually; primary assistant also reviewed compact dialogue and equipment iterations. No blocking cutoff/overlap; Edda final line has tight but readable padding. Reward offer and all three choices share one page.",
+      "captures": [
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/brann-keepsake-choice-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "3c49292b7748ab6029aeb830145af2c523212c416db1c56b9018f69d9cb8693b"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/brann-keepsake-choice-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "0f5adfb968212f8497caa203e89dc0abab8adf181c4d029872b37a49a8b80f9b"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/edda-remembrance-offer-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "eb27d8c2a51c7c26cee24f88ca453e489a06cc057ce92a16d37f678a5defcceb"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/edda-remembrance-offer-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "a5e206446dadf1b926f305b7227c212a894efa76da4eb28afeb007706b324d8f"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/travelers-knot-loot-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "675633ea2ce7a389a9f8fb7c674698176f52c679cbc7789612da0ffc3c24db53"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/travelers-knot-loot-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "0869de0197d86d81b7ffe0cb3c9d930ff74e1563b7032464c28ba26f2d99cc38"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/travelers-knot-pack-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "c74baad00ca26bdca33c5614562f3ea3761cfa8679830101572d3c3055b29fdc"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/travelers-knot-pack-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "6f2a4e43e64b30495056939f28ed25ebb35722ffe8a140d439aa334f65822cd9"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/vigilkeeper-wrap-loot-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "182bf0d6e8230980ce8b7270caaf912ed69f8af45211cbf126af70e3fbd28f31"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/vigilkeeper-wrap-loot-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "65b3deeb7a668da8b3ee0dcac721a3fc1c58db5783472fb99fee2be260d6a832"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/vigilkeeper-wrap-pack-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "4c437e597a78fc2e48d31ba744d9801bdc22db226d5033b39a71c9df7dceb1dc"
+        },
+        {
+          "file": "QA/remembrance-content/20260927-185438-400/vigilkeeper-wrap-pack-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "bd88b9d7342e9f82a4454ceb1cb1c3d4cc32c1c3c21a884443e3f1564e18b1cb"
+        }
+      ]
+    }
+  },
+  "preservedArchives": [
+    {
+      "file": "AshAndBrimstone-Windows-v2.31.0.zip",
+      "sha256": "e92b231c6566f7b8cbc2f6f3e5b68a47a0cdf2725edbb536b7fcf6ae76ab2338"
+    },
+    {
+      "file": "AshAndBrimstone-Windows-v2.31.0-beta-dev.zip",
+      "sha256": "a7e6151592e803c77465d02b4eaf5776bc7b869bb914d3b58734d3a5753f6803"
+    }
+  ],
+  "limits": [
+    "No complete human Chapter I-V playthrough in this pass.",
+    "No physical-controller or subjective audio review in this pass.",
+    "New quest UI reviewed through production native editor fixtures, not captured in final standalone player.",
+    "Campaign remains bounded at Chapter V; the broader development goal stays active.",
+    "No GitHub push or public upload; this is a local shareable Windows archive."
+  ],
+  "archiveNotes": "This record is written after verification. The immutable archive retains the documentation from its source commit."
+}

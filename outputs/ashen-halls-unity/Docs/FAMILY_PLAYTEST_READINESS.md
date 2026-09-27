@@ -4,7 +4,7 @@
 
 v2.32.0 — Names Beneath the Water — adds an optional branching Edda/Sera/Brann story, two signature equipment sidegrades with original item art, more natural reactive town conversations, and protection against farming ritual reinforcements for XP/loot. Existing Chapter I–V content and save schema v27 remain supported; the v2.31 retail and Beta archives are preserved.
 
-The Full Unity audit passes all 13 gates, including new production-path quest, dialogue, item and reward-balance regressions. Package hashes, clean-extracted startup and visual-review scope are recorded after packaging in Docs/ReleaseEvidence/v2.32.0-summary.json. Complete human campaign play, physical-controller feel and subjective audio balance remain manual playtest follow-ups.
+The Full Unity audit, all 13 repeated Windows build gates and clean-extracted startup pass. The 249,933,778-byte retail ZIP has SHA-256 `4976428d89fbafe3352dad2e24aef41e40d3e65c38039525950583d237b50160`; all 346 entries pass CRC verification and all 100 packaged PNGs match source hashes. Twelve native editor quest/item captures pass review at 960×600 and 1280×720. Exact evidence and scope are recorded in `Docs/ReleaseEvidence/v2.32.0-summary.json`. Complete human campaign play, physical-controller feel, subjective audio balance and final standalone quest-screen capture remain follow-ups.
 
 
 ## The Wayfinder's Atlas v2.23 - Release Gates Pass

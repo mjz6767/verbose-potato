@@ -14,6 +14,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Move off-screen route text into the map header so it cannot cover roofs or heads; retain its exact directional edge marker, bearing and remaining steps.
 - Replace passive buildings' colored ground strips with quieter neutral shadows. Keep emphasis for objectives, the current interaction, hovered buildings and marked destinations.
 - Add regression checks for cropped head contours, protected artwork, route-header spacing and building emphasis. Preserve audio and save schema v27; the v2.31 archives remain available.
+- Pass the 13-gate Full Unity audit, all repeated Windows build gates and clean-extracted startup from source `c224724`. All 346 ZIP entries pass CRC verification and all 100 packaged PNGs match source hashes. Twelve native editor quest/item captures at 960×600 and 1280×720 pass visual review; these are not final-player captures. Exact evidence and human-playtest limits are recorded in `Docs/ReleaseEvidence/v2.32.0-summary.json`.
 
 ## v2.31.0 - Words of Power
 
