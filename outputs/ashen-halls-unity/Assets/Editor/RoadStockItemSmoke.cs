@@ -271,17 +271,17 @@ namespace AshenHalls.Editor
                 InventoryItem knife = SignatureItemCatalog.CreateCounterweightKnife();
                 f.Call("AddInventoryItem", knife);
                 f.Equip(knife);
-                int expected = classKey == "mage" ? 3 : classKey == "ranger" ? 5 : 1;
+                int expected = 1;
                 string expectedLabel = (expected == 1 ? "Melee" : "Range " + expected) + " for " + f.Member.Name;
                 Require((string)f.Call("InventoryWeaponRangeLabel", knife, f.Member) == expectedLabel
                     && ((string)f.Call("CompactInventoryItemSummary", knife)).Contains(expectedLabel)
                     && ((string)f.Call("ItemTraitLine", knife)).Contains(expectedLabel),
-                    "Pack and loot label the actual wearer's range instead of presenting a universal knife range");
+                    "Pack and loot consistently show the knife's melee range for every wearer");
                 if (classKey == "ranger")
                 {
-                    Require((int)f.Call("BaseAttackRange", f.Hero) == 5
+                    Require((int)f.Call("BaseAttackRange", f.Hero) == 1
                         && (int)f.Call("EffectiveAttackRangeFrom", f.Hero, f.Hero.X, f.Hero.Y) == 1,
-                        "the ranger's existing role range still becomes melee under adjacent pressure");
+                        "a ranger's knife remains a melee weapon and gains no class range floor");
                 }
                 if (classKey == "mage" || classKey == "priest")
                 {

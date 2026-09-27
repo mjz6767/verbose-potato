@@ -1037,8 +1037,8 @@ namespace AshenHalls
             if (!IsDisruptableRitual(obstacle) && !IsBreakableCover(obstacle)) return false;
             int range = EffectiveAttackRangeTo(active, obstacle.X, obstacle.Y);
             if (Distance(active.X, active.Y, obstacle.X, obstacle.Y) > range) return false;
-            bool ranged = UsesRangedAttackAt(active, active.X, active.Y, obstacle.X, obstacle.Y);
-            return !ranged || HasLineOfSight(active.X, active.Y, obstacle.X, obstacle.Y, true);
+            bool requiresSight = BasicAttackRequiresSightAt(active, active.X, active.Y, obstacle.X, obstacle.Y);
+            return !requiresSight || HasLineOfSight(active.X, active.Y, obstacle.X, obstacle.Y, true);
         }
 
         private string CombatObstacleAttackBlockReason(CombatUnit active, Point obstacle)
@@ -1046,8 +1046,8 @@ namespace AshenHalls
             if (active == null || obstacle == null) return "No valid target";
             int range = EffectiveAttackRangeTo(active, obstacle.X, obstacle.Y);
             if (Distance(active.X, active.Y, obstacle.X, obstacle.Y) > range) return "Out of range";
-            bool ranged = UsesRangedAttackAt(active, active.X, active.Y, obstacle.X, obstacle.Y);
-            if (ranged && !HasLineOfSight(active.X, active.Y, obstacle.X, obstacle.Y, true))
+            bool requiresSight = BasicAttackRequiresSightAt(active, active.X, active.Y, obstacle.X, obstacle.Y);
+            if (requiresSight && !HasLineOfSight(active.X, active.Y, obstacle.X, obstacle.Y, true))
             {
                 return "Line of sight blocked";
             }
@@ -2582,6 +2582,7 @@ namespace AshenHalls
         private bool IsRangedAttackProfile(CombatUnit unit)
         {
             if (unit == null) return false;
+            if (UsesPlayerWeaponRules(unit)) return unit.DemonFormTurns <= 0 && PlayerWeaponAttackProfile(unit).UsesMissileAtDistance;
             string role = (unit.Role ?? "").ToLowerInvariant();
             string cls = (unit.ClassKey ?? "").ToLowerInvariant();
             string weapon = (unit.WeaponName ?? "").ToLowerInvariant();
@@ -2594,6 +2595,7 @@ namespace AshenHalls
         {
             if (unit == null) return 1;
             if (unit.DemonFormTurns > 0) return 1;
+            if (UsesPlayerWeaponRules(unit)) return PlayerWeaponAttackProfile(unit).Range;
             int range = Mathf.Max(1, unit.Range);
             string role = (unit.Role ?? "").ToLowerInvariant();
             string cls = (unit.ClassKey ?? "").ToLowerInvariant();
@@ -2688,7 +2690,8 @@ namespace AshenHalls
             int range = attacker == null ? 1 : EffectiveAttackRangeFrom(attacker, attackerX, attackerY);
             int distance = attacker == null || target == null ? 0 : Distance(attackerX, attackerY, target.X, target.Y);
             bool ranged = attacker != null && target != null && UsesRangedAttackAt(attacker, attackerX, attackerY, target.X, target.Y);
-            bool hasSight = attacker != null && target != null && (!ranged || HasLineOfSight(attackerX, attackerY, target.X, target.Y, true));
+            bool requiresSight = BasicAttackRequiresSightAt(attacker, attackerX, attackerY, target?.X ?? 0, target?.Y ?? 0);
+            bool hasSight = attacker != null && target != null && (!requiresSight || HasLineOfSight(attackerX, attackerY, target.X, target.Y, true));
             AttackForecastBlockReason blockReason = AttackForecastBlockReason.None;
             if (attacker == null || target == null) blockReason = AttackForecastBlockReason.InvalidCombatants;
             else if (attacker.Side == target.Side) blockReason = AttackForecastBlockReason.FriendlyTarget;
@@ -5857,6 +5860,8 @@ namespace AshenHalls
             }
             reason = CombatPowerActionBlockReason(active);
             if (!string.IsNullOrEmpty(reason)) return false;
+            reason = AbilityWeaponBlockReason(active, ability);
+            if (!string.IsNullOrEmpty(reason)) return false;
             if (ability.Id == "charge" && active.Webbed > 0)
             {
                 reason = "Webbed: " + ability.Name + " needs free movement.";
@@ -5971,9 +5976,9 @@ namespace AshenHalls
             if (mode == ActionMode.Move) return "Click a highlighted tile. Distance and terrain spend move points.";
             if (mode == ActionMode.Attack) return IsRangedAttackProfile(active)
                 ? IsEngagedByHostile(active)
-                    ? "Engaged: bow fire is suppressed. Click an adjacent enemy or cover to fight in melee."
+                    ? "Engaged: missile fire is suppressed. Click an adjacent enemy or cover to fight in melee."
                     : $"Shoot an enemy or breakable cover. Range {EffectiveAttackRangeFrom(active, active.X, active.Y)} with clear line of sight."
-                : $"Click an enemy or breakable cover. Current range {EffectiveAttackRangeFrom(active, active.X, active.Y)}.";
+                : $"Strike an enemy or breakable cover. Range {EffectiveAttackRangeFrom(active, active.X, active.Y)}; distant strikes need clear line of sight.";
             if (mode == ActionMode.Cast)
             {
                 if (string.IsNullOrEmpty(active.Spell)) return "Only trained spellcasters can open the spell panel.";
@@ -6081,6 +6086,7 @@ namespace AshenHalls
             if (active == null || state?.Combat == null) return 0;
             bool braced = state.Combat.MovePoints >= UnitMoveAllowance(active) && !state.Combat.Moved;
             return (braced ? 4 : 2)
+                + SkillProgressionRules.GuardActionTrainingBonus(active.Skills?.Guard ?? 0)
                 + GearGuardBonus(active)
                 + SignatureItemRules.GuardActionBonus(CombatEquipmentItem(active, true));
         }
@@ -10921,13 +10927,13 @@ namespace AshenHalls
                     ShowTessaConversation();
                     break;
                 case "forms":
-                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Quick hands like knives and epees. Strong shoulders can make room for an axe or heavy blade. Spears let basic strikes reach two cells; a bow needs an open lane. For a caster, compare Intelligence and the range shown for that wearer. A staff's name alone promises no extra magic. Look at the wielder first; the rack comes second.", ObjectType.WeaponVendor, gold, ReturnToTessaAdvice);
+                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Quick hands like knives and epees. Strong shoulders can make room for an axe or heavy blade. A spear reaches two cells along a clear line. A caster can send a focus strike four cells, also with clear sight; it trains Arms. Compare Intelligence as well as the weapon's weight. Your spells keep their own reach whichever weapon you carry.", ObjectType.WeaponVendor, gold, ReturnToTessaAdvice);
                     break;
                 case "personal":
                     ShowDialogueResponse("Weapon Vendor", "Tessa", TownConversationCatalog.PersonalStory(NpcId.Tessa), ObjectType.WeaponVendor, gold, () => ShowTessaConversation("You can try the doorway too, if you like. Anything else?"));
                     break;
                 default:
-                    ShowDialogueResponse("Weapon Vendor", "Tessa", "A bow's basic attack becomes a close Arms strike when an enemy engages you. A melee fighter's spear keeps its one-or-two-cell reach even then. Class techniques still use their own listed range. Some trained roles keep a longer basic reach with other weapons too, so check the Pack's range for the wearer instead of judging by the shape alone.", ObjectType.WeaponVendor, gold, ReturnToTessaAdvice);
+                    ShowDialogueResponse("Weapon Vendor", "Tessa", "Longbows and crossbows reach four cells; ranger training adds one to missile weapons. When an enemy crowds you, a basic shot becomes a close Arms strike. A spear keeps its two-cell reach. Draw a sword and you must close to one cell, whatever your training. Rangers need a missile weapon for their shooting techniques, but can mark a quarry with any weapon in hand.", ObjectType.WeaponVendor, gold, ReturnToTessaAdvice);
                     break;
             }
         }
@@ -12816,14 +12822,11 @@ namespace AshenHalls
             PartyMember target = BestLootInventoryFit(item, out _, out int score);
             if (target == null) return "Kept in the pack until a party member can use it.";
 
-            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             InventoryUpgradeGrade grade = InventoryEquipmentRules.Grade(score);
             string comparison = InventoryComparisonLine(item, target);
-            InventoryItem incumbent = InventoryCurrentEquipment(target, weapon);
-            if (InventoryEquipmentRules.RequiresDeliberateReview(item, incumbent))
+            if (InventoryChangeRequiresReview(item, target))
             {
-                string strategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, incumbent);
-                return $"Review for {target.Name} — {comparison}. {strategicChange}. Kept in the pack.";
+                return $"Review for {target.Name} — {comparison}. Kept in the pack.";
             }
             if (grade != InventoryUpgradeGrade.Upgrade)
             {
@@ -13007,14 +13010,7 @@ namespace AshenHalls
 
         private int WeaponRange(InventoryItem item, PartyMember member)
         {
-            string form = (item?.Form ?? "").ToLowerInvariant();
-            string role = (member?.Role ?? "").ToLowerInvariant();
-            if (form.Contains("longbow") || form.Contains("crossbow")) return 4;
-            if (form.Contains("throwing")) return 3;
-            if (form.Contains("sling") || form.Contains("darts")) return 3;
-            if (form.Contains("spear") || form.Contains("pike") || form.Contains("glaive") || form.Contains("halberd")) return 2;
-            if ((form.Contains("focus") || form.Contains("orb") || form.Contains("scepter") || form.Contains("staff")) && (role == "ember" || role == "hex" || role == "mender")) return 4;
-            return role == "bow" ? 4 : role == "ember" || role == "hex" ? 3 : 1;
+            return WeaponAttackRules.For(item, item?.DisplayName, member?.Role, member?.ClassKey).Range;
         }
 
         private int ArmorRolePenalty(InventoryItem item, PartyMember member)
@@ -16495,6 +16491,8 @@ namespace AshenHalls
                 reason = "No skill selected";
                 return false;
             }
+            reason = AbilityWeaponBlockReason(active, ability);
+            if (!string.IsNullOrEmpty(reason)) return false;
             if (!ability.Targeted)
             {
                 reason = "This skill is instant";
@@ -17191,7 +17189,7 @@ namespace AshenHalls
             if (target.Webbed > 0) statusShift += 8;
             if (target.Sleeping > 0) statusShift += 18;
             int gear = skill == "missile" ? Mathf.Max(0, active.WeaponBonus * 2) : active.WeaponBonus * 4;
-            return Mathf.Clamp(62 + skillValue + active.Agility * 2 + active.AttackSpeed + gear + RaceHitBonus(active) + statusShift + bonus - target.Agility * 3 - (target.Defense + target.ArmorBonus) * 3 - guard * 8, 18, 96);
+            return Mathf.Clamp(62 + CombatAccuracyRules.SkillContribution(skillValue) + active.Agility * 2 + active.AttackSpeed + gear + RaceHitBonus(active) + statusShift + bonus - target.Agility * 3 - (target.Defense + target.ArmorBonus) * 3 - guard * 8, 18, 96);
         }
 
         private bool IsRangerAbility(string abilityId)
@@ -17722,7 +17720,7 @@ namespace AshenHalls
                 PlaySfx("blocked", 0.62f);
                 return false;
             }
-            if (ranged && !HasLineOfSight(attacker.X, attacker.Y, cover.X, cover.Y, true))
+            if (BasicAttackRequiresSightAt(attacker, attacker.X, attacker.Y, cover.X, cover.Y) && !HasLineOfSight(attacker.X, attacker.Y, cover.X, cover.Y, true))
             {
                 PushLog("Other cover blocks the shot.", Tone.Warn);
                 AddFloat(cover.X, cover.Y, "blocked", moss);
@@ -17771,7 +17769,7 @@ namespace AshenHalls
             if (target.Hexed > 0) statusShift += 10;
             if (target.Webbed > 0) statusShift += 8;
             if (target.Sleeping > 0) statusShift += 18;
-            return Mathf.Clamp(62 + skillValue + attacker.Agility * 2 + attacker.AttackSpeed + attacker.WeaponBonus * 4 + WeaponHitBonusForItem(attacker.WeaponName, CombatEquipmentItem(attacker, true)) + RaceHitBonus(attacker) + statusShift - target.Agility * 3 - (target.Defense + target.ArmorBonus) * 3 - guard * 8, 18, 95);
+            return Mathf.Clamp(62 + CombatAccuracyRules.SkillContribution(skillValue) + attacker.Agility * 2 + attacker.AttackSpeed + attacker.WeaponBonus * 4 + WeaponHitBonusForItem(attacker.WeaponName, CombatEquipmentItem(attacker, true)) + RaceHitBonus(attacker) + statusShift - target.Agility * 3 - (target.Defense + target.ArmorBonus) * 3 - guard * 8, 18, 95);
         }
 
         private bool CastFormula(CombatUnit caster, string code, CombatUnit target, int x, int y)
@@ -17912,7 +17910,7 @@ namespace AshenHalls
                 PlaySfx("blocked", 0.62f);
                 return false;
             }
-            if (ranged && !HasLineOfSight(attacker.X, attacker.Y, ritual.X, ritual.Y, true))
+            if (BasicAttackRequiresSightAt(attacker, attacker.X, attacker.Y, ritual.X, ritual.Y) && !HasLineOfSight(attacker.X, attacker.Y, ritual.X, ritual.Y, true))
             {
                 PushLog("Cover blocks the ritual mark.", Tone.Warn);
                 AddFloat(ritual.X, ritual.Y, "blocked", ObstacleAccent(ritual.Kind));
@@ -19862,10 +19860,13 @@ namespace AshenHalls
 
         private void ImproveSkill(CombatUnit unit, string skill, int amount)
         {
-            if (unit.Side != UnitSide.Party) return;
+            if (unit == null || unit.Skills == null || state?.Mode != GameMode.Combat
+                || state.Combat?.Units == null || !state.Combat.Units.Contains(unit)
+                || state.Party == null || unit.PartyIndex < 0 || unit.PartyIndex >= state.Party.Count) return;
             int before = SkillValue(unit.Skills, skill);
-            SetSkill(unit.Skills, skill, Mathf.Clamp(before + amount, 1, 99));
-            if (unit.PartyIndex >= 0) state.Party[unit.PartyIndex].Skills = unit.Skills.Clone();
+            if (!SkillProgressionRules.TryConsumePractice(unit, skill, amount, before)) return;
+            SetSkill(unit.Skills, skill, Mathf.Clamp(before + 1, 1, PartyGrowthRules.MaximumValue));
+            state.Party[unit.PartyIndex].Skills = unit.Skills.Clone();
             int after = SkillValue(unit.Skills, skill);
             if (before < 15 && after >= 15) PushLog($"{unit.Name} is no longer lousy at {skill}.", Tone.Good);
             if (before < 30 && after >= 30) PushLog($"{unit.Name} becomes steady at {skill}.", Tone.Good);
@@ -21783,7 +21784,7 @@ namespace AshenHalls
             CombatAttackForecast forecast = AttackForecast(attacker, target);
             if (!forecast.Legal) return AttackForecastBlockedText(forecast, attacker);
             string guard = forecast.Guarded ? " / guarded" : "";
-            string mode = forecast.Ranged ? "shot" : IsRangedAttackProfile(attacker) ? "melee engaged" : "melee";
+            string mode = BasicAttackDeliveryLabel(attacker, forecast.Ranged);
             string status = CombatStatusPreview(attacker, target);
             return $"{mode}: {forecast.HitChance}% hit / {forecast.MinDamage}-{forecast.MaxDamage} {forecast.DamageType}{AttackStatNote(attacker)}\n{forecast.DamageMatch}{guard}{status}";
         }
@@ -21814,7 +21815,7 @@ namespace AshenHalls
             int attackRange = EffectiveAttackRangeTo(attacker, cover.X, cover.Y);
             bool ranged = UsesRangedAttackAt(attacker, attacker.X, attacker.Y, cover.X, cover.Y);
             if (distance > attackRange) return $"cover out of reach / {AttackModeLabel(attacker).ToLowerInvariant()} range {attackRange}";
-            if (ranged && !HasLineOfSight(attacker.X, attacker.Y, cover.X, cover.Y, true)) return "cover blocked\nline of sight blocked";
+            if (BasicAttackRequiresSightAt(attacker, attacker.X, attacker.Y, cover.X, cover.Y) && !HasLineOfSight(attacker.X, attacker.Y, cover.X, cover.Y, true)) return "cover blocked\nline of sight blocked";
             int damage = CoverBreakDamage(attacker, cover);
             int current = CoverIntegrity(cover);
             string time = cover.Duration > 0 ? $" / {cover.Duration} rounds" : "";
@@ -21828,7 +21829,7 @@ namespace AshenHalls
             int attackRange = EffectiveAttackRangeTo(attacker, ritual.X, ritual.Y);
             bool ranged = UsesRangedAttackAt(attacker, attacker.X, attacker.Y, ritual.X, ritual.Y);
             if (distance > attackRange) return $"ritual out of reach / {AttackModeLabel(attacker).ToLowerInvariant()} range {attackRange}";
-            if (ranged && !HasLineOfSight(attacker.X, attacker.Y, ritual.X, ritual.Y, true)) return "ritual blocked\nline of sight blocked";
+            if (BasicAttackRequiresSightAt(attacker, attacker.X, attacker.Y, ritual.X, ritual.Y) && !HasLineOfSight(attacker.X, attacker.Y, ritual.X, ritual.Y, true)) return "ritual blocked\nline of sight blocked";
             int damage = RitualDisruptionDamage(attacker, ritual);
             int current = RitualIntegrity(ritual);
             string result = damage >= current ? "breaks it before it opens" : $"leaves {current - damage} integrity";

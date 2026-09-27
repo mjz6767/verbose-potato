@@ -2653,7 +2653,7 @@ namespace AshenHalls.Editor
                 AttackSpeed = inventoryProbe.AttackSpeed,
                 DamageType = inventoryProbe.DamageType
             };
-            Assert(InvokePrivate<int>(game, "InventoryComparisonScore", identicalInventoryProbe, state.Party[0]) == 0, "identical equipped weapon stats remain an honest sidegrade after role-range floors");
+            Assert(InvokePrivate<int>(game, "InventoryComparisonScore", identicalInventoryProbe, state.Party[0]) == 0, "identical equipped weapon stats remain an honest sidegrade after weapon-profile derivation");
             ArmoryDetailView equippedInventoryDetail = InvokePrivate<ArmoryDetailView>(game, "BuildInventoryItemDetail");
             Assert(equippedInventoryDetail != null
                 && equippedInventoryDetail.Actions.Any(action => action.Enabled && action.ButtonLabel == "Swap"), "reviewing equipped gear offers a direct same-slot reassignment instead of a dead end");
@@ -2661,6 +2661,18 @@ namespace AshenHalls.Editor
             InvokePrivate(game, "LateUpdate");
             state.Inventory.Remove(focusSortAnchor);
 
+            // Give every possible recipient a real ordinary bow. The blade
+            // below always changes delivery; the later longbow stays same-form.
+            foreach (PartyMember member in state.Party.Where(value => value != null))
+            {
+                InventoryItem currentBow = new InventoryItem
+                {
+                    DisplayName = "plain recipient longbow", Form = "longbow", Slot = "weapon", Trait = "plain", Rarity = "common",
+                    DamageMin = 3, DamageMax = 7, AttackSpeed = 8, DamageType = "physical"
+                };
+                InvokePrivate(game, "AddInventoryItem", currentBow);
+                Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", currentBow, member, null), "loot review fixture assigns a real known current weapon");
+            }
             InventoryItem popupProbe = new InventoryItem
             {
                 DisplayName = "Smoke-Test Blade",
@@ -2686,7 +2698,10 @@ namespace AshenHalls.Editor
             Assert(lootPopup != null && lootPopup.HasRealIconForTest, "loot reward uses the real inventory item atlas");
             Assert(lootPopup.HasReviewActionForTest, "acquired gear offers a direct equipment review action");
             Assert(lootPopup.PrimaryActionLabelForTest == "Continue", "loot action accurately reflects that rewards are already acquired");
-            Assert(lootPopup.ReviewActionLabelForTest == "Compare others", "stored gear names the wider comparison available in Inventory");
+            PartyMember popupBestFit = InvokePrivate<PartyMember>(game, "BestLootInventoryFit", popupProbe, null, null);
+            Assert(popupBestFit != null && InvokePrivate<bool>(game, "InventoryChangeRequiresReview", popupProbe, popupBestFit)
+                && lootPopup.ReviewActionLabelForTest == "Review tradeoff" && !lootPopup.HasQuickEquipActionForTest,
+                "stored blade names the required form tradeoff review before selecting its exact Inventory row");
             Assert(lootPopup.HasDefaultFocusForTest, "loot opens with Continue owning keyboard and controller Submit");
             LootPopupView popupView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
             Assert(popupView.HasItem && popupView.CanReview, "gear reward view exposes the committed item and its review action");
@@ -2822,6 +2837,8 @@ namespace AshenHalls.Editor
             LootPopupView pendingLootView = InvokePrivate<LootPopupView>(game, "BuildLootPopupView");
             LootPopupScreen clearUpgradePopup = GetPrivateField<LootPopupScreen>(game, "lootPopupScreen");
             Assert(pendingLootView.CanQuickEquip && clearUpgradePopup.HasQuickEquipActionForTest, "clear upgrade exposes the explicit quick-equip action");
+            Assert(pendingLootView.ReviewActionLabel == "Compare others" && clearUpgradePopup.ReviewActionLabelForTest == "Compare others",
+                "same-form stored gear also offers the wider comparison available in Inventory");
             Assert(pendingLootView.QuickEquipActionLabel == "Equip to " + expectedBest.Name
                 && clearUpgradePopup.QuickEquipActionLabelForTest == "Equip to " + expectedBest.Name, "quick equip names the exact best-fit adventurer");
             clearUpgradePopup.InvokeQuickEquipForTest();
@@ -4966,12 +4983,21 @@ namespace AshenHalls.Editor
             int attackProbeDemonTurns = active.DemonFormTurns;
             int attackProbeX = active.X;
             int attackProbeY = active.Y;
+            PartyMember attackProbeMember = InvokePrivate<PartyMember>(game, "PartyMemberForUnit", active);
+            InventoryItem attackProbeItem = InvokePrivate<InventoryItem>(game, "EquippedInventoryItem", attackProbeMember, true);
+            string attackProbeItemForm = attackProbeItem?.Form;
+            string attackProbeItemName = attackProbeItem?.DisplayName;
+            string attackProbeMemberWeapon = attackProbeMember?.WeaponName;
             Dictionary<CombatUnit, Vector2Int> attackProbeEnemyPositions = combatState.Combat.Units
                 .Where(unit => unit != null && unit.Side != active.Side)
                 .ToDictionary(unit => unit, unit => new Vector2Int(unit.X, unit.Y));
             active.ClassKey = "ranger";
             active.Role = "bow";
             active.WeaponName = "ashwood longbow";
+            // This synthetic HUD probe changes the actual held form as well as
+            // the actor label; an equipped sword must never masquerade as a bow.
+            if (attackProbeItem != null) { attackProbeItem.Form = "longbow"; attackProbeItem.DisplayName = active.WeaponName; }
+            if (attackProbeMember != null) attackProbeMember.WeaponName = active.WeaponName;
             active.Range = 5;
             active.DemonFormTurns = 0;
             active.X = 1;
@@ -5001,6 +5027,8 @@ namespace AshenHalls.Editor
             active.ClassKey = attackProbeClass;
             active.Role = attackProbeRole;
             active.WeaponName = attackProbeWeapon;
+            if (attackProbeItem != null) { attackProbeItem.Form = attackProbeItemForm; attackProbeItem.DisplayName = attackProbeItemName; }
+            if (attackProbeMember != null) attackProbeMember.WeaponName = attackProbeMemberWeapon;
             active.Range = attackProbeRange;
             active.DemonFormTurns = attackProbeDemonTurns;
             active.X = attackProbeX;
@@ -5010,6 +5038,9 @@ namespace AshenHalls.Editor
                 pair.Key.X = pair.Value.x;
                 pair.Key.Y = pair.Value.y;
             }
+            // Command views use a reused backing buffer. Rebuild after the
+            // temporary ranger probes before comparing the restored actor's UI.
+            hudView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
             IReadOnlyList<ActionMode> fallbackModes = InvokePrivate<IReadOnlyList<ActionMode>>(game, "CombatHudFallbackModes", active);
             Assert(fallbackModes != null && fallbackModes.Count == 6, "production IMGUI action bar exposes six commands");
             Assert(fallbackModes[0] == ActionMode.Move && fallbackModes[1] == ActionMode.Attack && fallbackModes[5] == ActionMode.Wait, "action bar keeps Move/Attack/End Turn in stable positions");
@@ -5049,13 +5080,26 @@ namespace AshenHalls.Editor
                 : renderedCommandButtons.Min(CombatHudScreenLayout.CommandIconSize);
             Assert(hudView.Commands.All(command => hud.CommandIconSizeForTest(command.Mode) + 0.01f >= minimumRenderedCommandIcon),
                 "rendered vertical combat command emblems match the adaptive readable size for the active window");
-            CombatHudCommandView initialAttackCommand = hudView.Commands.First(command => command.Mode == ActionMode.Attack);
             if (InvokePrivate<int>(game, "CountLegalAttackTargets", active) <= 0)
             {
+                // Start-turn policy can select Move for an actor without a legal
+                // attack. This assertion specifically tests a selected Attack.
+                ActionMode beforeNoTargetProbe = GetPrivateField<ActionMode>(game, "selectedAction");
+                SetPrivateField(game, "selectedAction", ActionMode.Attack);
+                CombatHudView noTargetView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+                hud.Refresh();
+                CombatHudCommandView initialAttackCommand = noTargetView.Commands.First(command => command.Mode == ActionMode.Attack);
                 Assert(initialAttackCommand.Blocked
                     && initialAttackCommand.SubLabel.Contains("No target")
-                    && hud.CommandUsesBlockedStyleForTest(ActionMode.Attack),
-                    "a selected Attack with no legal target stays visibly blocked while remaining focusable");
+                    && hud.CommandUsesBlockedStyleForTest(ActionMode.Attack)
+                    && hud.CommandInputSelectableForTest(ActionMode.Attack),
+                    "a selected Attack with no legal target stays visibly blocked while remaining focusable: previous=" + beforeNoTargetProbe
+                    + ", current=" + GetPrivateField<ActionMode>(game, "selectedAction") + ", blocked=" + initialAttackCommand.Blocked
+                    + ", label=" + initialAttackCommand.SubLabel + ", style=" + hud.CommandUsesBlockedStyleForTest(ActionMode.Attack)
+                    + ", targets=" + InvokePrivate<int>(game, "CountLegalAttackTargets", active) + ", actor=" + active.ClassKey + "/" + active.WeaponName);
+                SetPrivateField(game, "selectedAction", beforeNoTargetProbe);
+                hudView = InvokePrivate<CombatHudView>(game, "BuildCombatHudView");
+                hud.Refresh();
             }
             Assert(hudView.TimelineExpanded || hudView.Logs.Count == 2 && hud.VisibleLogCount == 0,
                 "collapsed combat Timeline keeps recent events in the model while hiding them behind the information drawer");
@@ -5139,10 +5183,11 @@ namespace AshenHalls.Editor
             combatState.Combat.Moved = false;
             combatState.Combat.MovePoints = InvokePrivate<int>(game, "UnitMoveAllowance", active);
             int gearGuard = InvokePrivate<int>(game, "GearGuardBonus", active);
-            Assert(InvokePrivate<int>(game, "GuardActionBonus", active) == 4 + gearGuard, "fresh stance publishes the exact braced Guard bonus");
-            Assert(InvokePrivate<string>(game, "ActionButtonSubLabel", ActionMode.Guard, active) == "Guard +" + (4 + gearGuard), "Guard command preview matches the production bonus");
+            int trainedGuard = SkillProgressionRules.GuardActionTrainingBonus(active.Skills?.Guard ?? 0);
+            Assert(InvokePrivate<int>(game, "GuardActionBonus", active) == 4 + gearGuard + trainedGuard, "fresh stance publishes the exact braced and trained Guard bonus");
+            Assert(InvokePrivate<string>(game, "ActionButtonSubLabel", ActionMode.Guard, active) == "Guard +" + (4 + gearGuard + trainedGuard), "Guard command preview matches the production bonus");
             combatState.Combat.Moved = true;
-            Assert(InvokePrivate<int>(game, "GuardActionBonus", active) == 2 + gearGuard, "moved stance publishes the exact reduced Guard bonus");
+            Assert(InvokePrivate<int>(game, "GuardActionBonus", active) == 2 + gearGuard + trainedGuard, "moved stance publishes the exact reduced and trained Guard bonus");
             combatState.Combat.Moved = originalMoved;
             combatState.Combat.MovePoints = originalMovePointsForGuard;
 
@@ -6642,8 +6687,12 @@ namespace AshenHalls.Editor
             active.Spell = "";
             active.DemonFormTurns = 0;
             active.Level = Math.Max(active.Level, 4);
-            active.Range = 6;
+            active.Range = 5;
             active.WeaponName = "fine longbow";
+            PartyMember skillProbeMember = InvokePrivate<PartyMember>(game, "PartyMemberForUnit", active);
+            InventoryItem skillProbeItem = InvokePrivate<InventoryItem>(game, "EquippedInventoryItem", skillProbeMember, true);
+            if (skillProbeItem != null) { skillProbeItem.Form = "longbow"; skillProbeItem.DisplayName = active.WeaponName; }
+            if (skillProbeMember != null) skillProbeMember.WeaponName = active.WeaponName;
             active.DamageMin = Math.Max(active.DamageMin, 7);
             active.DamageMax = Math.Max(active.DamageMax, 11);
             if (active.Skills == null) active.Skills = new SkillSet();
@@ -10453,7 +10502,7 @@ namespace AshenHalls.Editor
                     && brann.WeaponIntelligenceBonus == cinderBow.IntelligenceBonus
                     && brann.WeaponAgilityBonus == cinderBow.AgilityBonus
                     && brann.WeaponHealthBonus == cinderBow.HealthBonus, "swap transfers the selected weapon's complete mechanics to its new owner");
-                Assert(arden.Range == 5 && brann.Range == 4, "swapped weapons recalculate each adventurer's effective range");
+                Assert(arden.Range == 1 && brann.Range == 4, "the swapped ranger broadsword has melee range and the warrior longbow retains range four");
 
                 GameState roundTrip = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(linkedState));
                 SetPrivateField(game, "state", roundTrip);
@@ -10563,7 +10612,7 @@ namespace AshenHalls.Editor
                 SetPrivateField(game, "state", rangeState);
                 string rangeComparison = InvokePrivate<string>(game, "InventoryComparisonLine", longbow, ranger);
                 string rangeSummary = InvokePrivate<string>(game, "CompactInventoryItemSummary", longbow);
-                Assert(rangeComparison.IndexOf("RNG 5 (=)", StringComparison.Ordinal) >= 0, "full inventory comparison reports the ranger's effective range floor");
+                Assert(rangeComparison.IndexOf("RNG 5 (=)", StringComparison.Ordinal) >= 0, "full inventory comparison reports the longbow's range with ranger training");
                 Assert(rangeSummary.IndexOf("Range 5", StringComparison.Ordinal) >= 0, "inventory summary reports the same effective range");
                 Assert(InvokePrivate<bool>(game, "EquipInventoryItemToMember", longbow, ranger, null) && ranger.Range == 5, "equipping the longbow preserves the same effective range shown before the choice");
             }

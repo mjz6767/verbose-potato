@@ -604,9 +604,8 @@ namespace AshenHalls
             string ownerOutcome = replacement == null ? "Unavailable" : InventoryGradeLabelFor(replacement, owner);
             string reassignmentOutcome = InventoryEquipmentRules.GradeLabel(
                 InventoryEquipmentRules.Grade(InventoryReassignmentScore(item, member, owner)));
-            InventoryItem memberCurrent = InventoryCurrentEquipment(member, weapon);
-            if (InventoryEquipmentRules.RequiresDeliberateReview(item, memberCurrent)
-                || InventoryEquipmentRules.RequiresDeliberateReview(replacement, owner == null ? null : InventoryCurrentEquipment(owner, weapon)))
+            if (InventoryChangeRequiresReview(item, member)
+                || InventoryChangeRequiresReview(replacement, owner))
             {
                 reassignmentOutcome = "Review";
             }
@@ -700,6 +699,8 @@ namespace AshenHalls
             if (InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form))
             {
                 InventoryItem currentWeapon = EquippedInventoryItem(member, true) ?? SnapshotMemberEquipment(member, true);
+                string formChange = WeaponFormChangeLabel(item, member, true);
+                if (!string.IsNullOrWhiteSpace(formChange)) changes.Add(formChange);
                 string strategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, currentWeapon);
                 if (!string.IsNullOrWhiteSpace(strategicChange)) changes.Add(strategicChange);
                 int oldMin = Mathf.Max(1, member.WeaponDamageMin > 0 ? member.WeaponDamageMin : member.DamageMin);

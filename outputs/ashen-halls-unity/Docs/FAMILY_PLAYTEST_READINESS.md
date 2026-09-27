@@ -2,6 +2,14 @@
 
 ## Current Release
 
+v2.36.0 — Steel and Study — makes equipment reach consistent, gives ranger shooting techniques an explicit weapon requirement, limits practice to one rank per skill per battle and gives Guard training a deliberate stance benefit. Growth explains actual contributions and lets mages train Arms. Accuracy gains slow above rank 25 while damage and healing retain their actual skill scaling. Existing earned skills and save schema v27 remain supported.
+
+Six connected automated campaigns reach the ending with 108 required and 34 roaming victories. Primary skills finish below 99, and Chapter VI causes more damage, but the informed policy still retains ample resources and finishes Vhal in two or three rounds. The gear-score policy sometimes equips a sword on the ranger; these runs are not optimized ranger play or a human difficulty estimate. See `Docs/STEEL_AND_STUDY_BALANCE.md` for the reasoning and remaining balance questions.
+
+All thirteen Full audit gates pass at this source checkpoint, with 170 runtime and 69 Editor files compiling without diagnostics. Thirty-six native content captures at 960x600 and 1280x720 pass review, covering Growth, weapon comparisons, shooting eligibility and Tessa's weapon advice. Windows packaging and clean-extracted startup verification follow this checkpoint; their final evidence will be recorded in `Docs/ReleaseEvidence/v2.36.0-summary.json`. Native editor presentation review does not replace a human campaign, physical-controller or audio check.
+
+## Previous Release: v2.35.0
+
 v2.35.0 — Roads Remember — adds Tessa's Bridgehook Spear and Stonecleft Axe, original item art, explicit purchase review and wearer-specific range labels. Halvard, Brann and the Journal now follow saved campaign progress more clearly. The six-chapter campaign and save schema v27 remain supported; prior release archives are preserved.
 
 All thirteen Full audit gates and 116 native content captures at 960x600 and 1280x720 pass. Six connected campaigns complete all eighteen required fights, plus 34 roaming fights across the six runs. Earlier harness failures and the observed low resource pressure are recorded in `Docs/CAMPAIGN_JOURNEY_AUDIT_2026-09-27.md`. These runs use actual exploration, rewards and resource carryover under a strong scripted policy with complete map knowledge. They are not a human completion or difficulty estimate. Exact package and visual verification are recorded in `Docs/ReleaseEvidence/v2.35.0-summary.json` after packaging.

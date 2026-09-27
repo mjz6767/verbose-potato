@@ -112,7 +112,7 @@ namespace AshenHalls
             ReadOnlyChoices(PartyGrowthChoice.Ember, PartyGrowthChoice.Hex);
 
         private static readonly IReadOnlyList<PartyGrowthChoice> MageTalents =
-            ReadOnlyChoices(PartyGrowthChoice.Ember);
+            ReadOnlyChoices(PartyGrowthChoice.Ember, PartyGrowthChoice.Arms);
 
         private static readonly IReadOnlyList<PartyGrowthChoice> WarlockTalents =
             ReadOnlyChoices(PartyGrowthChoice.Hex, PartyGrowthChoice.Arms);
@@ -204,7 +204,8 @@ namespace AshenHalls
             PartyGrowthChoice choice)
         {
             if (member == null || plan == null || !IsTalent(choice)) return 0;
-            return SaturatingAdd(SkillValue(member.Skills, choice), plan.Get(choice), TalentGain);
+            int current = SkillValue(member.Skills, choice);
+            return plan.Get(choice) == 0 ? current : Math.Min(MaximumValue, SaturatingAdd(current, plan.Get(choice), TalentGain));
         }
 
         public static bool CanStage(
@@ -313,9 +314,15 @@ namespace AshenHalls
                     reason = Label(choice) + " is not relevant to the " + ClassLabel(member) + " class.";
                     return false;
                 }
-                if (ProjectedSkill(member, plan, choice) > MaximumValue)
+                if (current > MaximumValue)
                 {
                     reason = Label(choice) + " cannot exceed " + MaximumValue + ".";
+                    return false;
+                }
+                int availablePurchases = Math.Max(0, MaximumValue - current + TalentGain - 1) / TalentGain;
+                if (plan.Get(choice) > availablePurchases)
+                {
+                    reason = Label(choice) + " cannot exceed " + MaximumValue + "; no extra points can be spent at the cap.";
                     return false;
                 }
             }
@@ -358,7 +365,7 @@ namespace AshenHalls
             foreach (PartyGrowthChoice choice in TalentChoices)
             {
                 int count = plan.Get(choice);
-                if (count > 0) applied.Add(Label(choice) + " +" + count * TalentGain);
+                if (count > 0) applied.Add(Label(choice) + " +" + (ProjectedSkill(member, plan, choice) - SkillValue(member.Skills, choice)));
             }
 
             member.Stats = projectedStats;

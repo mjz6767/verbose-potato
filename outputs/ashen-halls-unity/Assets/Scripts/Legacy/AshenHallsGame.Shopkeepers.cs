@@ -286,7 +286,7 @@ namespace AshenHalls
                 case "knife": return "Quick through the turn, with no extra iron to argue with.";
                 case "ember":
                 case "hex":
-                case "mender": return "Compare its Intelligence and your casting reach. The name on a staff is no extra spell.";
+                case "mender": return "Compare its Intelligence and focus-strike reach. Your spells keep their own range.";
                 default: return "Enough weight for a shield, without dragging your guard open.";
             }
         }

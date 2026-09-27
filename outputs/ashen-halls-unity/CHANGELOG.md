@@ -2,6 +2,16 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.36.0 — Steel and Study
+
+- Derive basic reach from the equipped weapon: melee one cell, reach weapons two, missile weapons three or four before ranger training, and spell-trained focus weapons four. Require clear sight for distant focus/reach strikes; retain Arms scaling and independent spell ranges.
+- Require a missile weapon for the six ranger shooting techniques, with matching disabled controls, target legality and execution. Hunter's Mark and independent rogue throwing techniques retain their own rules. Correct saved derived ranges without changing inventory identity or combat resources.
+- Require deliberate equipment review when weapon delivery changes or reach shrinks. Lead comparisons with lost/restored shooting skills and range changes; preserve explicit Pack assignment and item scoring.
+- Limit practice to one rank per skill per hero per battle, persisting the used allowance through saves. Add mage Arms training, an explicit one-point 98-to-99 finish, and Guard-action bonuses at ranks 30, 60 and 90. Show actual projected training contributions.
+- Preserve accuracy through rank 25, then add one accuracy per three further ranks. Damage and healing still use the actual skill value; high skill can no longer erase as much of Guard's accuracy penalty.
+- Complete six connected candidate campaigns with 108 required and 34 roaming victories. Primary skills finish below 99; Chapter VI damage taken rises, but all runs retain ample resources and the ending remains short under this informed policy. Preserve the earlier harness failures and document the ranger equipment-policy limitation.
+- Add observed combat-phase telemetry and focused production-path regressions. Preserve save schema v27 and previous archives. All thirteen Full audit gates and 36 native content captures pass at the source checkpoint; immutable package evidence follows packaging.
+
 ## v2.35.0 — Roads Remember
 
 - Put the current journey first in the production Journal, show unfinished favors and Maud's available lead, prioritize recent chapter records, and replace generic item placeholders with journal markers.

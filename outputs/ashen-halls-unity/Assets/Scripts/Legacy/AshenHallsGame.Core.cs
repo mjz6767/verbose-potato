@@ -3355,6 +3355,7 @@ namespace AshenHalls
                 sourceSaveVersion,
                 sourceSaveVersion < InventoryItemIdentityRules.SchemaVersion);
             RepairSignatureItemIdentities();
+            NormalizePartyWeaponRanges();
             state.ExplorationSteps = Mathf.Max(0, state.ExplorationSteps);
             if (state.Map != null && state.Map.Depth <= 0) state.Map.Depth = Mathf.Max(1, state.Depth);
             if (state.Map != null)

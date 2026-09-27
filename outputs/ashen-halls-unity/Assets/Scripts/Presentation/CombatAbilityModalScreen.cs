@@ -1428,8 +1428,13 @@ namespace AshenHalls
 
         private void LayoutFilterButtons()
         {
+            LayoutFilterButtons(Screen.width, Screen.height);
+        }
+
+        private void LayoutFilterButtons(float width, float height)
+        {
             if (filterButtons == null) return;
-            CombatAbilityModalGeometry geometry = CombatAbilityModalLayout.Calculate(Screen.width, Screen.height);
+            CombatAbilityModalGeometry geometry = CombatAbilityModalLayout.Calculate(width, height);
             int visibleCount = Filters.Length;
             float filterGap = 8f;
             float filterWidth = (geometry.Filters.width - filterGap * (visibleCount - 1)) / visibleCount;
@@ -1876,14 +1881,19 @@ namespace AshenHalls
 
         private void ApplyLayout()
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
-            float uiScale = CombatAbilityModalListRules.UiScale(Screen.height);
-            rowHeight = CombatAbilityModalListRules.RowHeight(Screen.height);
-            rowGap = CombatAbilityModalListRules.RowGap(Screen.height);
+            ApplyLayout(Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
+            float uiScale = CombatAbilityModalListRules.UiScale(height);
+            rowHeight = CombatAbilityModalListRules.RowHeight(height);
+            rowGap = CombatAbilityModalListRules.RowGap(height);
             ApplyTypography(uiScale);
 
-            CombatAbilityModalGeometry geometry = CombatAbilityModalLayout.Calculate(Screen.width, Screen.height);
+            CombatAbilityModalGeometry geometry = CombatAbilityModalLayout.Calculate(width, height);
             SetScreenRect(backdrop, geometry.Backdrop);
             SetScreenRect(panel, geometry.Panel);
             SetLocalRect(accentStrip, new Rect(0f, 0f, 6f, geometry.Panel.height));
@@ -1894,7 +1904,7 @@ namespace AshenHalls
             SetLocalRect(traitText.rectTransform, new Rect(geometry.Panel.width * 0.60f, 68f, geometry.Panel.width * 0.37f, 22f));
             SetLocalRect(closeButton.GetComponent<RectTransform>(), geometry.CloseButton);
 
-            LayoutFilterButtons();
+            LayoutFilterButtons(width, height);
 
             SetLocalRect(listFrame, geometry.List);
             SetLocalRect(listViewport, new Rect(7f, 7f, geometry.List.width - 34f, geometry.List.height - 14f));
@@ -1930,7 +1940,7 @@ namespace AshenHalls
 
             float actionY = detailH - 60f;
             SetLocalRect(detailActionButton.GetComponent<RectTransform>(), new Rect(16f, actionY, detailW - 32f, 44f));
-            LayoutDetailNarrative(detailPrompt != null && detailPrompt.gameObject.activeSelf);
+            LayoutDetailNarrative(detailPrompt != null && detailPrompt.gameObject.activeSelf, height);
             SetLocalRect(
                 footerHint.rectTransform,
                 new Rect(geometry.Footer.x, geometry.Footer.y, geometry.Footer.width - 126f, geometry.Footer.height));
@@ -1938,6 +1948,11 @@ namespace AshenHalls
         }
 
         private void LayoutDetailNarrative(bool hasPrompt)
+        {
+            LayoutDetailNarrative(hasPrompt, Screen.height);
+        }
+
+        private void LayoutDetailNarrative(bool hasPrompt, float height)
         {
             if (detailPanel == null
                 || detailMeta == null
@@ -1955,7 +1970,7 @@ namespace AshenHalls
             float detailH = Mathf.Max(1f, detailPanel.rect.height);
             float actionY = detailH - 60f;
             float detailArtSize = Mathf.Clamp(
-                78f * CombatAbilityModalListRules.UiScale(Screen.height),
+                78f * CombatAbilityModalListRules.UiScale(height),
                 86f,
                 104f);
             float summaryY = Mathf.Max(112f, detailArtSize + 28f);

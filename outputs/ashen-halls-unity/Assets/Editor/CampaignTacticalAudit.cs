@@ -123,6 +123,8 @@ namespace AshenHalls.Editor
             public readonly GameState State;
             private readonly Dictionary<string, int> actions = new Dictionary<string, int>();
             private readonly int[] spentAttributes = new int[4], spentTalents = new int[4];
+            internal CampaignCombatTelemetry Telemetry;
+            internal bool PreferMageArmsFallback;
 
             public Fixture(int seed)
             {
@@ -249,7 +251,8 @@ namespace AshenHalls.Editor
                             // Real practice can cap a talent before level rewards are spent.
                             // Spend an allowed secondary talent, or keep points for later review.
                             PartyGrowthChoice fallback = i == 0 ? (choice == PartyGrowthChoice.Arms ? PartyGrowthChoice.Guard : PartyGrowthChoice.Arms)
-                                : i == 1 ? PartyGrowthChoice.Arms : i == 3 ? PartyGrowthChoice.Guard : PartyGrowthChoice.Ember;
+                                : i == 1 ? PartyGrowthChoice.Arms : i == 3 ? PartyGrowthChoice.Guard
+                                : PreferMageArmsFallback ? PartyGrowthChoice.Arms : PartyGrowthChoice.Ember;
                             spent = PartyGrowthRules.TrySpendTalentPoint(member, fallback, out note);
                             if (!spent) break;
                         }
@@ -272,6 +275,7 @@ namespace AshenHalls.Editor
                 var heroes = combat.Units.Where(u => u.Side == UnitSide.Party && u.PartyIndex >= 0).ToArray();
                 result.StartingHp = heroes.Sum(u => u.Hp); result.StartingMp = heroes.Sum(u => u.Mana);
                 result.MaxHp = heroes.Sum(u => u.MaxHp); result.MaxMp = heroes.Sum(u => u.MaxMana);
+                Telemetry?.BeginFight(this, encounter, combat);
                 int startingElixirs = State.Elixirs;
                 trace.AppendLine("\n=== " + encounter.Banner + " seed=" + State.Seed + " " + build + " L" + result.Levels + " ===");
                 for (int decision = 0; State.Combat != null && State.Mode == GameMode.Combat && decision < 600 && combat.Round <= 35; decision++)
@@ -279,7 +283,8 @@ namespace AshenHalls.Editor
                     result.Decisions++;
                     if ((bool)Get("combatAdvancePending"))
                     {
-                        Set("combatAdvanceAt", -1f); Call("CompletePendingCombatAdvance"); continue;
+                        Set("combatAdvanceAt", -1f);
+                        Observe(null, "queued-lifecycle", () => Call("CompletePendingCombatAdvance")); continue;
                     }
                     CombatUnit active = (CombatUnit)Call("CurrentUnit");
                     Require(active != null && active.Hp > 0, "lifecycle selected a living actor");
@@ -287,8 +292,8 @@ namespace AshenHalls.Editor
                     string label;
                     if (active.Side == UnitSide.Enemy)
                     {
-                        Call("EnemyAct", active); label = "enemy AI";
-                        Call("FinishEnemyCombatAction", active);
+                        Observe(active, "enemy-ai", () => Call("EnemyAct", active)); label = "enemy AI";
+                        Observe(active, "enemy-lifecycle", () => Call("FinishEnemyCombatAction", active));
                     }
                     else label = TakePlayerTurn(active);
                     trace.AppendLine("r" + actionRound + " " + active.Name + " " + label + " | "
@@ -304,7 +309,13 @@ namespace AshenHalls.Editor
                 result.ElixirsUsed = actions.TryGetValue("elixir", out int elixirs) ? elixirs : 0;
                 result.Actions = string.Join(", ", actions.OrderBy(p => p.Key).Select(p => p.Key + " " + p.Value));
                 Require(result.ElixirsUsed <= startingElixirs, "elixirs are a bounded real resource");
+                Telemetry?.EndFight(this, result);
                 return result;
+            }
+
+            private T Observe<T>(CombatUnit actor, string phase, Func<T> action, string choice = "", string targetId = "")
+            {
+                return Telemetry == null ? action() : Telemetry.Observe(this, actor, phase, action, choice, targetId);
             }
 
             private string TakePlayerTurn(CombatUnit active)
@@ -312,7 +323,7 @@ namespace AshenHalls.Editor
                 CombatController controller = (CombatController)Call("CombatLifecycle");
                 if (!State.Combat.ActionAvailable)
                 {
-                    Call("FinishCombatAction", active, true, 0f, ""); return "end movement";
+                    Observe(active, "party-lifecycle", () => Call("FinishCombatAction", active, true, 0f, "")); return "end movement";
                 }
                 Choice choice = BestChoice(active);
                 int bx = active.X, by = active.Y;
@@ -332,21 +343,21 @@ namespace AshenHalls.Editor
                 if (bx != active.X || by != active.Y)
                 {
                     int oldX = active.X, oldY = active.Y;
-                    Call("MoveActiveTo", active, bx, by);
+                    Observe(active, "party-move", () => Call("MoveActiveTo", active, bx, by));
                     Require(active.X == bx && active.Y == by && (active.X != oldX || active.Y != oldY), "chosen move is accepted by real controller");
                 }
                 choice = BestChoice(active);
                 CombatCommandResult result;
-                if (choice.Kind == "elixir") result = controller.TryUseItem(active, 18, 6);
-                else if (choice.Kind == "guard") result = controller.Guard(active, (int)Call("GuardActionBonus", active));
-                else result = controller.TryResolveAction(active, () => ResolveChoice(active, choice), true);
+                result = Observe(active, "party-action", () => choice.Kind == "elixir" ? controller.TryUseItem(active, 18, 6)
+                    : choice.Kind == "guard" ? controller.Guard(active, (int)Call("GuardActionBonus", active))
+                    : controller.TryResolveAction(active, () => ResolveChoice(active, choice), true), choice.Label, choice.Target?.Id ?? "");
                 Require(result.Success, "production accepted selected action " + choice.Label);
                 if (choice.Kind == "guard") Call("ImproveSkill", active, "guard", 1);
                 // Items/Guard use their own command entry points; close remaining movement through production lifecycle.
                 controller.CompleteAction(active, true);
                 if (!actions.ContainsKey(choice.Label)) actions[choice.Label] = 0;
                 actions[choice.Label]++;
-                Call("AfterCombatAction", active, 0f, "");
+                Observe(active, "party-lifecycle", () => Call("AfterCombatAction", active, 0f, ""));
                 return choice.Label + (choice.Target == null ? "" : " -> " + choice.Target.Name);
             }
 
@@ -435,10 +446,7 @@ namespace AshenHalls.Editor
                 }
                 foreach (Point ritual in State.Combat.Obstacles.Where(o => (bool)Call("IsDisruptableRitual", o)))
                 {
-                    int range = (int)Call("EffectiveAttackRangeTo", actor, ritual.X, ritual.Y);
-                    bool ranged = (bool)Call("UsesRangedAttackAt", actor, actor.X, actor.Y, ritual.X, ritual.Y);
-                    if (Math.Abs(actor.X - ritual.X) + Math.Abs(actor.Y - ritual.Y) > range
-                        || (ranged && !(bool)Call("HasLineOfSight", actor.X, actor.Y, ritual.X, ritual.Y, true))) continue;
+                    if (!(bool)Call("CanAttackCombatObstacle", actor, ritual)) continue;
                     int damage = (int)Call("RitualDisruptionDamage", actor, ritual), integrity = (int)Call("RitualIntegrity", ritual);
                     consider(new Choice { Kind = "ritual", Ritual = ritual, Score = (31 - Math.Min(10, ritual.Duration * 2)) * Math.Min(1f, (float)damage / Math.Max(1,integrity)) });
                 }

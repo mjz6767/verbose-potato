@@ -261,8 +261,10 @@ namespace AshenHalls
         {
             if (member == null || item == null || !InventoryEquipmentRules.IsEquippable(item)) return false;
             bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
+            // Legacy linkage matches identity and authored stats. Cached range is
+            // recomputed after repair and must not orphan an otherwise unique item.
             return weapon
-                ? InventoryEquipmentRules.MatchesWeaponLoadout(item, member, EffectiveWeaponRange(item, member))
+                ? InventoryEquipmentRules.MatchesWeaponLoadout(item, member, member.Range)
                 : InventoryEquipmentRules.MatchesArmorLoadout(item, member, ArmorDefenseBonus(item));
         }
 
@@ -288,7 +290,7 @@ namespace AshenHalls
 
         private int EffectiveWeaponRange(InventoryItem item, PartyMember member)
         {
-            return Mathf.Max(WeaponRange(item, member), StartingRange(member?.Role));
+            return WeaponRange(item, member);
         }
 
         private string InventoryWeaponRangeLabel(InventoryItem item, PartyMember member)
@@ -589,8 +591,7 @@ namespace AshenHalls
         private string InventoryGradeLabelFor(InventoryItem item, PartyMember member)
         {
             if (item == null || member == null) return "Review";
-            InventoryItem current = InventoryCurrentEquipment(member, InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form));
-            return InventoryEquipmentRules.RequiresDeliberateReview(item, current)
+            return InventoryChangeRequiresReview(item, member)
                 ? "Review"
                 : InventoryEquipmentRules.GradeLabel(InventoryGradeFor(item, member));
         }
@@ -603,7 +604,6 @@ namespace AshenHalls
         private bool InventoryItemIsUpgrade(InventoryItem item)
         {
             if (EquippedMember(item) != null || state?.Party == null) return false;
-            bool weapon = InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form);
             return state.Party.Any(member =>
             {
                 if (member == null
@@ -612,9 +612,7 @@ namespace AshenHalls
                     return false;
                 }
 
-                return !InventoryEquipmentRules.RequiresDeliberateReview(
-                    item,
-                    InventoryCurrentEquipment(member, weapon));
+                return !InventoryChangeRequiresReview(item, member);
             });
         }
 
@@ -644,6 +642,8 @@ namespace AshenHalls
                 };
                 string strategicChange = InventoryEquipmentRules.StrategicChangeLabel(item, currentWeapon);
                 if (!string.IsNullOrWhiteSpace(strategicChange)) comparisons.Insert(0, strategicChange);
+                string formChange = WeaponFormChangeLabel(item, member);
+                if (!string.IsNullOrWhiteSpace(formChange)) comparisons.Insert(0, formChange);
                 if (currentWeapon != null && WeaponRoleFit(item, member) != WeaponRoleFit(currentWeapon, member))
                 {
                     comparisons.Add(ComparisonToken("FIT", WeaponRoleFit(item, member), WeaponRoleFit(currentWeapon, member)));

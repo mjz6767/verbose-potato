@@ -6,6 +6,8 @@ For a first session, the default four-person party is a useful starting point. T
 
 Two optional stories are available without changing the main campaign objective. Edda's favor opens around the sewer contract. After Varkh falls, Maud offers **The Honest Weight**: inspect the Chapter III Dusk Market lamp and Old Quarry Forge scale in either order, then return to her. Site services remain available while investigating. Each story offers a deliberate equipment choice; open the Pack to equip the reward.
 
+Check reach as well as damage when comparing weapons. A ranger can carry a sword, but needs a missile weapon for shooting techniques. Focus strikes use Arms; spells keep their own range. Skills gain at most one practice rank each per battle, while Growth offers deliberate training. Guard training adds stance bonuses at 30, 60 and 90, shown in the Growth preview.
+
 The most useful feedback is concrete:
 
 1. Where did you lose track of what to do next? Give the chapter and last conversation.

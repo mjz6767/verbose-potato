@@ -97,8 +97,10 @@ namespace AshenHalls.Editor
                 {
                     Id = "input-hero", Name = "Input hero", Side = UnitSide.Party, PartyIndex = -1,
                     Hp = 100, MaxHp = 100, Mana = 100, MaxMana = 100, Level = 10,
-                    X = 1, Y = 1, Range = 6, Power = 10,
+                    X = 1, Y = 1, Range = spell ? 4 : 5, Power = 10,
                     ClassKey = spell ? "mage" : "ranger", Spell = spell ? "ember" : "",
+                    Role = spell ? "ember" : "bow",
+                    WeaponName = spell ? "plain ember focus" : "plain ashwood longbow",
                     Skills = new SkillSet { Ember = 20, Missile = 20 }
                 };
                 CombatUnit target = new CombatUnit

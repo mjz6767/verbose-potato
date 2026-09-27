@@ -147,6 +147,9 @@ namespace AshenHalls.Editor
             NarrativeGuidanceSmoke.RunOrThrow();
             RoadStockItemSmoke.RunOrThrow();
             NativeRoadStockSmoke.RunOrThrow();
+            CombatAccuracySmoke.RunOrThrow();
+            WeaponTrainingSmoke.RunOrThrow();
+            SkillProgressionSmoke.RunOrThrow();
             MendProgressionSmoke.RunOrThrow();
             MeteorCrownQuestSmoke.RunOrThrow();
             MeteorCrownCombatSmoke.RunOrThrow();
@@ -3448,7 +3451,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.35.0", VersionInfo.PackageVersion, "package version marks Roads Remember");
+            AssertEqual("v2.36.0", VersionInfo.PackageVersion, "package version marks Steel and Study");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -9034,7 +9037,7 @@ namespace AshenHalls.Editor
                 { "rogue", new[] { PartyGrowthChoice.Arms, PartyGrowthChoice.Missile } },
                 { "ranger", new[] { PartyGrowthChoice.Missile, PartyGrowthChoice.Arms } },
                 { "wizard", new[] { PartyGrowthChoice.Ember, PartyGrowthChoice.Hex } },
-                { "mage", new[] { PartyGrowthChoice.Ember } },
+                { "mage", new[] { PartyGrowthChoice.Ember, PartyGrowthChoice.Arms } },
                 { "warlock", new[] { PartyGrowthChoice.Hex, PartyGrowthChoice.Arms } },
                 { "priest", new[] { PartyGrowthChoice.Mend, PartyGrowthChoice.Guard } },
                 { "paladin", new[] { PartyGrowthChoice.Guard, PartyGrowthChoice.Arms, PartyGrowthChoice.Mend } }
@@ -9119,11 +9122,15 @@ namespace AshenHalls.Editor
             PartyMember cappedTalent = PartyGrowthTestMember("warrior", 0, 1);
             cappedTalent.Skills.Arms = PartyGrowthRules.MaximumValue - 1;
             AssertEqual(
-                false,
-                PartyGrowthRules.TrySpendTalentPoint(cappedTalent, PartyGrowthChoice.Arms, out _),
-                "a talent that would exceed 99 rejects another point");
-            AssertEqual(PartyGrowthRules.MaximumValue - 1, cappedTalent.Skills.Arms, "rejected talent cap does not mutate Arms");
-            AssertEqual(1, cappedTalent.SkillPoints, "rejected talent cap does not spend a point");
+                true,
+                PartyGrowthRules.TrySpendTalentPoint(cappedTalent, PartyGrowthChoice.Arms, out string cappedSummary),
+                "one final talent point can finish 98 to 99");
+            AssertEqual(PartyGrowthRules.MaximumValue, cappedTalent.Skills.Arms, "the final purchase adds one rank without exceeding 99");
+            AssertEqual(0, cappedTalent.SkillPoints, "the disclosed final purchase consumes one point");
+            AssertEqual(true, cappedSummary.Contains("Arms +1"), "the final purchase reports the actual one-rank gain");
+            cappedTalent.SkillPoints = 1;
+            AssertEqual(false, PartyGrowthRules.TrySpendTalentPoint(cappedTalent, PartyGrowthChoice.Arms, out _), "a completed talent cannot consume more points");
+            AssertEqual(1, cappedTalent.SkillPoints, "capped talent rejection preserves the remaining point");
 
             PartyMember atomic = PartyGrowthTestMember("warrior", 1, 1);
             PartyGrowthPlan invalidPlan = new PartyGrowthPlan();

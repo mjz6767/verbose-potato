@@ -463,6 +463,8 @@ namespace AshenHalls
         public string Spell;
         public SkillSet Skills;
         public string Color;
+        // Encounter-local practice survives saving a combat; new combat units start at zero.
+        public int PracticedSkillMask;
         public bool Guarding;
         public int GuardBonus;
         public int Hexed;

@@ -38,13 +38,27 @@ namespace AshenHalls.Editor
             catch (Exception ex) { Debug.LogException(ex); EditorApplication.Exit(1); }
         }
 
-        private static void RunSelection(int[] seeds, string outputStem)
+        public static void RunTelemetryV236()
+        {
+            try { RunSelection(Seeds, "campaign-journey-v236-baseline", true); EditorApplication.Exit(0); }
+            catch (Exception ex) { Debug.LogException(ex); EditorApplication.Exit(1); }
+        }
+
+        public static void RunTelemetryV236Candidate()
+        {
+            try { RunSelection(Seeds, "campaign-journey-v236-candidate", true, true); EditorApplication.Exit(0); }
+            catch (Exception ex) { Debug.LogException(ex); EditorApplication.Exit(1); }
+        }
+
+        private static void RunSelection(int[] seeds, string outputStem, bool telemetry = false, bool candidateGrowth = false)
         {
             string qa = Path.GetFullPath(Path.Combine(Application.dataPath, "../QA"));
             Directory.CreateDirectory(qa);
             var report = new StringBuilder();
             var trace = new StringBuilder();
+            var telemetrySink = telemetry ? new CampaignCombatTelemetry.Sink() : null;
             report.AppendLine("# Connected campaign journey audit\n");
+            if (candidateGrowth) report.AppendLine("Candidate policy difference: after Ember reaches its cap, Luma attempts production-legal Arms spending; rejected purchases retain the point. Baseline retains mage points at the Ember cap.\n");
             report.AppendLine("Production quest admissions, cardinal exploration steps/portals, combat lifecycle, rewards, Growth, inventory equipment, camps and Recall. One persistent default party per run; no seeded story flags, synthetic XP/gear, HP/mana edits, assumed wins or RNG resets. Extra roaming fights count separately. Defeat, turn bound or navigation/admission failure ends that run and is retained. This is a policy experiment, not a player completion guarantee.\n");
             report.AppendLine("At each main planned-waypoint decision boundary, prudent recovers if any living hero is below 80% HP or any living caster below 60% mana; conserve uses 40% HP / 20% caster mana. Neither interrupts a return leg to rest immediately after an unexpected roaming battle. Both spend real camps until thresholds, Recall if someone is dead or supplies run out below threshold, and walk back through chapter gates. Required Yara visits also use real Recall (free full heal/revival). Growth is spent continuously 2 primary attributes:1 Health; warrior 2 Arms:1 Guard, ranger Missile, mage Ember, priest Mend. Capped talents fall back to an allowed secondary (warrior Arms/Guard, ranger Arms, priest Guard); a fully capped mage retains points. Each newly earned item is compared with production BestInventoryFit and equipped only when its score is positive. No purchases, optional quest planning, retries, save reloads, out-of-combat spellcasting, or manual item manufacture.\n");
             report.AppendLine("Navigation knows map geometry and authored waypoint identities, chooses a shortest legal path including real interior portals, and avoids optional Camp/Town/RecallCircle healing tiles. Each cardinal step invokes production movement: discovery, roaming movement/engagement and authored approach triggers remain active. Choice callbacks require the enabled choice on the current final dialogue page and at most four choices; rendered input/hit testing is not simulated. No elapsed-time exploration update, fog-limited route search or wall-clock walking delay is simulated. Combat policy is shared with CampaignTacticalAudit; it skips presentation waits, forecasts legal actions greedily, and forgoes post-action movement. GUID tie ordering prevents a bit-for-bit determinism claim.\n");
@@ -53,7 +67,7 @@ namespace AshenHalls.Editor
             foreach (int seed in seeds)
             foreach (string policy in Policies)
             {
-                using (var journey = new Journey(seed, policy, trace, details))
+                using (var journey = new Journey(seed, policy, trace, details, outputStem, telemetrySink, candidateGrowth))
                 {
                     journey.Run();
                     report.AppendLine(journey.Summary());
@@ -61,6 +75,7 @@ namespace AshenHalls.Editor
                 // Preserve every completed/failed run if a later run crashes externally.
                 File.WriteAllText(Path.Combine(qa, outputStem + "-report.md"), report.ToString() + details, new UTF8Encoding(false));
                 File.WriteAllText(Path.Combine(qa, outputStem + "-turns.txt"), trace.ToString(), new UTF8Encoding(false));
+                telemetrySink?.Write(qa, outputStem);
             }
             Debug.Log("Campaign journey audit complete: " + (seeds.Length * Policies.Length) + " connected runs; outcomes (including failures) in " + qa);
         }
@@ -71,16 +86,20 @@ namespace AshenHalls.Editor
             private GameState S => f.State;
             private readonly int seed;
             private readonly string policy;
+            private readonly string outputStem;
             private readonly StringBuilder trace, details, rows = new StringBuilder();
             private readonly HashSet<string> consideredItems = new HashSet<string>();
             private int stage, extras, camps, recoveryRecalls, questRecalls, steps, portals, waypoints, battles;
             private string outcome = "not started";
             private bool returning;
 
-            public Journey(int seed, string policy, StringBuilder trace, StringBuilder details)
+            public Journey(int seed, string policy, StringBuilder trace, StringBuilder details, string outputStem, CampaignCombatTelemetry.Sink telemetrySink, bool candidateGrowth)
             {
                 this.seed = seed; this.policy = policy; this.trace = trace; this.details = details;
+                this.outputStem = outputStem;
                 f = new CampaignTacticalAudit.Fixture(seed);
+                f.PreferMageArmsFallback = candidateGrowth;
+                if (telemetrySink != null) f.Telemetry = new CampaignCombatTelemetry(seed, policy, telemetrySink);
                 f.Set("visualSmokeSaveBlocked", true); // BeginGame clears the lab flag; this independently blocks persistence.
             }
 
@@ -165,7 +184,7 @@ namespace AshenHalls.Editor
                 {
                     outcome = ex.Message.Replace("|", "/").Replace("\n", " ");
                     Event("STOP", ex + "\nRecent game log: " + string.Join("\n", S.Log.Skip(Math.Max(0,S.Log.Count-12)).Select(e=>JsonUtility.ToJson(e))));
-                    string stopPath = Path.GetFullPath(Path.Combine(Application.dataPath,"../QA/campaign-journey-stop-" + seed + "-" + policy + ".json"));
+                    string stopPath = Path.GetFullPath(Path.Combine(Application.dataPath,"../QA/" + outputStem + "-stop-" + seed + "-" + policy + ".json"));
                     File.WriteAllText(stopPath, JsonUtility.ToJson(S,true),new UTF8Encoding(false));
                 }
                 rows.AppendLine("\nOutcome: **" + outcome + "**. Final persistent party (includes actual skill practice):\n```json\n" + string.Join("\n", S.Party.Select(p => JsonUtility.ToJson(p))) + "\n```\n");

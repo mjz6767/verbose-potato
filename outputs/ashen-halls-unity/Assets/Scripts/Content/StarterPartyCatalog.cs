@@ -15,8 +15,8 @@ namespace AshenHalls
         {
             new StarterHeroDef("Maer", "human", "warrior", "shield", new Stats(18, 7, 10, 15), "", 1, new SkillSet { Arms = 9, Guard = 7 }),
             new StarterHeroDef("Cairn", "human", "ranger", "bow", new Stats(10, 9, 19, 12), "", 5, new SkillSet { Arms = 3, Missile = 10, Guard = 2 }),
-            new StarterHeroDef("Luma", "ashling", "mage", "ember", new Stats(7, 22, 12, 9), "ember", 3, new SkillSet { Ember = 9, Guard = 1 }),
-            new StarterHeroDef("Vesh", "fenkin", "priest", "mender", new Stats(7, 20, 9, 14), "mend", 1, new SkillSet { Mend = 9, Guard = 3 })
+            new StarterHeroDef("Luma", "ashling", "mage", "ember", new Stats(7, 22, 12, 9), "ember", 4, new SkillSet { Ember = 9, Guard = 1 }),
+            new StarterHeroDef("Vesh", "fenkin", "priest", "mender", new Stats(7, 20, 9, 14), "mend", 4, new SkillSet { Mend = 9, Guard = 3 })
         };
 
         public static IReadOnlyList<StarterHeroDef> All => heroes;

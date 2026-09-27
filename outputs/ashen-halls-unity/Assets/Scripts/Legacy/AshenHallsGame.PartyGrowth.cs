@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace AshenHalls
@@ -83,7 +84,7 @@ namespace AshenHalls
             string blockedReason = "";
             bool canStage = !ArmoryGrowthReadOnly
                 && PartyGrowthRules.CanStage(member, plan, choice, out blockedReason);
-            string detail = ArmoryGrowthEffectLine(choice);
+            string detail = attribute ? ArmoryGrowthEffectLine(choice) : ArmoryGrowthTalentBenefitLine(choice, current, projected);
             if (!ArmoryGrowthReadOnly && !canStage && !string.IsNullOrWhiteSpace(blockedReason))
             {
                 detail += " / " + blockedReason;
@@ -272,7 +273,7 @@ namespace AshenHalls
         {
             return ArmoryGrowthReadOnly
                 ? "Review earned growth now; spend it safely after combat."
-                : "Choose an adventurer, stage earned attributes or class talents, then apply the preview.";
+                : "Each skill gains up to 1 practice per battle. Stage earned training, then apply.";
         }
 
         private string ArmoryGrowthFooter()
@@ -289,13 +290,25 @@ namespace AshenHalls
         {
             string staged = plan.IsEmpty
                 ? "No choices staged"
-                : ArmoryGrowthStagedChoiceSummary(plan);
-            return "POINTS  Stat " + member.StatPoints + " -> " + (member.StatPoints - plan.SpentStatPoints)
+                : ArmoryGrowthStagedChoiceSummary(member, plan);
+            PartyGrowthChoice selected = (PartyGrowthChoice)(armoryGrowthSelectedChoiceKey - GrowthChoiceRowKeyBase);
+            bool talentSelected = !PartyGrowthRules.IsAttribute(selected)
+                && PartyGrowthRules.RelevantTalents(member).Contains(selected);
+            string points = "POINTS  Stat " + member.StatPoints + " -> " + (member.StatPoints - plan.SpentStatPoints)
                 + "  /  Skill " + member.SkillPoints + " -> " + (member.SkillPoints - plan.SpentSkillPoints)
-                + "\nSTAGED  " + staged
+                + "\nSTAGED  " + staged;
+            if (talentSelected)
+            {
+                int current = ArmoryGrowthCurrentValue(member, selected);
+                int projected = PartyGrowthRules.ProjectedSkill(member, plan, selected);
+                return points + "\n" + ArmoryGrowthDisplayLabel(selected) + "  " + current + " -> " + projected
+                    + "\n" + ArmoryGrowthTalentBenefitLine(selected, current, projected)
+                    + "\n" + ArmoryGrowthEffectLine(selected);
+            }
+            return points
                 + "\nHP  " + member.MaxHp + " -> " + preview.MaxHp
                 + "  /  MP  " + member.MaxMana + " -> " + preview.MaxMana
-                + "\nDAMAGE  " + member.DamageMin + "-" + member.DamageMax
+                + "\nDAMAGE BEFORE SKILL  " + member.DamageMin + "-" + member.DamageMax
                 + " -> " + preview.DamageMin + "-" + preview.DamageMax
                 + "\nPOWER  " + member.Power + " -> " + preview.Power
                 + "  /  DEFENSE  " + member.Defense + " -> " + preview.Defense
@@ -304,7 +317,7 @@ namespace AshenHalls
                 + "\n" + ProgressionUnlockLine(member);
         }
 
-        private string ArmoryGrowthStagedChoiceSummary(PartyGrowthPlan plan)
+        private string ArmoryGrowthStagedChoiceSummary(PartyMember member, PartyGrowthPlan plan)
         {
             List<string> choices = new List<string>();
             for (int value = (int)PartyGrowthChoice.Strength; value <= (int)PartyGrowthChoice.Guard; value++)
@@ -312,9 +325,9 @@ namespace AshenHalls
                 PartyGrowthChoice choice = (PartyGrowthChoice)value;
                 int count = plan.Get(choice);
                 if (count <= 0) continue;
-                int gain = count * (PartyGrowthRules.IsAttribute(choice)
-                    ? PartyGrowthRules.AttributeGain
-                    : PartyGrowthRules.TalentGain);
+                int gain = PartyGrowthRules.IsAttribute(choice)
+                    ? count * PartyGrowthRules.AttributeGain
+                    : PartyGrowthRules.ProjectedSkill(member, plan, choice) - ArmoryGrowthCurrentValue(member, choice);
                 choices.Add(ArmoryGrowthDisplayLabel(choice) + " +" + gain);
             }
 
@@ -375,17 +388,37 @@ namespace AshenHalls
             switch (choice)
             {
                 case PartyGrowthChoice.Strength: return "Raises melee and reach damage, power, and some defense.";
-                case PartyGrowthChoice.Intelligence: return "Raises spell mana and focus-weapon damage.";
+                case PartyGrowthChoice.Intelligence: return "Raises mana, spell power, and caster weapon damage.";
                 case PartyGrowthChoice.Dexterity: return "Raises speed, agility, and ranged or finesse damage.";
                 case PartyGrowthChoice.Health: return "Raises maximum health and some defense.";
-                case PartyGrowthChoice.Arms: return "Improves melee and reach weapon attacks.";
-                case PartyGrowthChoice.Missile: return "Improves bows and other ranged weapon attacks.";
-                case PartyGrowthChoice.Mend: return "Improves healing and protective priest formulas.";
-                case PartyGrowthChoice.Ember: return "Improves fire and force formulas.";
-                case PartyGrowthChoice.Hex: return "Improves curses, shadow magic, and pacts.";
-                case PartyGrowthChoice.Guard: return "Improves guarding, interception, and shieldcraft.";
+                case PartyGrowthChoice.Arms: return "Arms serves melee, reach and focus attacks, plus some techniques.";
+                case PartyGrowthChoice.Missile: return "Physical shots use Missile; engaged basic attacks use Arms.";
+                case PartyGrowthChoice.Mend: return "Direct healing and light damage; ward duration and status odds stay fixed.";
+                case PartyGrowthChoice.Ember: return "Direct spell damage; mana costs and status odds stay fixed.";
+                case PartyGrowthChoice.Hex: return "Damage, summons and demon techniques; status odds stay fixed.";
+                case PartyGrowthChoice.Guard: return "Guard action only. Moving costs 2 Guard. Shield techniques also scale.";
                 default: return "";
             }
+        }
+
+        private string ArmoryGrowthTalentBenefitLine(PartyGrowthChoice choice, int current, int projected)
+        {
+            if (choice == PartyGrowthChoice.Guard)
+            {
+                int next = SkillProgressionRules.NextGuardTrainingThreshold(projected);
+                return "Guard action +" + SkillProgressionRules.GuardActionTrainingBonus(current)
+                    + " -> +" + SkillProgressionRules.GuardActionTrainingBonus(projected)
+                    + (next == 0 ? "; training bonus at maximum." : "; next at " + next + " (" + (next - projected) + " ranks).");
+            }
+            if (choice == PartyGrowthChoice.Arms || choice == PartyGrowthChoice.Missile)
+                return "Accuracy +" + CombatAccuracyRules.SkillContribution(current) + " -> +" + CombatAccuracyRules.SkillContribution(projected)
+                    + "; basic damage +" + current / 5 + " -> +" + projected / 5 + ".";
+            if (choice == PartyGrowthChoice.Mend)
+                return "Direct heal / spell damage +" + current / 2 + " -> +" + projected / 2 + ".";
+            if (choice == PartyGrowthChoice.Hex)
+                return "Spell damage +" + current / 2 + " -> +" + projected / 2
+                    + "; summon HP +" + current / 3 + " -> +" + projected / 3 + ".";
+            return "Spell damage +" + current / 2 + " -> +" + projected / 2 + ".";
         }
 
         private bool TryPartyGrowthChoice(string key, out PartyGrowthChoice choice)

@@ -101,6 +101,7 @@ namespace AshenHalls
                 hash = unchecked(hash * 31 + active.DemonFormTurns);
                 hash = unchecked(hash * 31 + (active.ClassKey ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (active.Spell ?? "").GetHashCode());
+                hash = unchecked(hash * 31 + (active.WeaponName ?? "").GetHashCode());
             }
             if (state?.Combat != null)
             {
@@ -237,7 +238,8 @@ namespace AshenHalls
                 view.Epic = CombatPowerPresentationRules.AbilityIntensity(ability.Id) >= 3;
                 view.Tier = ability.RequiredLevel <= 1 ? "starter" : ability.RequiredLevel <= 3 ? "trained" : "master";
                 view.RowSummary = string.IsNullOrWhiteSpace(ability.Summary) ? card.Summary : ability.Summary;
-                view.CurrentEffect = AbilityCurrentEffectLine(ability, active);
+                string weaponBlock = AbilityWeaponBlockReason(active, ability);
+                view.CurrentEffect = string.IsNullOrWhiteSpace(weaponBlock) ? AbilityCurrentEffectLine(ability, active) : weaponBlock;
                 view.ResourceAfter = "Action spent";
                 view.ValidTargetCount = view.Locked ? 0 : CountLegalAbilityTargets(ability, active);
                 view.TargetCountKnown = !view.Locked;
@@ -522,6 +524,8 @@ namespace AshenHalls
         private string AbilityNoTargetReason(MartialAbility ability, CombatUnit active)
         {
             if (ability == null) return "No legal target is available.";
+            string equipment = AbilityWeaponBlockReason(active, ability);
+            if (!string.IsNullOrEmpty(equipment)) return equipment;
             if (ability.Id == "execute") return "No enemy at 35% HP or lower is currently within reach.";
             if (ability.Id == "charge") return "No enemy currently has an open charge lane.";
             if (ability.Id == "riftpounce") return "No enemy currently has an open rift-landing tile.";

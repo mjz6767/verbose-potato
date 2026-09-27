@@ -342,7 +342,7 @@ namespace AshenHalls.Editor
                 "AshenHallsGame.Loot.cs"));
             string popup = MethodRegion(lootSource, "private LootPopupView BuildLootPopupView(");
             string quickEquip = MethodRegion(lootSource, "private void EquipLootToBestFit(");
-            Require(popup.Contains("InventoryEquipmentRules.RequiresDeliberateReview("), "loot popup suppresses quick equip for strategic gear changes");
+            Require(popup.Contains("InventoryChangeRequiresReview("), "loot popup suppresses quick equip for strategic and weapon-role changes");
             Require(popup.Contains("requiresReview ? \"Review tradeoff\""), "strategic loot routes to an explicit review action");
             Require(quickEquip.Contains("!requiresReview && EquipInventoryItemToMember("), "quick-equip action rechecks strategic safety at commit time");
         }

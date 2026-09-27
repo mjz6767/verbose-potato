@@ -1,4 +1,14 @@
-Ash & Brimstone v2.35.0 - Roads Remember
+Ash & Brimstone v2.36.0 - Steel and Study
+
+Release version: v2.36.0. Save schema: v27.
+
+Weapons now keep their own reach: blades strike adjacent foes, spears reach two cells, and trained casters can use a focus at four. Distant strikes need clear sight. Ranger training extends actual missile weapons, and shooting techniques require one equipped. Spells keep their listed range. Weapon-role changes or reduced reach require deliberate review, with lost shooting skills shown before equipping. Compare weapons in the Pack before changing a hero's role.
+
+Each practiced skill gains at most one rank per battle. Mages can spend Growth points on Arms for weapon attacks, and a skill at 98 can reach 99 for one point. Guard training adds to the deliberate Guard action at ranks 30, 60 and 90. Growth shows current and projected benefits. Accuracy gains slow above rank 25, so cover, status effects and Guard remain useful as skills improve.
+
+Existing saves retain earned skills, items and resources. Cached weapon ranges are corrected on load; an older mid-battle save receives the new practice allowance once. The six-chapter campaign, optional town stories and thirteen signature items remain included. Extract the whole ZIP into a new folder and keep AshAndBrimstone_Data beside AshAndBrimstone.exe. See Docs/FRIENDS_PLAYTEST.md for a first-session route; exact release verification is recorded in Docs/ReleaseEvidence/v2.36.0-summary.json after packaging.
+
+Previous release: v2.35.0 - Roads Remember
 
 Release version: v2.35.0. Save schema: v27.
 

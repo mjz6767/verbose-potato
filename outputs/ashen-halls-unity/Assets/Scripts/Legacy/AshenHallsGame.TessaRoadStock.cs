@@ -82,7 +82,7 @@ namespace AshenHalls
             int quoteGeneration = ++tessaRoadStockQuoteGeneration;
             bool spear = signatureId == "bridgehook_spear";
             string body = spear
-                ? "The bridge guards used the hook to draw a loose plank back into place. 'It buys a melee fighter a step in a fight too,' Tessa says. 'Basic strikes reach one or two cells, including when an enemy is beside you. Casters and rangers keep any longer basic range; class techniques keep their own range.' "
+                ? "The bridge guards used the hook to draw a loose plank back into place. 'It buys you a step in a fight too,' Tessa says. 'Basic strikes reach one or two cells along a clear line, including when an enemy is beside you. Your spells and class techniques keep their own range.' "
                 : "'That seam is older than I am,' Tessa says, turning the copper-stapled head. 'A patient smith repaired it. You get a slower, heavier physical cut and a steadier hit; the spear has the longer reach.' ";
             body += definition.DisplayName + ": base damage " + item.DamageMin + "–" + item.DamageMax
                 + " physical, speed " + item.AttackSpeed + ". "

@@ -817,7 +817,7 @@ namespace AshenHalls
         {
             if (state?.Party == null) return $"Muster a {PartySize}-person tavern party.";
             int front = state.Party.Count(p => p.Role == "shield" || p.Role == "ward" || p.Role == "pike");
-            int ranged = state.Party.Count(p => p.Role == "bow" || p.Range >= 3);
+            int ranged = state.Party.Count(p => p != null && MemberWeaponAttackProfile(p).Range >= 3);
             int priests = state.Party.Count(p => CasterKnowsSchool(p.Spell, "mend") || p.Role == "mender");
             int arcanists = state.Party.Count(p => CasterKnowsSchool(p.Spell, "ember") || CasterKnowsSchool(p.Spell, "hex"));
             int level = state.Party.Count == 0 ? 1 : Mathf.Max(1, Mathf.RoundToInt((float)state.Party.Sum(p => Mathf.Max(1, p.Level)) / state.Party.Count));
@@ -829,7 +829,7 @@ namespace AshenHalls
             if (state?.Party == null) return "";
             List<string> gaps = new List<string>();
             if (state.Party.Count(p => p.Role == "shield" || p.Role == "ward" || p.Role == "pike") < 1) gaps.Add("thin front");
-            if (!state.Party.Any(p => p.Role == "bow" || p.Range >= 3)) gaps.Add("no ranged pressure");
+            if (!state.Party.Any(p => p != null && MemberWeaponAttackProfile(p).Range >= 3)) gaps.Add("no ranged weapons");
             if (!state.Party.Any(p => CasterKnowsSchool(p.Spell, "mend") || p.Role == "mender")) gaps.Add("no priest");
             if (!state.Party.Any(p => CasterKnowsSchool(p.Spell, "ember") || CasterKnowsSchool(p.Spell, "hex"))) gaps.Add("no arcane caster");
             if (state.Party.Count(p => EffectiveHealth(p) <= 9) >= 2) gaps.Add("fragile");
@@ -843,8 +843,14 @@ namespace AshenHalls
             string header = $"L{Mathf.Max(1, member.Level)} {DisplayClass(member.ClassKey)}";
             if (role == "shield") return $"{header} / front guard / HP {member.MaxHp} / guard {member.Skills.Guard}";
             if (role == "ward") return $"{header} / oath guard / armor {member.ArmorBonus} / guard {member.Skills.Guard}";
-            if (role == "pike") return $"reach line / range {member.Range} / arms {member.Skills.Arms}";
-            if (role == "bow") return $"ranged pressure / range {member.Range} / missile {member.Skills.Missile}";
+            if (role == "pike" || role == "bow")
+            {
+                WeaponAttackProfile weapon = MemberWeaponAttackProfile(member);
+                string capability = weapon.Delivery == WeaponDelivery.Projectile ? "ranged weapon"
+                    : weapon.Range > 1 ? "reach weapon" : "melee weapon";
+                string skill = weapon.Delivery == WeaponDelivery.Projectile ? "missile " + member.Skills.Missile : "arms " + member.Skills.Arms;
+                return $"{header} / {capability} / range {weapon.Range} / {skill}";
+            }
             if (role == "knife") return $"{header} / light striker / speed {member.AttackSpeed} / arms {member.Skills.Arms}";
             if (role == "mender") return $"{header} / priest spells / MP {member.MaxMana} / mend {member.Skills.Mend}";
             if (role == "ember") return $"{header} / arcane spells / MP {member.MaxMana} / ember {member.Skills.Ember}";
@@ -949,7 +955,7 @@ namespace AshenHalls
             member.AttackSpeed = Mathf.Clamp(member.WeaponAttackSpeed + agility / 4 + ArmorAgilityModifier(member.ArmorName), 3, 20);
             member.Agility = Mathf.Max(1, agility / 3 + 2 + ArmorAgilityModifier(member.ArmorName) + member.AttackSpeed / 8);
             member.Movement = Mathf.Clamp(CombatMoveAllowance + (agility >= 18 ? 1 : 0) + (member.AttackSpeed >= 15 ? 1 : 0) - (member.ArmorBonus >= 4 ? 1 : 0), 2, 5);
-            member.Range = Mathf.Max(member.Range, StartingRange(member.Role));
+            member.Range = MemberWeaponAttackProfile(member).Range;
         }
 
         private int EffectiveStrength(PartyMember member)

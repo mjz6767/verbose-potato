@@ -111,9 +111,7 @@ namespace AshenHalls
                 best = BestLootInventoryFit(item, out _, out bestComparisonScore);
             }
             bool requiresReview = best != null
-                && InventoryEquipmentRules.RequiresDeliberateReview(
-                    item,
-                    InventoryCurrentEquipment(best, InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form)));
+                && InventoryChangeRequiresReview(item, best);
             Texture2D iconTexture = null;
             Rect iconUv = default;
             if (hasItem) TryGetInventoryItemIcon(item, out iconTexture, out iconUv);
@@ -190,9 +188,7 @@ namespace AshenHalls
             PartyMember owner = EquippedMember(item);
             PartyMember best = owner == null ? BestLootInventoryFit(item, out _, out _) : null;
             bool requiresReview = best != null
-                && InventoryEquipmentRules.RequiresDeliberateReview(
-                    item,
-                    InventoryCurrentEquipment(best, InventoryEquipmentRules.IsWeaponSlot(item.Slot, item.Form)));
+                && InventoryChangeRequiresReview(item, best);
             string result = string.Empty;
             bool equipped = best != null && !requiresReview && EquipInventoryItemToMember(item, best, out result);
             if (requiresReview)

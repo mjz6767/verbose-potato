@@ -61,7 +61,8 @@ namespace AshenHalls
                     || !string.Equals(unit.Id, unit.Id.Trim(), StringComparison.Ordinal)
                     || !unitIds.Add(unit.Id)
                     || !Enum.IsDefined(typeof(UnitSide), unit.Side)
-                    || unit.Skills == null)
+                    || unit.Skills == null
+                    || !SkillProgressionRules.IsValidPracticeMask(unit.PracticedSkillMask))
                 {
                     return false;
                 }
