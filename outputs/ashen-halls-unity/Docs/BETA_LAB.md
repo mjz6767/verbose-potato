@@ -16,7 +16,11 @@ The script runs the same embedded rule, art, combat-UI, and runtime gates as the
 
 Launch the Beta Development player and choose **Beta Lab** on the title screen. Lab combat is save-blocked and isolated from campaign progression.
 
-The caster lab provides maximum-level Mage and Warlock testers, production Spellbooks, staged targets, hazards, summon spaces, resource refill, and enemy waves. To reach the production Martial Lab, press `T` (or `Ctrl+Shift+B`) on the title screen, then choose **Martial Lab** from the broader development testing panel.
+The caster lab provides maximum-level **Mage**, **Warlock**, and **Priest** testers. Select a class to open its production Spellbook. Priest has all 16 Mend spells available; **Stage** keeps that priest selected and prepares wounded, afflicted allies, light-spell targets, and a hostile field for Rift Seal.
+
+Choose **Skills Lab** on the combat toolbar, then **Warrior**, **Rogue**, or **Ranger** to open all seven skills for that class. Each class has a dedicated maximum-level tester. **Wound** prepares finishers and **Cluster** prepares area attacks. **Spells Lab** returns to caster testing. Reset restores defeated testers. The title-screen `T` (or `Ctrl+Shift+B`) testing panel still provides the separate Martial Lab entry.
+
+Close the open book with Escape/controller B to reach the lab toolbar. Resource refill, hazards, enemy waves, reset, and the visual tour remain available.
 
 In combat:
 
@@ -28,7 +32,7 @@ In combat:
 
 ## Real casts and visual previews
 
-Mage, Warlock, and Martial test kits use the normal production spell/skill resolution paths. Damage, resources, targeting, summons, fields, movement, sound, and status effects behave as they do in campaign combat.
+Mage, Warlock, Priest, and martial test kits use the normal production spell/skill resolution paths. Damage, resources, targeting, summons, fields, movement, sound, and status effects behave as they do in campaign combat. The lab unlocks the complete prototype catalog; it does not change campaign progression or content selection.
 
 Normal campaign progression exposes 33 of the 56 catalog formulas. The new promoted set is `OBL` Light Bolt (level 3), `RCL` Cold Lance (level 4), `INH` Drain Life (level 5), `HLC` Hallowed Circle (level 8), `IBF` Summon Lesser Demon (level 8), and `DMC` Doom Circle (level 10).
 

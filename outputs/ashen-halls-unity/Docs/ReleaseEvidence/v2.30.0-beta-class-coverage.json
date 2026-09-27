@@ -1,0 +1,37 @@
+{
+  "artifact": "AshAndBrimstone-Windows-v2.30.0-beta-dev",
+  "sourceCommit": "fe3c9760e48a8e332adb172cae2349afe2b1b9eb",
+  "publication": "Local Beta Development package; not pushed or uploaded",
+  "retailVersionPreserved": "v2.30.0",
+  "retailSha256Unchanged": "d577b59345983931c931bb7016bf64584654679fb82ce6eb6262cb5467adb19c",
+  "archiveSha256": "75acd6c51e2efdb1475a01af111068ee1b85879cba9560785634722fcf68c97b",
+  "archiveBytes": 277017407,
+  "managedAssemblySha256": "9a06d62829bffa180ce6590bafce4384340400aba75a59e6f2cd292f3c001662",
+  "zipAssemblyMatchesStagedPlayer": true,
+  "packagedInstructionsNamePriestAndSkillsLab": true,
+  "buildChecksPassed": [
+    "rule smoke tests",
+    "UI finish smoke",
+    "building-atlas alpha smoke",
+    "audio lifecycle smoke",
+    "title music experience smoke",
+    "character workshop audio smoke",
+    "everyday sound effects smoke",
+    "inventory/loot experience smoke",
+    "sprite-art runtime smoke",
+    "character workshop smoke",
+    "combat UI runtime smoke",
+    "runtime boot smoke",
+    "Beta Lab class coverage smoke"
+  ],
+  "buildLog": "QA\\beta-class-coverage\\build-beta-class-coverage.log",
+  "focusedGameplayAndBookTest": "QA/beta-class-coverage/focused-smoke-licensed-r2.log",
+  "cleanExtractedDevelopmentTitleBootPassed": true,
+  "cleanExtractedBootLog": "QA\\beta-development\\AshAndBrimstone-Windows-v2.30.0-beta-dev-clean-extract.log",
+  "limits": [
+    "Hidden D3D player screenshot returned NearUniformBlack and was rejected, not counted as visual proof.",
+    "The editor offscreen fallback reported a 640x480 batch viewport and rejected capture below the supported 960x600 minimum. No fresh visual capture is accepted.",
+    "No physical-controller playtest or new campaign-balance validation was performed.",
+    "Later editor-capture and documentation commits do not change the packaged runtime source."
+  ]
+}

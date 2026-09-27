@@ -109,6 +109,7 @@ Mend/Ember share Rift Seal. Ember/Hex share Death Burst and Ashen Curse. Warlock
 4. `Presentation/BetaLabToolbarRules.cs:191` exposes direct Mage and Warlock actions, with staging copy scoped to those two; Priest and Warrior lack equivalent direct selection in that caster toolbar.
 5. Spellbook generation (`CombatAbilityModal.cs:189`) enumerates all active matching-school formulas and marks higher levels locked; Skillbook generation (`:223`) likewise displays the martial catalog with level locks. This is separate from genuinely absent content.
 6. Combat spell access checks content set, school and level (`Combat.cs:18607`, `:18690`, `:18705`, `:18732`). All authored effect categories have resolver branches (`:17633` through `:17865`); source inspection found no missing Priest effect handler.
+7. The 31-entry Visual-only Tour is a curated effects sampler, not a complete skill/spell index. It contains five of the seven Warrior skills (omitting Shield Bash and Cleave) and only Light Bolt and Hallowed Circle from the Priest list. The direct class books are the complete gameplay inventory; tour membership does not control whether a skill can be used. The effects chat independently confirmed the tour's limited purpose during coordination.
 
 Recommended order: repair lab selection/promotion and stage useful support targets; verify all 7 Warrior and 16 Priest actions through production books; then review the Circle Ward downgrade, deliberate campaign exclusions, and level-17–20 identity/capstone opportunities. Do not add raw spell count to compensate for an access defect.
 
@@ -120,7 +121,11 @@ Counts were computed from `FormulaCatalog` school membership and explicit level 
 
 The focused `BetaLabClassCoverageSmoke.Run` passed in Unity 6000.3.18f1 on 2026-09-26 (local date), exit 0. It verified the actual title entry, 16 visible unlocked Priest cards, seven visible unlocked cards for each martial class, legal staged targets, actual Heal/Cleanse/Light Bolt/Cleave outcomes and resource consumption, stale-target cleanup, both lab switches, resolving-action input locks and campaign save refusal. Log: `QA/beta-class-coverage/focused-smoke-licensed-r2.log`.
 
-The first restricted editor launch could not reach the existing license service; the licensed retry exposed an invalid new test-asset GUID. The GUID was corrected before the successful compile/test run. Neither failed attempt was counted as validation. Full build and player verification are recorded separately after completion.
+The first restricted editor launch could not reach the existing license service; the licensed retry exposed an invalid new test-asset GUID. The GUID was corrected before the successful compile/test run. Neither failed attempt was counted as validation.
+
+All 13 embedded build gates subsequently passed, and the separate `v2.30.0-beta-dev` Windows archive passed a clean-extracted Development-title startup check. Its compiled assembly matches the assembly inside the archive. The existing v2.30 retail ZIP hash remains unchanged. Build source: `fe3c9760e48a8e332adb172cae2349afe2b1b9eb`. Package hashes, exact checks and limitations: `Docs/ReleaseEvidence/v2.30.0-beta-class-coverage.json`.
+
+The hidden D3D player screenshot was uniformly black and was rejected; it is not visual acceptance evidence. The editor offscreen fallback reported a 640x480 batch viewport despite requested larger dimensions and correctly rejected capture below the supported minimum. No fresh screenshot is accepted; the optional capture helper is preserved outside the canonical repository. Automated modal card/geometry coverage passed, but a human visual/controller playcheck and new campaign balance remain untested. The package is a local tester artifact and has not been pushed or uploaded.
 
 ## Independent review of staged lab fixes
 
