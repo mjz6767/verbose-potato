@@ -2506,7 +2506,7 @@ namespace AshenHalls
                 int count = state.Party == null ? 0 : state.Party.Count;
                 int living = state.Party == null ? 0 : state.Party.Count(p => p.Hp > 0);
                 int averageLevel = count == 0 ? 1 : Mathf.RoundToInt((float)state.Party.Average(p => p.Level));
-                return EndStateContent.BuildVictory(
+                EndStateView ending = EndStateContent.BuildVictory(
                     HomeTownName,
                     living,
                     count,
@@ -2515,6 +2515,8 @@ namespace AshenHalls
                     state.Depth,
                     partyRows,
                     TavernMenuRules.ShowDeveloperTesting(DeveloperTestingBuildEnabled()));
+                if (ContentSetCatalog.MeteorCrownComplete(state.StoryFlags)) ending.ReturnButtonLabel = "Return Home";
+                return ending;
             }
 
             if (state.Mode == GameMode.Defeat)
@@ -2558,8 +2560,18 @@ namespace AshenHalls
 
         private void ReturnEndStateToTavern()
         {
-            if (state == null) return;
+            if (state == null || (state.Mode != GameMode.Victory && state.Mode != GameMode.Defeat)) return;
             CloseTransientOverlays();
+            if (state.Mode == GameMode.Victory && ContentSetCatalog.IsSewerSlice(activeContentSet)
+                && ContentSetCatalog.MeteorCrownComplete(state.StoryFlags))
+            {
+                state.Mode = GameMode.Explore;
+                ReturnPartyToTempleSquare("The company comes home. Midgaard's lamps are still burning.", "Home at Last", 0.80f);
+                RepairMeteorCrownStoryObjective(true);
+                AutosaveCheckpoint("company home after the Last Dawn");
+                MarkUiDirty();
+                return;
+            }
             state.Mode = GameMode.Tavern;
             ShowBanner("Returned to tavern");
             PlaySfx("ui", 0.55f);
@@ -3157,6 +3169,7 @@ namespace AshenHalls
 
         private void AutosaveCheckpoint(string reason)
         {
+            ApplyCampaignMilestoneRewards();
             if (!CampaignCheckpointRules.ShouldWrite(
                 state,
                 labSaveBlocked || visualSmokeSaveBlocked,
@@ -3383,6 +3396,8 @@ namespace AshenHalls
             RepairBoneRoadStoryObjective();
             RepairGlassAndAshStoryObjective();
             RepairRedGateStoryObjective();
+            RepairMeteorCrownStoryObjective();
+            ApplyCampaignMilestoneRewards();
             if (state.Depth == 2 && state.Map != null) EnsureKoboldKingCaveMarker();
             if (state.Depth == 3 && state.Map != null) EnsureGlassAndAshPassageMarker();
         }

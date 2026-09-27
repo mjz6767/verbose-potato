@@ -53,7 +53,9 @@ namespace AshenHalls
         {
             string key = NormalizeEnemyPowerKey(powerKey);
             int intensity = EnemyPowerIntensity(key);
-            string subtitle = JoinParts(actorName, "enemy power", targetName);
+            string shape = key == "crownfire" ? "fire / adjacent sparks"
+                : key == "heartpulse" ? "focused death tether" : "enemy power";
+            string subtitle = JoinParts(actorName, shape, targetName);
             return new CombatPowerIdentity(
                 EnemyPowerTitle(key),
                 EnemyPowerSigil(key),
@@ -144,10 +146,12 @@ namespace AshenHalls
             switch (NormalizeEnemyPowerKey(powerKey))
             {
                 case "deathball":
+                case "crownfire":
                 case "royalfireball":
                 case "royalcharge":
                     return 3;
                 case "bonehex":
+                case "heartpulse":
                 case "coldsplinter":
                 case "plaguesigns":
                 case "darklight":
@@ -167,6 +171,7 @@ namespace AshenHalls
                 case "graveward": return "SGW";
                 case "bonehex": return "RNH";
                 case "deathball": return "RLM";
+                case "heartpulse": return "RBT";
                 case "shocksign": return "RIG";
                 case "coldsplinter":
                 case "royalicelance": return "RCL";
@@ -176,7 +181,8 @@ namespace AshenHalls
                 case "cindertrail":
                 case "burningpact": return "RDF";
                 case "dreamveil": return "DSM";
-                case "royalfireball": return "FBL";
+                case "royalfireball":
+                case "crownfire": return "FBL";
                 default: return "";
             }
         }
@@ -198,6 +204,8 @@ namespace AshenHalls
                 case "graveward": return "Grave Ward";
                 case "bonehex": return "Bone Hex";
                 case "deathball": return "Death Ball";
+                case "heartpulse": return "Heart Pulse";
+                case "crownfire": return "Crownfire";
                 case "shocksign": return "Shock Sign";
                 case "coldsplinter": return "Cold Splinter";
                 case "plaguesigns": return "Plague Signs";
@@ -221,6 +229,8 @@ namespace AshenHalls
                 case "graveward": return "GRV";
                 case "bonehex": return "HEX";
                 case "deathball": return "RLM";
+                case "heartpulse": return "HRT";
+                case "crownfire": return "CRN";
                 case "shocksign": return "SIG";
                 case "coldsplinter": return "ICE";
                 case "plaguesigns": return "PLG";
@@ -251,6 +261,7 @@ namespace AshenHalls
                 case "venomdust": return "7f9b5c";
                 case "cindertrail":
                 case "burningpact":
+                case "crownfire":
                 case "royalfireball": return "df7040";
                 default: return "9d74c9";
             }

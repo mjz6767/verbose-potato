@@ -28,6 +28,7 @@ namespace AshenHalls.Editor
             ServiceMemoryAndQuotesStayHonest();
             GreetingsKeepChoicesOnTheFirstPage();
             RoadNewsNamesTheActualQuestContact();
+            HomecomingRecognizesOnlyTheCompletedFinale();
         }
 
         private static readonly NpcId[] speakers =
@@ -119,9 +120,9 @@ namespace AshenHalls.Editor
         private static void GreetingsKeepChoicesOnTheFirstPage()
         {
             GameState state = State();
-            for (int stage = 0; stage <= progress.Length; stage++)
+            for (int stage = 0; stage <= progress.Length + 1; stage++)
             {
-                if (stage > 0) state.StoryFlags.Add(progress[stage - 1]);
+                if (stage > 0) state.StoryFlags.Add(stage <= progress.Length ? progress[stage - 1] : StoryFlags.MeteorCrownDefeated);
                 foreach (int gold in new[] { 0, 240, int.MaxValue })
                 foreach (bool purchased in new[] { false, true })
                 {
@@ -165,6 +166,49 @@ namespace AshenHalls.Editor
             state.StoryFlags.Add(StoryFlags.RedGateDebriefed);
             Require(!TownConversationCatalog.OrrenRoadNews(state).Contains("Take your survey back"),
                 "a completed debrief does not keep requesting the same report");
+        }
+
+        private static void HomecomingRecognizesOnlyTheCompletedFinale()
+        {
+            GameState state = State();
+            state.StoryFlags.AddRange(progress);
+            state.StoryFlags.AddRange(new[]
+            {
+                StoryFlags.RedGateDebriefed, StoryFlags.MeteorCrownAssaultAccepted,
+                StoryFlags.MeteorCrownEntered, StoryFlags.MeteorCrownSentriesDefeated,
+                StoryFlags.MeteorCrownHeartBroken
+            });
+            Require(TownConversationCatalog.Stage(state) == TownStoryStage.RedGateVictory,
+                "preparing the assault and breaking the heart do not announce Vhal Rakh's defeat");
+            Dictionary<NpcId, string> before = new Dictionary<NpcId, string>();
+            foreach (NpcId speaker in speakers) before[speaker] = TownConversationCatalog.Greeting(speaker, state);
+            state.StoryFlags.Add(StoryFlags.MeteorCrownDefeated);
+            state.StoryFlags.Reverse();
+            Require(TownConversationCatalog.Stage(state) == TownStoryStage.MeteorCrownVictory,
+                "final victory takes priority over all older milestones regardless of save flag order");
+            string saved = JsonUtility.ToJson(state);
+            foreach (NpcId speaker in speakers)
+                Require(TownConversationCatalog.Greeting(speaker, state) != before[speaker],
+                    speaker + " acknowledges the homecoming instead of repeating an old chapter greeting");
+            string news = TownConversationCatalog.OrrenRoadNews(state);
+            Require(news.Contains("Vhal Rakh is gone") && !news.Contains("threshold") && !news.Contains("Take your survey back"),
+                "homecoming news confirms victory without sending the company back to unfinished chapter work");
+            Require(JsonUtility.ToJson(state) == saved, "homecoming dialogue does not grant a hidden reward or mutate progress");
+            Require(TownConversationCatalog.Greeting(NpcId.Kate, state).Contains("12 gold")
+                && TownConversationCatalog.Greeting(NpcId.Lute, state).Contains("10 gold")
+                && TownConversationCatalog.Greeting(NpcId.Borin, state).Contains("28 gold")
+                && TownConversationCatalog.Greeting(NpcId.Tessa, state).Contains("32 gold"),
+                "celebrating the ending preserves available service prices");
+            state.StoryFlags.AddRange(new[] { StoryFlags.MidgaardKateBundleBought, StoryFlags.MidgaardRatPeltArmorMade,
+                StoryFlags.MidgaardBasicWeaponBought, StoryFlags.MidgaardWeaponEnchanted });
+            foreach (NpcId speaker in speakers)
+                Require(DialoguePagingRules.Paginate(TownConversationCatalog.Greeting(speaker, state)).Length == 1,
+                    speaker + " keeps completed-service homecoming choices visible without paging");
+            Require(!TownConversationCatalog.Greeting(NpcId.Kate, state).Contains("12 gold")
+                && !TownConversationCatalog.Greeting(NpcId.Lute, state).Contains("10 gold")
+                && !TownConversationCatalog.Greeting(NpcId.Borin, state).Contains("28 gold")
+                && !TownConversationCatalog.Greeting(NpcId.Tessa, state).Contains("32 gold"),
+                "homecoming keeps one-time purchases completed");
         }
 
         private static void Require(bool condition, string message)

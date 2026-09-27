@@ -1400,6 +1400,20 @@ namespace AshenHalls
                 if (chapterTarget != null) critical.Add(chapterTarget);
             }
 
+            if (map.Depth >= 4 && ContentSetCatalog.AllowMeteorCrownChapter(activeContentSet, state?.StoryFlags))
+            {
+                string[] finalRoadSites = map.Depth == 4
+                    ? new[] { RedGateSealSiteId }
+                    : map.Depth == 5
+                        ? new[] { SaltCisternGateSiteId }
+                        : new[] { RedGateSealSiteId, GlassLoreLibrarySiteId, SaltCisternGateSiteId };
+                foreach (string siteId in finalRoadSites)
+                {
+                    MapObject chapterTarget = map.FindObjectById(RegionalSiteIdPrefix + siteId);
+                    if (chapterTarget != null) critical.Add(chapterTarget);
+                }
+            }
+
             if (ContentSetCatalog.ShowPrototypeScaffold(activeContentSet))
             {
                 critical.AddRange(map.Objects.Where(o => o != null && IsRouteScaffoldObject(o.Type)));
@@ -8231,6 +8245,8 @@ namespace AshenHalls
             }
             if (TryRegionalSite(state?.Map, obj, out WorldMapSite regionalSite))
             {
+                string finalRoadDetail = MeteorCrownSiteDetail(regionalSite.Id);
+                if (!string.IsNullOrEmpty(finalRoadDetail)) return finalRoadDetail;
                 if (state?.Depth == 5
                     && ContentSetCatalog.AllowRedGateChapter(activeContentSet, state.StoryFlags)
                     && !ContentSetCatalog.RedGateComplete(state.StoryFlags))

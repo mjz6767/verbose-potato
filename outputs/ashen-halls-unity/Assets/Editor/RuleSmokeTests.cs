@@ -142,6 +142,12 @@ namespace AshenHalls.Editor
             TownConversationSmoke.RunOrThrow();
             RemembranceQuestSmoke.RunOrThrow();
             RemembranceItemSmoke.RunOrThrow();
+            MendProgressionSmoke.RunOrThrow();
+            MeteorCrownQuestSmoke.RunOrThrow();
+            MeteorCrownCombatSmoke.RunOrThrow();
+            CampaignMilestoneSmoke.RunOrThrow();
+            CampaignHomecomingSmoke.RunOrThrow();
+            CampaignPacingSmoke.RunOrThrow();
             TavernScreenLayoutFitsSupportedResolutions();
             TavernStormRegionsStayOutsideTheRoom();
             TavernTitleAnimationIsReadableAndMotionSafe();
@@ -3437,7 +3443,7 @@ namespace AshenHalls.Editor
             AssertEqual("Ash & Brimstone", VersionInfo.ProductName, "player-facing product name");
             AssertEqual("AshAndBrimstone", VersionInfo.ExecutableBaseName, "Windows executable base name");
             AssertEqual("Ashen Halls", VersionInfo.LegacyProductName, "legacy product name remains available for save import");
-            AssertEqual("v2.32.0", VersionInfo.PackageVersion, "package version marks Names Beneath the Water");
+            AssertEqual("v2.33.0", VersionInfo.PackageVersion, "package version marks The Last Dawn");
             BuildWindows.ValidateApprovedRuntimeArtIsLatest(Directory.GetParent(Application.dataPath).FullName);
             AssertEqual("ability-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.AbilityIconAtlas, "approved v2.9 ability atlas pin");
             AssertEqual("signature-spell-icon-atlas-runtime-v2.9.0.png", RuntimeArtManifest.SignatureSpellIconAtlas, "approved v2.9 signature spell atlas pin");
@@ -11374,12 +11380,12 @@ namespace AshenHalls.Editor
 
         private static void SewerSliceContentSetDefinesCompleteFirstPlayPath()
         {
-            AssertEqual(33, ContentSetCatalog.SewerSliceFormulaCodes.Count, "sewer slice formula count");
+            AssertEqual(37, ContentSetCatalog.SewerSliceFormulaCodes.Count, "campaign formula count including the expanded Mend progression");
             AssertEqual(25, ContentSetCatalog.SewerSliceAbilityIds.Count, "sewer slice permanent and derived ability count");
-            AssertEqual(22, ContentSetCatalog.SewerSliceEnemyIds.Count, "production campaign enemy count through the Red Gate");
+            AssertEqual(24, ContentSetCatalog.SewerSliceEnemyIds.Count, "production campaign enemy count through Meteor Crown");
             AssertEqual(3, ContentSetCatalog.SewerSliceEncounters.Count, "sewer slice encounter count");
             AssertEqual(
-                "OIC,TBQ,NVC,OBL,GBH,TNC,HLC,SRF,DWP,SBN,FIF,RIG,WBI,RCL,FBL,RSG,CLT,CNS,VST,ACR,AST,RKW,RNH,RBT,IBD,SLV,INH,PBR,GRH,IBF,DMC,VRS,DFA",
+                "OIC,TBQ,NVC,OBL,GBH,TNC,LNH,HLC,SGW,SRF,DWP,TBG,SWR,SBN,FIF,RIG,WBI,RCL,FBL,RSG,CLT,CNS,VST,ACR,AST,RKW,RNH,RBT,IBD,SLV,INH,PBR,GRH,IBF,DMC,VRS,DFA",
                 string.Join(",", ContentSetCatalog.SewerSliceFormulaCodes),
                 "sewer slice formulas stay grouped by spellcraft and ordered by unlock tier");
 

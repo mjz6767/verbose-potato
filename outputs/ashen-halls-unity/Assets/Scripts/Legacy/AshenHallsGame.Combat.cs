@@ -5003,6 +5003,20 @@ namespace AshenHalls
         {
             type = ObjectType.Market;
             if (state == null || state.Depth != 1) return false;
+            if (ContentSetCatalog.IsSewerSlice(activeContentSet)
+                && HasStoryFlag(StoryFlags.RedGateDebriefed)
+                && !HasStoryFlag(StoryFlags.MeteorCrownAssaultAccepted))
+            {
+                type = ObjectType.OldRoadScout;
+                return true;
+            }
+            if (ContentSetCatalog.AllowMeteorCrownChapter(activeContentSet, state.StoryFlags)
+                && !ContentSetCatalog.MeteorCrownComplete(state.StoryFlags)
+                && state.Map?.FindObjectById(OldRoadDescentId) != null)
+            {
+                type = ObjectType.Stairs;
+                return true;
+            }
             if (ContentSetCatalog.RedGateComplete(state.StoryFlags)
                 && !HasStoryFlag(StoryFlags.RedGateDebriefed))
             {
@@ -7658,7 +7672,14 @@ namespace AshenHalls
             }
             if (formula.Effect == "heal") return $"Heals about {FormulaHealPreview(formula, active).x}-{FormulaHealPreview(formula, active).y}; Intelligence improves the mend.";
             if (formula.Effect == "cure") return "Cleanses poison, bleed, web, stun, sleep, and hex.";
-            if (formula.Effect == "status") return $"{StatusLabel(formula.Status)} for {Mathf.Max(1, formula.Duration)} turns; Intelligence helps beat magic resistance.";
+            if (formula.Effect == "status")
+            {
+                string duration = formula.Splash
+                    ? $"{Mathf.Max(1, formula.Duration)} target / {Mathf.Max(1, formula.Duration - 1)} adjacent turns"
+                    : $"{Mathf.Max(1, formula.Duration)} turns";
+                return $"{StatusLabel(formula.Status)} for {duration}. "
+                    + (formula.Target == "enemy" ? "Intelligence helps beat magic resistance." : "Refreshes duration without stacking strength.");
+            }
             if (formula.Effect == "drain") return $"Deals {formula.DamageType} damage and returns about half as healing.";
             if (formula.Effect == "summon") return $"{SummonDisplayName(formula.SummonRole)} joins for {Mathf.Max(1, formula.Duration)} turns. Intelligence strengthens the binding.";
             if (formula.Effect == "teleport") return $"Teleport to an open tile within range {EffectiveFormulaRange(formula, active)}. Cover and occupied paths do not interfere.";
@@ -8405,6 +8426,7 @@ namespace AshenHalls
 
         private string RedGateObjectiveForProgress()
         {
+            if (HasMeteorCrownStoryProgress()) return MeteorCrownObjectiveForProgress();
             if (ShouldPreserveAdvancedFullPrototypeStory()) return AdvancedFullPrototypeObjective();
             int depth = state?.Depth ?? 1;
             if (ContentSetCatalog.RedGateComplete(state?.StoryFlags))
@@ -9063,6 +9085,7 @@ namespace AshenHalls
 
             if (TryResolveBoneRoadStorySite(site)) return true;
             if (TryResolveGlassAndAshStorySite(site)) return true;
+            if (TryResolveMeteorCrownStorySite(site)) return true;
             if (TryResolveRedGateStorySite(site)) return true;
 
             if (!WorldSiteInteractionRules.TryGet(site.Id, out WorldSiteInteractionProfile interaction))
@@ -11581,6 +11604,7 @@ namespace AshenHalls
                 ShowBanner("Crownward Road Charted");
                 PlaySfx("wayfind", 0.82f);
             }
+            if (TryShowMeteorCrownConversation()) return;
             DialogueChoiceView[] choices = redGateComplete
                 ? new[]
                 {
@@ -13166,7 +13190,11 @@ namespace AshenHalls
                 {
                     return new[] { "drowscout", "drowcrossbow", "drowmage", "drowpriest", "husk", "reaver", "shade", "bonepriest", "gloamknight" };
                 }
-                return ContentSetCatalog.SewerSliceEnemyIds.ToArray();
+                // Active content includes the authored finale bosses; ordinary
+                // generated encounters must never draw those unique actors.
+                return ContentSetCatalog.SewerSliceEnemyIds
+                    .Where(kind => kind != "meteorlich" && kind != "ritualheart")
+                    .ToArray();
             }
 
             zoneId = zoneId ?? "";
@@ -14291,6 +14319,7 @@ namespace AshenHalls
             ApplyBoneRoadStoryVictory(encounterStyle);
             ApplyGlassAndAshStoryVictory(encounterStyle);
             ApplyRedGateStoryVictory(encounterStyle);
+            ApplyMeteorCrownStoryVictory(encounterStyle);
             ApplyMidgaardStoryVictory(encounterStyle);
             RevealKnownMidgaardChart();
             RevealKnownRouteLandmarkChart();
@@ -14329,11 +14358,15 @@ namespace AshenHalls
             return !ContentSetCatalog.IsSewerSliceEncounterStyle(encounterStyle)
                 && !ContentSetCatalog.IsBoneRoadEncounterStyle(encounterStyle)
                 && !ContentSetCatalog.IsGlassAndAshEncounterStyle(encounterStyle)
-                && !ContentSetCatalog.IsRedGateEncounterStyle(encounterStyle);
+                && !ContentSetCatalog.IsRedGateEncounterStyle(encounterStyle)
+                && !ContentSetCatalog.IsMeteorCrownEncounterStyle(encounterStyle);
         }
 
         private bool IsFinalBossCombat()
         {
+            if (IsMeteorCrownNonFinalCombat()) return false;
+            if (IsAuthoredMeteorCrownFinalCombat()) return true;
+            if (!ContentSetCatalog.IsFullPrototype(activeContentSet)) return false;
             if (state?.Combat?.Units == null) return false;
             if (state.Depth < FinalBossDepth) return false;
             return state.Combat.Units.Any(u => u.Side == UnitSide.Enemy && (u.Role == "meteorlich" || u.Role == "ritualheart"));
@@ -14575,6 +14608,7 @@ namespace AshenHalls
 
         private void FinishCampaignVictory(int foundGold, int foundElixirs, int xp)
         {
+            bool authoredFinale = IsAuthoredMeteorCrownFinalCombat();
             string encounterStyle = state.Combat?.EncounterStyle ?? "boss";
             InventoryItem relic = MakeBossLoot(encounterStyle);
             string relicEquipNote = "The final spoils are secured.";
@@ -14597,7 +14631,8 @@ namespace AshenHalls
             state.ActiveStory = "Epilogue: The Old Road is sealed for now. Midgaard has one more dawn.";
             PushLog($"The final gate falls. {foundGold} gold and {xp} XP recovered.", Tone.Good);
             if (relic != null) PushLog($"A boss relic is recovered: {relic.DisplayName}.", Tone.Good);
-            PushLog("Vhal Rakh's meteor crown breaks above the ritual heart. This beta route is complete.", Tone.Good);
+            PushLog("Vhal Rakh's meteor crown breaks. The company has brought the last road to an end.", Tone.Good);
+            if (authoredFinale) FinishAuthoredMeteorCrownVictory();
             ShowBanner("The Old Road Is Sealed");
             PlaySfx("victory", 1.15f);
             AutosaveCheckpoint("final gate sealed");
@@ -14974,7 +15009,7 @@ namespace AshenHalls
             if (triedArcingSpecial && TryEnemySpecial(enemy, target)) return;
             if (TryEnemyBreakCover(enemy, target, true)) return;
             if (!triedArcingSpecial && TryEnemySpecial(enemy, target)) return;
-            int moveBudget = enemy.Webbed > 0 ? 0 : UnitMoveAllowance(enemy);
+            int moveBudget = enemy.Webbed > 0 || enemy.Role == "ritualheart" ? 0 : UnitMoveAllowance(enemy);
             int spentMove = 0;
             Vector2 start = new Vector2(enemy.X, enemy.Y);
             bool moved = false;
@@ -15279,6 +15314,7 @@ namespace AshenHalls
         private bool TryEnemySpecial(CombatUnit enemy, CombatUnit target)
         {
             if (enemy == null || target == null || rng.NextDouble() > EnemySpecialChance(enemy)) return false;
+            if (TryMeteorCrownBossSpecial(enemy, target)) return true;
 
             if (enemy.Role == "bonepriest" || enemy.Role == "ratcleric" || enemy.Role == "drowpriest")
             {
@@ -15661,6 +15697,7 @@ namespace AshenHalls
             float baseChance = 0f;
             if (enemy.Role == "bonepriest" || enemy.Role == "ratcleric" || enemy.Role == "drowpriest") baseChance = 0.62f;
             else if (enemy.Role == "koboldking") baseChance = 0.78f;
+            else if (enemy.Role == "meteorlich" || enemy.Role == "ritualheart") baseChance = 0.68f;
             else if (enemy.Role == "koboldwizard") baseChance = 0.52f;
             else if (enemy.Role == "koboldshaman") baseChance = 0.46f;
             else if (enemy.Role == "adept" || enemy.Role == "glassmage" || enemy.Role == "ratmage" || enemy.Role == "drowmage" || enemy.Role == "spore" || enemy.Role == "cinderling" || enemy.Role == "lesserdemon" || enemy.Role == "shade") baseChance = 0.34f;
@@ -15747,6 +15784,7 @@ namespace AshenHalls
         private bool EnemySpecialArcsOverCover(CombatUnit enemy)
         {
             if (enemy == null) return false;
+            if (enemy.Role == "meteorlich" || enemy.Role == "ritualheart") return false;
             return enemy.Role == "koboldwizard"
                 || enemy.Role == "koboldking"
                 || enemy.Role == "koboldshaman"
@@ -18679,6 +18717,7 @@ namespace AshenHalls
         private int UnitMoveAllowance(CombatUnit unit)
         {
             if (unit == null) return CombatMoveAllowance;
+            if (unit.Side == UnitSide.Enemy && unit.Role == "ritualheart") return 0;
             return Mathf.Clamp(unit.Movement > 0 ? unit.Movement : CombatMoveAllowance, 2, 5);
         }
 
@@ -19839,7 +19878,7 @@ namespace AshenHalls
             TryDrawQuestWorldAtlasIcon(new Rect(hero.xMax - 154, hero.y + 22, 116, 116), 19, Color.white.WithAlpha(0.88f));
             GUI.Label(new Rect(hero.x + 26, hero.y + 24, hero.width - 210, 42), "The Old Road Is Sealed", titleStyle);
             GUI.Label(new Rect(hero.x + 28, hero.y + 80, hero.width - 230, 54),
-                "Vhal Rakh's meteor crown breaks above the ritual heart. Midgaard has one more dawn, and this beta route now has a complete ending.",
+                "Vhal Rakh's meteor crown breaks. Midgaard has one more dawn, and the company has a road home.",
                 labelStyle);
 
             Rect summary = new Rect(boardRect.x + 46, hero.yMax + 24, boardRect.width * 0.48f, 226);
@@ -19863,7 +19902,7 @@ namespace AshenHalls
 
             Rect route = new Rect(summary.xMax + 22, hero.yMax + 24, boardRect.xMax - summary.xMax - 68, 226);
             DrawRpgPanel(route, violet);
-            GUI.Label(new Rect(route.x + 20, route.y + 14, route.width - 40, 24), "Beta Route Complete", h2Style);
+            GUI.Label(new Rect(route.x + 20, route.y + 14, route.width - 40, 24), "Road Complete", h2Style);
             string[] chapters =
             {
                 "I  Midgaard Cisterns",
@@ -19879,14 +19918,13 @@ namespace AshenHalls
                 DrawRect(new Rect(row.x, row.y + 8, 10, 4), i < chapters.Length - 1 ? teal : gold);
                 GUI.Label(new Rect(row.x + 18, row.y, row.width - 18, row.height), chapters[i], CenterLeftStyle(11, i < chapters.Length - 1 ? muted : gold));
             }
-            GUI.Label(new Rect(route.x + 22, route.yMax - 44, route.width - 44, 32), "Next passes can turn this scaffold into hand-authored dungeons, NPC quests, and multi-phase boss rules.", CenterLeftStyle(11, muted));
+            GUI.Label(new Rect(route.x + 22, route.yMax - 44, route.width - 44, 32), "The company has a road home.", CenterLeftStyle(11, muted));
 
             Rect actions = new Rect(boardRect.x + 46, boardRect.yMax - 86, boardRect.width - 92, 56);
             if (GUI.Button(new Rect(actions.x, actions.y, 170, 46), "New Party", buttonStyle)) NewMuster();
-            if (GUI.Button(new Rect(actions.x + 186, actions.y, 150, 46), "Tavern", buttonStyle))
+            if (GUI.Button(new Rect(actions.x + 186, actions.y, 150, 46), ContentSetCatalog.MeteorCrownComplete(state.StoryFlags) ? "Return Home" : "Tavern", buttonStyle))
             {
-                state.Mode = GameMode.Tavern;
-                PlaySfx("ui", 0.55f);
+                ReturnEndStateToTavern();
             }
             if (TavernMenuRules.ShowDeveloperTesting(DeveloperTestingBuildEnabled()) && GUI.Button(new Rect(actions.x + 352, actions.y, 150, 46), "Beta Lab", buttonStyle)) StartBetaCombatLab();
         }
@@ -21835,7 +21873,10 @@ namespace AshenHalls
                 bool hostile = formula.Target == "enemy";
                 string spread = formula.Splash ? $" / splash {SplashTargetCount(target, target?.Side ?? UnitSide.Party)}" : "";
                 string chance = StatusChanceText(target, formula.Status, caster, hostile ? 0.86f : 1f, hostile);
-                return $"{formula.Name}: {StatusLabel(formula.Status)} {chance}{spread}\n{Mathf.Max(1, formula.Duration)} turns / {manaCost} MP{FormulaFocusNote(formula, caster)}";
+                string duration = formula.Splash
+                    ? $"{Mathf.Max(1, formula.Duration)} target / {Mathf.Max(1, formula.Duration - 1)} adjacent turns"
+                    : $"{Mathf.Max(1, formula.Duration)} turns";
+                return $"{formula.Name}: {StatusLabel(formula.Status)} {chance}{spread}\n{duration} / {manaCost} MP{FormulaFocusNote(formula, caster)}";
             }
             return $"{formula.Name}: {formula.Hint}\n{manaCost} MP{FormulaFocusNote(formula, caster)}";
         }

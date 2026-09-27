@@ -10,6 +10,7 @@ namespace AshenHalls
     {
         public bool Victory;
         public bool ShowTavernButton;
+        public string ReturnButtonLabel = "Tavern";
         public bool ShowBetaLabButton;
         public string Title;
         public string Subtitle;
@@ -129,7 +130,7 @@ namespace AshenHalls
                 ShowTavernButton = true,
                 ShowBetaLabButton = showBetaLab,
                 Title = "The Old Road Is Sealed",
-                Subtitle = "Vhal Rakh's meteor crown breaks above the ritual heart. " + homeTownName + " has one more dawn.",
+                Subtitle = "The ritual heart is silent. Vhal Rakh's crown is broken. " + homeTownName + " has one more dawn.",
                 SummaryTitle = "Company",
                 SummaryLine = $"Survivors {living}/{partyCount} · Avg level {Mathf.Max(1, averageLevel)} · {gold} gold · Depth {depth}",
                 PartyRows = partyRows ?? Array.Empty<string>(),
@@ -231,6 +232,7 @@ namespace AshenHalls
             footerText.gameObject.SetActive(!string.IsNullOrWhiteSpace(footerText.text));
             summaryLineText.gameObject.SetActive(!string.IsNullOrWhiteSpace(summaryLineText.text));
             tavernButton.gameObject.SetActive(view.ShowTavernButton);
+            tavernButton.GetComponentInChildren<Text>(true).text = view.ReturnButtonLabel ?? "Tavern";
             betaLabButton.gameObject.SetActive(view.ShowBetaLabButton);
 
             Color accent = view.Victory ? Hex("d7a84e", 0.92f) : Hex("d2545f", 0.92f);
@@ -282,9 +284,14 @@ namespace AshenHalls
 
         private void ApplyLayout()
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
-            EndStateGeometry geometry = EndStateScreenLayout.Calculate(Screen.width, Screen.height);
+            ApplyLayout(Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
+            EndStateGeometry geometry = EndStateScreenLayout.Calculate(width, height);
             SetScreenRect(backdrop, geometry.Backdrop);
             SetScreenRect(panel, geometry.Panel);
             SetLocalRect(heroPanel, geometry.Hero);

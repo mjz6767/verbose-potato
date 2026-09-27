@@ -3966,6 +3966,11 @@ namespace AshenHalls.Editor
                 && !InvokePrivate<bool>(game, "CanDescend"),
                 "the completed chapter cannot bypass Yara's separate Chapter V briefing");
 
+            // This fixture resolves the chapter callback directly; reproduce the
+            // checkpoint that FinishCombat normally writes after Explore resumes.
+            InvokePrivate(game, "AutosaveCheckpoint", "Glass Road fixture victory");
+            Assert(!CampaignMilestoneRules.Pending(state.StoryFlags).Any(),
+                "the Glass Road victory checkpoint settles its earned chapter experience once");
             int settledSupplies = state.Supplies;
             string settledProgression = PartyProgressionSignature(state);
             InvokePrivate(game, "RecallToTempleSquare");
@@ -4268,6 +4273,10 @@ namespace AshenHalls.Editor
                 && (state.ActiveStory ?? "").IndexOf("final descent remains sealed", StringComparison.OrdinalIgnoreCase) >= 0
                 && (GetPrivateField<string>(game, "dialogueBody") ?? "").IndexOf("final road", StringComparison.OrdinalIgnoreCase) >= 0,
                 "Yara's first post-threshold conversation closes Chapter V durably and states the honest final boundary");
+            Assert(PartyProgressionSignature(state) != settledProgression
+                && !CampaignMilestoneRules.Pending(state.StoryFlags).Any(),
+                "Yara's Chapter V debrief pays its one-time graduation reward");
+            settledProgression = PartyProgressionSignature(state);
             InvokePrivate(game, "CloseDialogue");
             InvokePrivate(game, "LateUpdate");
 

@@ -1351,12 +1351,16 @@ namespace AshenHalls
                 return false;
             }
 
-            string targetId = "";
+            string targetId = MeteorCrownGuidanceTargetId();
             bool redGateActive = HasRedGateStoryProgress()
                 && !ContentSetCatalog.RedGateComplete(state.StoryFlags);
             bool glassRoadActive = HasGlassAndAshStoryProgress()
                 && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags);
-            if (redGateActive)
+            if (!string.IsNullOrEmpty(targetId))
+            {
+                // The final chapter keeps priority when retracing earlier roads after recall.
+            }
+            else if (redGateActive)
             {
                 if (state.Depth == 1) targetId = OldRoadDescentId;
                 else if (state.Depth == 2) targetId = BoneRoadPassageId;
@@ -1436,6 +1440,11 @@ namespace AshenHalls
         private bool TryBoneRoadObjectiveSummary(out string objective)
         {
             objective = "";
+            if (HasMeteorCrownStoryProgress())
+            {
+                objective = MeteorCrownObjectiveForProgress();
+                return true;
+            }
             if (state == null
                 || !ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))
             {
@@ -1451,7 +1460,7 @@ namespace AshenHalls
             if (ContentSetCatalog.RedGateComplete(state.StoryFlags))
             {
                 objective = HasStoryFlag(StoryFlags.RedGateDebriefed)
-                    ? "Chapter V is complete. Yara charted the crownward threshold; the final descent remains sealed."
+                    ? "Chapter V is complete. Speak with Yara to review the final assault; the descent stays sealed until you accept."
                     : "Chapter V is complete. Recall to Midgaard and bring Yara the marshal's road seal.";
                 return true;
             }
@@ -1842,6 +1851,7 @@ namespace AshenHalls
         private bool IsEligibleExploreWaypoint(MapObject obj)
         {
             if (obj == null) return false;
+            if (string.Equals(obj.Id, MeteorCrownGuidanceTargetId(), StringComparison.Ordinal)) return true;
             bool redGateActive = HasRedGateStoryProgress()
                 && !ContentSetCatalog.RedGateComplete(state?.StoryFlags);
             if (ContentSetCatalog.IsSewerSlice(activeContentSet)
@@ -1943,6 +1953,7 @@ namespace AshenHalls
 
         private bool IsCurrentBoneRoadGuidanceTarget(MapObject obj)
         {
+            if (obj != null && string.Equals(obj.Id, MeteorCrownGuidanceTargetId(), StringComparison.Ordinal)) return true;
             if (obj == null
                 || state == null
                 || !ContentSetCatalog.AllowBoneRoadChapter(activeContentSet, state.StoryFlags))

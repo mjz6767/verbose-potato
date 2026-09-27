@@ -412,11 +412,49 @@ namespace AshenHalls
             }
         };
 
-        public static IReadOnlyList<EncounterDefinition> All => definitions;
+        private static readonly EncounterDefinition[] meteorCrownDefinitions =
+        {
+            new EncounterDefinition
+            {
+                Id = EncounterId.MeteorCrownSentries,
+                LegacyStyle = MeteorCrownQuestRules.SentriesStyle,
+                Banner = "Crownwatch at the Last Gate",
+                Intro = "The crownwatch bars the return road. Break its line before following the glass conduit to the ritual heart.",
+                EnemyIds = new[] { "drowcrossbow", "drowmage", "gloamknight", "cinderling" },
+                FixedEnemyCount = 4,
+                EnemyPlacements = new[] { new Point(10, 2), new Point(10, 5), new Point(8, 3), new Point(9, 6) },
+                Obstacles = new[] { new Point(5, 1, "stone"), new Point(5, 6, "stone"), new Point(7, 2, "fire", 5), new Point(7, 5, "ice", 5) }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.MeteorCrownHeart,
+                LegacyStyle = MeteorCrownQuestRules.HeartStyle,
+                Banner = "The Heart Beneath the Glass",
+                Intro = "The library's mirrored floor opens over a stolen heart. Break it and its keepers; Vhal Rakh will lose the road that feeds his crown.",
+                EnemyIds = new[] { "ritualheart", "bonepriest", "reaver", "shade" },
+                FixedEnemyCount = 4,
+                EnemyPlacements = new[] { new Point(10, 3), new Point(9, 6), new Point(8, 2), new Point(8, 5) },
+                Obstacles = new[] { new Point(5, 2, "stone"), new Point(5, 5, "stone"), new Point(7, 3, "web", 5), new Point(7, 6, "gas", 5) }
+            },
+            new EncounterDefinition
+            {
+                Id = EncounterId.MeteorCrownSovereign,
+                LegacyStyle = MeteorCrownQuestRules.SovereignStyle,
+                Banner = "Vhal Rakh, the Unfed Crown",
+                Intro = "The ritual heart is silent. Vhal Rakh has only the fire he brought with him. Spread before his last court and end the road's long hunger.",
+                EnemyIds = new[] { "meteorlich", "lesserdemon", "drowpriest", "cinderling" },
+                FixedEnemyCount = 4,
+                EnemyPlacements = new[] { new Point(10, 3), new Point(8, 2), new Point(10, 6), new Point(9, 5) },
+                Obstacles = new[] { new Point(5, 1, "stone"), new Point(5, 6, "stone"), new Point(7, 2, "fire", 5), new Point(7, 5, "fire", 5) }
+            }
+        };
+
+        private static readonly EncounterDefinition[] allDefinitions = definitions.Concat(meteorCrownDefinitions).ToArray();
+        public static IReadOnlyList<EncounterDefinition> All => allDefinitions;
 
         public static EncounterDefinition For(EncounterId id)
         {
-            EncounterDefinition definition = definitions.FirstOrDefault(d => d.Id == id);
+            EncounterDefinition definition = allDefinitions.FirstOrDefault(d => d.Id == id);
             if (definition == null) throw new ArgumentException("Unknown encounter id: " + id, nameof(id));
             return definition;
         }
@@ -424,7 +462,7 @@ namespace AshenHalls
         public static EncounterId IdForLegacyStyle(string style)
         {
             style = style ?? "";
-            EncounterDefinition definition = definitions.FirstOrDefault(d => string.Equals(d.LegacyStyle ?? "", style, StringComparison.OrdinalIgnoreCase));
+            EncounterDefinition definition = allDefinitions.FirstOrDefault(d => string.Equals(d.LegacyStyle ?? "", style, StringComparison.OrdinalIgnoreCase));
             if (definition == null) throw new ArgumentException("Unknown encounter style: " + style, nameof(style));
             return definition.Id;
         }

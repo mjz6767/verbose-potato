@@ -846,6 +846,7 @@ namespace AshenHalls
                 {
                     AddRedGateJournalRows(rows);
                 }
+                AddMeteorCrownJournalRows(rows);
                 AddChartedRegionalSiteJournalRows(rows);
                 AddRemembranceJournalRows(rows);
                 return rows;
@@ -1121,7 +1122,7 @@ namespace AshenHalls
                 "Follow the known roads to the far Red Gate Seal, turn the copied key, and break the cinder vanguard holding its crownward tally.",
                 "Carry the vanguard tally north to Gloam Deep Crypt and recover the stolen ossuary road seal from its reliquary guard.",
                 "Take the ossuary seal south to Salt Cistern Gate and defeat the marshal binding drow, dead, and demon forces to the final lock.",
-                "Inspect the stable descent after the marshal falls, chart the falling-star script, and seal the threshold without entering unfinished Chapter VI."
+                "Inspect the stable descent after the marshal falls, chart the falling-star script, and keep the threshold sealed until Yara reviews the final assault."
             };
 
             for (int i = 0; i < labels.Length; i++)
@@ -1388,6 +1389,7 @@ namespace AshenHalls
             if (depth == 3) return ContentSetCatalog.BoneRoadComplete(state?.StoryFlags) || state != null && state.Depth > 3;
             if (depth == 4) return ContentSetCatalog.GlassAndAshComplete(state?.StoryFlags) || state != null && state.Depth > 4;
             if (depth == 5) return ContentSetCatalog.RedGateComplete(state?.StoryFlags) || state != null && state.Depth > 5;
+            if (depth == 6) return ContentSetCatalog.MeteorCrownComplete(state?.StoryFlags);
             return state != null && state.Depth > depth;
         }
 
@@ -1398,6 +1400,7 @@ namespace AshenHalls
             if (depth == 3 && !ContentSetCatalog.BoneRoadComplete(state.StoryFlags)) return state.Depth == 3;
             if (depth == 4 && !ContentSetCatalog.GlassAndAshComplete(state.StoryFlags)) return state.Depth == 4;
             if (depth == 5 && !ContentSetCatalog.RedGateComplete(state.StoryFlags)) return state.Depth == 5;
+            if (depth == 6 && ContentSetCatalog.MeteorCrownComplete(state.StoryFlags)) return false;
             return Mathf.Clamp(state.Depth, 1, FinalBossDepth) == depth;
         }
 

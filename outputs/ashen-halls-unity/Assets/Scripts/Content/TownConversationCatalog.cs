@@ -8,7 +8,8 @@ namespace AshenHalls
         KoboldVictory,
         GloamVictory,
         GlassAndAshVictory,
-        RedGateVictory
+        RedGateVictory,
+        MeteorCrownVictory
     }
 
     // Authored, local conversation: reading a line never changes story or service state.
@@ -16,6 +17,7 @@ namespace AshenHalls
     {
         public static TownStoryStage Stage(GameState state)
         {
+            if (Has(state, StoryFlags.MeteorCrownDefeated)) return TownStoryStage.MeteorCrownVictory;
             if (Has(state, StoryFlags.CrownroadMarshalDefeated)) return TownStoryStage.RedGateVictory;
             if (Has(state, StoryFlags.EmberglassGateKeyRecovered)) return TownStoryStage.GlassAndAshVictory;
             if (Has(state, StoryFlags.GloamWardenDefeated)) return TownStoryStage.GloamVictory;
@@ -37,6 +39,7 @@ namespace AshenHalls
                 case NpcId.Orren:
                     switch (stage)
                     {
+                        case TownStoryStage.MeteorCrownVictory: return "You can put that pack down. Brann brought word that Vhal Rakh is gone, but I kept watching the door. Your table's ready. Tell me about the road when you've had something warm.";
                         case TownStoryStage.RedGateVictory: return "The tale from Red Gate got here before you. It grew a second dragon between the door and the bar. Sit down and tell me which bits to cross out.";
                         case TownStoryStage.GlassAndAshVictory: return "Glass country, was it? Leave the boots by the hearth; I don't want glitter in the floorboards. Glad to see the people who belong in them.";
                         case TownStoryStage.GloamVictory: return "They say the Warden is down. Good. I'd rather hear you complain about my beer than hear another song about the dead.";
@@ -59,19 +62,31 @@ namespace AshenHalls
                         : $" Four provisions cost 12 gold. You've got {gold}.");
                 case NpcId.Borin:
                     if (Has(state, StoryFlags.MidgaardRatPeltArmorMade))
-                        return "Back again. Good. I'd sooner see my work worn than hanging here. Keep that sewer-hide coat dry at the seams; tell me if a shoulder pulls.";
+                        return stage == TownStoryStage.MeteorCrownVictory
+                            ? "I was counting hammer blows until someone brought news. Lost count twice. You're home now. Let me look at those seams; there's no need to mend them in a hurry today."
+                            : "Back again. Good. I'd sooner see my work worn than hanging here. Keep that sewer-hide coat dry at the seams; tell me if a shoulder pulls.";
                     if (Has(state, StoryFlags.MidgaardBasicArmorBought))
-                        return "How are the rings holding? The hauberk I made you is in your Inventory; compare the fit before choosing a wearer. I've a moment if you need advice.";
-                    return (stage >= TownStoryStage.CisternVictory ? "Heard you came back from the den. Glad of it. " : "Mind the filings on that stool. ")
+                        return stage == TownStoryStage.MeteorCrownVictory
+                            ? "The crown is broken and you're back to complain about my rings. Good. That's how I wanted this to end. Bring the hauberk over if anything pulls."
+                            : "How are the rings holding? The hauberk I made you is in your Inventory; compare the fit before choosing a wearer. I've a moment if you need advice.";
+                    return (stage == TownStoryStage.MeteorCrownVictory ? "A quiet road still needs sound armor. Glad you're here to choose it. "
+                        : stage >= TownStoryStage.CisternVictory ? "Heard you came back from the den. Glad of it. " : "Mind the filings on that stool. ")
                         + $"A plain iron hauberk costs 28 gold. I'll put it in your Pack for you to choose the wearer. You've got {gold}.";
                 case NpcId.Tessa:
                     if (Has(state, StoryFlags.MidgaardBasicWeaponBought))
-                        return "Back with all your fingers? I'll count that as a recommendation. You have the weapon I fitted; if you're weighing a new find against it, I can talk you through the balance.";
-                    return (stage >= TownStoryStage.CisternVictory ? "Word is you've given my trade a fair trial below the city. " : "Try the grip before you admire the blade. ")
+                        return stage == TownStoryStage.MeteorCrownVictory
+                            ? "I heard about Vhal Rakh. Been trying to think of something grand to say. All I've got is: oil the blade before you hang it up. And I'm glad you came back."
+                            : "Back with all your fingers? I'll count that as a recommendation. You have the weapon I fitted; if you're weighing a new find against it, I can talk you through the balance.";
+                    return (stage == TownStoryStage.MeteorCrownVictory ? "No last-minute fittings today. We have time to find the right balance. "
+                        : stage >= TownStoryStage.CisternVictory ? "Word is you've given my trade a fair trial below the city. " : "Try the grip before you admire the blade. ")
                         + $"A weapon fitted to your lead fighter costs 32 gold. You've got {gold}.";
                 case NpcId.Maud:
-                    if (!HasWeapon(state)) return "Empty hands? Then you can keep me company. Bring a weapon or a focus when you want a rune; questions need neither.";
-                    string opening = Has(state, StoryFlags.MidgaardWeaponEnchanted)
+                    if (!HasWeapon(state)) return stage == TownStoryStage.MeteorCrownVictory
+                        ? "The anvil stopped humming when the crown broke. I thought I'd gone deaf. Empty hands today? Good. Sit down and help me get used to the quiet."
+                        : "Empty hands? Then you can keep me company. Bring a weapon or a focus when you want a rune; questions need neither.";
+                    string opening = stage == TownStoryStage.MeteorCrownVictory
+                        ? "The anvil went quiet when the crown broke. My own work still answers, thankfully. "
+                        : Has(state, StoryFlags.MidgaardWeaponEnchanted)
                         ? "Back at my anvil. How did the mark take? "
                         : "Set the weapon down gently. The anvil and I both have good hearing. ";
                     return opening + $"A temper costs {WeaponEnchantmentRules.TemporaryCost} gold for {WeaponEnchantmentRules.TemporaryVictories} victories; a permanent binding costs {WeaponEnchantmentRules.PermanentCost} gold. You've got {gold}.";
@@ -90,6 +105,8 @@ namespace AshenHalls
         {
             switch (Stage(state))
             {
+                case TownStoryStage.MeteorCrownVictory:
+                    return "Brann opened the east gate at dawn. A cart got stuck in it before breakfast, and everyone argued about whose fault it was. Yara laughed when I told her. Vhal Rakh is gone, and the road has ordinary troubles again. I think I'll drink to that.";
                 case TownStoryStage.RedGateVictory:
                     if (Has(state, StoryFlags.RedGateDebriefed))
                         return "Everyone wants to know what lies past the Meteor Crown threshold. I tell them there's plenty worth coming home to on this side. You've given Yara her report. You can give the rest of us a quiet evening, if you'd like.";
@@ -134,6 +151,9 @@ namespace AshenHalls
 
         private static string FoodWelcome(bool lute, TownStoryStage stage)
         {
+            if (stage == TownStoryStage.MeteorCrownVictory)
+                return lute ? "The eastbound carts are moving again. I tied the first parcel three times; my hands wouldn't settle."
+                    : "I've had the pot on since dawn. Thought you might come through that door. Sit down, love. You're home.";
             if (stage >= TownStoryStage.GlassAndAshVictory)
                 return lute ? "Glass dust in the straps. Let's keep that out of your food." : "You've brought half a strange country in on your boots. Wipe them and come in, love.";
             if (stage >= TownStoryStage.KoboldVictory)

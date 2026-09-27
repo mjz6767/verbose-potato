@@ -1,4 +1,18 @@
-Ash & Brimstone v2.32.0 - Names Beneath the Water
+Ash & Brimstone v2.33.0 - The Last Dawn
+
+Release version: v2.33.0. Save schema: v27.
+
+The main campaign now continues through Chapter VI to a saved ending. After surveying the Meteor Crown threshold in Chapter V, debrief Yara and accept her final assault plan. Return to Salt Cistern Gate, secure the crownwatch road, break the ritual heart beneath the Glass Lore Library, then face Vhal Rakh. Rest, retreat and recall preserve each cleared position.
+
+Vhal Rakh's Crownfire catches adjacent allies with smaller sparks; spread out and use cover. The anchored ritual heart drains only a little health and cannot pursue the company. Cold and light counter Vhal Rakh; light and shock counter the heart. After victory, Return Home brings the completed company to Midgaard for homecoming conversations and unfinished errands. You can save and continue that company.
+
+Seven one-time chapter/preparation rewards add 2,650 base XP across the campaign. Existing saves receive any earned rewards they lack outside combat. The deterministic direct-route ledger reaches level 14 near the ending; exploring optional roads can reach higher class unlocks. Fallen heroes still follow the existing survivor XP rule. Spend earned attribute and talent points in the Growth tab.
+
+Priests and Paladins gain Word of Stillness at level 6, Sanctuary Ward at 9, Covenant Ward at 13 and Wellspring Hymn at 14. Covenant Ward lasts longer than Sanctuary Ward; previews show target and adjacent durations. Rewards, costs, resistance and refresh rules remain visible.
+
+The previous Edda quest, nine signature items and original artwork remain included. Save schema remains v27 and the v2.32 archive is preserved. Verification and human-playtest limits are recorded in Docs/ReleaseEvidence/v2.33.0-summary.json after packaging.
+
+Previous release: v2.32.0 - Names Beneath the Water
 
 Release version: v2.32.0. Save schema: v27.
 

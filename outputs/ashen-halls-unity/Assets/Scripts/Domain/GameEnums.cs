@@ -98,6 +98,9 @@ namespace AshenHalls
         AshenPactWarden,
         RedGateVanguard,
         OssuaryRoadSeal,
-        CrownroadMarshal
+        CrownroadMarshal,
+        MeteorCrownSentries,
+        MeteorCrownHeart,
+        MeteorCrownSovereign
     }
 }

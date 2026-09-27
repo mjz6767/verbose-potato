@@ -88,5 +88,11 @@ namespace AshenHalls
         public const string CrownroadMarshalDefeated = "crownroad_marshal_defeated";
         public const string MeteorCrownThresholdSurveyed = "meteor_crown_threshold_surveyed";
         public const string RedGateDebriefed = "red_gate_debriefed";
+
+        public const string MeteorCrownAssaultAccepted = "meteor_crown_assault_accepted";
+        public const string MeteorCrownEntered = "meteor_crown_entered";
+        public const string MeteorCrownSentriesDefeated = "meteor_crown_sentries_defeated";
+        public const string MeteorCrownHeartBroken = "meteor_crown_heart_broken";
+        public const string MeteorCrownDefeated = "meteor_crown_defeated";
     }
 }

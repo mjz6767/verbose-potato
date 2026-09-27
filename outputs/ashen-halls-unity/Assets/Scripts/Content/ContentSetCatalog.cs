@@ -11,7 +11,7 @@ namespace AshenHalls
 
         private static readonly string[] sewerSliceFormulaCodes =
         {
-            "OIC", "TBQ", "NVC", "OBL", "GBH", "TNC", "HLC", "SRF", "DWP", "SBN",
+            "OIC", "TBQ", "NVC", "OBL", "GBH", "TNC", "LNH", "HLC", "SGW", "SRF", "DWP", "TBG", "SWR", "SBN",
             "FIF", "RIG", "WBI", "RCL", "FBL", "RSG", "CLT", "CNS", "VST", "ACR", "AST",
             "RKW", "RNH", "RBT", "IBD", "SLV", "INH", "PBR", "GRH", "IBF", "DMC", "VRS", "DFA"
         };
@@ -29,7 +29,7 @@ namespace AshenHalls
             "koboldraider", "koboldslinger", "koboldshield", "koboldshaman",
             "drowscout", "drowcrossbow", "drowmage", "drowpriest",
             "husk", "reaver", "shade", "bonepriest", "gloamknight",
-            "glassmage", "cinderling", "lesserdemon"
+            "glassmage", "cinderling", "lesserdemon", "meteorlich", "ritualheart"
         };
 
         private static readonly EncounterId[] boneRoadEncounterIds =
@@ -154,6 +154,23 @@ namespace AshenHalls
         {
             return string.Equals(contentSet, SewerSlice, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(contentSet, FullPrototype, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool AllowMeteorCrownChapter(string contentSet, IReadOnlyCollection<string> flags)
+        {
+            if (IsFullPrototype(contentSet)) return true;
+            return IsSewerSlice(contentSet) && MeteorCrownQuestRules.Accepted(flags)
+                && MeteorCrownQuestRules.CanAccept(flags);
+        }
+
+        public static bool MeteorCrownComplete(IReadOnlyCollection<string> flags)
+        {
+            return MeteorCrownQuestRules.Complete(flags);
+        }
+
+        public static bool IsMeteorCrownEncounterStyle(string style)
+        {
+            return MeteorCrownQuestRules.IsEncounter(style);
         }
 
         public static string NormalizeContentSetId(string contentSet)

@@ -2,6 +2,15 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.33.0 - The Last Dawn
+
+- Open an authored Chapter VI after Yara's final briefing: secure the crownwatch return road, break the ritual heart, and confront Vhal Rakh. Ordered encounters, retreat/recall, route guidance, journal steps and a durable saved ending work together. The heart cannot prematurely trigger campaign victory.
+- Give Yara a final assault conversation and a personal aftermath; give Vhal Rakh a confrontation with room to prepare before committing. Return Home keeps the completed company playable and adds homecoming reactions for six town speakers. Preserve the optional Edda story in the epilogue.
+- Give the two bosses distinct bounded powers using existing art: Crownfire punishes adjacent clustering; the stationary ritual heart uses a focused life-draining pulse. Cover, range and elemental counters stay effective.
+- Add 2,650 base XP in seven one-time chapter/preparation rewards. Separate saved receipts support old-save catch-up and prevent repeated dialogue, checkpoints or reloads from duplicating rewards. Preserve combat XP and the level curve; defer catch-up during combat.
+- Activate four distinct Mend spells in the campaign for Priest/Paladin. Extend Covenant Ward to three target/two adjacent turns and disclose splash durations in spell previews.
+- Add production-path regressions for finale gates, real victory dispatch, recall, save/load, milestone receipts, boss powers and Mend casting, plus an explicit campaign pacing ledger and native dialogue/journal/ending captures. Preserve save v27 and the v2.32 package. Release evidence is recorded after verification.
+
 ## v2.32.0 - Names Beneath the Water
 
 - Add an optional Edda/Sera/Brann story: recover a water-damaged crew roll from the cleared cistern alcove, restore four names, and help Edda choose a private memorial or an honest public warning. Both endings offer the same choice of keepsake; the Journal tracks the favor separately from the campaign. Existing campaigns can return for it after clearing the sewers.

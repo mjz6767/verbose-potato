@@ -260,6 +260,8 @@ namespace AshenHalls
                     return Profile("casthex", "death", "fieldsnare", 0.52f, 0.92f, 0.34f, 0.09f, 0.24f, 16, 1.18f, 2f, 0.18f, 0.42f);
                 case "deathball":
                     return Profile("casthex", "death", "fieldcurse", 0.58f, 1.12f, 0.54f, 0.10f, 0.29f, 27, 1.78f, 6f, 0.34f, 0.56f);
+                case "heartpulse":
+                    return Profile("castpact", "death", "", 0.50f, 0.92f, 0f, 0.10f, 0.24f, 16, 1.16f, 2f, 0.20f, 0.42f);
                 case "shocksign":
                     return Profile("castshock", "shock", "", 0.42f, 0.82f, 0f, 0.07f, 0.18f, 10, 0.88f, 1f, 0.14f, 0.30f);
                 case "coldsplinter":
@@ -281,6 +283,7 @@ namespace AshenHalls
                 case "royalcharge":
                     return Profile("charge", "guard", "crit", 0.72f, 1.08f, 0.46f, 0.08f, 0.22f, 24, 1.62f, 6f, 0.34f, 0.56f);
                 case "royalfireball":
+                case "crownfire":
                     return Profile("castember", "fireball", "fieldfire", 0.64f, 1.18f, 0.66f, CombatPowerVisualRules.FireballTravelDuration, 0.52f, 30, 1.92f, 8f, 0.40f, 0.60f, 3);
                 case "royalicelance":
                     return Profile("castfrost", "ice", "fieldice", 0.56f, 1.04f, 0.38f, 0.09f, 0.25f, 22, 1.48f, 5f, 0.28f, 0.50f);
