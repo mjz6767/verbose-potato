@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace AshenHalls
 {
@@ -391,7 +392,7 @@ namespace AshenHalls
 
         public static string NormalizeFormulaKey(string formulaCodeOrName)
         {
-            string key = Compact(formulaCodeOrName);
+            string key = ResolveCatalogFormulaKey(Compact(formulaCodeOrName));
             switch (key)
             {
                 case "treecover":
@@ -478,7 +479,7 @@ namespace AshenHalls
 
         public static string NormalizeAbilityKey(string abilityIdOrName)
         {
-            string key = Compact(abilityIdOrName);
+            string key = ResolveCatalogAbilityKey(Compact(abilityIdOrName));
             switch (key)
             {
                 case "chg": return "charge";
@@ -507,6 +508,66 @@ namespace AshenHalls
                 case "srd": return "soulrend";
                 case "drr": return "dreadroar";
                 default: return key;
+            }
+        }
+
+        // Catalog display names may change independently of saved IDs, authored
+        // audio, and legacy visual aliases. Cache this small catalog lookup so
+        // name support does not require another switch edit or per-frame scan.
+        internal static string ResolveCatalogFormulaKey(string compactKey)
+        {
+            return CatalogNameKeys.Formulas.TryGetValue(compactKey, out string key) ? key : compactKey;
+        }
+
+        internal static string ResolveCatalogAbilityKey(string compactKey)
+        {
+            return CatalogNameKeys.Abilities.TryGetValue(compactKey, out string key) ? key : compactKey;
+        }
+
+        private static class CatalogNameKeys
+        {
+            internal static readonly Dictionary<string, string> Formulas = BuildFormulaKeys();
+            internal static readonly Dictionary<string, string> Abilities = BuildAbilityKeys();
+
+            private static Dictionary<string, string> BuildFormulaKeys()
+            {
+                Dictionary<string, string> keys = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (FormulaDef formula in FormulaCatalog.All)
+                {
+                    if (formula == null || string.IsNullOrWhiteSpace(formula.Name)) continue;
+                    keys[Compact(formula.Name)] = Compact(formula.Code);
+                }
+                // Stable identifiers always retain their identity, including if
+                // a future display name happens to resemble another ID.
+                foreach (FormulaDef formula in FormulaCatalog.All)
+                {
+                    if (formula == null || string.IsNullOrWhiteSpace(formula.Code)) continue;
+                    string key = Compact(formula.Code);
+                    keys[key] = key;
+                }
+                return keys;
+            }
+
+            private static Dictionary<string, string> BuildAbilityKeys()
+            {
+                List<MartialAbility> abilities = new List<MartialAbility>();
+                foreach (string classKey in StarterPartyCatalog.SelectableClassKeys)
+                    abilities.AddRange(AbilityCatalog.ForClass(classKey));
+                abilities.AddRange(AbilityCatalog.ForClass("demon"));
+                Dictionary<string, string> keys = new Dictionary<string, string>(StringComparer.Ordinal);
+                foreach (MartialAbility ability in abilities)
+                {
+                    if (ability == null) continue;
+                    if (!string.IsNullOrWhiteSpace(ability.Name)) keys[Compact(ability.Name)] = Compact(ability.Id);
+                    if (!string.IsNullOrWhiteSpace(ability.Short)) keys[Compact(ability.Short)] = Compact(ability.Id);
+                }
+                foreach (MartialAbility ability in abilities)
+                {
+                    if (ability == null || string.IsNullOrWhiteSpace(ability.Id)) continue;
+                    string key = Compact(ability.Id);
+                    keys[key] = key;
+                }
+                return keys;
             }
         }
 

@@ -6191,7 +6191,7 @@ namespace AshenHalls.Editor
             Assert(!InvokePrivate<bool>(game, "HasLineOfSight", active.X, active.Y, spellTarget.X, spellTarget.Y, true), "Smoke Bomb blocks the missile sight line through its eastern cloud");
             FormulaDef arcSpark = FormulaCatalog.All.First(formula => formula.Code == "RIG");
             active.Spell = "ember";
-            Assert(!InvokePrivate<bool>(game, "HasFormulaLineOfSight", arcSpark, active, spellTarget.X, spellTarget.Y), "Smoke Bomb blocks direct Arc Spark sight");
+            Assert(!InvokePrivate<bool>(game, "HasFormulaLineOfSight", arcSpark, active, spellTarget.X, spellTarget.Y), "Smoke Bomb blocks direct Stormneedle sight");
             Assert(InvokePrivate<bool>(game, "CanStandAt", 2, 1), "Smoke Bomb leaves its occupied field tile open to movement");
             int smokeProbeHp = spellTarget.Hp;
             spellTarget.X = 2;
@@ -6228,10 +6228,10 @@ namespace AshenHalls.Editor
             active.X = 1;
             active.Y = 3;
             active.Mana = active.MaxMana;
-            Assert(InvokePrivate<bool>(game, "CastFormula", active, "RIG", spellTarget, spellTarget.X, spellTarget.Y), "Arc Spark resolves through the production formula path");
-            Assert(spellTarget.Hp < spellTarget.MaxHp, "Arc Spark deals direct shock damage");
+            Assert(InvokePrivate<bool>(game, "CastFormula", active, "RIG", spellTarget, spellTarget.X, spellTarget.Y), "Stormneedle resolves through the production formula path");
+            Assert(spellTarget.Hp < spellTarget.MaxHp, "Stormneedle deals direct shock damage");
             Assert(stagedPowerTravel.Any(value => value.PowerKey == "RIG")
-                && !stagedBeams.Any(value => value.Kind == "lightning"), "Arc Spark uses its authored lightning travel without a duplicate legacy beam");
+                && !stagedBeams.Any(value => value.Kind == "lightning"), "Stormneedle uses its authored lightning travel without a duplicate legacy beam");
 
             stagedFloats.Clear();
             stagedBeams.Clear();
@@ -6681,7 +6681,7 @@ namespace AshenHalls.Editor
             Assert(aimedShotCard.TargetCountKnown && aimedShotCard.ValidTargetCount > 0
                 && !string.IsNullOrWhiteSpace(aimedShotCard.RowSummary)
                 && !string.IsNullOrWhiteSpace(aimedShotCard.CurrentEffect)
-                && !aimedShotCard.CurrentEffect.Contains("TACTICS"), "skillbook computes legal targets and shows only the live Aimed Shot effect");
+                && !aimedShotCard.CurrentEffect.Contains("TACTICS"), "skillbook computes legal targets and shows only the live Hawkeye Shot effect");
             Assert(!string.IsNullOrWhiteSpace(CombatAbilityModalPresentationRules.DetailMeta(aimedShotCard))
                 && !string.IsNullOrWhiteSpace(CombatAbilityModalPresentationRules.DetailNotes(aimedShotCard))
                 && !CombatAbilityModalPresentationRules.DetailNotes(aimedShotCard).Contains("CURRENT EFFECT"), "skillbook detail adds profile and tactics without repeating its live outcome");
@@ -6690,7 +6690,7 @@ namespace AshenHalls.Editor
                 && modal.DetailTargetLabelForTest.Contains("enem")
                 && modal.SelectedRailUsesSelectionAccentForTest
                 && modal.DetailUsesSelectionChromeForTest,
-                "ordinary Skillbook selection uses teal chrome and names Aimed Shot's legal enemies");
+                "ordinary Skillbook selection uses teal chrome and names Hawkeye Shot's legal enemies");
             List<CombatAbilityModalCardView> visibleSkillCards = skillbookView.Cards
                 .Where(card => CombatAbilityModalPresentationRules.MatchesFilter(card, modal.ActiveFilter))
                 .ToList();
@@ -6770,7 +6770,7 @@ namespace AshenHalls.Editor
             Assert(!modal.IsVisible
                 && GetPrivateField<string>(game, "pendingAbilityId") == "aimedshot"
                 && GetPrivateField<ActionMode>(game, "selectedAction") == ActionMode.Ability
-                && combatState.Combat.Phase == CombatPhase.ChooseTarget, "skillbook primary action closes the book and arms Aimed Shot");
+                && combatState.Combat.Phase == CombatPhase.ChooseTarget, "skillbook primary action closes the book and arms Hawkeye Shot");
             Assert(spellTarget.Hp == skillbookHp
                 && combatState.Combat.MovePoints == skillbookMovePoints
                 && combatState.Combat.ActionAvailable, "arming a skill through the book spends nothing before target confirmation");
@@ -6778,11 +6778,11 @@ namespace AshenHalls.Editor
                 .Commands.First(command => command.Mode == ActionMode.Ability);
             Assert(armedSkillCommand.Selected
                 && armedSkillCommand.Armed
-                && armedSkillCommand.Label == "Aimed Shot"
+                && armedSkillCommand.Label == "Hawkeye Shot"
                 && armedSkillCommand.SubLabel.StartsWith("ARMED", StringComparison.Ordinal)
                 && ReferenceEquals(armedSkillCommand.IconTexture, abilityIcons)
                 && armedSkillCommand.IconSource == InvokePrivate<Rect>(game, "AbilityIconAtlasCell", CombatIconCatalog.AbilityIndex("aimedshot")),
-                "armed skill command returns Aimed Shot art to the deck with the same targeting contract as spells");
+                "armed skill command returns Hawkeye Shot art to the deck with the same targeting contract as spells");
             Assert(InvokePrivate<bool>(game, "CancelCombatTargeting"), "skill targeting can be canceled without spending the action");
             Assert(string.IsNullOrEmpty(GetPrivateField<string>(game, "pendingAbilityId"))
                 && combatState.Combat.ActionAvailable, "canceling a skill returns to an action-ready state");
@@ -6801,11 +6801,11 @@ namespace AshenHalls.Editor
             combatState.Combat.ActionAvailable = true;
             combatState.Combat.Phase = CombatPhase.ChooseAction;
             SetPrivateField(game, "rng", new System.Random(1));
-            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "aimedshot", spellTarget, spellTarget.X, spellTarget.Y), "Aimed Shot resolves through the centralized martial presentation path");
-            Assert(castAuras.Any(aura => aura.SourceX == active.X && aura.TargetX == spellTarget.X && aura.Kind == "aimedshot"), "Aimed Shot stages a caster-origin skill aura");
-            Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Kind == "aimedshot"), "Aimed Shot receives its authored ranger-atlas impact echo");
-            Assert(stagedGlyphs.Count == 0 && stagedFlashes.Count == 0, "shared Aimed Shot feedback suppresses the legacy ranger glyph and tile flash");
-            Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) >= 1, "Aimed Shot queues staged release and impact audio");
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "aimedshot", spellTarget, spellTarget.X, spellTarget.Y), "Hawkeye Shot resolves through the centralized martial presentation path");
+            Assert(castAuras.Any(aura => aura.SourceX == active.X && aura.TargetX == spellTarget.X && aura.Kind == "aimedshot"), "Hawkeye Shot stages a caster-origin skill aura");
+            Assert(impactEchoes.Any(echo => echo.X == spellTarget.X && echo.Kind == "aimedshot"), "Hawkeye Shot receives its authored ranger-atlas impact echo");
+            Assert(stagedGlyphs.Count == 0 && stagedFlashes.Count == 0, "shared Hawkeye Shot feedback suppresses the legacy ranger glyph and tile flash");
+            Assert((int)scheduledSfx.GetType().GetProperty("Count").GetValue(scheduledSfx) >= 1, "Hawkeye Shot queues staged release and impact audio");
 
             combatState.Combat.Obstacles.Clear();
             active.Level = ProgressionRules.MaximumLevel;
@@ -6931,10 +6931,10 @@ namespace AshenHalls.Editor
             int quickShotHp = spellTarget.Hp;
             int quickShotBeams = stagedBeams.Count(beam => beam.Kind == "shot");
             int quickShotTravel = stagedPowerTravel.Count(travel => travel.PowerKey == "quickshot");
-            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "quickshot", spellTarget, spellTarget.X, spellTarget.Y), "Quick Shot resolves through the centralized martial path");
+            Assert(InvokePrivate<bool>(game, "UseTargetedAbility", active, "quickshot", spellTarget, spellTarget.X, spellTarget.Y), "Twinshot resolves through the centralized martial path");
             Assert(spellTarget.Hp < quickShotHp
                 && stagedPowerTravel.Count(travel => travel.PowerKey == "quickshot") == quickShotTravel + 1
-                && stagedBeams.Count(beam => beam.Kind == "shot") >= quickShotBeams + 1, "Quick Shot uses authored primary travel and retains its independently timed second arrow");
+                && stagedBeams.Count(beam => beam.Kind == "shot") >= quickShotBeams + 1, "Twinshot uses authored primary travel and retains its independently timed second arrow");
 
             scheduledSfx.GetType().GetMethod("Clear").Invoke(scheduledSfx, null);
             stagedFloats.Clear();

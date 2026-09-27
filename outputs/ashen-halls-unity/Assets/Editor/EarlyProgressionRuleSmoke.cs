@@ -122,7 +122,7 @@ namespace AshenHalls.Editor
 
             Require(AbilityCatalog.For("sunder")?.RequiredLevel == 16, "Sunder must remain the warrior's level 16 unlock");
             Require(AbilityCatalog.For("shadowstep")?.RequiredLevel == 16, "Shadowstep must remain the rogue's level 16 unlock");
-            Require(AbilityCatalog.For("quickshot")?.RequiredLevel == 16, "Quick Shot must remain the ranger's level 16 unlock");
+            Require(AbilityCatalog.For("quickshot")?.RequiredLevel == 16, "Twinshot must remain the ranger's level 16 unlock");
         }
 
         private static void DefaultContentActivatesPermanentProgression()
@@ -152,7 +152,7 @@ namespace AshenHalls.Editor
         {
             Require(CombatIconCatalog.AbilityIndex("sunder") == 24, "Sunder ability icon must remain at atlas index 24");
             Require(CombatIconCatalog.AbilityIndex("shadowstep") == 25, "Shadowstep ability icon must remain at atlas index 25");
-            Require(CombatIconCatalog.AbilityIndex("quickshot") == 26, "Quick Shot ability icon must remain at atlas index 26");
+            Require(CombatIconCatalog.AbilityIndex("quickshot") == 26, "Twinshot ability icon must remain at atlas index 26");
             Require(CombatIconCatalog.ExpandedAbilityAtlasRows * CombatIconCatalog.AbilityAtlasColumns > 26, "ability atlas must contain indices 24..26");
 
             Require(CombatIconCatalog.SignatureSpellIndex("DWP") == 51, "Dawn Pulse spell icon must remain at atlas index 51");

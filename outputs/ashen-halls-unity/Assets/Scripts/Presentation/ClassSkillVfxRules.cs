@@ -174,7 +174,7 @@ namespace AshenHalls
 
         public static string NormalizeKey(string abilityOrVisualKind)
         {
-            string key = Compact(abilityOrVisualKind);
+            string key = CombatPowerSfxRules.ResolveCatalogAbilityKey(Compact(abilityOrVisualKind));
             switch (key)
             {
                 case "charge":

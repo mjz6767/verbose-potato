@@ -60,7 +60,7 @@ namespace AshenHalls.Editor
                 Assert(greater.length > imp.length * 1.5f, "greater summon has an extended gate and creature arrival");
                 VerifyDeterminism(game, flags);
                 CombatAudioPolishSmoke.ExportPlansPreview(clips, signatureKeys.Select(key => CombatPowerSfxRules.PlanForFormula(key)).ToArray(),
-                    "demonic-spells-preview.wav", "Rift Bolt, Summon Imp, Lesser Demon, Greater Demon, Death Burst, Abyssal Ascendance");
+                    "demonic-spells-preview.wav", "Rift Bolt, Summon Imp, Lesser Demon, Greater Demon, Grave Rupture, Abyssal Ascendance");
                 CombatAudioPolishSmoke.ExportPlansPreview(clips, new[] { "riftpounce", "abyssalwhirl", "soulrend", "dreadroar" }
                     .Select(key => CombatPowerSfxRules.PlanForAbility(key)).ToArray(),
                     "demon-arts-preview.wav", "Rift Pounce, Abyssal Whirl, Soul Rend, Dread Roar");

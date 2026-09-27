@@ -105,7 +105,7 @@ namespace AshenHalls.Editor
                 CombatPowerSfxRules.PlanForFormula("RBT"), CombatPowerSfxRules.PlanForAbility("charge"),
                 CombatPowerSfxRules.PlanForAbility("whirlwind"), CombatPowerSfxRules.PlanForAbility("volley")
             };
-            ExportPlansPreview(clips, plans, "audio-preview.wav", "Fireball, Cold Lance, Rift Bolt, Charge, Whirlwind, Volley");
+            ExportPlansPreview(clips, plans, "audio-preview.wav", "Fireball, Frost Lance, Rift Bolt, Charge, Whirlwind, Volley");
         }
 
         internal static void ExportPlansPreview(Dictionary<string, AudioClip> clips, CombatPowerSfxPlan[] plans, string filename, string labels)

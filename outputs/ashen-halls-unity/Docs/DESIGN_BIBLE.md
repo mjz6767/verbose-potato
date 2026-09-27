@@ -38,7 +38,7 @@ This is a living note for keeping the game coherent as it grows. It should captu
 - Wizard: broad scholar-caster with access to multiple arcane crafts, but fragile and gear-dependent.
 - Mage: focused elemental caster with fire, ice, shock, burn-cover, and terrain reaction emphasis.
 - Warlock: dark-arts class using hex/death/pact magic. Warlocks can bind fragile demons; future upgrades should add stronger demons, pact costs, and risk/reward bargains.
-- Priest: recovery, cures, wards, light damage, and terrain shaping such as Tree Cover.
+- Priest: recovery, cures, wards, light damage, and terrain shaping such as Verdant Shelter.
 - Paladin: hybrid front-liner with guard, armor, light wards, and limited priest craft.
 - Specializations and hybrid classes should build from these eight, not replace them too early.
 
@@ -50,8 +50,8 @@ This is a living note for keeping the game coherent as it grows. It should captu
 - Focused casting rewards spellcasters who hold position before speaking a formula.
 - Formula terrain reactions should be readable and tactical: fire burns cover and hazards, ice counters fire, and shock rides conductive hazards.
 - Circle formulas should give menders occasional party-positioning decisions without becoming full inventory or buff maintenance.
-- Tree Cover should preserve the memory of hiding behind generated trees, but it must not be infinitely abusable. It blocks direct arrows and bolts, arcing spells can pass over it, fire can burn it, and enemies can break through it.
-- Warlock pact magic starts with Bind Imp: a fragile temporary ally that blocks lanes and attacks. Later pact spells can add stronger demons, self-costs, unreliable bargains, or anti-holy weaknesses.
+- Verdant Shelter should preserve the memory of hiding behind generated trees, but it must not be infinitely abusable. It blocks direct arrows and bolts, arcing spells can pass over it, fire can burn it, and enemies can break through it.
+- Warlock pact magic starts with Summon Imp: a fragile temporary ally that blocks lanes and attacks. Later pact spells can add stronger demons, self-costs, unreliable bargains, or anti-holy weaknesses.
 - Class spell unlocks should eventually be level-gated. The current beta exposes many spells for testing; later versions should reveal them through level, class, and specialization.
 - Spell tiers are the current bridge toward that progression: starter, apprentice, adept, and elder labels should teach the intended ladder before the game starts enforcing hard unlocks.
 - Beta Lab controls are test harness tools, not lore. They exist to exercise combat/casting systems quickly until the rules are stable.

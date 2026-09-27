@@ -87,7 +87,7 @@ namespace AshenHalls
                         "Enter / Space / Submit: confirm the open cursor. Space with no cursor: End Turn.",
                         "G: Guard. H: Elixir. I: Armory. Esc: Menu. Retreat costs 1 supply; Growth unlocks after combat.",
                         "Stand still for lower spell costs, longer reach, and stronger hits.",
-                        "Tree Cover lasts " + Math.Max(1, summonedTreeDuration) + " rounds, blocking arrows and direct bolts. Arcing spells pass over it.",
+                        "Verdant Shelter lasts " + Math.Max(1, summonedTreeDuration) + " rounds, blocking arrows and direct bolts. Arcing spells pass over it.",
                         "Hover a tile or target for range, cover, and damage."
                     }
                 };

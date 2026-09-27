@@ -103,7 +103,7 @@ namespace AshenHalls.Editor
                 int enemyHealth = enemy.Hp;
                 Set(game, "rng", new MinimumRandom());
                 ConfirmFormula(game, priest, "OBL", enemy);
-                Require(enemy.Hp < enemyHealth, "the production Light Bolt command damages the staged enemy");
+                Require(enemy.Hp < enemyHealth, "the production Dawnlance command damages the staged enemy");
                 RequireLabSaveBlocked(game, state);
             });
         }

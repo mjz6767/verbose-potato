@@ -163,7 +163,7 @@ namespace AshenHalls
 
         public static string NormalizeKey(string visualOrFormulaKind)
         {
-            string key = Compact(visualOrFormulaKind);
+            string key = CombatPowerSfxRules.ResolveCatalogFormulaKey(Compact(visualOrFormulaKind));
             switch (key)
             {
                 case "oic":

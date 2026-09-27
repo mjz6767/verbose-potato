@@ -128,7 +128,7 @@ namespace AshenHalls.Editor
                 int splashAmount = Math.Max(2, range.x / 2);
                 string preview = (string)Invoke(game, "FormulaPreview", caster, formula, target, target.X, target.Y);
                 Require(preview.Contains("+1-1 HP"), "near-full heal forecast promises only recoverable HP");
-                Require((bool)Invoke(game, "ResolveFormula", formula, caster, target, target.X, target.Y), "Circle Heal resolves");
+                Require((bool)Invoke(game, "ResolveFormula", formula, caster, target, target.X, target.Y), "Circle of Mercy resolves");
                 Require(target.Hp == 100 && nearlyFull.Hp == 100 && full.Hp == 100, "healing retains normal HP caps");
                 Require(wounded.Hp == 10 + splashAmount, "splash still uses the full rolled heal, not capped primary recovery");
                 List<FloatText> floats = Get<List<FloatText>>(game, "floatTexts");
@@ -145,7 +145,7 @@ namespace AshenHalls.Editor
             Require(CombatFeedbackRules.RecoverableHealth(100, 100, 40) == 0, "full health recovers zero");
             Require(CombatFeedbackRules.RecoverableHealth(99, 100, -1) == 0, "negative recovery is not advertised");
             Require(CombatFeedbackRules.DrainRecovery(10, 100, 1, 80, 1) == 1, "Soul Rend preview caps overkill but retains its minimum");
-            Require(CombatFeedbackRules.DrainRecovery(10, 100, 1, 80, 2) == 2, "Drain Life retains its authored minimum");
+            Require(CombatFeedbackRules.DrainRecovery(10, 100, 1, 80, 2) == 2, "Siphon Life retains its authored minimum");
             Require(CombatFeedbackRules.DrainRecovery(100, 100, 40, 80, 2) == 0, "full caster does not promise drain recovery");
             WithFixture((game, state, caster, target) =>
             {

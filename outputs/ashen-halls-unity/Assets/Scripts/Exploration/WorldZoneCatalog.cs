@@ -98,7 +98,7 @@ namespace AshenHalls
             "pilgrim road",
             1,
             "mossy paths, teal lamps, and old priest stones",
-            "A recovery-oriented road for priest lore, shrines, and Tree Cover tutoring.");
+            "A recovery-oriented road for priest lore, shrines, and Verdant Shelter tutoring.");
 
         private static readonly WorldZone DuskMarket = Zone(
             "dusk-market",

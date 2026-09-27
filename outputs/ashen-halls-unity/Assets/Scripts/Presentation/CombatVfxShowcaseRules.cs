@@ -62,37 +62,37 @@ namespace AshenHalls
     {
         private static readonly CombatVfxShowcaseEntry[] Entries =
         {
-            Formula("FBL", "Fireball", CombatVfxShowcaseScenario.Projectile),
-            Formula("MTR", "Meteor Shower", CombatVfxShowcaseScenario.AreaBombardment),
-            Formula("RCL", "Cold Lance", CombatVfxShowcaseScenario.Projectile),
-            Formula("OBL", "Light Bolt", CombatVfxShowcaseScenario.Projectile),
-            Formula("AST", "Arcane Tempest", CombatVfxShowcaseScenario.AreaStorm),
-            Formula("VST", "Thunder Step", CombatVfxShowcaseScenario.TeleportStrike),
-            Formula("RBT", "Rift Bolt", CombatVfxShowcaseScenario.Projectile),
-            Formula("INH", "Drain Life", CombatVfxShowcaseScenario.Projectile),
-            Formula("IBD", "Summon Imp", CombatVfxShowcaseScenario.Summon),
-            Formula("IBF", "Summon Lesser Demon", CombatVfxShowcaseScenario.Summon),
-            Formula("IBG", "Summon Greater Demon", CombatVfxShowcaseScenario.Summon),
-            Formula("DFA", "Abyssal Ascendance", CombatVfxShowcaseScenario.Transformation),
-            Formula("DMC", "Doom Circle", CombatVfxShowcaseScenario.GroundField),
-            Formula("HLC", "Hallowed Circle", CombatVfxShowcaseScenario.GroundField),
-            Formula("SLV", "Soul Veil", CombatVfxShowcaseScenario.SupportWard),
-            Formula("PBR", "Pact Brand", CombatVfxShowcaseScenario.AreaHex),
-            Formula("VRS", "Rift Step", CombatVfxShowcaseScenario.TeleportStrike),
-            Formula("RLM", "Death Burst", CombatVfxShowcaseScenario.AreaBurst),
-            Ability("charge", "Charge", CombatVfxShowcaseScenario.MovementStrike),
-            Ability("whirlwind", "Whirlwind", CombatVfxShowcaseScenario.MeleeArea),
-            Ability("abyssalwhirl", "Abyssal Whirl", CombatVfxShowcaseScenario.MeleeArea),
-            Ability("rally", "Rally", CombatVfxShowcaseScenario.SelfAura),
-            Ability("dreadroar", "Dread Roar", CombatVfxShowcaseScenario.SelfAura),
-            Ability("quickshot", "Quick Shot", CombatVfxShowcaseScenario.RangedArea),
-            Ability("stealth", "Stealth", CombatVfxShowcaseScenario.SelfAura),
-            Ability("smokebomb", "Smoke Bomb", CombatVfxShowcaseScenario.SelfAura),
-            Ability("sunder", "Sunder", CombatVfxShowcaseScenario.MeleeStrike),
-            Ability("execute", "Execute", CombatVfxShowcaseScenario.MeleeStrike),
-            Ability("shadowstep", "Shadowstep", CombatVfxShowcaseScenario.TeleportStrike),
-            Ability("riftpounce", "Rift Pounce", CombatVfxShowcaseScenario.TeleportStrike),
-            Ability("volley", "Volley", CombatVfxShowcaseScenario.RangedArea)
+            Formula("FBL", CombatVfxShowcaseScenario.Projectile),
+            Formula("MTR", CombatVfxShowcaseScenario.AreaBombardment),
+            Formula("RCL", CombatVfxShowcaseScenario.Projectile),
+            Formula("OBL", CombatVfxShowcaseScenario.Projectile),
+            Formula("AST", CombatVfxShowcaseScenario.AreaStorm),
+            Formula("VST", CombatVfxShowcaseScenario.TeleportStrike),
+            Formula("RBT", CombatVfxShowcaseScenario.Projectile),
+            Formula("INH", CombatVfxShowcaseScenario.Projectile),
+            Formula("IBD", CombatVfxShowcaseScenario.Summon),
+            Formula("IBF", CombatVfxShowcaseScenario.Summon),
+            Formula("IBG", CombatVfxShowcaseScenario.Summon),
+            Formula("DFA", CombatVfxShowcaseScenario.Transformation),
+            Formula("DMC", CombatVfxShowcaseScenario.GroundField),
+            Formula("HLC", CombatVfxShowcaseScenario.GroundField),
+            Formula("SLV", CombatVfxShowcaseScenario.SupportWard),
+            Formula("PBR", CombatVfxShowcaseScenario.AreaHex),
+            Formula("VRS", CombatVfxShowcaseScenario.TeleportStrike),
+            Formula("RLM", CombatVfxShowcaseScenario.AreaBurst),
+            Ability("charge", CombatVfxShowcaseScenario.MovementStrike),
+            Ability("whirlwind", CombatVfxShowcaseScenario.MeleeArea),
+            Ability("abyssalwhirl", CombatVfxShowcaseScenario.MeleeArea),
+            Ability("rally", CombatVfxShowcaseScenario.SelfAura),
+            Ability("dreadroar", CombatVfxShowcaseScenario.SelfAura),
+            Ability("quickshot", CombatVfxShowcaseScenario.RangedArea),
+            Ability("stealth", CombatVfxShowcaseScenario.SelfAura),
+            Ability("smokebomb", CombatVfxShowcaseScenario.SelfAura),
+            Ability("sunder", CombatVfxShowcaseScenario.MeleeStrike),
+            Ability("execute", CombatVfxShowcaseScenario.MeleeStrike),
+            Ability("shadowstep", CombatVfxShowcaseScenario.TeleportStrike),
+            Ability("riftpounce", CombatVfxShowcaseScenario.TeleportStrike),
+            Ability("volley", CombatVfxShowcaseScenario.RangedArea)
         };
 
         private static readonly IReadOnlyList<CombatVfxShowcaseEntry> ReadOnlyEntries = Array.AsReadOnly(Entries);
@@ -150,14 +150,14 @@ namespace AshenHalls
             return index >= 0 ? Entries[index].StableSeed : SeedForId(id);
         }
 
-        private static CombatVfxShowcaseEntry Formula(string id, string name, CombatVfxShowcaseScenario scenario)
+        private static CombatVfxShowcaseEntry Formula(string id, CombatVfxShowcaseScenario scenario)
         {
-            return new CombatVfxShowcaseEntry(id, name, CombatVfxShowcasePowerKind.Formula, scenario, SeedForId(id));
+            return new CombatVfxShowcaseEntry(id, Array.Find(FormulaCatalog.All, formula => formula.Code == id)?.Name ?? id, CombatVfxShowcasePowerKind.Formula, scenario, SeedForId(id));
         }
 
-        private static CombatVfxShowcaseEntry Ability(string id, string name, CombatVfxShowcaseScenario scenario)
+        private static CombatVfxShowcaseEntry Ability(string id, CombatVfxShowcaseScenario scenario)
         {
-            return new CombatVfxShowcaseEntry(id, name, CombatVfxShowcasePowerKind.Ability, scenario, SeedForId(id));
+            return new CombatVfxShowcaseEntry(id, AbilityCatalog.For(id)?.Name ?? id, CombatVfxShowcasePowerKind.Ability, scenario, SeedForId(id));
         }
 
         private static int SeedForId(string id)

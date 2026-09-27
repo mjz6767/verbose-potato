@@ -5845,7 +5845,7 @@ namespace AshenHalls
             if (!string.IsNullOrEmpty(reason)) return false;
             if (ability.Id == "charge" && active.Webbed > 0)
             {
-                reason = "Webbed: Charge needs free movement.";
+                reason = "Webbed: " + ability.Name + " needs free movement.";
                 return false;
             }
             if (ability.Id == "whirlwind" && !AdjacentEnemies(active).Any())
@@ -6787,7 +6787,7 @@ namespace AshenHalls
             }
             ActivateBetaSpellTester(unit, true);
             AddFloat(unit.X, unit.Y, "mage lab", ember);
-            PushLog("Beta Lab Mage kit ready: focused casting, Veil Step, Meteor Shower, and Arcane Tempest are available for testing.", Tone.Good);
+            PushLog("Beta Lab Mage kit ready: focused casting, Thunder Step, Meteor Shower, and Arcane Tempest are available for testing.", Tone.Good);
             ShowBanner("Mage test ready");
             PlaySfx("spell", 0.92f);
         }
@@ -6922,7 +6922,7 @@ namespace AshenHalls
             }
             ActivateBetaSpellTester(unit, true);
             AddFloat(unit.X, unit.Y, "warlock lab", violet);
-            PushLog("Beta Lab Warlock kit ready: all three summons, Pact Brand, Drain Life, and Abyssal Ascendance are available for testing.", Tone.Good);
+            PushLog("Beta Lab Warlock kit ready: all three summons, Pact Brand, Siphon Life, and Abyssal Ascendance are available for testing.", Tone.Good);
             ShowBanner("Warlock test ready");
             PlaySfx("curse", 0.92f);
         }
@@ -7220,12 +7220,12 @@ namespace AshenHalls
             SyncPartyFromCombat();
             if (priest)
             {
-                PushLog($"Priest Lab stages wounded, afflicted allies for healing and Cleanse, open ground for protection, and {staged} enemies for light spells.", Tone.Warn);
+                PushLog($"Priest Lab stages wounded, afflicted allies for healing and Absolution, open ground for protection, and {staged} enemies for light spells.", Tone.Warn);
                 ShowBanner("Priest arena staged");
             }
             else if (warlock)
             {
-                PushLog($"Warlock Lab stages {staged} adjacent targets for Pact Brand, opens three summon bays, and wounds {caster.Name} for Drain Life and Abyssal Ascendance testing.", Tone.Warn);
+                PushLog($"Warlock Lab stages {staged} adjacent targets for Pact Brand, opens three summon bays, and wounds {caster.Name} for Siphon Life and Abyssal Ascendance testing.", Tone.Warn);
                 ShowBanner("Warlock arena staged");
             }
             else
@@ -16510,7 +16510,7 @@ namespace AshenHalls
                     int damage = DealDamage(enemy, raw, "physical", blood);
                     AddFloat(enemy.X, enemy.Y, "slash", gold);
                     if (enemy.Hp <= 0) ReportUnitDown(enemy);
-                    PushLog($"{active.Name}'s whirlwind cuts {enemy.Name} for {damage} physical.", enemy.Hp <= 0 ? Tone.Good : Tone.Normal);
+                    PushLog($"{active.Name}'s {AbilityDef("whirlwind").Name} cuts {enemy.Name} for {damage} physical.", enemy.Hp <= 0 ? Tone.Good : Tone.Normal);
                 }
                 finally
                 {
@@ -16653,7 +16653,7 @@ namespace AshenHalls
 
         private bool UseExecute(CombatUnit active, CombatUnit target)
         {
-            if (!RollMartialHit(active, target, 12, "execute")) return true;
+            if (!RollMartialHit(active, target, 12, AbilityDef("execute").Name)) return true;
             int damage = DealDamage(target, ExecuteRawDamage(active), "physical", blood);
             ImproveSkill(active, "arms", 2);
             PushLog($"{active.Name} executes a finishing cut on {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Warn);
@@ -16663,7 +16663,7 @@ namespace AshenHalls
 
         private bool UseShieldBash(CombatUnit active, CombatUnit target)
         {
-            if (!RollMartialHit(active, target, 8, "shield bash", "guard")) return true;
+            if (!RollMartialHit(active, target, 8, AbilityDef("shieldbash").Name, "guard")) return true;
             int rawDamage = ShieldBashRawDamage(active);
             int damage = DealDamage(target, rawDamage, "physical", teal);
             string outcome = "";
@@ -16695,7 +16695,7 @@ namespace AshenHalls
 
         private bool UseCleave(CombatUnit active, CombatUnit target)
         {
-            if (!RollMartialHit(active, target, 4, "cleave")) return true;
+            if (!RollMartialHit(active, target, 4, AbilityDef("cleave").Name)) return true;
             int raw = CleaveRawDamage(active);
             int damage = DealDamage(target, raw, "physical", blood);
             AddTween(active.Id, new Vector2(active.X, active.Y), new Vector2(active.X + Mathf.Sign(target.X - active.X) * 0.22f, active.Y + Mathf.Sign(target.Y - active.Y) * 0.22f), TweenKind.Lunge);
@@ -16737,7 +16737,7 @@ namespace AshenHalls
 
         private bool UseThrowKnife(CombatUnit active, CombatUnit target)
         {
-            if (!RollMartialHit(active, target, 12, "throw knife", "missile")) return true;
+            if (!RollMartialHit(active, target, 12, AbilityDef("throwknife").Name, "missile")) return true;
             int damage = DealDamage(target, ThrowKnifeRawDamage(active), "physical", blood);
             if (target.Hp > 0)
             {
@@ -16792,12 +16792,12 @@ namespace AshenHalls
 
         private bool UseAimedShot(CombatUnit active, CombatUnit target)
         {
-            if (!RollMartialHit(active, target, 18, "aimed shot", "missile")) return true;
+            if (!RollMartialHit(active, target, 18, AbilityDef("aimedshot").Name, "missile")) return true;
             int damage = DealDamage(target, AimedShotRawDamage(active, target), "physical", gold);
             AddLegacyPrimaryPowerBeam("aimedshot", active.X, active.Y, target.X, target.Y, gold, "shot");
             AddRangerTileGlyph(target.X, target.Y, 0, gold);
             ImproveSkill(active, "missile", 2);
-            PushLog($"{active.Name} lands an aimed shot on {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
+            PushLog($"{active.Name} uses {AbilityDef("aimedshot").Name} on {target.Name} for {damage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
             if (target.Hp <= 0) ReportUnitDown(target);
             return true;
         }
@@ -16847,7 +16847,7 @@ namespace AshenHalls
                     AddRangerTileGlyph(enemy.X, enemy.Y, 15, gold);
                     if (enemy.Hp <= 0) ReportUnitDown(enemy);
                     hits++;
-                    PushLog($"{active.Name}'s volley hits {enemy.Name} for {damage} physical.", enemy.Hp <= 0 ? Tone.Good : Tone.Normal);
+                    PushLog($"{active.Name}'s {AbilityDef("volley").Name} hits {enemy.Name} for {damage} physical.", enemy.Hp <= 0 ? Tone.Good : Tone.Normal);
                 }
                 finally
                 {
@@ -16901,7 +16901,7 @@ namespace AshenHalls
 
         private bool UseDisruptingShot(CombatUnit active, CombatUnit target)
         {
-            if (!RollMartialHit(active, target, IsCasterEnemy(target) ? 18 : 8, "disrupting shot", "missile")) return true;
+            if (!RollMartialHit(active, target, IsCasterEnemy(target) ? 18 : 8, AbilityDef("disruptingshot").Name, "missile")) return true;
             int damage = DealDamage(target, DisruptingShotRawDamage(active), "physical", teal);
             if (target.Hp > 0)
             {
@@ -16919,7 +16919,7 @@ namespace AshenHalls
 
         private bool UseSunder(CombatUnit active, CombatUnit target)
         {
-            if (!RollMartialHit(active, target, 18, "sunder")) return true;
+            if (!RollMartialHit(active, target, 18, AbilityDef("sunder").Name)) return true;
             int damage = DealDamage(target, SunderRawDamage(active), "physical", gold);
             bool brokeGuard = target.Guarding || target.GuardBonus > 0;
             int wardRemoved = Mathf.Min(2, Mathf.Max(0, target.Shielded));
@@ -16984,7 +16984,7 @@ namespace AshenHalls
                 combatVfxImpactDelay = Mathf.Max(previousDelay, CombatImpactRules.SequenceImpactDelay(profile, arrow));
                 try
                 {
-                    if (!RollMartialHit(active, target, 5, arrow == 0 ? "first quick shot" : "second quick shot", "missile")) continue;
+                    if (!RollMartialHit(active, target, 5, AbilityDef("quickshot").Name + (arrow == 0 ? " first arrow" : " second arrow"), "missile")) continue;
                     int damage = DealDamage(target, raw, "physical", arrow == 0 ? teal : gold);
                     if (arrow > 0 || !HasAuthoredPowerTravel("quickshot"))
                     {
@@ -17015,8 +17015,8 @@ namespace AshenHalls
             if (hits > 0) ImproveSkill(active, "missile", 2);
             if (hits > 0)
             {
-                AddFloat(target.X, target.Y, hits == 2 ? "DOUBLE SHOT" : "quick shot", gold);
-                PushLog($"{active.Name}'s quick shot lands {hits} arrow{(hits == 1 ? "" : "s")} on {target.Name} for {totalDamage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
+                AddFloat(target.X, target.Y, AbilityDef("quickshot").Name.ToUpperInvariant(), gold);
+                PushLog($"{active.Name}'s {AbilityDef("quickshot").Name} lands {hits} arrow{(hits == 1 ? "" : "s")} on {target.Name} for {totalDamage} physical.", target.Hp <= 0 ? Tone.Good : Tone.Normal);
                 if (target.Hp <= 0) ReportUnitDown(target);
             }
             return true;
@@ -18852,13 +18852,13 @@ namespace AshenHalls
             }
             if (Distance(caster.X, caster.Y, x, y) > 4)
             {
-                PushLog("Tree Cover cannot reach that far.", Tone.Warn);
+                PushLog("Verdant Shelter cannot reach that far.", Tone.Warn);
                 PlaySfx("blocked");
                 return false;
             }
             if (!CanGrowTreeAt(x, y))
             {
-                PushLog("Tree Cover needs an open tile.", Tone.Warn);
+                PushLog("Verdant Shelter needs an open tile.", Tone.Warn);
                 PlaySfx("blocked");
                 return false;
             }
@@ -18875,7 +18875,7 @@ namespace AshenHalls
             ImproveSkill(caster, "mend", 2);
             AddFloat(x, y, "Tree", moss);
             AddBurst(x, y, moss);
-            PushLog($"{caster.Name} casts Tree Cover. Cover rises for {SummonedTreeDuration} rounds.", Tone.Good);
+            PushLog($"{caster.Name} casts Verdant Shelter. Cover rises for {SummonedTreeDuration} rounds.", Tone.Good);
             PlaySfx("tree");
             return true;
         }
@@ -21848,110 +21848,110 @@ namespace AshenHalls
                 int damage = PreviewDamageAfterTraits(target, raw, "physical");
                 Point landing = BestChargeLanding(active, target);
                 string landingLine = landing == null ? "no landing" : $"lands {Distance(active.X, active.Y, landing.X, landing.Y)} away";
-                return $"Charge: {damage} physical{AbilityStatNote(active, ability.Id)} / stun 1\n{landingLine} / path-aware rush";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / stun 1\n{landingLine} / path-aware rush";
             }
             if (ability.Id == "execute")
             {
                 int raw = ExecuteRawDamage(active);
                 int damage = PreviewDamageAfterTraits(target, raw, "physical");
-                return $"Execute: {damage} physical{AbilityStatNote(active, ability.Id)}\nrequires target at 35% HP or lower";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)}\nrequires target at 35% HP or lower";
             }
             if (ability.Id == "shieldbash")
             {
                 int damage = PreviewDamageAfterTraits(target, ShieldBashRawDamage(active), "physical");
                 int collision = PreviewDamageAfterTraits(target, LightningPowerRules.CollisionDamage(ShieldBashRawDamage(active)), "physical");
-                return $"Shield Bash: {damage} physical{AbilityStatNote(active, ability.Id)} / push 1\nblocked push: +{collision} collision and stun";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / push 1\nblocked push: +{collision} collision and stun";
             }
             if (ability.Id == "sunder")
             {
                 int damage = PreviewDamageAfterTraits(target, SunderRawDamage(active), "physical");
                 int wards = target == null ? 0 : Mathf.Min(2, Mathf.Max(0, target.Shielded));
-                return $"Sunder: {damage} physical{AbilityStatNote(active, ability.Id)} / break Guard\nstrip {wards} ward; reliable setup strike";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / break Guard\nstrip {wards} ward; reliable setup strike";
             }
             if (ability.Id == "cleave")
             {
                 int damage = PreviewDamageAfterTraits(target, CleaveRawDamage(active), "physical");
                 CombatUnit secondary = CleaveSecondaryTarget(active, target);
                 string extra = secondary == null ? "no second target" : $"clips {secondary.Name}";
-                return $"Cleave: {damage} physical{AbilityStatNote(active, ability.Id)}\n{extra}";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)}\n{extra}";
             }
             if (ability.Id == "ambush")
             {
                 bool hidden = active.Stealthed > 0;
                 int raw = AmbushRawDamage(active, hidden);
                 int damage = PreviewDamageAfterTraits(target, raw, "physical");
-                return $"Ambush: {damage} physical{AbilityStatNote(active, ability.Id)}{(hidden ? " / stun 1" : "")}\n{(hidden ? "from stealth" : "strong opening strike")}";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)}{(hidden ? " / stun 1" : "")}\n{(hidden ? "from stealth" : "strong opening strike")}";
             }
             if (ability.Id == "throwknife")
             {
                 int damage = PreviewDamageAfterTraits(target, ThrowKnifeRawDamage(active), "physical");
-                return $"Throw Knife: {damage} physical{AbilityStatNote(active, ability.Id)} / bleed 2\nshort sight-line attack";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / bleed 2\nshort sight-line attack";
             }
             if (ability.Id == "eviscerate")
             {
                 bool hidden = active.Stealthed > 0;
                 int raw = EviscerateRawDamage(active, target, hidden);
                 int damage = PreviewDamageAfterTraits(target, raw, "physical");
-                return $"Eviscerate: {damage} physical{AbilityStatNote(active, ability.Id)} / bleed 3\nbonus damage against bleeding targets";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / bleed 3\nbonus damage against bleeding targets";
             }
             if (ability.Id == "hamstring")
             {
                 int damage = PreviewDamageAfterTraits(target, HamstringRawDamage(active), "physical");
-                return $"Hamstring: {damage} physical{AbilityStatNote(active, ability.Id)} / hobble 2\nbleeds and pins the target";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / hobble 2\nbleeds and pins the target";
             }
             if (ability.Id == "shadowstep")
             {
                 bool hidden = active.Stealthed > 0;
                 int damage = PreviewDamageAfterTraits(target, ShadowstepRawDamage(active, hidden), "physical");
                 Point landing = BestShadowstepLanding(active, target);
-                return $"Shadowstep: {damage} physical{AbilityStatNote(active, ability.Id)}\n{(landing == null ? "no open landing" : "lands beside target / ignores intervening terrain")}";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)}\n{(landing == null ? "no open landing" : "lands beside target / ignores intervening terrain")}";
             }
             if (ability.Id == "aimedshot")
             {
                 int damage = PreviewDamageAfterTraits(target, AimedShotRawDamage(active, target), "physical");
-                return $"Aimed Shot: {damage} physical{AbilityStatNote(active, ability.Id)}\nneeds sight / bonus against marked targets";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)}\nneeds sight / bonus against marked targets";
             }
             if (ability.Id == "pinningshot")
             {
                 int damage = PreviewDamageAfterTraits(target, PinningShotRawDamage(active), "physical");
-                return $"Pinning Shot: {damage} physical{AbilityStatNote(active, ability.Id)} / pin 1-2\nholds ranged enemies longer";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / pin 1-2\nholds ranged enemies longer";
             }
             if (ability.Id == "volley")
             {
                 int damage = PreviewDamageAfterTraits(target, VolleyRawDamage(active), "physical");
                 int splash = target == null ? 0 : state.Combat.Units.Count(u => u.Side == UnitSide.Enemy && u.Hp > 0 && u.Id != target.Id && Distance(u.X, u.Y, target.X, target.Y) <= 1);
-                return $"Volley: {damage} physical{AbilityStatNote(active, ability.Id)} / splash {splash}\narcing arrows can pass over cover";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / splash {splash}\narcing arrows can pass over cover";
             }
             if (ability.Id == "scoutmark")
             {
-                return $"Scout Mark: break guard / strip {(target != null && target.Shielded > 0 ? 1 : 0)} ward\nmark 2; party damage improves";
+                return $"{ability.Name}: break guard / strip {(target != null && target.Shielded > 0 ? 1 : 0)} ward\nmark 2; party damage improves";
             }
             if (ability.Id == "broadheadshot")
             {
                 int damage = PreviewDamageAfterTraits(target, BroadheadShotRawDamage(active), "physical");
-                return $"Broadhead Shot: {damage} physical{AbilityStatNote(active, ability.Id)} / bleed 3\nsets up physical pressure";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / bleed 3\nsets up physical pressure";
             }
             if (ability.Id == "disruptingshot")
             {
                 int damage = PreviewDamageAfterTraits(target, DisruptingShotRawDamage(active), "physical");
-                return $"Disrupting Shot: {damage} physical{AbilityStatNote(active, ability.Id)} / stun 1\nstronger hit chance against casters";
+                return $"{ability.Name}: {damage} physical{AbilityStatNote(active, ability.Id)} / stun 1\nstronger hit chance against casters";
             }
             if (ability.Id == "quickshot")
             {
                 int arrowDamage = PreviewDamageAfterTraits(target, QuickShotRawDamage(active), "physical");
-                return $"Quick Shot: 2 x {arrowDamage} physical{AbilityStatNote(active, ability.Id)}\neach arrow rolls separately; armor applies twice";
+                return $"{ability.Name}: 2 x {arrowDamage} physical{AbilityStatNote(active, ability.Id)}\neach arrow rolls separately; armor applies twice";
             }
             if (ability.Id == "riftpounce")
             {
                 int damage = PreviewDamageAfterTraits(target, RiftPounceRawDamage(active), "death");
                 Point landing = BestRiftPounceLanding(active, target);
-                return $"Rift Pounce: {damage} death{AbilityStatNote(active, ability.Id)}\n{(landing == null ? "no open landing" : "lands beside target / ignores intervening terrain")}";
+                return $"{ability.Name}: {damage} death{AbilityStatNote(active, ability.Id)}\n{(landing == null ? "no open landing" : "lands beside target / ignores intervening terrain")}";
             }
             if (ability.Id == "soulrend")
             {
                 int damage = PreviewDamageAfterTraits(target, SoulRendRawDamage(active), "death");
                 int restored = CombatFeedbackRules.DrainRecovery(active.Hp, active.MaxHp, target?.Hp ?? 0, damage, 1);
-                return $"Soul Rend: {damage} death{AbilityStatNote(active, ability.Id)}\nheal up to {restored} HP from actual damage";
+                return $"{ability.Name}: {damage} death{AbilityStatNote(active, ability.Id)}\nheal up to {restored} HP from actual damage";
             }
             return ability.Name;
         }

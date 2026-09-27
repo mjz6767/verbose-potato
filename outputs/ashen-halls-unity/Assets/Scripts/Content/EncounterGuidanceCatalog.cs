@@ -37,7 +37,7 @@ namespace AshenHalls
                     guidance = new EncounterGuidance(
                         "Foul Runoff",
                         "Priority: drop the Plague Mage first.",
-                        "Skirt gas and web; Ward or Cleanse poison.",
+                        "Skirt gas and web; Absolution clears poison.",
                         "Hover a unit to inspect range, status, and threat.");
                     return true;
                 case "sewer_cistern_den":

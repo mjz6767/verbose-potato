@@ -5954,7 +5954,7 @@ namespace AshenHalls.Editor
             FormulaDef thunderStep = FormulaCatalog.All.Single(formula => formula.Code == "VST");
             FormulaDef tempest = FormulaCatalog.All.Single(formula => formula.Code == "AST");
 
-            AssertEqual("Arc Spark", arcSpark.Name, "starter lightning spell name");
+            AssertEqual("Stormneedle", arcSpark.Name, "starter lightning spell name");
             AssertEqual(true, FormulaCatalog.RequiredLevel(arcSpark) == 1
                 && arcSpark.Mana == 3
                 && arcSpark.Range == 5
@@ -5963,7 +5963,7 @@ namespace AshenHalls.Editor
                 && arcSpark.DamageType == "shock"
                 && arcSpark.Power == 8
                 && !arcSpark.Arc
-                && !arcSpark.Splash, "Arc Spark is the reliable direct starter shock");
+                && !arcSpark.Splash, "Stormneedle is the reliable direct starter shock");
             AssertEqual("Thunderclap", thunderclap.Name, "self-area lightning spell name");
             AssertEqual(true, FormulaCatalog.RequiredLevel(thunderclap) == 8
                 && thunderclap.Mana == 6
@@ -6070,8 +6070,8 @@ namespace AshenHalls.Editor
             AssertEqual(3, CombatPowerPresentationRules.AbilityIntensity(whirlwind.Id), "whirlwind impact intensity");
 
             CombatPowerIdentity abilityIdentity = CombatPowerPresentationRules.ForAbility(charge, "Maer", "Ratfolk Brute");
-            AssertEqual("Charge", abilityIdentity.Title, "ability cue title");
-            AssertEqual("CHG", abilityIdentity.Sigil, "ability cue sigil");
+            AssertEqual("Vanguard Rush", abilityIdentity.Title, "ability cue title");
+            AssertEqual("VGR", abilityIdentity.Sigil, "ability cue sigil");
             AssertEqual(true, abilityIdentity.Subtitle.Contains("Maer") && abilityIdentity.Subtitle.Contains("Ratfolk Brute"), "ability cue names actor and target");
 
             foreach (string code in ContentSetCatalog.SewerSliceFormulaCodes)
@@ -6162,7 +6162,7 @@ namespace AshenHalls.Editor
             FormulaDef graveHook = FormulaCatalog.All.First(formula => formula.Code == "GRH");
             FormulaDef soulVeil = FormulaCatalog.All.First(formula => formula.Code == "SLV");
             FormulaDef ashenCurse = FormulaCatalog.All.First(formula => formula.Code == "ACR");
-            AssertEqual("websnare", CombatPowerVisualRules.ImpactKindForFormula(webSnare, "fieldsnare"), "Web Snare keeps semantic impact art even when audio is generic");
+            AssertEqual("websnare", CombatPowerVisualRules.ImpactKindForFormula(webSnare, "fieldsnare"), "Widow's Snare keeps semantic impact art even when audio is generic");
             AssertEqual("sleepmist", CombatPowerVisualRules.ImpactKindForFormula(sleep, "spell"), "Sleep keeps semantic impact art");
             AssertEqual("voidhex", CombatPowerVisualRules.ImpactKindForFormula(weaken, "spell"), "Weaken keeps semantic impact art");
             AssertEqual("shadowveil", CombatPowerVisualRules.ImpactKindForFormula(nightVeil, "spell"), "Night Veil keeps semantic impact art");
@@ -6182,10 +6182,10 @@ namespace AshenHalls.Editor
             AssertEqual("12,3,11,11,3", string.Join(",", new[] { "dawnpulse", "cinderstorm", "gravehook", "soulveil", "ashencurse" }.Select(CombatPowerVisualRules.EffectAtlasCell)), "new early spells use their approved effect-atlas cells");
             AssertEqual(CombatPowerVisualMotif.Guard, CombatPowerVisualRules.MotifFor("sunder"), "Sunder uses a guard-breaking motif");
             AssertEqual(CombatPowerVisualMotif.Shadow, CombatPowerVisualRules.MotifFor("shadowstep"), "Shadowstep uses a shadow motif");
-            AssertEqual(CombatPowerVisualMotif.Volley, CombatPowerVisualRules.MotifFor("quickshot"), "Quick Shot uses a projectile motif");
+            AssertEqual(CombatPowerVisualMotif.Volley, CombatPowerVisualRules.MotifFor("quickshot"), "Twinshot uses a projectile motif");
             AssertEqual(CombatPowerVisualMotif.Guard, CombatPowerVisualRules.MotifFor(CombatImpactRules.ForAbility(AbilityCatalog.For("sunder")).ImpactSfx), "Sunder production impact routes to the guard-breaking motif");
             AssertEqual(CombatPowerVisualMotif.Shadow, CombatPowerVisualRules.MotifFor(CombatImpactRules.ForAbility(AbilityCatalog.For("shadowstep")).ImpactSfx), "Shadowstep production impact routes to the shadow motif");
-            AssertEqual(CombatPowerVisualMotif.Volley, CombatPowerVisualRules.MotifFor(CombatImpactRules.ForAbility(AbilityCatalog.For("quickshot")).ImpactSfx), "Quick Shot production impact routes to the projectile motif");
+            AssertEqual(CombatPowerVisualMotif.Volley, CombatPowerVisualRules.MotifFor(CombatImpactRules.ForAbility(AbilityCatalog.For("quickshot")).ImpactSfx), "Twinshot production impact routes to the projectile motif");
             AssertEqual("2,2,2", string.Join(",", new[] { "sunder", "shadowstep", "quickshot" }.Select(CombatPowerPresentationRules.AbilityIntensity)), "new early skills receive strong but bounded presentation");
             AssertEqual(true, CombatPowerVisualRules.ReducedMotionStampScale(CombatPowerVisualMotif.Fire, 3) <= 1.10f, "Reduced Motion fire stamp stays inside its tactical cell");
             AssertEqual(true, CombatPowerVisualRules.SemanticImpactOverlayOpacity(CombatPowerVisualMotif.Shadow, 2, true, true) >= 0.80f, "Reduced Motion preserves a readable martial impact mark");
@@ -7522,10 +7522,6 @@ namespace AshenHalls.Editor
                 string.Join("|", entries.Select(entry => entry.Id)),
                 "combat VFX showcase keeps its exact regression-tour order");
             AssertEqual(
-                "Fireball|Meteor Shower|Cold Lance|Light Bolt|Arcane Tempest|Thunder Step|Rift Bolt|Drain Life|Summon Imp|Summon Lesser Demon|Summon Greater Demon|Abyssal Ascendance|Doom Circle|Hallowed Circle|Soul Veil|Pact Brand|Rift Step|Death Burst|Charge|Whirlwind|Abyssal Whirl|Rally|Dread Roar|Quick Shot|Stealth|Smoke Bomb|Sunder|Execute|Shadowstep|Rift Pounce|Volley",
-                string.Join("|", entries.Select(entry => entry.DisplayName)),
-                "combat VFX showcase keeps exact player-facing power names");
-            AssertEqual(
                 "Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Formula|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability|Ability",
                 string.Join("|", entries.Select(entry => entry.Kind.ToString())),
                 "combat VFX showcase distinguishes its eighteen formulas and thirteen abilities");
@@ -7555,6 +7551,10 @@ namespace AshenHalls.Editor
             for (int index = 0; index < entries.Count; index++)
             {
                 CombatVfxShowcaseEntry entry = entries[index];
+                string catalogName = entry.Kind == CombatVfxShowcasePowerKind.Formula
+                    ? FormulaCatalog.All.First(formula => formula.Code == entry.Id).Name
+                    : AbilityCatalog.For(entry.Id).Name;
+                AssertEqual(catalogName, entry.DisplayName, entry.Id + " showcase title follows its catalog name");
                 AssertEqual(index, CombatVfxShowcaseRules.IndexFor(entry.Id.ToLowerInvariant()), entry.Id + " showcase lookup is case-insensitive");
                 AssertEqual(index, CombatVfxShowcaseRules.IndexFor("  " + entry.Id.ToLowerInvariant() + "  "), entry.Id + " showcase lookup trims surrounding whitespace");
                 AssertEqual(true, CombatVfxShowcaseRules.IsSupported(entry.Id.ToLowerInvariant()), entry.Id + " showcase support lookup is case-insensitive");
@@ -7615,6 +7615,11 @@ namespace AshenHalls.Editor
                 CombatPowerSfxPlan repeated = CombatPowerSfxRules.PlanForFormula(formulaCode.ToLowerInvariant());
                 formulaProfiles.Add(profile);
                 AssertEqual(formulaCode.ToLowerInvariant(), profile.Key, formulaCode + " formula SFX profile keeps its canonical key");
+                string displayName = FormulaCatalog.All.First(formula => formula.Code == formulaCode).Name;
+                AssertEqual(profile.Key, CombatPowerSfxRules.NormalizeFormulaKey(displayName), formulaCode + " current name keeps its sound identity");
+                AssertEqual(formulaCode, CombatPowerTravelVfxRules.NormalizeFormulaKey(displayName), formulaCode + " current name keeps its travel identity");
+                AssertEqual(SupportHexSpellVfxRules.NormalizeKey(formulaCode), SupportHexSpellVfxRules.NormalizeKey(displayName), formulaCode + " current name keeps its support/hex art");
+                AssertEqual(MageWarlockSpellVfxRules.NormalizeKey(formulaCode), MageWarlockSpellVfxRules.NormalizeKey(displayName), formulaCode + " current name keeps its mage/warlock art");
                 AssertEqual(profile.Key, plan.ProfileKey, formulaCode + " formula SFX plan keeps its profile key");
                 AssertEqual(profile.Intensity, plan.Intensity, formulaCode + " formula SFX plan keeps its authored intensity");
                 AssertEqual(true, plan.Impact.Enabled, formulaCode + " formula SFX plan has a semantic impact cue");
@@ -7655,6 +7660,13 @@ namespace AshenHalls.Editor
                 CombatPowerSfxPlan repeated = CombatPowerSfxRules.PlanForAbility(abilityId.ToUpperInvariant());
                 abilityProfiles.Add(profile);
                 AssertEqual(abilityId, profile.Key, abilityId + " ability SFX profile keeps its canonical key");
+                MartialAbility namedAbility = AbilityCatalog.For(abilityId);
+                foreach (string displayLabel in new[] { namedAbility.Name, namedAbility.Short })
+                {
+                    AssertEqual(abilityId, CombatPowerSfxRules.NormalizeAbilityKey(displayLabel), abilityId + " current label keeps its sound identity");
+                    AssertEqual(abilityId, CombatPowerTravelVfxRules.NormalizeAbilityKey(displayLabel), abilityId + " current label keeps its travel identity");
+                    AssertEqual(ClassSkillVfxRules.NormalizeKey(abilityId), ClassSkillVfxRules.NormalizeKey(displayLabel), abilityId + " current label keeps its skill art");
+                }
                 AssertEqual(profile.Key, plan.ProfileKey, abilityId + " ability SFX plan keeps its profile key");
                 AssertEqual(profile.Intensity, plan.Intensity, abilityId + " ability SFX plan keeps its authored intensity");
                 AssertEqual(true, plan.Impact.Enabled, abilityId + " ability SFX plan has a semantic impact cue");
@@ -7677,9 +7689,9 @@ namespace AshenHalls.Editor
             AssertCombatPowerSfxPlansEquivalentAndBounded(canonicalFireball, namedFireball, "Fireball formula aliases");
 
             CombatPowerSfxProfile natureSupport = CombatPowerSfxRules.ProfileForFormula("GBH");
-            AssertEqual("castnature", natureSupport.Cast.Key, "Tree Cover begins with the living-nature cast family");
-            AssertEqual("tree", natureSupport.Impact.Key, "Tree Cover lands with its authored growth impact");
-            AssertEqual("ward", natureSupport.Aftershock.Key, "Tree Cover settles into a protective ward resonance");
+            AssertEqual("castnature", natureSupport.Cast.Key, "Verdant Shelter begins with the living-nature cast family");
+            AssertEqual("tree", natureSupport.Impact.Key, "Verdant Shelter lands with its authored growth impact");
+            AssertEqual("ward", natureSupport.Aftershock.Key, "Verdant Shelter settles into a protective ward resonance");
             AssertCombatPowerSfxPlansEquivalentAndBounded(CombatPowerSfxRules.PlanForFormula("GBH"), CombatPowerSfxRules.PlanForFormula("Tree Cover"), "Tree Cover formula aliases");
 
             CombatPowerSfxProfile healingSupport = CombatPowerSfxRules.ProfileForFormula("OIC");
@@ -7962,13 +7974,13 @@ namespace AshenHalls.Editor
             AssertEqual("greatersummon", greaterDemon.ImpactSfx, "greater demon impact sound identity");
             AssertEqual(true, new[] { arcSpark, thunderclap, chainLightning, thunderStep }
                 .All(profile => profile.CastSfx == "castshock"), "lightning progression shares a coherent storm casting voice");
-            AssertEqual("shock", arcSpark.ImpactSfx, "Arc Spark shock impact identity");
+            AssertEqual("shock", arcSpark.ImpactSfx, "Stormneedle shock impact identity");
             AssertEqual("shock", thunderclap.ImpactSfx, "Thunderclap shock impact identity");
             AssertEqual("shock", chainLightning.ImpactSfx, "Chain Lightning shock impact identity");
             AssertEqual("veilstep", thunderStep.ImpactSfx, "Thunder Step travel impact identity");
             AssertEqual("tempest", tempest.ImpactSfx, "arcane tempest impact sound identity");
             AssertEqual("1,2,2,2,3", string.Join(",", new[] { arcSpark.VisualTier, thunderclap.VisualTier, chainLightning.VisualTier, thunderStep.VisualTier, tempest.VisualTier }), "lightning VFX scale climbs from spark to elder storm");
-            AssertEqual(CombatPowerVisualRules.BeamDuration("lightning"), arcSpark.ImpactDelay, "Arc Spark impact aligns with its lightning beam");
+            AssertEqual(CombatPowerVisualRules.BeamDuration("lightning"), arcSpark.ImpactDelay, "Stormneedle impact aligns with its lightning beam");
             AssertEqual(CombatPowerVisualRules.BeamDuration("thunderclap"), thunderclap.ImpactDelay, "Thunderclap impact aligns with its radial burst");
             AssertEqual(CombatPowerVisualRules.BeamDuration("lightning"), chainLightning.ImpactDelay, "Chain Lightning first impact aligns with its beam");
             AssertEqual(CombatPowerVisualRules.BeamDuration("arc"), thunderStep.ImpactDelay, "Thunder Step arrival aligns with its travel arc");
@@ -8628,7 +8640,7 @@ namespace AshenHalls.Editor
             AssertEqual(CombatPowerFootprintKind.Single, CombatPowerTargetingRules.ForFormula(heal).Kind, "heal single-target footprint");
             AssertEqual(CombatPowerFootprintKind.Placement, CombatPowerTargetingRules.ForFormula(treeCover).Kind, "tree cover placement footprint");
             AssertEqual(CombatPowerFootprintKind.CrossArea, CombatPowerTargetingRules.ForFormula(fireball).Kind, "fireball cross-area footprint");
-            AssertEqual(CombatPowerFootprintKind.Single, CombatPowerTargetingRules.ForFormula(arcSpark).Kind, "Arc Spark direct-target footprint");
+            AssertEqual(CombatPowerFootprintKind.Single, CombatPowerTargetingRules.ForFormula(arcSpark).Kind, "Stormneedle direct-target footprint");
             AssertEqual(CombatPowerFootprintKind.SelfArea, CombatPowerTargetingRules.ForFormula(thunderclap).Kind, "Thunderclap adjacent self-area footprint");
             AssertEqual("PUSH|Adjacent enemies", CombatPowerTargetingRules.ForFormula(thunderclap).BoardLabel + "|" + CombatPowerTargetingRules.ForFormula(thunderclap).ModalLabel, "Thunderclap targeting copy");
             AssertEqual(CombatPowerFootprintKind.Chain, CombatPowerTargetingRules.ForFormula(chainLightning).Kind, "Chain Lightning linked-target footprint");
@@ -8726,7 +8738,7 @@ namespace AshenHalls.Editor
             AssertEqual(true, HasGuidance(explore, "east and west", "gates", "roads"), "exploration help mentions pass-through gates");
             AssertEqual(true, HasGuidance(explore, "first", "leave", "Town Hall", "storm doors"),
                 "exploration help explains the Town Hall gathering and required first departure");
-            AssertEqual(true, HasGuidance(combat, "Tree Cover", "6 rounds", "blocking arrows", "Arcing spells"), "combat help retains cover duration and projectile behavior");
+            AssertEqual(true, HasGuidance(combat, "Verdant Shelter", "6 rounds", "blocking arrows", "Arcing spells"), "combat help retains cover duration and projectile behavior");
             AssertEqual(true, HasGuidance(combat, "U / Backspace", "undo movement", "before", "action"), "combat help explains pre-action movement undo");
             AssertEqual(true, HasGuidance(combat, "Esc / right-click", "cancel targeting", "without spending"), "combat help explains non-destructive target cancellation");
             AssertEqual(true, HasGuidance(combat, "Retreat", CombatRetreatRules.SupplyCost.ToString(), "supply"), "combat help explains the retreat cost");
@@ -11395,9 +11407,9 @@ namespace AshenHalls.Editor
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "execute"), "warrior execute active in sewer slice");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "stealth"), "rogue stealth active in sewer slice");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "ambush"), "rogue ambush active in sewer slice");
-            AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "shieldbash"), "Shield Bash tactical push active in sewer slice");
+            AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "shieldbash"), "Iron Rebuff tactical push active in sewer slice");
             AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "smokebomb"), "Smoke Bomb sight-control field active in sewer slice");
-            AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "scoutmark"), "Scout Mark guard break active in sewer slice");
+            AssertEqual(true, ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, "scoutmark"), "Hunter's Mark guard break active in sewer slice");
             AssertEqual(true, AbilityCatalog.IdsForClass("demon").All(id => ContentSetCatalog.AbilityActive(ContentSetCatalog.SewerSlice, id)), "derived Demon Arts remain available when a sewer-slice warlock transforms");
             MartialAbility smokeBomb = AbilityCatalog.For("smokebomb");
             AssertEqual(true, smokeBomb.Summary.Contains("sight-blocking")

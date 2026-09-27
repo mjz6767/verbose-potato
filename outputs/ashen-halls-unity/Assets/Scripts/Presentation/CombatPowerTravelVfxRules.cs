@@ -194,7 +194,8 @@ namespace AshenHalls
 
         public static string NormalizeFormulaKey(string formulaCodeOrName)
         {
-            string key = StripPresentationDecorators(Compact(formulaCodeOrName));
+            string key = CombatPowerSfxRules.ResolveCatalogFormulaKey(Compact(formulaCodeOrName));
+            key = CombatPowerSfxRules.ResolveCatalogFormulaKey(StripPresentationDecorators(key));
             switch (key)
             {
                 case "gbh": case "treecover": return "GBH";
@@ -259,7 +260,8 @@ namespace AshenHalls
 
         public static string NormalizeAbilityKey(string abilityIdOrName)
         {
-            string key = StripPresentationDecorators(Compact(abilityIdOrName));
+            string key = CombatPowerSfxRules.ResolveCatalogAbilityKey(Compact(abilityIdOrName));
+            key = CombatPowerSfxRules.ResolveCatalogAbilityKey(StripPresentationDecorators(key));
             switch (key)
             {
                 case "charge": case "warriorcharge": case "rush": return "charge";

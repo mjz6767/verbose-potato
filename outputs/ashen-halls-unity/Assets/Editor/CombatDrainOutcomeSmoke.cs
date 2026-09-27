@@ -98,9 +98,9 @@ namespace AshenHalls.Editor
                     };
                     if (sanctuary)
                     {
-                        Require(formula != null, "authored Drain Life formula exists");
+                        Require(formula != null, "authored Siphon Life formula exists");
                         string preview = (string)Invoke(game, "FormulaPreview", caster, formula, target, target.X, target.Y);
-                        Require(preview.Contains("breaks sanctuary"), "Drain Life's real target preview promises the sanctuary reaction");
+                        Require(preview.Contains("breaks sanctuary"), "Siphon Life's real target preview promises the sanctuary reaction");
                     }
                     resolved = (bool)Invoke(game, "ResolveFormula", formula, caster, target, target.X, target.Y);
                 }
@@ -109,8 +109,8 @@ namespace AshenHalls.Editor
                 Require(resolved, label + " resolves");
                 if (sanctuary)
                 {
-                    Require(!state.Combat.Obstacles.Contains(targetSanctuary), "Drain Life breaks sanctuary under its target, including on a lethal hit");
-                    Require(state.Combat.Obstacles.Contains(distantSanctuary), "Drain Life preserves other sanctuary tiles");
+                    Require(!state.Combat.Obstacles.Contains(targetSanctuary), "Siphon Life breaks sanctuary under its target, including on a lethal hit");
+                    Require(state.Combat.Obstacles.Contains(distantSanctuary), "Siphon Life preserves other sanctuary tiles");
                     Require(CombatPowerOutcomeRules.Compare(outcomeBefore, state.Combat).TerrainChanges == 1,
                         "the outcome records exactly the promised sanctuary removal");
                 }

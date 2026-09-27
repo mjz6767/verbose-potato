@@ -7815,7 +7815,7 @@ namespace AshenHalls
         {
             yield return new RouteScaffoldDef("midgaard-city", ObjectType.QuestBoard, 1, 0, "Midgaard Quest Board", "city errands", "Posts Mira's Lamp Round, Brann's Gate Survey, and future route contracts.", "scroll", gold);
             yield return new RouteScaffoldDef("midgaard-road", ObjectType.Waystone, 1, 1, "Old Road Waystone", "recall anchor", "Future fast-travel and camp-routing node. Currently marks the road and grants a small recovery.", "magic", teal);
-            yield return new RouteScaffoldDef("green-shrine-road", ObjectType.TrainingGround, 1, 2, "Green Shrine Training Ring", "skill trainer", "Future priest/warrior tutorial space for Tree Cover, guard work, and low-risk ability practice.", "party", moss);
+            yield return new RouteScaffoldDef("green-shrine-road", ObjectType.TrainingGround, 1, 2, "Green Shrine Training Ring", "skill trainer", "Future priest/warrior tutorial space for Verdant Shelter, guard work, and low-risk ability practice.", "party", moss);
             yield return new RouteScaffoldDef("old-quarry", ObjectType.ForgeSite, 1, 3, "Old Quarry Forge", "gear workbench", "Future crafting/repair station for heavy armor, shields, reach weapons, and bridge work.", "settings", stone);
             yield return new RouteScaffoldDef("glass-warrens", ObjectType.LoreLibrary, 2, 4, "Glass Lore Library", "spell lesson", "Future formula-study node for wizard paths, mirror puzzles, and caster faction lore.", "magic", frost);
             yield return new RouteScaffoldDef("dusk-market", ObjectType.FactionCamp, 2, 5, "Dusk Market Hideout", "faction contact", "Future rogue/ranger contact hub for scouts, fences, ambush rumors, and smoke-route jobs.", "party", gold);
