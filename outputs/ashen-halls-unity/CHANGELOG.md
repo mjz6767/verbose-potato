@@ -10,6 +10,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Add 2,650 base XP in seven one-time chapter/preparation rewards. Separate saved receipts support old-save catch-up and prevent repeated dialogue, checkpoints or reloads from duplicating rewards. Preserve combat XP and the level curve; defer catch-up during combat.
 - Activate four distinct Mend spells in the campaign for Priest/Paladin. Extend Covenant Ward to three target/two adjacent turns and disclose splash durations in spell previews.
 - Add production-path regressions for finale gates, real victory dispatch, recall, save/load, milestone receipts, boss powers and Mend casting, plus an explicit campaign pacing ledger and native dialogue/journal/ending captures. Preserve save v27 and the v2.32 package. Release evidence is recorded after verification.
+- Pass all 13 Full audit gates, the 13 repeated Windows build gates, and clean-extracted startup from source `d7044a6`. All 350 archive entries pass CRC verification and all 100 packaged PNGs match source. Twenty-six native editor captures at 960×600 and 1280×720 pass visual review. The ten-seed direct-route ledger ends at human level 15 / mage level 14; full human campaign balance remains a friends-playtest task. Exact evidence and limitations are recorded in `Docs/ReleaseEvidence/v2.33.0-summary.json`.
 
 ## v2.32.0 - Names Beneath the Water
 

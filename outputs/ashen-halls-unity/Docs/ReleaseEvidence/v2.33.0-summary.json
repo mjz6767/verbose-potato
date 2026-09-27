@@ -1,0 +1,285 @@
+{
+  "schemaVersion": 2,
+  "releaseVersion": "v2.33.0",
+  "releaseName": "The Last Dawn",
+  "recordedUtc": "2026-09-27",
+  "sourceCommit": "d7044a6813e06ff39d06e0428cf6f5e96b7d7677",
+  "sourceCleanAtPackaging": true,
+  "saveVersion": 27,
+  "changes": [
+    "Authored Chapter VI: acceptance, crownwatch, ritual heart, Vhal Rakh, saved ending and Return Home.",
+    "Seven one-time chapter milestones totaling 2650 base XP, with old-save catch-up receipts and deferred combat catch-up.",
+    "Four campaign Mend unlocks and truthful primary/adjacent support duration descriptions.",
+    "Bounded Crownfire and Heart Pulse boss attacks, stationary heart, matching pressure preview.",
+    "Personal Yara finale conversations and homecoming reactions for six other townspeople."
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.33.0.zip",
+    "packageBytes": 249957650,
+    "packageSha256": "77665e8809e451b5ec6f86a386b69e15bbe81250b9e0cb2fffa6b3eb67047dfa",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "750e19b1aa9a16cc35459bff1a5d1e8ad3c62dca216647f75e438ed8cda3537f",
+    "cleanExtractLaunch": true,
+    "playerExitCode": 0,
+    "packagedArtCount": 100
+  },
+  "packageVerification": {
+    "allZipEntriesCrcValid": true,
+    "entryCount": 350,
+    "allPackagedPngsMatchZipAndSource": true,
+    "managedAssemblyMatchesArchive": true,
+    "manifest": "QA/v2.33.0-release-integrity/release-integrity-manifest.json",
+    "manifestSha256": "1e4bb67cb6b5d264180ef97c979694147d1349b2670a61b432ebff706b2dddff"
+  },
+  "validation": {
+    "sourceCompile": {
+      "path": "QA/source-compile/20260927-192933-6d601e75",
+      "runtimeFiles": 162,
+      "editorFiles": 55,
+      "diagnostics": 0
+    },
+    "fullAudit": {
+      "path": "QA/project-audit/20260927-192954-6fb56389/unity.log",
+      "sha256": "f8c790324f454ccf01e98c37a749d9f4f8b939762ecf7a0aa3f3e03e1a3f4ac2",
+      "gateCount": 13,
+      "gates": [
+        "Rules (9.2 seconds)",
+        "UI finish (0.1 seconds)",
+        "Building atlas alpha (0.0 seconds)",
+        "Audio lifecycle (0.0 seconds)",
+        "Title music experience (0.2 seconds)",
+        "Character workshop audio (0.2 seconds)",
+        "Everyday sound effects (1.1 seconds)",
+        "Inventory and loot (0.1 seconds)",
+        "Sprite art (6.6 seconds)",
+        "Character workshop (6.7 seconds)",
+        "Combat UI (7.2 seconds)",
+        "Runtime boot (12.6 seconds)",
+        "Beta Lab class coverage (0.2 seconds)"
+      ]
+    },
+    "finalBuild": {
+      "path": "build-v2.33.0.log",
+      "sha256": "18eaa2519adcb8cb3c357b102770653b8408c269d512fc236e63e33f27443d39",
+      "gateCount": 13,
+      "gates": [
+        "Ash & Brimstone build rule smoke tests passed.",
+        "Ash & Brimstone build UI finish smoke passed.",
+        "Ash & Brimstone build building-atlas alpha smoke passed.",
+        "Ash & Brimstone build audio lifecycle smoke passed.",
+        "Ash & Brimstone build title music experience smoke passed.",
+        "Ash & Brimstone build character workshop audio smoke passed.",
+        "Ash & Brimstone build everyday sound effects smoke passed.",
+        "Ash & Brimstone build inventory/loot experience smoke passed.",
+        "Ash & Brimstone build sprite-art runtime smoke passed.",
+        "Ash & Brimstone build character workshop smoke passed.",
+        "Ash & Brimstone build combat UI runtime smoke passed.",
+        "Ash & Brimstone build runtime boot smoke passed.",
+        "Ash & Brimstone build Beta Lab class coverage smoke passed."
+      ]
+    },
+    "newSmokeSuites": [
+      "MendProgressionSmoke",
+      "MeteorCrownQuestSmoke",
+      "MeteorCrownCombatSmoke",
+      "CampaignMilestoneSmoke",
+      "CampaignHomecomingSmoke",
+      "CampaignPacingSmoke"
+    ],
+    "pacing": {
+      "report": "Docs/CAMPAIGN_PACING_2026-09-27.md",
+      "reportSha256": "c51bf77206a1079bac10a4c8b513eff1f3d113fb02b3925ec80b40c6d425d8ec",
+      "seeds": 10,
+      "directEndingHumanLevel": 15,
+      "directEndingMageLevel": 14,
+      "scope": "Production enemy creation/reward/level-up ledger assumes victories and survival, with explicitly authored world-XP inputs. Not a win-rate simulation."
+    },
+    "visualReview": {
+      "scope": "Native editor fixtures using production dialogue, journal and ending adapters, including every dialogue page. Editor ending shows the development-only Beta Lab button; retail hides it.",
+      "count": 26,
+      "resolutions": [
+        [
+          960,
+          600
+        ],
+        [
+          1280,
+          720
+        ]
+      ],
+      "review": "All 26 initial PNGs inspected individually. One shared footer was shortened; final changed screens rechecked and unchanged screens compared. No remaining clipping or overlap identified.",
+      "captures": [
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/journal-last-dawn-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "eb58345f4e7312ee0ad9c4754c9fe7a276441e3ff9c78ce784720032d90d4bf4"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/journal-last-dawn-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "599a6036ad9ac68cb9cf30a0ce490b03c0aacbf27f3cd7a04c8d14e828a74ecb"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/meteor-crown-victory-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "75ceae14eae3d1246cad024c2c0371f52750f54e191849ebff1e4a680c2eac53"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/meteor-crown-victory-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "bb6d3e7cfcef0f0484739590583891cd83d941795b8118363a6449037d925804"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/vhal-rakh-confrontation-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "1ad6d53d41eef9c53047bf5d67edf74700ade643bfdbd263cbf9a34f7288eeb4"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/vhal-rakh-confrontation-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "ffbac24d05561c0a22379f38ae52cf087805a22aa74244cdfde41922bc438cce"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-assault-plan-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "69a4e6bd7ce7905fe584dfccab25892876b414c8f57e61662543965e1d737e11"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-assault-plan-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "b99abe8e4646790e0243415c75fbbedcf135c1553c4178b4a4687958c76a1784"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-assault-plan-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "aca60775e5fd0d433a229b405272a99b44cd9228d388bea033c91e48fdbbd269"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-assault-plan-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "2dff9aaa9a5008cdc039e8320f359872bedc9a093b077fffd887f900431e09c5"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-fear-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "71ee1a6a3f8ea14b0ffe7d818bcfa2f717acfe4c86d8c119c89497dd3b35f95e"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-fear-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "6d9d96fd265f97d16767b8a2e944c8b344cb4f2035b931337069e2aebe314822"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-final-road-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "b20ba28c31d5faaab33b2f03c307d8a3d8ef9a8ffe26c028faa75edaa8044eec"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-final-road-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "09990185120cd883b749dac9cc23901376cd89f46ff173352185c9b3dd5f51e7"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-heart-broken-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "69cc43a6b69514c4958d309b4043a82317662e93b86d2e48296f7af926eb4b68"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-heart-broken-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "f448f18c1eccf100902f11a58ef9e9044f93fffc574b0631431635fdd1db1253"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-homecoming-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "a00d17118e8551bc1b0958a21526648776527ac9c4e4ec4d42c0f6fe04774486"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-homecoming-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "2239db322941f1a7a8c2f63e5a905c912b0cce7d8ad9310eb53f8ae91b2135b7"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-return-marks-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "7e13cd66b7acf62b57158ad49471654299026d23ac84cd816be97a3dac843c7e"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-return-marks-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "2bfceeb26ad89c347111114004c6d400efed2369a2ca17e01a60db3990044a2e"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-road-after-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "9c4c77f6fa6e682b8dd08782c28443d9a9bfbe416818e2c7c340ca86557f4427"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-road-after-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "4895e614af0ff828c7120a5d7c79733b4f0e6c11d59c9fd24ee0cc7d2ab76a1a"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-route-page1-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "bd917921fc92f0fee94f91ee7c904e78619965dcfa2f58f1c988bc1041e80e14"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-route-page1-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "2414560a88ceafcf45ced47d9a17cef3115feb5a82f49801bcb464a7942f2735"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-route-page2-1280x720.png",
+          "width": 1280,
+          "height": 720,
+          "sha256": "1e000be8fc2078c682483d7f59c4b8d0b1a02785ec0bfd12fef7e0f15200f65f"
+        },
+        {
+          "file": "QA/meteor-crown-content/20260927-192916-345/yara-route-page2-960x600.png",
+          "width": 960,
+          "height": 600,
+          "sha256": "90f17e4c1df1c8ea670525c42dc0316e03c53482afb82e816bbb5e5a6d7dbe4d"
+        }
+      ]
+    }
+  },
+  "preservedArchives": [
+    {
+      "file": "AshAndBrimstone-Windows-v2.32.0.zip",
+      "sha256": "4976428d89fbafe3352dad2e24aef41e40d3e65c38039525950583d237b50160"
+    }
+  ],
+  "limits": [
+    "No complete human six-chapter playthrough or measured tactical win rates in this pass.",
+    "Exploration-heavy ledger reaches levels 18-19; late-game difficulty and growth spending need friends playtesting.",
+    "No physical-controller or subjective audio review in this pass.",
+    "New finale visuals reviewed through native editor fixtures, not final-player captures.",
+    "Local shareable Windows archive only; no public upload or remote Git push."
+  ],
+  "archiveNotes": "Evidence recorded after immutable packaging; archive documentation remains from its clean source commit."
+}
