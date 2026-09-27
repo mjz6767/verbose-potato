@@ -6,7 +6,7 @@ The Living Folio brings character creation to life with a dedicated musical arra
 
 The coordinated title update introduces The Ember Oath, an original sixty-second opening theme with its own horn signature, a quieter lute-and-reed middle, and a returning company theme.
 
-Music and sound effects follow their separate volume controls. Reduced Motion keeps the artwork and selection indicators while making changes immediate. Refreshing the screen or choosing the same race or class again does not repeat a selection sound. Existing campaigns remain compatible with save schema v27; the v2.28 Windows archive is preserved. Final verification and package hashes are recorded in Docs/ReleaseEvidence/v2.29.0-summary.json after validation.
+Music and sound effects follow their separate volume controls. Reduced Motion keeps the artwork and selection indicators while making changes immediate. Refreshing the screen or choosing the same race or class again does not repeat a selection sound. Existing campaigns remain compatible with save schema v27; the v2.28 Windows archive is preserved. All twelve audit/build gates, clean-extracted startup and eight final-player character captures pass. Exact coverage and package hashes are recorded in Docs/ReleaseEvidence/v2.29.0-summary.json.
 
 Portraits by the Fire gives character creation 40 original painted portraits: one for every combination of five races and eight classes. Select a companion's illustrated card, give them a name, and choose race and class directly. The portrait and descriptions update together; every class is available to every race.
 

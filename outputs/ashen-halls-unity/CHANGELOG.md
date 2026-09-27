@@ -9,7 +9,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Add a dedicated character-creation musical arrangement and distinct sounds for companion, race, class and customization actions. Follow existing music/SFX controls and keep refreshes and unchanged selections silent.
 - Bring portraits and selection frames to life with short transitions, class-colored accents and restrained firelight. Reduced Motion resolves changes immediately and keeps a static presentation.
 - Keep animation and sound presentation separate from character calculations, focus ownership and campaign saves. Preserve save schema v27 and the v2.28 release archive.
-- Record focused motion/audio regression coverage, the integrated audit, package integrity and supported-size visual review in `Docs/ReleaseEvidence/v2.29.0-summary.json` after validation.
+- Pass twelve integrated audit gates, the repeated Windows build gates, clean-extracted startup, all 99 packaged art hashes, and eight final-player visual captures including animation and Reduced Motion. Focused checks cover music routing, all 23 new cues, silent no-op actions, rapid portrait changes and disposal. Exact evidence and manual-review limits are recorded in `Docs/ReleaseEvidence/v2.29.0-summary.json`.
 
 ## v2.28.0 - Portraits by the Fire
 

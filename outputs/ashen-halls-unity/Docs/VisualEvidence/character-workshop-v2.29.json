@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v2.29.0",
+  "sourceCommit": "2802877120c0357a8680e076d430dda64746d0f9",
+  "review": {
+    "method": "actual-retail-player-native-canvas-through-offscreen-camera",
+    "captureDirectory": "QA/party-setup/player-20260927-014118-0c4af6b2",
+    "captureCount": 8,
+    "captureSetSha256": "0eca6b9055566f7cf1a49903d6ffc31001676b3361a524a9ded7100f17d165da",
+    "deterministicPassed": true,
+    "coverage": [
+      "Identity and details at 960x600, 1280x720 and 1920x1080",
+      "A real class change sampled at 0.08 seconds at 1280x720",
+      "Immediate Reduced Motion state at 1280x720"
+    ],
+    "assistantVisualReview": "All eight final-player images personally reviewed by root and independent character_ui agent; no blocking findings.",
+    "humanVisualReviewClaimed": false,
+    "earlierEditorPreview": {
+      "captureDirectory": "QA/party-setup/editor-20260927-012723-022",
+      "captureCount": 8,
+      "passed": true,
+      "independentlyReviewed": true
+    },
+    "limitations": [
+      "Fixed-time image samples verify rendered states; they do not establish subjective animation feel or physical-controller usability."
+    ]
+  },
+  "captures": [
+    {
+      "file": "fenkin-wizard-reduced-1280x720.png",
+      "sha256": "41a141695a4abb01899435583c878d67862ae25a1160988473c30b37090f76c4"
+    },
+    {
+      "file": "fenkin-wizard-transition-1280x720.png",
+      "sha256": "c8c122b983bd6854db07fc39bdc0a09ca8834b876fd2214320f7dd06bd75b99a"
+    },
+    {
+      "file": "human-mage-details-1280x720.png",
+      "sha256": "106659aaf10c128dbf3e8056f6cf938df301bd8ac180495a3fc2bf2f9f07ce3d"
+    },
+    {
+      "file": "human-mage-details-1920x1080.png",
+      "sha256": "2913d6579e90d9c53be170d7c84b71c17c6a3fc92c82e57f245b71593852d0f4"
+    },
+    {
+      "file": "human-mage-details-960x600.png",
+      "sha256": "55989d280c2b66019ca56ecf183d2cb7323d229cc9faa7cbbc3ee235616d69b6"
+    },
+    {
+      "file": "human-warrior-1280x720.png",
+      "sha256": "988ba7e991c83676237866f0eac6bf3fe551d5d7131a9d47746ac39861bbf381"
+    },
+    {
+      "file": "human-warrior-1920x1080.png",
+      "sha256": "d254ee61d07eb88bf4f25685875653540edb9899ef1fa9dcd536a3db86f7d62b"
+    },
+    {
+      "file": "human-warrior-960x600.png",
+      "sha256": "b13a2809a33857e46d0619565befa309b490099e89578b2f9603a177c27efd8c"
+    }
+  ]
+}

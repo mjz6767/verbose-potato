@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.29.0",
+  "releaseStage": "The Living Folio",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-09-27T01:46:48.0871336Z",
+  "sourceCommit": "2802877120c0357a8680e076d430dda64746d0f9",
+  "sourceDirty": false,
+  "developmentPackage": false,
+  "scope": [
+    "Character workshop painting, portrait transitions, class/race accents, embers and Reduced Motion",
+    "Original 53.333-second character score and 23 interaction cues",
+    "Coordinated sixty-second Ember Oath title theme and opening mix"
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.29.0.zip",
+    "packageBytes": 249023211,
+    "packageSha256": "b9a19f8db45828299eba589ec7248f1f2306d578541fff233a89bd5d412e6280",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "97972032929c086bc41dcc42a7b1c28ac453fb6dd3270faf7c4e0a941754a5af",
+    "cleanExtractLaunch": true,
+    "packagedBootMode": "batchmode-explore-smoke",
+    "playerExitCode": 0,
+    "packagedArtCount": 99,
+    "previousV228ArchivePreserved": true,
+    "previousV228Sha256": "f291dad1535a0b60b192a59ee52c9b19cca37c7440562c22118dfbe9bedb90a9"
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "exitCode": 0,
+    "passed": [
+      "Rules",
+      "UI finish",
+      "Building atlas alpha",
+      "Audio lifecycle",
+      "Title music experience",
+      "Character workshop audio",
+      "Everyday sound effects",
+      "Inventory and loot",
+      "Sprite art",
+      "Character workshop",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "repeatedDuringWindowsBuild": true,
+    "rejectsLoggedErrors": true,
+    "focusedCoverage": [
+      "All 40 portrait mappings and native controls",
+      "Real title-to-New Game workshop music route and preserved preferences",
+      "No-op/refresh/mute/capture cue suppression",
+      "Rapid portrait retargeting and fixed-state transition rendering",
+      "Live Reduced Motion and hidden-screen cancellation",
+      "Decorative input isolation and bounded allocations",
+      "Artwork cache reuse and actual disposal callbacks"
+    ]
+  },
+  "visualQa": {
+    "method": "actual-retail-player-native-canvas-through-offscreen-camera",
+    "captureDirectory": "QA/party-setup/player-20260927-014118-0c4af6b2",
+    "captureCount": 8,
+    "captureSetSha256": "0eca6b9055566f7cf1a49903d6ffc31001676b3361a524a9ded7100f17d165da",
+    "deterministicPassed": true,
+    "coverage": [
+      "Identity and details at 960x600, 1280x720 and 1920x1080",
+      "A real class change sampled at 0.08 seconds at 1280x720",
+      "Immediate Reduced Motion state at 1280x720"
+    ],
+    "assistantVisualReview": "All eight final-player images personally reviewed by root and independent character_ui agent; no blocking findings.",
+    "humanVisualReviewClaimed": false,
+    "earlierEditorPreview": {
+      "captureDirectory": "QA/party-setup/editor-20260927-012723-022",
+      "captureCount": 8,
+      "passed": true,
+      "independentlyReviewed": true
+    },
+    "limitations": [
+      "Fixed-time image samples verify rendered states; they do not establish subjective animation feel or physical-controller usability."
+    ]
+  },
+  "art": {
+    "portraitCount": 40,
+    "originalPortraitsUnchanged": true,
+    "newBackdropCount": 1,
+    "approvedPins": 65,
+    "generator": "Built-in ImageGen",
+    "sourcePrompt": "Docs/CHARACTER_WORKSHOP_ART_v2.29.md",
+    "validation": "Docs/CHARACTER_WORKSHOP_ART_VALIDATION_v2.29.json"
+  },
+  "audio": {
+    "newWorkshopCueCount": 23,
+    "totalRuntimeSfx": 210,
+    "workshopSeconds": 53.3333,
+    "titleSeconds": 60,
+    "deterministicSynthesis": true,
+    "externalRecordings": false,
+    "runtimeAiService": false,
+    "originalAudioContractTests": 12,
+    "titleCompositionTests": 5,
+    "reports": [
+      "Docs/PARTY_SETUP_AUDIO_VALIDATION.json",
+      "Docs/TITLE_THEME_VALIDATION.json",
+      "Docs/TITLE_THEME_QUALITY.json",
+      "Docs/ORIGINAL_AUDIO_VALIDATION.json"
+    ],
+    "subjectiveListeningClaimed": false
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/project-audit/20260927-013526-3a507ced/unity.log",
+      "sha256": "d07d773fa7d6f561277005b5be8a9140af4852f2c9e73cbc3f36972cae512f53",
+      "tracked": false
+    },
+    {
+      "path": "build-v2.29.0.log",
+      "sha256": "fc0364cb84a286c499d99d12c748bb8a913b8883124064c12dc61ed7b0ee05b3",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.29.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "28e378b7902514540ec8ece1fb8668c8a243d4b97c4ce0f7b535bc81fcc953be",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.29.0-release-integrity/clean-extract-boot.log",
+      "sha256": "782d9cbea502a2ec07035fd0fc46a9357bc79e6088f39a73ebd82fb6b05d910f",
+      "tracked": false
+    },
+    {
+      "path": "QA/party-setup/editor-polish-v2.29-retry.log",
+      "sha256": "11d1603d4256b7d741bee848b806c78e41a1bc89481ba3a2ef02439287e0d5f2",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "Final-player images use the real native canvas rendered offscreen, not a foreground interaction recording.",
+    "Physical-controller feel, subjective playback on speakers/headphones and a full human campaign remain manual checks.",
+    "The title quality report retains its intentional loop-breath listening advisory; no engineering failure was found.",
+    "Raw screenshots, logs, audition files and the Windows ZIP remain local; tracked summaries record hashes and scope.",
+    "Evidence follows the immutable package; its archive retains the source-commit documentation snapshot."
+  ]
+}
