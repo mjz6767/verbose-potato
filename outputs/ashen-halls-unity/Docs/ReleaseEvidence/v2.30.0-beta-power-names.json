@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "recordedUtc": "2026-09-27",
+  "scope": "Local Beta Development naming pass; 28 spell and 14 martial-skill display names; gameplay data unchanged.",
+  "sourceCommit": "78fba0cb7004df081e98b66b87faebbbe8166367",
+  "artifact": "outputs/AshAndBrimstone-Windows-v2.30.0-beta-dev-power-names.zip",
+  "artifactBytes": 277022327,
+  "artifactSha256": "ce05a0279628e147664e93dc3fb08ba1c897beff28b8457665b2d699e6d52533",
+  "managedAssemblySha256": "24a989f016cfd82b9e3c3e631173295da3387a9cf74193f41b22792f209d598d",
+  "checks": {
+    "embeddedBuildGates": {
+      "passed": 13,
+      "total": 13,
+      "log": "QA/beta-class-coverage/build-power-names-r2.log"
+    },
+    "nameRouting": "All 56 formula names and all 25 skill names/sigils match their stable audio/travel/art identities. Legacy alias checks retained.",
+    "cleanExtractStartup": {
+      "passed": true,
+      "log": "QA/beta-development/AshAndBrimstone-Windows-v2.30.0-beta-dev-power-names-clean-extract.log"
+    },
+    "catalogComparison": "Both catalogs match parent revision after excluding display Name/Short/Summary/Detail fields.",
+    "visualCapture": "No new pixel capture; automated UI and book-runtime checks passed."
+  },
+  "preservedArchives": {
+    "outputs/AshAndBrimstone-Windows-v2.30.0-beta-dev.zip": "75acd6c51e2efdb1475a01af111068ee1b85879cba9560785634722fcf68c97b",
+    "outputs/AshAndBrimstone-Windows-v2.30.0.zip": "d577b59345983931c931bb7016bf64584654679fb82ce6eb6262cb5467adb19c"
+  },
+  "releaseStatus": "Local only; not pushed or published."
+}
