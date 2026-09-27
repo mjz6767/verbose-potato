@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "releaseVersion": "v2.28.0",
+  "sourceCommit": "1fbb4997273bd6a491521220c4d757d2b9efc7cf",
+  "review": {
+    "humanReviewClaimed": false,
+    "kind": "actual-retail-player-offscreen-native-canvas",
+    "captureSetSha256": "1ebfc13b55a18abfdf2239e2e7b2bdd1f4a065c2f9c8750fa095e2d4971d8b0d",
+    "reviewerCoverage": [
+      "Root: six default scenarios at 1920x1080 and all eight Ashling classes at 1280x720.",
+      "character_ui: six default scenarios at 960x600 and 1280x720, plus all eight Stoneborn classes at 1280x720.",
+      "character_backend: all eight Human and eight Dusk Elf classes at 1280x720.",
+      "release_review: all eight Fenkin classes at 1280x720."
+    ],
+    "visualReview": "All 18 three-size examples and all 40 large-portrait combinations reviewed by root and independent agents.",
+    "windowSizes": [
+      "960x600",
+      "1280x720",
+      "1920x1080"
+    ],
+    "deterministicPassed": true,
+    "nonblockingObservations": [
+      "The long Warlock role summary wraps its final number onto a second line; the text remains inside its panel and readable."
+    ],
+    "captureDirectory": "QA/party-setup/player-20260927-004500-123ffbe7",
+    "distinctRaceClassCombinations": 40,
+    "captureTool": "Tools/InvokePartySetupCapture.ps1 -AllCombinations",
+    "captureCount": 53,
+    "correctedTabStagingVerified": true
+  },
+  "captures": [
+    {
+      "file": "ashling-mage-1280x720.png",
+      "sha256": "31af1ab1463f5c9270acee105082c53dc4a096b6c862ffecee97b414a51e9b48"
+    },
+    {
+      "file": "ashling-paladin-1280x720.png",
+      "sha256": "8963b970d30f763609aa3ab48e8cef288f7aaaed32afc62b18c52c9668d82327"
+    },
+    {
+      "file": "ashling-priest-1280x720.png",
+      "sha256": "7471083b084f51d7eae29fbc156fa0bb8806fa487d3eede295bb625f46eeb360"
+    },
+    {
+      "file": "ashling-ranger-1280x720.png",
+      "sha256": "90bdefb31d36c36a434a8aedf42d558281ee85e3fa6bc3f3d4ad321879f18da1"
+    },
+    {
+      "file": "ashling-rogue-1280x720.png",
+      "sha256": "3ada27c412b4257caae0993231e17111ca9770a8cfb101e23d5910f63e0b495f"
+    },
+    {
+      "file": "ashling-warlock-1280x720.png",
+      "sha256": "01cc4c77d4a456a7635cca409fa655735a1209e7b57c476391f5c8a0889d28bf"
+    },
+    {
+      "file": "ashling-warlock-1920x1080.png",
+      "sha256": "4790c3a4c87a86436fe8a720d4e2f9ccf738fde3af8b147d8272563efc617dde"
+    },
+    {
+      "file": "ashling-warlock-960x600.png",
+      "sha256": "66e01416a7000be0c841679c369c4ca2af5d219326f3d310da6cd35ee70e0016"
+    },
+    {
+      "file": "ashling-warrior-1280x720.png",
+      "sha256": "7504b957ad9bea40fcec10f31bbcec7c875695d55c125a94d0dc2206b9b457fb"
+    },
+    {
+      "file": "ashling-wizard-1280x720.png",
+      "sha256": "daa5c8d78c17df670b256667f44a881f9f5643ed6b8adc49c37ae78c5d9c0aff"
+    },
+    {
+      "file": "dusk-elf-mage-1280x720.png",
+      "sha256": "267f09bbaec941ecca839f7eda884efc73c5b270d348c1716a58a7c48a3f24a6"
+    },
+    {
+      "file": "dusk-elf-paladin-1280x720.png",
+      "sha256": "87a2e735f39dddb35df34c44d74aaf90a6696da57ecfa5b6b4590d5391f85f45"
+    },
+    {
+      "file": "dusk-elf-priest-1280x720.png",
+      "sha256": "dec8d0413d1aa30527c5caec2be8fc7654bec1a1d782f0ed83eac92e42b3a896"
+    },
+    {
+      "file": "dusk-elf-ranger-1280x720.png",
+      "sha256": "aa2d365233f76053b540b0bcf5f9b6aa887c96c97ca3b2ed337c4aef9fee9dee"
+    },
+    {
+      "file": "dusk-elf-ranger-1920x1080.png",
+      "sha256": "60ad67cad149c65da349cf262e05199ec0700825650a4be7b4935aa320aaf9b1"
+    },
+    {
+      "file": "dusk-elf-ranger-960x600.png",
+      "sha256": "c0721d438a9a5d9e22a843b1dcd02a2cbae63c2cb6ff251b7a56e3788189144d"
+    },
+    {
+      "file": "dusk-elf-rogue-1280x720.png",
+      "sha256": "96308e7dd3e8be256b48742a83865c2ac0a78c82d6a0479dc6a80f5ca98328e7"
+    },
+    {
+      "file": "dusk-elf-warlock-1280x720.png",
+      "sha256": "11c872afec47ddc755e47c853434cf0571fe908a7d10e25d7dfbaa9f3eb6074d"
+    },
+    {
+      "file": "dusk-elf-warrior-1280x720.png",
+      "sha256": "462eebda7d18813ec486e3111da6df44fdbbc6bee41e9e67f8cd31f3fc3a96ba"
+    },
+    {
+      "file": "dusk-elf-wizard-1280x720.png",
+      "sha256": "9b7205c94d9988dc73701e93c63c2ed66f2a4424a41172af999dabaedb8e4a6c"
+    },
+    {
+      "file": "fenkin-mage-1280x720.png",
+      "sha256": "c3b4cc0cb528c7a2b8647f60514fb18a6e045c6963b9e67711b4afffc69ed2e9"
+    },
+    {
+      "file": "fenkin-paladin-1280x720.png",
+      "sha256": "056802976f0ee9d7c2167238409ab8b4e98d1a8c9b6db89d8c5fa2cc1883e213"
+    },
+    {
+      "file": "fenkin-priest-1280x720.png",
+      "sha256": "2d49e4667fbd65dc6901b5145906a8c9fed0e14e0f526ea3c31ab1086c0ae879"
+    },
+    {
+      "file": "fenkin-ranger-1280x720.png",
+      "sha256": "9e95118d7c14c24a3086bf48618b3a141bfa7f693852f5ca27a8ae1ea11f9f7a"
+    },
+    {
+      "file": "fenkin-rogue-1280x720.png",
+      "sha256": "6f1e76ad214819f1a763c1f209fe7cb9defee4096cb76bd34df8d82c60702100"
+    },
+    {
+      "file": "fenkin-rogue-1920x1080.png",
+      "sha256": "14ce58ec0a31551b93e0a6cafa5ef58816c1c6c8684c20bd591b39430986a48c"
+    },
+    {
+      "file": "fenkin-rogue-960x600.png",
+      "sha256": "f8ae4d42c271ffd03115f0bdc2465435ca91e88331cfa84cae0a04dcda17812c"
+    },
+    {
+      "file": "fenkin-warlock-1280x720.png",
+      "sha256": "cc322da3512dbf764f6523787f76cf47d6fa1ca1b4a58aa5ae9d713edbce49de"
+    },
+    {
+      "file": "fenkin-warrior-1280x720.png",
+      "sha256": "19372c2ab77e3ce5ebd78417dcfd0f3f2017e2606e621ef3fe42771a14e96def"
+    },
+    {
+      "file": "fenkin-wizard-1280x720.png",
+      "sha256": "2ef5d8084c03c7723042e393bac466e3d3a84fa0f3b96efc231a6ab9a4a4431c"
+    },
+    {
+      "file": "human-mage-1280x720.png",
+      "sha256": "a39b03fca4111d76ef364305a6483b8d50a7043411fad4227a69b10d658c42f9"
+    },
+    {
+      "file": "human-mage-details-1280x720.png",
+      "sha256": "0b23fcc9f6fa80b1ee8f30377d830cad6f6f6e079917b391492ab366b9d2909a"
+    },
+    {
+      "file": "human-mage-details-1920x1080.png",
+      "sha256": "67f397a906aa5be989122fd6abf1141bf30e1403ecb8779f5a751dcec6267325"
+    },
+    {
+      "file": "human-mage-details-960x600.png",
+      "sha256": "1b1a93081c9a0bfd91e5f58b4cabe574af89630b60d465d54929df71358acb4f"
+    },
+    {
+      "file": "human-paladin-1280x720.png",
+      "sha256": "c27d34e6e60e38ee5a687be9014c858a713492547a6ddb195b0279474d050f1f"
+    },
+    {
+      "file": "human-priest-1280x720.png",
+      "sha256": "c99125acf6fcd2285a42f5b5e588ba74f72f2ce98eb2651b22e1b2cb0c95d7a0"
+    },
+    {
+      "file": "human-ranger-1280x720.png",
+      "sha256": "22b40b12f1d2814096e84df70f103708eee0562b7554566c79b2276f994d9887"
+    },
+    {
+      "file": "human-rogue-1280x720.png",
+      "sha256": "b198f167d8ee29dcdf10712336c6d74e6ae68d3edeab3386428432f14fe85a60"
+    },
+    {
+      "file": "human-warlock-1280x720.png",
+      "sha256": "d92c7a95e1519dec95c878598dc1d95539c556bd046605c94e481ac35eb84acb"
+    },
+    {
+      "file": "human-warrior-1280x720.png",
+      "sha256": "7d3a31067b7f0a00c317a80d0b8cc8e56e3e57acfbcab643a9d5634bc843b7bc"
+    },
+    {
+      "file": "human-warrior-1920x1080.png",
+      "sha256": "ef1472029f1c51d106b810e2fa1ec32707b65e064c9911335e95eacfaa2a0f63"
+    },
+    {
+      "file": "human-warrior-960x600.png",
+      "sha256": "bf49519ac3762366b8e473b155fe0093b81539aceb0711ef5b97e18b22232e20"
+    },
+    {
+      "file": "human-wizard-1280x720.png",
+      "sha256": "26639d1a2f98cb5e4c5467456cd940a6cc7533f75e66341ea2fd581bd1282463"
+    },
+    {
+      "file": "stoneborn-mage-1280x720.png",
+      "sha256": "603646395dc4e03cc23bf0840d98350a4ceee9c26e4f58f49e1afc8ea8c048d1"
+    },
+    {
+      "file": "stoneborn-paladin-1280x720.png",
+      "sha256": "0bb9d8676d743d17107457ec1856aa6445c73aeff68aff7c9cf0f36ec4708d7c"
+    },
+    {
+      "file": "stoneborn-paladin-1920x1080.png",
+      "sha256": "a6beca1bc607f4046b0abc4db5da1ddfbb28076f2c132afba6085e9851634c91"
+    },
+    {
+      "file": "stoneborn-paladin-960x600.png",
+      "sha256": "07e7c8d8788f91a858ca096d4063afc04ab3e6b40f3f19350c9f8a89fb786bfc"
+    },
+    {
+      "file": "stoneborn-priest-1280x720.png",
+      "sha256": "9f1f22dce543874eba4ca03ca239afb3cb8d512fd39211306aefde2ed43e2167"
+    },
+    {
+      "file": "stoneborn-ranger-1280x720.png",
+      "sha256": "e33855f92f577f910a651c65fec6815efa024d3d5a9f68da09e3aac08d010ee2"
+    },
+    {
+      "file": "stoneborn-rogue-1280x720.png",
+      "sha256": "912ee76a7b1d376ebd5cd934586d1e42f606ed8e657c3d0604ec9a8c0c52c2d7"
+    },
+    {
+      "file": "stoneborn-warlock-1280x720.png",
+      "sha256": "4201c7f777d55a81b5603cef4521a88ebfb741f5420375118f657e106bd36abf"
+    },
+    {
+      "file": "stoneborn-warrior-1280x720.png",
+      "sha256": "ef401120d3fdd7cf0bc2a897979f5db899c22b05745abe38fdea72d37b6cf7ef"
+    },
+    {
+      "file": "stoneborn-wizard-1280x720.png",
+      "sha256": "18fb8059735af95d57c03c8b3c5d13457843ab2cb1a7ed85644dd4439e15e22f"
+    }
+  ]
+}

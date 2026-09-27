@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "kind": "sanitized-release-evidence-summary",
+  "releaseVersion": "v2.28.0",
+  "releaseStage": "Portraits by the Fire",
+  "saveVersion": 27,
+  "verifiedAtUtc": "2026-09-27T00:56:54.4237141Z",
+  "sourceCommit": "1fbb4997273bd6a491521220c4d757d2b9efc7cf",
+  "sourceDirty": false,
+  "developmentPackage": false,
+  "scope": [
+    "40 unique character portraits and direct race/class creation",
+    "Exploration, pause and loot UI finish",
+    "Native Aseprite repair of nine building sprites"
+  ],
+  "package": {
+    "packageFile": "AshAndBrimstone-Windows-v2.28.0.zip",
+    "packageBytes": 245493624,
+    "packageSha256": "f291dad1535a0b60b192a59ee52c9b19cca37c7440562c22118dfbe9bedb90a9",
+    "executableSha256": "e6c480412b801727c0fe806a4b938a082b7cb14ccbd199c1e1f31363d3e688a3",
+    "managedAssemblySha256": "de2bc6fe4c0ad18ce6aef366c276764a59512c3280c97671501daa514f0b918c",
+    "cleanExtractLaunch": true,
+    "packagedBootMode": "batchmode-explore-smoke",
+    "playerExitCode": 0,
+    "packagedArtCount": 98,
+    "previousV227ArchivePreserved": true,
+    "previousV227Sha256": "4f5dc82724231bf6e4797013772edeff583258e8deebf49b5a9f4fdad66090a9"
+  },
+  "unityAudit": {
+    "suite": "Full",
+    "exitCode": 0,
+    "passed": [
+      "Rules",
+      "UI finish",
+      "Building atlas alpha",
+      "Audio lifecycle",
+      "Everyday sound effects",
+      "Inventory and loot",
+      "Sprite art",
+      "Character workshop",
+      "Combat UI",
+      "Runtime boot"
+    ],
+    "repeatedDuringWindowsBuild": true,
+    "rejectsLoggedErrors": true,
+    "meaningfulRepairs": [
+      "Preserve customized party on Enter",
+      "Native focus and hidden-page recovery",
+      "Pause settings retain selection",
+      "Hidden combat HUD does not re-enter selection during screen handoff",
+      "Editor-owned canvases and shared ornaments dispose reliably"
+    ]
+  },
+  "characterArt": {
+    "portraitCount": 40,
+    "raceCount": 5,
+    "classCount": 8,
+    "generator": "Built-in ImageGen",
+    "runtimeAiService": false,
+    "sourcePrompts": "Docs/CHARACTER_CREATION_ART_PROMPTS_v2.28.md",
+    "validation": "Docs/CHARACTER_PORTRAIT_VALIDATION_v2.28.json"
+  },
+  "characterVisualQa": {
+    "humanReviewClaimed": false,
+    "kind": "actual-retail-player-offscreen-native-canvas",
+    "captureSetSha256": "1ebfc13b55a18abfdf2239e2e7b2bdd1f4a065c2f9c8750fa095e2d4971d8b0d",
+    "reviewerCoverage": [
+      "Root: six default scenarios at 1920x1080 and all eight Ashling classes at 1280x720.",
+      "character_ui: six default scenarios at 960x600 and 1280x720, plus all eight Stoneborn classes at 1280x720.",
+      "character_backend: all eight Human and eight Dusk Elf classes at 1280x720.",
+      "release_review: all eight Fenkin classes at 1280x720."
+    ],
+    "visualReview": "All 18 three-size examples and all 40 large-portrait combinations reviewed by root and independent agents.",
+    "windowSizes": [
+      "960x600",
+      "1280x720",
+      "1920x1080"
+    ],
+    "deterministicPassed": true,
+    "nonblockingObservations": [
+      "The long Warlock role summary wraps its final number onto a second line; the text remains inside its panel and readable."
+    ],
+    "captureDirectory": "QA/party-setup/player-20260927-004500-123ffbe7",
+    "distinctRaceClassCombinations": 40,
+    "captureTool": "Tools/InvokePartySetupCapture.ps1 -AllCombinations",
+    "captureCount": 53,
+    "correctedTabStagingVerified": true
+  },
+  "uiVisualQa": {
+    "captureCount": 18,
+    "type": "native Unity editor canvas fixtures",
+    "deterministicPassed": true,
+    "independentlyReviewed": true,
+    "evidence": "Docs/VisualEvidence/ui-finish-v2.28.json"
+  },
+  "buildingVisualQa": {
+    "captureCount": 12,
+    "type": "actual retail player",
+    "windowSizes": [
+      "960x600",
+      "1920x1080"
+    ],
+    "independentlyReviewed": true,
+    "evidence": "Docs/VisualEvidence/building-alpha-v2.28.json",
+    "repairedCells": 9,
+    "clearedMattePixels": 7334,
+    "untouchedCells": 11,
+    "nativeRoundtripPixelMismatches": 0
+  },
+  "localSourceArtifacts": [
+    {
+      "path": "QA/project-audit/20260927-004004-f0b17d3b/unity.log",
+      "sha256": "c1c34c81a199a582c24194e8ebcdc9ce14a9e66fd7ef3817d051881142be1e6f",
+      "tracked": false
+    },
+    {
+      "path": "build-v2.28.0.log",
+      "sha256": "d7caf8a20438bd8fc4f023996ded6810607c1a9c79e9224d97b5858a0f6b0ebe",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.28.0-release-integrity/release-integrity-manifest.json",
+      "sha256": "b7a4681f3d79fab2f1a273fdd36ef8229699157cb1a54e9d139980caa9ba8961",
+      "tracked": false
+    },
+    {
+      "path": "QA/v2.28.0-release-integrity/clean-extract-boot.log",
+      "sha256": "020124719755f03a3678128421113de3f27fa63e9ee90a8aa5844e9f93cd545e",
+      "tracked": false
+    },
+    {
+      "path": "QA/ui-finish-capture-v2.28-final.log",
+      "sha256": "823da0ea9a6e299d25516066d223821df35b4ed062e4ee483af852efcf936aae",
+      "tracked": false
+    }
+  ],
+  "limitations": [
+    "Source screenshots, raw logs and the Windows ZIP remain local; tracked summaries record hashes and review scope.",
+    "Character images are the actual retail native canvas rendered through an offscreen camera; this does not establish physical-controller feel.",
+    "Physical-controller review and a complete human campaign were not performed.",
+    "This evidence commit follows the immutable package; the archive retains its source-commit documentation snapshot."
+  ]
+}

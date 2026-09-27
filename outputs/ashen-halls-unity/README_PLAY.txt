@@ -6,7 +6,7 @@ Portraits by the Fire gives character creation 40 original painted portraits: on
 
 Use the secondary customization tab to adjust attributes and talents or change origin, sigil, color and starting equipment. Begin takes your customized party into the adventure. Quick Start uses the ready-made party.
 
-Existing campaigns remain compatible with save schema v27. The v2.27 Windows archive is preserved. Exact v2.28 validation and package hashes are recorded in Docs/ReleaseEvidence/v2.28.0-summary.json after verification.
+Existing campaigns remain compatible with save schema v27. The v2.27 Windows archive is preserved. The full automated audit, Windows build, clean-extracted startup and 83 character/UI/map captures pass verification. Exact coverage, package hashes and manual-review limits are recorded in Docs/ReleaseEvidence/v2.28.0-summary.json.
 
 This combined update also refines exploration, pause and loot layouts, adds a subtle brass-and-ember menu ornament, preserves keyboard focus while adjusting settings, and removes the white outlines baked into nine Midgaard building illustrations.
 

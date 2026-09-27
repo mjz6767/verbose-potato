@@ -11,7 +11,7 @@ All changes are original to Ash & Brimstone, formerly developed under the Ashen 
 - Preserve the customized party when Enter starts the journey, provide visible keyboard focus, and defer portrait loading until character creation opens.
 - Refine exploration spacing, group pause actions with reliable keyboard navigation, simplify loot comparisons and resource presentation, and add a subtle original brass-and-ember divider to supporting menus.
 - Remove baked white contours and sign-gap remnants from nine Midgaard building sprites using native Aseprite cleanup. Preserve light smoke, stone details and all eleven untargeted cells; retain the original in an editable source layer.
-- Validate choice callbacks, all 40 art mappings, portrait packaging and compact/wide presentation. Exact release results are recorded in the accompanying release evidence after verification.
+- Pass all ten Full audit gates, repeated build gates and clean-extracted startup. All 40 portrait mappings and 98 packaged PNGs validate; 53 final-player character captures, 18 native-editor UI captures and 12 final-player map captures pass deterministic checks and assistant visual review. Exact scope, package hashes and manual-review limits are recorded in `Docs/ReleaseEvidence/v2.28.0-summary.json`.
 
 ## v2.27.0 - Echoes of the Road
 

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0",
+  "releaseVersion": "v2.28.0",
+  "scope": "Building matte cleanup and combined world-map presentation",
+  "runtimeSourceCommit": "1fbb4997273bd6a491521220c4d757d2b9efc7cf",
+  "player": "../ash-and-brimstone-build/AshAndBrimstone-Windows-v2.28.0/AshAndBrimstone.exe",
+  "package": "../AshAndBrimstone-Windows-v2.28.0.zip",
+  "packageSha256": "f291dad1535a0b60b192a59ee52c9b19cca37c7440562c22118dfbe9bedb90a9",
+  "packageBytes": 245493624,
+  "townAtlas": "midgaard-town-atlas-runtime-v2.28.0.png",
+  "townAtlasSourceAndPackageSha256": "e48310a69517121fc8fa0aee9523d52ba5f78244a2f78738b0b4f05909a430e4",
+  "packagedAtlasMatchesReviewedSource": true,
+  "captures": [
+    {
+      "folder": "QA/world-sprites/20260927-004526-f65639c9",
+      "width": 960,
+      "height": 600,
+      "count": 6,
+      "captureSetSha256": "0b41b16d6dd3912fb3a746963939f8d98d4e442cbc60bec7cea5ab8939da5442",
+      "deterministicPassed": true,
+      "warnings": []
+    },
+    {
+      "folder": "QA/world-sprites/20260927-004643-f412787b",
+      "width": 1920,
+      "height": 1080,
+      "count": 6,
+      "captureSetSha256": "7dfc675987e24709e7e573f3a564ab06142a4991f53432c25a5d1cd8ce2cf06a",
+      "deterministicPassed": true,
+      "warnings": []
+    }
+  ],
+  "scenariosAtEachSize": [
+    "npc-kate-local", "npc-lute-local", "npc-dock-local",
+    "npc-scholar-local", "npc-kate-region", "landmark-region"
+  ],
+  "captureMethod": "Visible actual retail player, seeded save-protected scenarios; exact-size PNG and log validation. All 12 fixture players exited successfully.",
+  "aiVisualReview": {
+    "performed": true,
+    "humanReviewClaimed": false,
+    "reviewers": [
+      { "role": "root", "personallyViewed": ["npc-kate-local@960x600", "npc-kate-local@1920x1080"] },
+      { "role": "sprite_layout_review", "personallyViewedAll12": true },
+      { "role": "map_hud_declutter", "personallyViewedAll12": true }
+    ],
+    "result": "pass",
+    "blockingFindings": [],
+    "observations": [
+      "White cutout contours and enclosed shop-sign background strips are removed in the actual map.",
+      "Roof and bracket shapes, masonry, chimney smoke, amber windows, gold signs and flags remain intact.",
+      "The previous NPC transparency repair remains intact, including pale clothing, hair, lanterns and grounded feet.",
+      "HUD names, bearings, numeric HP, menu shortcuts and grouped contextual actions remain readable without observed clipping.",
+      "Region fog, markers, routes and party indicators remain distinguishable."
+    ],
+    "limitations": [
+      "Visual judgment is limited to the reviewed atlases and listed seeded scenes; it is not a claim that every map location was viewed.",
+      "Pre-existing clipped tops on a few named NPC sprites remain unchanged and are not part of this building repair.",
+      "No new manual keyboard/controller or audio listening assessment is claimed by this capture pass."
+    ]
+  },
+  "priorArchivesPreserved": {
+    "v2.27.0": "4f5dc82724231bf6e4797013772edeff583258e8deebf49b5a9f4fdad66090a9",
+    "v2.26.0": "f8c7c1b46328ef1a2e88616ca52cd63115b15d98a6ffe408b19dbf87b7f57a78"
+  },
+  "note": "Evidence recorded after packaging. Runtime source and packaged files were not edited during this review. Generated per-set packets retain their deterministic-only review flags; this separate record contains the completed multimodal review."
+}

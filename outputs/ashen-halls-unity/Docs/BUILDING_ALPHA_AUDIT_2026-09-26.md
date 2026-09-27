@@ -35,6 +35,12 @@ Run `Tools/RepairWorldBuildingAtlas.ps1` with installed Aseprite to regenerate, 
 
 Runtime screenshot and final release verification belong to the combined v2.28.0 release, not to the earlier NPC preview. Do not interpret an atlas-only review as proof that a retail build was tested or published.
 
+### Final combined-player verification
+
+The clean retail v2.28.0 player from source `1fbb4997273bd6a491521220c4d757d2b9efc7cf` was tested after all ten combined audit gates and clean-extracted startup passed. Twelve visible actual-player captures (six at 960×600, six at 1920×1080) passed deterministic checks with no warnings and independent multimodal review by two agents. Root also personally viewed Kate Local at both sizes. In-game white building contours and sign-gap blocks are removed, smoke/windows/signs remain intact, and NPC transparency and the decluttered HUD are preserved. No new visual blocker was found.
+
+Capture sets: `QA/world-sprites/20260927-004526-f65639c9` and `QA/world-sprites/20260927-004643-f412787b`. Exact scenario coverage, package/atlas/capture hashes, reviewer coverage and limits are recorded in `Docs/VisualEvidence/building-alpha-v2.28.json`. The packaged town PNG is byte-identical to the reviewed source; the ZIP hash is `f291dad1535a0b60b192a59ee52c9b19cca37c7440562c22118dfbe9bedb90a9` (245,493,624 bytes). Previous v2.26/v2.27 ZIP hashes were rechecked and remain unchanged. This evidence update does not change runtime code or the package; publication is handled by the single release owner.
+
 ## Handoff
 
 Building code/art are frozen for the release owner: the three ArtReferences artifacts above; `Assets/Editor/BuildingAtlasAlphaSmoke.cs` and its meta; both new repair tools; and this report. Release owner owns shared manifest/boot-assert/build-audit integration and combined changelog/ART_INTAKE updates. Map captures will be run on the actual combined player after the owner supplies it. No parallel Unity editor or separate package/push is started by this building-art chat.
