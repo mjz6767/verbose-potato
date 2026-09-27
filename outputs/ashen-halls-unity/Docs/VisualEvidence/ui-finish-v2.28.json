@@ -1,0 +1,133 @@
+{
+  "scope": "v2.28 UI finish native editor fixtures",
+  "verifiedUtc": "2026-09-27T00:33:13.3129095Z",
+  "unityExitCode": 0,
+  "log": "QA/ui-finish-capture-v2.28-final.log",
+  "methods": [
+    "PresentationAccessibilitySmoke.RunOrThrow",
+    "WorldMapHudAuditSmoke.RunOrThrow",
+    "UiFinishSmoke.RunOrThrow",
+    "UiFinishCapture.Capture"
+  ],
+  "sizes": [
+    "960x600",
+    "1280x720",
+    "1920x1080"
+  ],
+  "captures": [
+    {
+      "file": "QA/ui-finish/20260927-003118-917/exploration-1280x720.png",
+      "sha256": "4960c5e272d6d9e4606623b98a460fc10cb7725a1f3ca82d5231256dd3298c0f"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/exploration-1920x1080.png",
+      "sha256": "c930dae3026a4ac1e2dc4d296ca7d319c66fe6099e0d4cb0b5e2123629b57dd5"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/exploration-960x600.png",
+      "sha256": "a8a3c3e48f203c5c4bb9ba2ac669433a815da7517d341d54ceef5cfbef47f376"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/exploration-details-1280x720.png",
+      "sha256": "a4839e7623748b4e21abf63437174edfc7a61aad951bb9418106353d31a258c5"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/exploration-details-1920x1080.png",
+      "sha256": "219d4f3072f801b5609bbeca2a3dde6aeae6dc93b31fc1ce13a3149809b99f12"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/exploration-details-960x600.png",
+      "sha256": "97480dc240b981bbcf0125ad35a36254e73029242c1ed19a4075525d7928bb77"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/loot-equipment-1280x720.png",
+      "sha256": "7903d16705b6c11cd7a0883053b8d59a6188d09610d44620b3340ceb8af1c9ac"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/loot-equipment-1920x1080.png",
+      "sha256": "d3227dbc3cc047894ad4e4f1ee9a911f422790ce20ecdc808c4297d1397cad40"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/loot-equipment-960x600.png",
+      "sha256": "d050fab9abd210083e39776c4bcb450c24f83b85537fd456d54abfb864b25c99"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/loot-supplies-1280x720.png",
+      "sha256": "a971d08239a8b08e8047669698aa61cdc9d2f48a09e142172ca44b64b97f954d"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/loot-supplies-1920x1080.png",
+      "sha256": "59082562b60a4b423a35140ccd43634c8bc50f0c0e43d6dd4db546b333a57c46"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/loot-supplies-960x600.png",
+      "sha256": "cc9f91199f8054bdf7c5dfe66601688c793462265e386d3cc84f7d1b8652d3ce"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/pause-1280x720.png",
+      "sha256": "8c199daf767c32cf93f099ee3ccbeaadd0e203f4fb0ca33a16af5ac171fcf98f"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/pause-1920x1080.png",
+      "sha256": "83babb6608a3b44ad03f8b0eddabb561f1df0be497f8bc06e9c9f557f37a8185"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/pause-960x600.png",
+      "sha256": "b70bc3a76d32cc579443d669bfeed934aefbe2bd5623b78e1ca5fe603dfedfd2"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/pause-settings-1280x720.png",
+      "sha256": "e2264707ec481396d91cde08d98862cbf18da57b27cd0bc540c742dd4ce33963"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/pause-settings-1920x1080.png",
+      "sha256": "be972f9196d1a3467c735d067323925a5a7aabff8e5b353121a67d2836f89f9d"
+    },
+    {
+      "file": "QA/ui-finish/20260927-003118-917/pause-settings-960x600.png",
+      "sha256": "fb17cbe25dcaed63b5729c23b36d78764378742f2cd0f4fa295efeec138edbc3"
+    }
+  ],
+  "uiSourcesAtCaptureReview": [
+    {
+      "file": "Assets/Scripts/Presentation/ExplorationHudScreen.cs",
+      "sha256": "bedc32bb531bb161b3f8807dd3172bd244506427b71e2959a3ba12d846292715"
+    },
+    {
+      "file": "Assets/Scripts/Presentation/PauseMenuScreen.cs",
+      "sha256": "0533cd6ea3d5425c66db10f9d032af9d8a8c97db332f08182da4a51f81b33623"
+    },
+    {
+      "file": "Assets/Scripts/Presentation/LootPopupScreen.cs",
+      "sha256": "208354a434731568dddbf6bf431ce79c1a31d8d90a0831c8cfdf1467b81feb01"
+    },
+    {
+      "file": "Assets/Scripts/Presentation/UiRuntime.cs",
+      "sha256": "f7d7789b679b2d4e4868a2e280b9c3d0c14943ad5ec6ef2eb6046177041b3a07"
+    },
+    {
+      "file": "Assets/Scripts/Presentation/UiOrnament.cs",
+      "sha256": "38737f70edd6e3a95944862fe900709100d022e699862ffe92fb1c33aa8d4bbe"
+    },
+    {
+      "file": "Assets/Editor/UiFinishCapture.cs",
+      "sha256": "e998b8b738bf47c2111c8b0defc255e39ef949f81df7eca47d92213d4fbef557"
+    },
+    {
+      "file": "Assets/Editor/UiFinishSmoke.cs",
+      "sha256": "1eaa5530b0d7c8251b65ebc59df759ba817ee2252c08cf7045668a2be6b9a66b"
+    }
+  ],
+  "artwork": {
+    "file": "Docs/ArtReferences/ui-hearth-divider-runtime-v2.28.png",
+    "sha256": "4d130586cdb212224e29a909b6075fb851e4f36ffb16493f211c06f569dd04c3",
+    "width": 2172,
+    "height": 724
+  },
+  "limitations": [
+    "Isolated native canvases; no map rendered underneath HUD.",
+    "Representative fixture content; no campaign writes.",
+    "Final package and retail-player review owned by combined release chat.",
+    "Physical-controller feel and full human campaign not certified."
+  ]
+}

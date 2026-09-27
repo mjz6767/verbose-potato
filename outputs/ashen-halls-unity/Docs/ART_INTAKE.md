@@ -3,7 +3,17 @@
 This project uses generated and hand-cleaned original art atlases from `Docs/ArtReferences/`.
 High-visibility runtime art loads an approved exact filename first, then uses a semantic-version-sorted development fallback. Release builds fail when an approved family has a newer file that has not been reviewed and pinned.
 
-## Active v2.26.1 NPC alpha-repair contract (unreleased)
+## Active v2.28.0 character, UI and building contracts
+
+Five original opaque `character-portrait-{human,dusk-elf,stoneborn,fenkin,ashling}-atlas-runtime-v2.28.0.png` sheets provide all 40 race/class portraits. Each unmodified ImageGen output is 1774 by 887 pixels, four columns by two rows. Fractional UVs retain original pixels; the common reading order is Rogue, Warrior, Ranger, Wizard, Mage, Warlock, Priest, Paladin. These are exact-pinned independent portrait families. See `CHARACTER_CREATION_v2.28.md`, `CHARACTER_CREATION_ART_PROMPTS_v2.28.md` and `CHARACTER_PORTRAIT_VALIDATION_v2.28.json` for mappings, original prompts, hashes and opaque/unique-content validation. No runtime AI service is involved.
+
+`ui-hearth-divider-runtime-v2.28.png` is the exact-pinned 2172 by 724 RGBA menu ornament. Preserve the unmodified transparent ImageGen output; the native UI helper trims its sprite UVs to nontransparent bounds and owns the shared resource lifetime. It is static decoration and receives no input. See `UI_FINISH_ART_v2.28.md` for the prompt, alpha measurements and exact hash.
+
+`midgaard-town-atlas-runtime-v2.28.0.png` replaces the v2.21 town pin with a native Aseprite matte repair. Nine architecture cells lose 7,334 baked white outline/sign-gap pixels; the other eleven cells and protected smoke/stone/sign details remain unchanged. Canvas, cell geometry, minimum coverage and gutters retain their existing contracts. Promote its layered `source-midgaard-town-atlas-v2.28.0.aseprite` and validation JSON as source-only provenance companions. Only the runtime PNG enters the player package. See `BUILDING_ALPHA_AUDIT_2026-09-26.md` for reproducibility and focused checks.
+
+The six new runtime illustration files and replacement town PNG must be deliberately tracked despite local ArtReferences exclusions. This combined release preserves the original v2.21 town sheet and earlier versioned packages. Final integrated verification is recorded in `ReleaseEvidence/v2.28.0-summary.json`.
+
+## Active v2.26.1 NPC alpha-repair contract (included in v2.27)
 
 `midgaard-npc-atlas-runtime-v2.26.1.png` and `world-npc-citizen-atlas-runtime-v2.26.1.png` supersede the v2.21 NPC exports. Their cell order and 1280 by 1024 / 1536 by 768 canvases are unchanged. This is an art revision; the playable preview still identifies as game v2.26.0 and retains save schema v27.
 

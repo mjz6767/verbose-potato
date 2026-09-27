@@ -1,0 +1,140 @@
+{
+  "tool": "Aseprite",
+  "toolVersion": "1,3,18,5",
+  "source": "midgaard-town-atlas-runtime-v2.21.0.png",
+  "sourceSha256": "593C1DF8EA8142123EA3D2582A87D7900F89F0BFF1376778A7B58CEABAFD7501",
+  "output": "midgaard-town-atlas-runtime-v2.28.0.png",
+  "outputSha256": "E48310A69517121FC8FA0AEE9523D52BA5F78244A2F78738B0B4F05909A430E4",
+  "editable": "source-midgaard-town-atlas-v2.28.0.aseprite",
+  "editableSha256": "C702FA28DFF8E1D9401D7485921A9A0970F934D77D98604345C62FE59D138438",
+  "recipeSha256": "9CE056E87149334F25DC4143D58899C8EADDBC495DC26C2D3E850F09D1110116",
+  "geometry": [
+    1280,
+    1024
+  ],
+  "cells": [
+    {
+      "cell": 0,
+      "holeSeeds": [
+        [
+          220,
+          144
+        ]
+      ],
+      "protectedRegions": [],
+      "removed": 578
+    },
+    {
+      "cell": 1,
+      "holeSeeds": [],
+      "protectedRegions": [],
+      "removed": 737
+    },
+    {
+      "cell": 3,
+      "holeSeeds": [
+        [
+          210,
+          136
+        ],
+        [
+          200,
+          137
+        ],
+        [
+          195,
+          148
+        ]
+      ],
+      "protectedRegions": [],
+      "removed": 828
+    },
+    {
+      "cell": 4,
+      "holeSeeds": [
+        [
+          33,
+          131
+        ]
+      ],
+      "protectedRegions": [
+        [
+          61,
+          22,
+          99,
+          59
+        ]
+      ],
+      "removed": 783
+    },
+    {
+      "cell": 5,
+      "holeSeeds": [
+        [
+          38,
+          128
+        ]
+      ],
+      "protectedRegions": [],
+      "removed": 853
+    },
+    {
+      "cell": 6,
+      "holeSeeds": [
+        [
+          37,
+          125
+        ]
+      ],
+      "protectedRegions": [
+        [
+          147,
+          24,
+          185,
+          61
+        ]
+      ],
+      "removed": 845
+    },
+    {
+      "cell": 7,
+      "holeSeeds": [
+        [
+          43,
+          116
+        ],
+        [
+          64,
+          118
+        ]
+      ],
+      "protectedRegions": [],
+      "removed": 1037
+    },
+    {
+      "cell": 11,
+      "holeSeeds": [],
+      "protectedRegions": [],
+      "removed": 900
+    },
+    {
+      "cell": 14,
+      "holeSeeds": [
+        [
+          23,
+          135
+        ]
+      ],
+      "protectedRegions": [
+        [
+          155,
+          17,
+          194,
+          57
+        ]
+      ],
+      "removed": 773
+    }
+  ],
+  "note": "Native Aseprite bounded contour repair and reviewed enclosed sign-gap cleanup on nine architecture cells. Eleven other cells and original smoke regions unchanged. Original source layer hidden, repaired layer visible. No resize, repaint or remap."
+}

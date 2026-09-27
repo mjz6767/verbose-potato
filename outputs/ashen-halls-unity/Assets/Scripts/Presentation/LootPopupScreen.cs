@@ -125,7 +125,9 @@ namespace AshenHalls
         public static LootPopupGeometry Calculate(float width, float height)
         {
             float panelW = Mathf.Min(Mathf.Max(760f, width * 0.56f), Mathf.Min(980f, width - 48f));
-            float panelH = Mathf.Clamp(height * 0.50f, 360f, 440f);
+            // The same short item summary does not need a taller empty outcome
+            // well on large displays. Keep the modal fitted to its content.
+            float panelH = Mathf.Min(360f, height - 48f);
             Rect backdrop = new Rect(0f, 0f, width, height);
             Rect panel = new Rect((width - panelW) * 0.5f, (height - panelH) * 0.5f, panelW, panelH);
             Rect icon = new Rect(24f, 76f, 116f, 116f);
@@ -150,6 +152,7 @@ namespace AshenHalls
         private RectTransform iconPanel;
         private RectTransform resourceRow;
         private RectTransform accentStrip;
+        private RectTransform headerOrnament;
         private RectTransform outcomePanel;
         private RawImage iconImage;
         private Text headerText;
@@ -232,14 +235,14 @@ namespace AshenHalls
             if (!Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height)) ApplyLayout();
 
             Color accent = ParseColor(view.AccentHex, Hex("d7a84e", 1f));
-            panel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.92f);
-            iconPanel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.88f);
-            outcomePanel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.60f);
-            accentStrip.GetComponent<Image>().color = accent;
+            panel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.50f);
+            iconPanel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.36f);
+            outcomePanel.GetComponent<Outline>().effectColor = accent.WithAlpha(0.20f);
+            accentStrip.GetComponent<Image>().color = accent.WithAlpha(0.74f);
             headerText.text = string.IsNullOrWhiteSpace(view.Title) ? "Loot recovered" : view.Title;
             eyebrowText.text = view.HasItem
-                ? $"{SafeUpper(view.Rarity, "Common")} {SafeUpper(view.ItemType, "Item")}  •  ACQUIRED"
-                : "COMPANY SPOILS  •  ACQUIRED";
+                ? $"{SafeUpper(view.Rarity, "Common")}  ·  {SafeUpper(view.ItemType, "Item")}"
+                : "COMPANY SPOILS";
             eyebrowText.color = accent;
             itemTitleText.text = string.IsNullOrWhiteSpace(view.ItemName) ? "Victory spoils" : view.ItemName;
             bodyText.text = BuildBody(view);
@@ -275,7 +278,7 @@ namespace AshenHalls
                 : view.ReviewActionLabel;
             inputHintText.text = view.SecondsRemaining > 0.5f
                 ? $"{Mathf.CeilToInt(view.SecondsRemaining)}s"
-                : "ENTER / A  SELECT   •   ESC / B  CLOSE";
+                : "Enter / A: select\nEsc / B: close";
             ConfigureActionNavigation(view.CanQuickEquip, view.CanReview);
             if (IsVisible && !IsUsableCanvasSelection(EventSystem.current)) FocusDefaultAction(EventSystem.current);
             Canvas.ForceUpdateCanvases();
@@ -325,10 +328,12 @@ namespace AshenHalls
             Stretch(canvas.GetComponent<RectTransform>());
 
             backdrop = AddImage("Backdrop", canvas.transform, Hex("020303", 0.66f)).rectTransform;
-            panel = AddPanel("Loot Popup", canvas.transform, Hex("11171b", 0.995f), Hex("d7a84e", 0.92f));
-            accentStrip = AddImage("Accent Strip", panel, Hex("d7a84e", 1f)).rectTransform;
-            headerText = AddText("Header", panel, "", 13, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
-            iconPanel = AddPanel("Item Art", panel, Hex("050708", 0.92f), Hex("d7a84e", 0.78f));
+            panel = AddPanel("Loot Popup", canvas.transform, Hex("11171b", 0.995f), Hex("d7a84e", 0.50f));
+            accentStrip = AddImage("Accent Strip", panel, Hex("d7a84e", 0.74f)).rectTransform;
+            accentStrip.GetComponent<Image>().raycastTarget = false;
+            headerOrnament = UiOrnament.Add(panel, "Loot Header Ornament", 0.38f);
+            headerText = AddText("Header", panel, "", 12, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            iconPanel = AddPanel("Item Art", panel, Hex("050708", 0.92f), Hex("d7a84e", 0.36f));
             iconImage = AddRawImage("Item Icon", iconPanel);
             iconFallbackText = AddText("Item Icon Fallback", iconPanel, "LOOT", 13, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             eyebrowText = AddText("Eyebrow", panel, "", 11, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
@@ -342,26 +347,32 @@ namespace AshenHalls
             elixirText = AddChip("Elixirs", resourceRow, Hex("58b7a5", 0.72f));
             bodyText = AddText("Item Details", panel, "", 12, Hex("e1dacb", 1f), TextAnchor.UpperLeft);
 
-            outcomePanel = AddPanel("Loot Outcome", panel, Hex("080b0d", 0.86f), Hex("d7a84e", 0.58f));
+            outcomePanel = AddPanel("Loot Outcome", panel, Hex("080b0d", 0.46f), Hex("d7a84e", 0.20f));
             outcomeTitleText = AddText("Outcome", outcomePanel, "", 12, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
             outcomeTitleText.fontStyle = FontStyle.Bold;
             outcomeDetailText = AddText("Outcome Detail", outcomePanel, "", 11, Hex("b7aa90", 1f), TextAnchor.UpperLeft);
             inputHintText = AddText("Input Hint", panel, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
-            quickEquipButton = AddButton("Quick Equip", panel, "Equip best fit", () => bindings?.QuickEquip?.Invoke(), Hex("69c7a7", 0.88f));
-            reviewButton = AddButton("Review Equipment", panel, "Compare & equip", () => bindings?.ReviewInventory?.Invoke(), Hex("58b7a5", 0.86f));
+            quickEquipButton = AddButton("Quick Equip", panel, "Equip best fit", () => bindings?.QuickEquip?.Invoke(), Hex("69c7a7", 0.44f));
+            reviewButton = AddButton("Review Equipment", panel, "Compare & equip", () => bindings?.ReviewInventory?.Invoke(), Hex("58b7a5", 0.44f));
             dismissButton = AddButton("Continue", panel, "Continue", () => bindings?.Dismiss?.Invoke(), Hex("d7a84e", 0.86f));
             ConfigureActionNavigation(true, true);
         }
 
         private void ApplyLayout()
         {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
-            LootPopupGeometry geometry = LootPopupLayout.Calculate(Screen.width, Screen.height);
+            ApplyLayout(Screen.width, Screen.height);
+        }
+
+        private void ApplyLayout(float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
+            LootPopupGeometry geometry = LootPopupLayout.Calculate(width, height);
             SetScreenRect(backdrop, geometry.Backdrop);
             SetScreenRect(panel, geometry.Panel);
-            SetLocalRect(accentStrip, new Rect(0f, 0f, 5f, geometry.Panel.height));
-            SetLocalRect(headerText.rectTransform, new Rect(24f, 14f, geometry.Panel.width - 48f, 24f));
+            SetLocalRect(accentStrip, new Rect(0f, 24f, 2f, geometry.Panel.height - 48f));
+            if (headerOrnament != null) SetLocalRect(headerOrnament, new Rect(geometry.Panel.width - 184f, 12f, 160f, 30f));
+            SetLocalRect(headerText.rectTransform, new Rect(24f, 14f, geometry.Panel.width - 232f, 24f));
             SetLocalRect(iconPanel, geometry.Icon);
             Stretch(iconImage.rectTransform, 7f, 7f);
             Stretch(iconFallbackText.rectTransform, 7f, 7f);
@@ -413,12 +424,16 @@ namespace AshenHalls
             }
         }
 
-        private Text AddChip(string name, Transform parent, Color border)
+        private Text AddChip(string name, Transform parent, Color accent)
         {
-            RectTransform chip = AddPanel(name, parent, Hex("080b0d", 0.82f), border);
-            Text text = AddText("Label", chip, "", 11, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            RectTransform chip = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
+            chip.SetParent(parent, false);
+            Image marker = AddImage("Resource Accent", chip, accent);
+            marker.raycastTarget = false;
+            SetLocalRect(marker.rectTransform, new Rect(0f, 10f, 2f, 10f));
+            Text text = AddText("Label", chip, "", 11, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             text.fontStyle = FontStyle.Bold;
-            Stretch(text.rectTransform, 6f, 2f);
+            Stretch(text.rectTransform, 10f, 2f);
             return text;
         }
 
@@ -427,11 +442,11 @@ namespace AshenHalls
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(Outline));
             go.transform.SetParent(parent, false);
             Image image = go.GetComponent<Image>();
-            image.color = Hex("151a1f", 0.96f);
+            image.color = Color.white;
             Button button = go.GetComponent<Button>();
             button.targetGraphic = image;
             ColorBlock colors = button.colors;
-            colors.normalColor = image.color;
+            colors.normalColor = Hex("151a1f", 0.96f);
             colors.highlightedColor = Hex("263139", 1f);
             colors.pressedColor = Hex("0b1013", 1f);
             colors.disabledColor = Hex("0b0f12", 0.70f);
@@ -542,6 +557,7 @@ namespace AshenHalls
             text.alignment = anchor;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.raycastTarget = false;
             return text;
         }
 

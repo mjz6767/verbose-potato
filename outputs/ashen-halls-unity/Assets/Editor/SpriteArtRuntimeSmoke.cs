@@ -37,6 +37,7 @@ namespace AshenHalls.Editor
                 AshenHallsGame game = FindSceneGame(scene);
                 Assert(game != null, "AshenHallsGame exists in Main scene");
                 InvokePrivate(game, "Awake");
+                CharacterCreationSmoke.AssertRuntimePortraits(game);
                 AssertV27GrandHearthAtlasesAndMappings(game);
                 AssertV24WorldMapAtlasesAndMappings(game);
                 AssertV21RoadAtlasAndNpcSizing(game);

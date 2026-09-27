@@ -2137,8 +2137,8 @@ namespace AshenHalls.Editor
             Assert(wallAtlas.width == 1280 && wallAtlas.height == 1024, "Midgaard wall atlas is an exact 5x4 grid");
             Assert(midgaardTileAtlas != null && midgaardTileAtlas.name.IndexOf("v1.6.3", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard terrain uses the pinned v1.6.3 art contract");
             Assert(midgaardTileAtlas.width == 1400 && midgaardTileAtlas.height == 1120, "Midgaard terrain atlas is an exact 5x4 grid");
-            Assert(midgaardTownAtlas != null, "v2.21 Midgaard town atlas is loaded");
-            Assert(midgaardTownAtlas.name.IndexOf("v2.21.0", StringComparison.OrdinalIgnoreCase) >= 0, "Midgaard buildings use the approved architectural v2.21 art contract");
+            Assert(midgaardTownAtlas != null, "v2.28 Midgaard town atlas is loaded");
+            Assert(midgaardTownAtlas.name == RuntimeArtManifest.MidgaardTownAtlas, "Midgaard buildings use the exact approved cleaned architectural atlas");
             Assert(midgaardTownAtlas.width == 1280 && midgaardTownAtlas.height == 1024, "Midgaard town atlas is an exact 5x4 grid");
             Assert(cityNpcAtlas != null, "cleaned-alpha Midgaard NPC atlas is loaded");
             Assert(string.Equals(cityNpcAtlas.name, RuntimeArtManifest.MidgaardNpcAtlas, StringComparison.Ordinal), "named Midgaard NPCs use the exact approved cleaned-alpha art contract");

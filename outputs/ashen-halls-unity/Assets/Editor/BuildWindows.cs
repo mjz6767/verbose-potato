@@ -69,6 +69,7 @@ namespace AshenHalls.Editor
             "roaming-threat-atlas-runtime-",
             "tavern-backdrop-runtime-",
             "tavern-ui-atlas-runtime-",
+            "ui-hearth-divider-runtime-",
             "title-menu-icon-atlas-runtime-",
             "inventory-consumable-atlas-runtime-",
             "combat-command-icon-atlas-runtime-",
@@ -76,6 +77,11 @@ namespace AshenHalls.Editor
             "ranger-ability-effect-atlas-runtime-",
             "enemy-sprite-atlas-runtime-",
             "character-combat-atlas-runtime-",
+            "character-portrait-human-atlas-runtime-",
+            "character-portrait-dusk-elf-atlas-runtime-",
+            "character-portrait-stoneborn-atlas-runtime-",
+            "character-portrait-fenkin-atlas-runtime-",
+            "character-portrait-ashling-atlas-runtime-",
             "combat-sprite-atlas-runtime-",
             "demon-summon-atlas-runtime-",
             "combat-terrain-atlas-runtime-",
@@ -128,6 +134,10 @@ namespace AshenHalls.Editor
             ValidateApprovedRuntimeArtIsLatest(projectRoot);
             RuleSmokeTests.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build rule smoke tests passed.");
+            UiFinishSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build UI finish smoke passed.");
+            BuildingAtlasAlphaSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build building-atlas alpha smoke passed.");
             AudioRuntimeRobustnessSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build audio lifecycle smoke passed.");
             EverydayAudioSmoke.RunOrThrow();
@@ -136,6 +146,8 @@ namespace AshenHalls.Editor
             Debug.Log(VersionInfo.ProductName + " build inventory/loot experience smoke passed.");
             SpriteArtRuntimeSmoke.RunOrThrow();
             Debug.Log(VersionInfo.ProductName + " build sprite-art runtime smoke passed.");
+            PartySetupWorkshopSmoke.RunOrThrow();
+            Debug.Log(VersionInfo.ProductName + " build character workshop smoke passed.");
             RuntimeBootSmoke.RunCombatUiOrThrow();
             Debug.Log(VersionInfo.ProductName + " build combat UI runtime smoke passed.");
             RuntimeBootSmoke.RunOrThrow();

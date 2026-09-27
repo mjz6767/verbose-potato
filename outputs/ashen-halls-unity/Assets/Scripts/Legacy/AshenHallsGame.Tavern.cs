@@ -512,9 +512,16 @@ namespace AshenHalls
                 SelectedMember = SelectedPartySetupMemberView,
                 SelectMember = SelectPartySetupMember,
                 Begin = BeginGame,
+                CanBegin = CanBeginPartySetup,
                 QuickStart = QuickStart,
                 BackToTavern = ReturnToTavernFromMuster,
                 SetName = SetSelectedMemberName,
+                RaceChoices = CharacterCreationCatalog.Races.Select(PartySetupChoice).ToArray(),
+                ClassChoices = CharacterCreationCatalog.Classes.Select(PartySetupChoice).ToArray(),
+                SetRace = SetSelectedMemberRace,
+                SetClass = SetSelectedMemberClass,
+                PortraitAtlas = PartySetupPortraitAtlas,
+                PortraitCell = PartySetupPortraitCell,
                 CycleClass = CycleSelectedClass,
                 CycleRace = () => CycleRace(SelectedBuilderMember()),
                 CycleOrigin = () => CycleOrigin(SelectedBuilderMember()),
@@ -554,6 +561,17 @@ namespace AshenHalls
                 hash = unchecked(hash * 31 + (member.Name ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (member.Race ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (member.ClassKey ?? "").GetHashCode());
+                hash = unchecked(hash * 31 + (member.Origin ?? "").GetHashCode());
+                hash = unchecked(hash * 31 + (member.Sigil ?? "").GetHashCode());
+                hash = unchecked(hash * 31 + member.Level);
+                hash = unchecked(hash * 31 + member.Experience);
+                hash = unchecked(hash * 31 + member.SkillPoints);
+                hash = unchecked(hash * 31 + (member.Skills?.Arms ?? 0));
+                hash = unchecked(hash * 31 + (member.Skills?.Missile ?? 0));
+                hash = unchecked(hash * 31 + (member.Skills?.Mend ?? 0));
+                hash = unchecked(hash * 31 + (member.Skills?.Ember ?? 0));
+                hash = unchecked(hash * 31 + (member.Skills?.Hex ?? 0));
+                hash = unchecked(hash * 31 + (member.Skills?.Guard ?? 0));
                 hash = unchecked(hash * 31 + member.Stats.Strength);
                 hash = unchecked(hash * 31 + member.Stats.Intelligence);
                 hash = unchecked(hash * 31 + member.Stats.Dexterity);
@@ -562,6 +580,12 @@ namespace AshenHalls
                 hash = unchecked(hash * 31 + (member.SpriteColor ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (member.WeaponName ?? "").GetHashCode());
                 hash = unchecked(hash * 31 + (member.ArmorName ?? "").GetHashCode());
+                hash = unchecked(hash * 31 + member.WeaponBonus);
+                hash = unchecked(hash * 31 + member.ArmorBonus);
+                hash = unchecked(hash * 31 + member.GearStrength);
+                hash = unchecked(hash * 31 + member.GearIntelligence);
+                hash = unchecked(hash * 31 + member.GearAgility);
+                hash = unchecked(hash * 31 + member.GearHealth);
             }
             return "partySetup=" + hash;
         }
@@ -572,13 +596,28 @@ namespace AshenHalls
             return member == null ? null : MakePartySetupMemberView(member);
         }
 
+        private bool CanBeginPartySetup()
+        {
+            return state?.Party != null && state.Party.Count == PartySize
+                && state.Party.All(member => member != null && member.Stats.Total == StatPointBudget);
+        }
+
         private PartySetupMemberView MakePartySetupMemberView(PartyMember member)
         {
             int total = member.Stats.Total;
             int cap = Mathf.Max(StatPointBudget, total + Mathf.Max(0, member.StatPoints));
+            CharacterCreationCatalog.TryGetRace(member.Race, out CharacterCreationChoice race);
+            CharacterCreationCatalog.TryGetClass(member.ClassKey, out CharacterCreationChoice characterClass);
+            bool[] canBoostTalents = PartySetupScreenLayout.TalentKeys.Select(key => CanBoostTalent(member, key)).ToArray();
             return new PartySetupMemberView
             {
                 Name = member.Name,
+                RaceKey = member.Race,
+                ClassKey = member.ClassKey,
+                Origin = member.Origin,
+                Sigil = member.Sigil,
+                RaceDescription = race.Description ?? "",
+                ClassDescription = characterClass.Description ?? "",
                 RaceClassLine = $"{DisplayRace(member.Race)} / {DisplayClass(member.ClassKey)}",
                 RoleLine = RoleIdentityLine(member),
                 GearLine = GearShortLine(member),
@@ -591,8 +630,17 @@ namespace AshenHalls
                 Agility = member.Stats.Dexterity,
                 Health = member.Stats.Health,
                 StatTotal = total,
-                StatCap = cap
+                StatCap = cap,
+                CanIncreaseStats = total < StatPointBudget || member.StatPoints > 0,
+                CanDecreaseStats = new[] { member.Stats.Strength > 3, member.Stats.Intelligence > 3, member.Stats.Dexterity > 3, member.Stats.Health > 3 },
+                CanBoostTalents = canBoostTalents.Any(value => value),
+                CanBoostTalentByIndex = canBoostTalents
             };
+        }
+
+        private static PartySetupChoiceView PartySetupChoice(CharacterCreationChoice choice)
+        {
+            return new PartySetupChoiceView { Key = choice.Key, Name = choice.Name, Description = choice.Description };
         }
 
         private PartyMember SelectedBuilderMember()
@@ -630,7 +678,36 @@ namespace AshenHalls
             PartyMember member = SelectedBuilderMember();
             if (member == null) return;
             int idx = Array.IndexOf(classOrder, member.ClassKey);
-            ApplyClass(member, classOrder[(idx + 1 + classOrder.Length) % classOrder.Length]);
+            SetSelectedMemberClass(classOrder[(idx + 1 + classOrder.Length) % classOrder.Length]);
+        }
+
+        private void SetSelectedMemberClass(string key)
+        {
+            PartyMember member = SelectedBuilderMember();
+            if (member == null || !CharacterCreationCatalog.TryGetClass(key, out CharacterCreationChoice choice)
+                || string.Equals(member.ClassKey, choice.Key, StringComparison.Ordinal)) return;
+            ApplyClass(member, choice.Key);
+            // A recruit starts their chosen vocation fully rested, including a new caster's mana.
+            if (state.Mode == GameMode.Muster)
+            {
+                member.Hp = member.MaxHp;
+                member.Mana = member.MaxMana;
+            }
+            PlaySfx("ui", 0.45f);
+        }
+
+        private void SetSelectedMemberRace(string key)
+        {
+            PartyMember member = SelectedBuilderMember();
+            if (member == null || !CharacterCreationCatalog.TryGetRace(key, out CharacterCreationChoice choice)
+                || string.Equals(member.Race, choice.Key, StringComparison.Ordinal)) return;
+            member.Race = choice.Key;
+            RecalculateMember(member);
+            if (state.Mode == GameMode.Muster)
+            {
+                member.Hp = member.MaxHp;
+                member.Mana = member.MaxMana;
+            }
             PlaySfx("ui", 0.45f);
         }
 
@@ -930,13 +1007,7 @@ namespace AshenHalls
 
         private int RaceStatBonus(string race, string stat)
         {
-            race = (race ?? "human").ToLowerInvariant();
-            if (race == "human") return stat == "hea" ? 1 : 0;
-            if (race == "dusk elf") return stat == "agi" ? 2 : stat == "hea" ? -1 : 0;
-            if (race == "stoneborn") return stat == "str" || stat == "hea" ? 2 : stat == "agi" ? -1 : 0;
-            if (race == "fenkin") return stat == "int" || stat == "agi" ? 1 : 0;
-            if (race == "ashling") return stat == "int" ? 2 : stat == "hea" ? -1 : 0;
-            return 0;
+            return CharacterCreationCatalog.RaceStatBonus(race, stat);
         }
 
         private string EffectiveStatsLine(PartyMember member)

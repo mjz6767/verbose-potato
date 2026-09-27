@@ -26,10 +26,13 @@ namespace AshenHalls.Editor
                 Check("Rules", RuleSmokeTests.RunOrThrow);
                 if (full)
                 {
+                    Check("UI finish", UiFinishSmoke.RunOrThrow);
+                    Check("Building atlas alpha", BuildingAtlasAlphaSmoke.RunOrThrow);
                     Check("Audio lifecycle", AudioRuntimeRobustnessSmoke.RunOrThrow);
                     Check("Everyday sound effects", EverydayAudioSmoke.RunOrThrow);
                     Check("Inventory and loot", InventoryLootExperienceSmoke.RunOrThrow);
                     Check("Sprite art", SpriteArtRuntimeSmoke.RunOrThrow);
+                    Check("Character workshop", PartySetupWorkshopSmoke.RunOrThrow);
                     Check("Combat UI", RuntimeBootSmoke.RunCombatUiOrThrow);
                     Check("Runtime boot", RuntimeBootSmoke.RunOrThrow);
                 }

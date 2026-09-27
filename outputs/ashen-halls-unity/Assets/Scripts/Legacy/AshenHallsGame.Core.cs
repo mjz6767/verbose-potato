@@ -495,6 +495,7 @@ namespace AshenHalls
 
         private void OnDestroy()
         {
+            ReleasePartySetupPortraitArt();
             explorationMiniMapTerrainCache.Dispose();
             explorationMiniMapTerrainPixels = null;
         }
@@ -514,6 +515,7 @@ namespace AshenHalls
         {
             if (args == null || args.Length == 0) return;
             ApplyVisualSmokeSeed(args);
+            if (TryApplyPartySetupVisualSmokeLaunch(args)) return;
             if (args.Any(arg => string.Equals(arg, "-ashen-beta-title-smoke", StringComparison.OrdinalIgnoreCase)))
             {
                 if (!TavernMenuRules.ShowDeveloperTesting(DeveloperTestingBuildEnabled()))
@@ -1672,7 +1674,8 @@ namespace AshenHalls
             int screenHeight = Screen.height;
             int requestedWidth = RequestedCaptureDimension(captureArgs, "-screen-width", screenWidth);
             int requestedHeight = RequestedCaptureDimension(captureArgs, "-screen-height", screenHeight);
-            ScreenCapture.CaptureScreenshot(capturePath, 1);
+            if (!TryCapturePartySetupOffscreen(capturePath, requestedWidth, requestedHeight, captureArgs))
+                ScreenCapture.CaptureScreenshot(capturePath, 1);
 
             bool captureEvaluated = false;
             int pngWidth = 0;
@@ -2226,7 +2229,9 @@ namespace AshenHalls
                 || ShouldRefreshPresentation(ref lastPauseMenuRefreshKey, PauseMenuRefreshKey());
             if (refresh)
             {
-                pauseMenuScreen.SetVisible(false);
+                // Keep a visible menu mounted while values change so native
+                // keyboard/controller focus stays on the setting being edited.
+                // Failed refreshes still hide the canvas before recovery below.
                 try
                 {
                     pauseMenuScreen.Refresh();
@@ -2730,7 +2735,7 @@ namespace AshenHalls
                     ? null : UnityEngine.EventSystems.EventSystem.current.currentSelectedGameObject;
                 bool nativeSubmit = selectedControl != null && selectedControl.activeInHierarchy
                     && selectedControl.GetComponent<UnityEngine.UI.Selectable>() != null;
-                if (!nativeSubmit && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))) QuickStart();
+                if (!nativeSubmit && (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))) BeginGame();
                 if (Input.GetKeyDown(KeyCode.B)) BeginGame();
                 if (Input.GetKeyDown(KeyCode.Escape)) state.Mode = GameMode.Tavern;
             }

@@ -1,6 +1,14 @@
-Ash & Brimstone v2.27.0 - Echoes of the Road
+Ash & Brimstone v2.28.0 - Portraits by the Fire
 
-Release version: v2.27.0. Save schema: v27.
+Release version: v2.28.0. Save schema: v27.
+
+Portraits by the Fire gives character creation 40 original painted portraits: one for every combination of five races and eight classes. Select a companion's illustrated card, give them a name, and choose race and class directly. The portrait and descriptions update together; every class is available to every race.
+
+Use the secondary customization tab to adjust attributes and talents or change origin, sigil, color and starting equipment. Begin takes your customized party into the adventure. Quick Start uses the ready-made party.
+
+Existing campaigns remain compatible with save schema v27. The v2.27 Windows archive is preserved. Exact v2.28 validation and package hashes are recorded in Docs/ReleaseEvidence/v2.28.0-summary.json after verification.
+
+This combined update also refines exploration, pause and loot layouts, adds a subtle brass-and-ember menu ornament, preserves keyboard focus while adjusting settings, and removes the white outlines baked into nine Midgaard building illustrations.
 
 Echoes of the Road expands the everyday soundscape with newly arranged music for town, the Grand Hearth, roads, camp and several battle settings. Equipment, discoveries, treasure and completed quests gain more distinct sound cues, and footsteps gain additional surface-specific variations. Music and SFX keep their independent volume controls.
 

@@ -44,6 +44,14 @@ namespace AshenHalls
         public Action ConfirmNewGame;
     }
 
+    internal sealed class PauseMenuFocusRelay : MonoBehaviour, ISelectHandler, IDeselectHandler
+    {
+        public Action<bool> FocusChanged;
+
+        public void OnSelect(BaseEventData eventData) => FocusChanged?.Invoke(true);
+        public void OnDeselect(BaseEventData eventData) => FocusChanged?.Invoke(false);
+    }
+
     public readonly struct PauseMenuGeometry
     {
         public readonly Rect Scrim;
@@ -73,8 +81,8 @@ namespace AshenHalls
     {
         public static PauseMenuGeometry Calculate(float width, float height, bool settingsOpen)
         {
-            float panelW = Mathf.Clamp(width * 0.30f, 360f, 480f);
-            float panelH = settingsOpen ? 610f : 410f;
+            float panelW = Mathf.Min(Mathf.Clamp(width * 0.30f, 384f, 480f), width - 48f);
+            float panelH = settingsOpen ? 576f : 384f;
             panelH = Mathf.Min(panelH, height - 72f);
             Rect panel = new Rect((width - panelW) * 0.5f, (height - panelH) * 0.5f, panelW, panelH);
             return new PauseMenuGeometry(new Rect(0f, 0f, width, height), panel);
@@ -83,21 +91,31 @@ namespace AshenHalls
         public static Rect ButtonRect(float panelWidth, int index, bool compact = false)
         {
             const float x = 22f;
-            const float y = 104f;
-            float h = compact ? 28f : 34f;
-            float gap = compact ? 4f : 8f;
-            return new Rect(x, y + index * (h + gap), panelWidth - x * 2f, h);
+            float y = compact ? 92f : 100f;
+            float heroH = compact ? 38f : 40f;
+            float h = compact ? 32f : 34f;
+            float gap = compact ? 6f : 8f;
+            float fullW = panelWidth - x * 2f;
+            if (index == 0) return new Rect(x, y, fullW, heroH);
+
+            float rowY = y + heroH + gap;
+            if (index == 1 || index == 2)
+            {
+                float halfW = (fullW - gap) * 0.5f;
+                return new Rect(x + (index - 1) * (halfW + gap), rowY, halfW, h);
+            }
+            return new Rect(x, rowY + (index - 2) * (h + gap), fullW, h);
         }
 
         public static bool UseCompactSettings(Rect panel, bool settingsOpen)
         {
-            return settingsOpen && panel.height < 610f;
+            return settingsOpen && panel.height < 576f;
         }
 
         public static Rect SettingsRect(Rect panel)
         {
             bool compact = UseCompactSettings(panel, true);
-            return new Rect(22f, compact ? 304f : 356f, panel.width - 44f, compact ? 160f : 184f);
+            return new Rect(22f, compact ? 294f : 320f, panel.width - 44f, compact ? 160f : 176f);
         }
 
         public static Rect StatusRect(Rect panel)
@@ -112,6 +130,7 @@ namespace AshenHalls
         private Canvas canvas;
         private RectTransform scrim;
         private RectTransform panel;
+        private RectTransform headerOrnament;
         private Text titleText;
         private Text routeText;
         private Text saveText;
@@ -159,10 +178,10 @@ namespace AshenHalls
 
         public void SetVisible(bool visible)
         {
-            if (visible) UiRuntime.EnsureEventSystemReady();
+            EventSystem eventSystem = visible ? UiRuntime.EnsureEventSystemReady() : EventSystem.current;
             bool changed = UiRuntime.SetCanvasVisible(canvas, visible);
-            if (visible && changed && EventSystem.current != null && !EventSystem.current.alreadySelecting)
-                EventSystem.current.SetSelectedGameObject(continueButton.gameObject);
+            if (visible && changed && eventSystem != null && !eventSystem.alreadySelecting)
+                eventSystem.SetSelectedGameObject(continueButton.gameObject);
         }
 
         public void Refresh()
@@ -196,12 +215,14 @@ namespace AshenHalls
                     ? "Retreat needs one supply. Continue fighting or restore the pre-fight checkpoint."
                     : view.ConfirmReturnToTavern || view.ConfirmNewGame
                         ? "This will leave the current run in memory. Save first if you want to keep it."
-                        : "Esc closes this menu. Save and load use the campaign slot.";
+                        : "Esc / B to close";
             settingsPanel.gameObject.SetActive(view.SettingsOpen);
             audioText.text = view.AudioLine ?? "";
             sfxText.text = view.SfxLine ?? "";
             musicText.text = view.MusicLine ?? "";
             reducedMotionText.text = view.SettingsOpen ? view.MotionLine ?? "Reduced Motion" : "";
+            ConfigureNavigation(view.SettingsOpen);
+            RestoreUsableFocus();
             Canvas.ForceUpdateCanvases();
             lastRefreshSucceeded = true;
         }
@@ -219,7 +240,8 @@ namespace AshenHalls
             Stretch(canvas.GetComponent<RectTransform>());
 
             scrim = AddImage("Scrim", canvas.transform, Hex("030506", 0.58f)).rectTransform;
-            panel = AddPanel("Pause Menu", canvas.transform, Hex("10161b", 0.98f), Hex("d7a84e", 0.88f));
+            panel = AddPanel("Pause Menu", canvas.transform, Hex("10161b", 0.98f), Hex("d7a84e", 0.48f));
+            headerOrnament = UiOrnament.Add(panel, "Pause Header Ornament", 0.38f);
             titleText = AddText("Title", panel, "Menu", 24, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             routeText = AddText("Route", panel, "", 11, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
             saveText = AddText("Save State", panel, "", 10, Hex("58b7a5", 1f), TextAnchor.MiddleLeft);
@@ -235,14 +257,12 @@ namespace AshenHalls
             newButton = AddButton("New Game", panel, "New Game", RunNewGameAction, false);
             newText = newButton.GetComponentInChildren<Text>();
 
-            settingsPanel = AddPanel("Settings Panel", panel, Hex("080b0d", 0.82f), Hex("58b7a5", 0.58f));
+            settingsPanel = AddPanel("Settings Panel", panel, Hex("080b0d", 0.54f), Hex("3c4544", 0.28f));
             audioButton = AddButton("Audio", settingsPanel, "Audio", () => bindings?.ToggleAudio?.Invoke(), false);
             audioText = audioButton.GetComponentInChildren<Text>();
             volumeDownButton = AddButton("Volume Down", settingsPanel, "- Volume", () => bindings?.VolumeDown?.Invoke(), false);
             volumeUpButton = AddButton("Volume Up", settingsPanel, "+ Volume", () => bindings?.VolumeUp?.Invoke(), false);
-            Button sfxValue = AddButton("SFX Value", settingsPanel, "SFX", null, false);
-            sfxValue.interactable = false;
-            sfxText = sfxValue.GetComponentInChildren<Text>();
+            sfxText = AddText("SFX Value", settingsPanel, "SFX", 12, Hex("e1dacb", 1f), TextAnchor.MiddleCenter);
             musicVolumeDownButton = AddButton("Music Down", settingsPanel, "- Music", () => bindings?.MusicVolumeDown?.Invoke(), false);
             musicVolumeUpButton = AddButton("Music Up", settingsPanel, "+ Music", () => bindings?.MusicVolumeUp?.Invoke(), false);
             musicValueButton = AddButton("Music Toggle", settingsPanel, "Music", () => bindings?.ToggleMusic?.Invoke(), false);
@@ -286,9 +306,10 @@ namespace AshenHalls
             PauseMenuGeometry geometry = PauseMenuScreenLayout.Calculate(width, height, settingsOpen);
             SetScreenRect(scrim, geometry.Scrim);
             SetScreenRect(panel, geometry.Panel);
-            SetLocalRect(titleText.rectTransform, new Rect(22f, 18f, geometry.Panel.width - 44f, 30f));
+            SetLocalRect(titleText.rectTransform, new Rect(22f, 18f, geometry.Panel.width - 178f, 30f));
+            if (headerOrnament != null) SetLocalRect(headerOrnament, new Rect(geometry.Panel.width - 142f, 20f, 120f, 28f));
             SetLocalRect(routeText.rectTransform, new Rect(24f, 50f, geometry.Panel.width - 48f, 18f));
-            SetLocalRect(saveText.rectTransform, new Rect(24f, 72f, geometry.Panel.width - 48f, 18f));
+            SetLocalRect(saveText.rectTransform, new Rect(24f, 70f, geometry.Panel.width - 48f, 16f));
 
             bool compact = PauseMenuScreenLayout.UseCompactSettings(geometry.Panel, settingsOpen);
             SetLocalRect(continueButton.GetComponent<RectTransform>(), PauseMenuScreenLayout.ButtonRect(geometry.Panel.width, 0, compact));
@@ -300,16 +321,64 @@ namespace AshenHalls
 
             SetLocalRect(statusText.rectTransform, PauseMenuScreenLayout.StatusRect(geometry.Panel));
             SetLocalRect(settingsPanel, PauseMenuScreenLayout.SettingsRect(geometry.Panel));
-            SetLocalRect(audioButton.GetComponent<RectTransform>(), new Rect(12f, 12f, settingsPanel.rect.width - 24f, 28f));
+            float rowH = compact ? 32f : 34f;
+            float rowGap = compact ? 4f : 6f;
+            float rowY = compact ? 10f : 12f;
+            SetLocalRect(audioButton.GetComponent<RectTransform>(), new Rect(12f, rowY, settingsPanel.rect.width - 24f, rowH));
             float sideW = 82f;
-            float valueW = Mathf.Max(90f, settingsPanel.rect.width - sideW * 2f - 40f);
-            SetLocalRect(volumeDownButton.GetComponent<RectTransform>(), new Rect(12f, 48f, sideW, 28f));
-            SetLocalRect(sfxText.transform.parent.GetComponent<RectTransform>(), new Rect(102f, 48f, valueW, 28f));
-            SetLocalRect(volumeUpButton.GetComponent<RectTransform>(), new Rect(settingsPanel.rect.width - sideW - 12f, 48f, sideW, 28f));
-            SetLocalRect(musicVolumeDownButton.GetComponent<RectTransform>(), new Rect(12f, 84f, sideW, 28f));
-            SetLocalRect(musicText.transform.parent.GetComponent<RectTransform>(), new Rect(102f, 84f, valueW, 28f));
-            SetLocalRect(musicVolumeUpButton.GetComponent<RectTransform>(), new Rect(settingsPanel.rect.width - sideW - 12f, 84f, sideW, 28f));
-            SetLocalRect(reducedMotionButton.GetComponent<RectTransform>(), new Rect(12f, 124f, settingsPanel.rect.width - 24f, 28f));
+            float valueW = settingsPanel.rect.width - sideW * 2f - 40f;
+            float sfxY = rowY + rowH + rowGap;
+            float musicY = sfxY + rowH + rowGap;
+            SetLocalRect(volumeDownButton.GetComponent<RectTransform>(), new Rect(12f, sfxY, sideW, rowH));
+            SetLocalRect(sfxText.rectTransform, new Rect(102f, sfxY, valueW, rowH));
+            SetLocalRect(volumeUpButton.GetComponent<RectTransform>(), new Rect(settingsPanel.rect.width - sideW - 12f, sfxY, sideW, rowH));
+            SetLocalRect(musicVolumeDownButton.GetComponent<RectTransform>(), new Rect(12f, musicY, sideW, rowH));
+            SetLocalRect(musicValueButton.GetComponent<RectTransform>(), new Rect(102f, musicY, valueW, rowH));
+            SetLocalRect(musicVolumeUpButton.GetComponent<RectTransform>(), new Rect(settingsPanel.rect.width - sideW - 12f, musicY, sideW, rowH));
+            SetLocalRect(reducedMotionButton.GetComponent<RectTransform>(), new Rect(12f, musicY + rowH + rowGap, settingsPanel.rect.width - 24f, rowH));
+        }
+
+        private void ConfigureNavigation(bool settingsOpen)
+        {
+            Button afterSettings = returnButton.interactable ? returnButton : newButton;
+            Button beforeNew = returnButton.interactable ? returnButton : settingsButton;
+            Link(continueButton, settingsOpen ? reducedMotionButton : newButton, saveButton);
+            Link(saveButton, continueButton, settingsButton, loadButton, loadButton);
+            Link(loadButton, continueButton, settingsButton, saveButton, saveButton);
+            Link(settingsButton, saveButton, afterSettings);
+            Link(returnButton, settingsButton, newButton);
+            Link(newButton, beforeNew, settingsOpen ? audioButton : continueButton);
+            Link(audioButton, newButton, volumeDownButton);
+            Link(volumeDownButton, audioButton, musicVolumeDownButton, volumeUpButton, volumeUpButton);
+            Link(volumeUpButton, audioButton, musicVolumeUpButton, volumeDownButton, volumeDownButton);
+            Link(musicVolumeDownButton, volumeDownButton, reducedMotionButton, musicVolumeUpButton, musicValueButton);
+            Link(musicValueButton, volumeDownButton, reducedMotionButton, musicVolumeDownButton, musicVolumeUpButton);
+            Link(musicVolumeUpButton, volumeUpButton, reducedMotionButton, musicValueButton, musicVolumeDownButton);
+            Link(reducedMotionButton, musicValueButton, continueButton);
+        }
+
+        private static void Link(Button button, Selectable up, Selectable down, Selectable left = null, Selectable right = null)
+        {
+            button.navigation = new Navigation
+            {
+                mode = Navigation.Mode.Explicit,
+                selectOnUp = up,
+                selectOnDown = down,
+                selectOnLeft = left ?? up,
+                selectOnRight = right ?? down
+            };
+        }
+
+        private void RestoreUsableFocus()
+        {
+            EventSystem eventSystem = EventSystem.current;
+            if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            if (!IsVisible || eventSystem == null || eventSystem.alreadySelecting) return;
+            GameObject selected = eventSystem.currentSelectedGameObject;
+            Selectable selectable = selected == null ? null : selected.GetComponent<Selectable>();
+            if (selected != null && selected.transform.IsChildOf(canvas.transform)
+                && selectable != null && selectable.IsActive() && selectable.IsInteractable()) return;
+            eventSystem.SetSelectedGameObject(settingsButton.gameObject);
         }
 
         private Button AddButton(string name, Transform parent, string label, Action action, bool hero)
@@ -317,19 +386,26 @@ namespace AshenHalls
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button), typeof(Outline));
             go.transform.SetParent(parent, false);
             Image image = go.GetComponent<Image>();
-            image.color = hero ? Hex("243033", 0.98f) : Hex("151b20", 0.96f);
+            image.color = Color.white;
             Button button = go.GetComponent<Button>();
             button.targetGraphic = image;
             ColorBlock colors = button.colors;
-            colors.normalColor = image.color;
+            colors.normalColor = hero ? Hex("243033", 0.98f) : Hex("151b20", 0.96f);
             colors.highlightedColor = hero ? Hex("304146", 1f) : Hex("232a31", 1f);
             colors.pressedColor = Hex("0b1013", 1f);
             colors.disabledColor = Hex("0b0f12", 0.72f);
             colors.selectedColor = colors.highlightedColor;
             button.colors = colors;
             Outline outline = go.GetComponent<Outline>();
-            outline.effectColor = hero ? Hex("58b7a5", 0.95f) : Hex("3c4544", 0.86f);
+            Color border = hero ? Hex("58b7a5", 0.76f) : Hex("3c4544", 0.42f);
+            outline.effectColor = border;
             outline.effectDistance = new Vector2(1f, -1f);
+            PauseMenuFocusRelay relay = go.AddComponent<PauseMenuFocusRelay>();
+            relay.FocusChanged = focused =>
+            {
+                outline.effectColor = focused ? Hex("f3ead7", 1f) : border;
+                outline.effectDistance = focused ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
+            };
             if (action != null) button.onClick.AddListener(() => action());
             Text text = AddText("Label", go.transform, label, hero ? 14 : 12, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             text.fontStyle = FontStyle.Bold;
@@ -367,6 +443,7 @@ namespace AshenHalls
             text.alignment = anchor;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
+            text.raycastTarget = false;
             if (size >= 20) text.fontStyle = FontStyle.Bold;
             return text;
         }

@@ -6,9 +6,22 @@ using UnityEngine.UI;
 
 namespace AshenHalls
 {
+    public sealed class PartySetupChoiceView
+    {
+        public string Key;
+        public string Name;
+        public string Description;
+    }
+
     public sealed class PartySetupMemberView
     {
         public string Name;
+        public string RaceKey;
+        public string ClassKey;
+        public string Origin;
+        public string Sigil;
+        public string RaceDescription;
+        public string ClassDescription;
         public string RaceClassLine;
         public string RoleLine;
         public string GearLine;
@@ -22,6 +35,10 @@ namespace AshenHalls
         public int Health;
         public int StatTotal;
         public int StatCap;
+        public bool CanIncreaseStats;
+        public bool[] CanDecreaseStats;
+        public bool CanBoostTalents = true;
+        public bool[] CanBoostTalentByIndex;
     }
 
     public sealed class PartySetupScreenBindings
@@ -29,16 +46,23 @@ namespace AshenHalls
         public string Title;
         public string Subtitle;
         public Texture2D BackdropArt;
+        public IReadOnlyList<PartySetupChoiceView> RaceChoices;
+        public IReadOnlyList<PartySetupChoiceView> ClassChoices;
+        public Func<string, string, Texture2D> PortraitAtlas;
+        public Func<string, string, int> PortraitCell;
         public Func<string> SummaryLine;
         public Func<string> WeaknessLine;
         public Func<IReadOnlyList<PartySetupMemberView>> Members;
         public Func<int> SelectedIndex;
         public Func<PartySetupMemberView> SelectedMember;
         public Action<int> SelectMember;
+        public Func<bool> CanBegin;
         public Action Begin;
         public Action QuickStart;
         public Action BackToTavern;
         public Action<string> SetName;
+        public Action<string> SetRace;
+        public Action<string> SetClass;
         public Action CycleClass;
         public Action CycleRace;
         public Action CycleOrigin;
@@ -209,279 +233,312 @@ namespace AshenHalls
         }
     }
 
+    /// <summary>An illustrated character folio with direct ancestry and profession selection.</summary>
     public sealed class PartySetupScreen : MonoBehaviour
     {
+        private const float DesignWidth = 1280f;
+        private const float DesignHeight = 720f;
+        private static readonly Color Ink = Hex("382a20");
+        private static readonly Color MutedInk = Hex("69513a");
+        private static readonly Color Cream = Hex("f0dfb9");
+        private static readonly Color Gold = Hex("caa66b");
+        private static readonly Color Bronze = Hex("765435");
         private readonly List<Button> rosterButtons = new List<Button>();
+        private readonly List<RawImage> rosterPortraits = new List<RawImage>();
         private readonly List<Text> rosterNames = new List<Text>();
         private readonly List<Text> rosterSubtitles = new List<Text>();
+        private readonly List<Text> rosterMarkers = new List<Text>();
         private readonly List<Image> rosterSwatches = new List<Image>();
+        private readonly List<Button> raceButtons = new List<Button>();
+        private readonly List<RawImage> racePortraits = new List<RawImage>();
+        private readonly List<Text> raceMarkers = new List<Text>();
+        private readonly List<Button> classButtons = new List<Button>();
+        private readonly List<RawImage> classPortraits = new List<RawImage>();
+        private readonly List<Text> classMarkers = new List<Text>();
         private readonly List<Text> statValues = new List<Text>();
+        private readonly List<Button> statDownButtons = new List<Button>();
+        private readonly List<Button> statUpButtons = new List<Button>();
         private readonly List<Button> skillButtons = new List<Button>();
         private PartySetupScreenBindings bindings;
         private Canvas canvas;
-        private RectTransform topPanel;
-        private RectTransform rosterPanel;
+        private EventSystem ensuredEventSystem;
+        private RectTransform folio;
         private RectTransform editorPanel;
-        private RectTransform detailsPanel;
-        private Text titleText;
+        private RectTransform identityPage;
+        private RectTransform detailsPage;
+        private RectTransform rosterPanel;
+        private RawImage selectedPortrait;
         private Text summaryText;
-        private Text rosterTitle;
-        private Text editorTitle;
-        private Text editorHint;
-        private Text selectedNameLabel;
         private Text selectedRaceClass;
-        private Text detailsName;
+        private Text selectedRole;
+        private Text selectedMemberTitle;
+        private Text raceDescription;
+        private Text classDescription;
+        private Text budgetText;
         private Text detailsBody;
         private Text noteText;
         private InputField nameField;
-        private Button tavernButton;
-        private Button quickStartButton;
-        private Button beginButton;
-        private Button classButton;
-        private Button raceButton;
+        private Button identityTab;
+        private Button detailsTab;
         private Button originButton;
         private Button sigilButton;
-        private Button randomNameButton;
-        private Button rerollGearButton;
-        private Button rerollLookButton;
         private Button colorButton;
+        private Button beginButton;
         private Font font;
         private float lastWidth = -1f;
         private float lastHeight = -1f;
-        private int lastMemberCount = -1;
+        private int lastSelected = -1;
+        private bool showingDetails;
         private bool suppressNameEvent;
+        private bool focusOnNextRefresh;
+
+        public Canvas ViewCanvas => canvas;
+        // Edit-mode captures invoke lifecycle methods without Unity registering EventSystem.current.
+        private EventSystem NavigationSystem => EventSystem.current ?? (!Application.isPlaying ? ensuredEventSystem : null);
 
         public void Bind(PartySetupScreenBindings screenBindings)
         {
             bindings = screenBindings;
-            Build();
-            Refresh();
+            if (canvas == null)
+            {
+                Build();
+                // The folio is prepared during title-screen startup; load its paintings on the first visible refresh.
+                SetVisible(false);
+            }
+            else if (canvas.gameObject.activeSelf) Refresh();
         }
 
         public void SetVisible(bool visible)
         {
-            if (canvas != null && canvas.gameObject.activeSelf != visible)
+            if (canvas == null || canvas.gameObject.activeSelf == visible) return;
+            if (visible) ensuredEventSystem = UiRuntime.EnsureEventSystemReady();
+            EventSystem navigation = NavigationSystem;
+            if (!visible && navigation != null)
             {
-                canvas.gameObject.SetActive(visible);
+                GameObject focused = navigation.currentSelectedGameObject;
+                if (focused != null && focused.transform.IsChildOf(canvas.transform))
+                    navigation.SetSelectedGameObject(null);
             }
+            canvas.gameObject.SetActive(visible);
+            focusOnNextRefresh = visible;
+        }
+
+        public void ApplyCaptureLayout(float width, float height)
+        {
+            ApplyLayout(width, height);
         }
 
         public void Refresh()
         {
             if (bindings == null || canvas == null) return;
-            IReadOnlyList<PartySetupMemberView> members = bindings.Members == null ? Array.Empty<PartySetupMemberView>() : bindings.Members();
-            if (!Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height) || lastMemberCount != members.Count)
-            {
-                ApplyLayout(members.Count);
-            }
-
-            titleText.text = bindings.Title ?? VersionInfo.ProductName;
-            summaryText.text = bindings.SummaryLine == null ? "" : bindings.SummaryLine();
-            int selected = Mathf.Clamp(bindings.SelectedIndex == null ? 0 : bindings.SelectedIndex(), 0, Mathf.Max(0, members.Count - 1));
+            if (!Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height))
+                ApplyLayout(Screen.width, Screen.height);
+            IReadOnlyList<PartySetupMemberView> members = bindings.Members?.Invoke() ?? Array.Empty<PartySetupMemberView>();
+            int selected = Mathf.Clamp(bindings.SelectedIndex?.Invoke() ?? 0, 0, Mathf.Max(0, members.Count - 1));
             EnsureRosterRows(members.Count);
             for (int i = 0; i < members.Count; i++)
             {
                 PartySetupMemberView member = members[i];
-                rosterButtons[i].targetGraphic.GetComponent<Image>().color = i == selected ? Hex("2d3438", 1f) : Hex("20272e", 1f);
+                SetButtonSelected(rosterButtons[i], i == selected, false);
                 rosterNames[i].text = member.Name;
-                rosterSubtitles[i].text = member.RaceClassLine + " / " + member.BestSkillLine;
-                rosterSwatches[i].color = ParseColor(member.ColorHex, Hex("d7a84e", 1f));
+                rosterSubtitles[i].text = member.RaceClassLine;
+                rosterMarkers[i].text = i == selected ? "EDITING CHARACTER " + (i + 1) : "CHARACTER " + (i + 1);
+                rosterMarkers[i].color = i == selected ? Gold : Hex("b6a181");
+                rosterSwatches[i].color = ParseColor(member.ColorHex, Gold);
+                SetPortrait(rosterPortraits[i], member.RaceKey, member.ClassKey);
             }
-
-            PartySetupMemberView current = bindings.SelectedMember == null ? null : bindings.SelectedMember();
-            if (current == null)
+            summaryText.text = bindings.SummaryLine?.Invoke() ?? bindings.Subtitle ?? "Choose four companions. Shape their stories.";
+            bool canBegin = bindings.CanBegin?.Invoke() ?? HasAssignedAttributes(members);
+            beginButton.interactable = canBegin;
+            if (!canBegin) summaryText.text = "Assign all attribute points before setting out. Open Attributes & details for each unfinished companion.";
+            PartySetupMemberView current = bindings.SelectedMember?.Invoke();
+            foreach (Selectable control in editorPanel.GetComponentsInChildren<Selectable>(true))
+                control.interactable = current != null;
+            if (current == null) return;
+            if (!nameField.isFocused || lastSelected != selected)
             {
-                SetEditorEnabled(false);
-                return;
+                suppressNameEvent = true;
+                nameField.SetTextWithoutNotify(current.Name ?? "");
+                suppressNameEvent = false;
             }
-
-            SetEditorEnabled(true);
-            suppressNameEvent = true;
-            nameField.SetTextWithoutNotify(current.Name ?? "");
-            suppressNameEvent = false;
-            selectedNameLabel.text = current.Name;
-            selectedRaceClass.text = current.RaceClassLine + "\n" + current.RoleLine;
+            lastSelected = selected;
+            selectedMemberTitle.text = "CHARACTER " + (selected + 1) + "  /  " + members.Count;
+            selectedRaceClass.text = current.RaceClassLine;
+            selectedRole.text = current.RoleLine;
+            raceDescription.text = current.RaceDescription;
+            classDescription.text = current.ClassDescription;
+            SetPortrait(selectedPortrait, current.RaceKey, current.ClassKey);
+            RefreshChoices(bindings.RaceChoices, raceButtons, racePortraits, raceMarkers, current.RaceKey, current.ClassKey, true);
+            RefreshChoices(bindings.ClassChoices, classButtons, classPortraits, classMarkers, current.ClassKey, current.RaceKey, false);
             int[] stats = { current.Strength, current.Intelligence, current.Agility, current.Health };
-            for (int i = 0; i < statValues.Count && i < stats.Length; i++) statValues[i].text = stats[i].ToString();
-            editorTitle.text = $"Tavern Muster";
-            editorHint.text = $"Four-person party setup. Attributes {current.StatTotal}/{current.StatCap}.";
-            detailsName.text = current.Name;
-            detailsBody.text = current.ProgressLine + "\n" + current.UnlockLine + "\n" + current.GearLine + "\n" + current.BestSkillLine;
-            noteText.text = (bindings.WeaknessLine == null ? "" : bindings.WeaknessLine()) + "\n" + current.RoleLine;
+            for (int i = 0; i < statValues.Count; i++)
+            {
+                statValues[i].text = stats[i].ToString();
+                statUpButtons[i].interactable = current.CanIncreaseStats;
+                statDownButtons[i].interactable = current.CanDecreaseStats == null || i >= current.CanDecreaseStats.Length || current.CanDecreaseStats[i];
+            }
+            for (int i = 0; i < skillButtons.Count; i++)
+                skillButtons[i].interactable = current.CanBoostTalents && (current.CanBoostTalentByIndex == null || i >= current.CanBoostTalentByIndex.Length || current.CanBoostTalentByIndex[i]);
+            int remaining = Mathf.Max(0, current.StatCap - current.StatTotal);
+            budgetText.text = current.StatTotal + " / " + current.StatCap + " assigned  ·  " + remaining + " points available";
+            SetButtonLabel(originButton, "Origin: " + current.Origin + "   >");
+            SetButtonLabel(sigilButton, "Sigil: " + current.Sigil + "   >");
+            SetButtonLabel(colorButton, "Change heraldic colour   >");
+            detailsBody.text = current.GearLine + "\n\n" + current.BestSkillLine + "\n" + current.ProgressLine + "\n" + current.UnlockLine;
+            noteText.text = bindings.WeaknessLine?.Invoke() ?? "";
+            RefreshTabs();
+            EventSystem navigation = NavigationSystem;
+            if (focusOnNextRefresh && canvas.gameObject.activeInHierarchy && navigation != null && selected < rosterButtons.Count)
+            {
+                navigation.SetSelectedGameObject(rosterButtons[selected].gameObject);
+                focusOnNextRefresh = false;
+            }
         }
 
         private void Build()
         {
-            EnsureEventSystem();
+            ensuredEventSystem = UiRuntime.EnsureEventSystemReady();
             font = UiRuntime.DefaultFont;
             canvas = UiRuntime.CreateOwnedRootCanvas(this, "Party Setup Canvas");
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 10;
+            canvas.pixelPerfect = true;
             CanvasScaler scaler = canvas.gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(DesignWidth, DesignHeight);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             canvas.gameObject.AddComponent<GraphicRaycaster>();
-            Stretch(canvas.GetComponent<RectTransform>());
-
-            Image baseImage = AddImage("Backdrop Base", canvas.transform, Hex("0e1114", 1f));
-            Stretch(baseImage.rectTransform);
+            Stretch(AddImage("Backdrop Base", canvas.transform, Hex("161310")).rectTransform);
             if (bindings?.BackdropArt != null)
             {
-                Image backdrop = AddImage("Tavern Backdrop", canvas.transform, Color.white);
+                RawImage backdrop = AddRawImage("Tavern Backdrop", canvas.transform);
+                backdrop.texture = bindings.BackdropArt;
                 Stretch(backdrop.rectTransform);
-                backdrop.sprite = Sprite.Create(bindings.BackdropArt, new Rect(0, 0, bindings.BackdropArt.width, bindings.BackdropArt.height), new Vector2(0.5f, 0.5f), 100f);
             }
-            Image shade = AddImage("Muster Shade", canvas.transform, Hex("030405", 0.55f));
-            Stretch(shade.rectTransform);
+            Stretch(AddImage("Muster Shade", canvas.transform, new Color(0.035f, 0.025f, 0.015f, 0.78f)).rectTransform);
+            folio = NewRect("Character Folio", canvas.transform);
+            folio.anchorMin = folio.anchorMax = folio.pivot = new Vector2(0.5f, 0.5f);
+            folio.anchoredPosition = Vector2.zero;
+            folio.sizeDelta = new Vector2(DesignWidth, DesignHeight);
 
-            topPanel = AddPanel("Top", canvas.transform, Hex("10161b", 0.90f), Hex("3c4544", 0.70f));
-            titleText = AddText("Title", topPanel, VersionInfo.ProductName, 24, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
-            titleText.resizeTextForBestFit = true;
-            titleText.resizeTextMinSize = 15;
-            titleText.resizeTextMaxSize = 24;
-            summaryText = AddText("Summary", topPanel, "", 10, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
-            tavernButton = AddButton("Tavern", topPanel, "Tavern", bindings?.BackToTavern, false);
-            quickStartButton = AddButton("Quick Start", topPanel, "Quick Start", bindings?.QuickStart, false);
-            beginButton = AddButton("Begin", topPanel, "Begin", bindings?.Begin, true);
-
-            rosterPanel = AddPanel("Roster", canvas.transform, Hex("1a2026", 0.96f), Hex("3c4544", 1f));
-            rosterTitle = AddText("Roster Title", rosterPanel, "Party", 21, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
-
-            editorPanel = AddPanel("Editor", canvas.transform, Hex("1a2026", 0.96f), Hex("3c4544", 1f));
-            editorTitle = AddText("Editor Title", editorPanel, "Tavern Muster", 21, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
-            editorHint = AddText("Editor Hint", editorPanel, "", 11, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
+            Text title = PlaceText("Title", folio, "Gather your fellowship", 27, Cream, new Rect(26, 13, 690, 37));
+            title.font = UiRuntime.TitleFont;
+            PlaceText("Subtitle", folio, "THE TAVERN MUSTER   /   CHOOSE A COMPANION TO CUSTOMIZE", 12, Gold, new Rect(28, 54, 750, 20));
+            PlaceButton("Tavern", folio, "Tavern", () => bindings?.BackToTavern?.Invoke(), new Rect(873, 25, 92, 37));
+            PlaceButton("Quick Start", folio, "Quick start", () => bindings?.QuickStart?.Invoke(), new Rect(975, 25, 114, 37));
+            beginButton = PlaceButton("Begin", folio, "Begin adventure", () => bindings?.Begin?.Invoke(), new Rect(1099, 25, 155, 37), true);
+            rosterPanel = NewRect("Roster", folio);
+            SetLocalRect(rosterPanel, new Rect(26, 87, 1228, 104));
+            editorPanel = AddPanel("Editor", folio, Hex("231d18"), Bronze);
+            SetLocalRect(editorPanel, new Rect(26, 206, 1228, 471));
+            selectedMemberTitle = PlaceText("Selected Member", editorPanel, "", 12, Gold, new Rect(16, 8, 284, 20));
+            RectTransform portraitFrame = AddPanel("Portrait Frame", editorPanel, Hex("120f0d"), Gold);
+            SetLocalRect(portraitFrame, new Rect(16, 34, 276, 276));
+            PlaceText("Portrait Fallback", portraitFrame, "ASHEN\nHALLS", 29, Bronze, new Rect(25, 84, 226, 90), TextAnchor.MiddleCenter);
+            selectedPortrait = AddRawImage("Selected Portrait", portraitFrame);
+            SetLocalRect(selectedPortrait.rectTransform, new Rect(3, 3, 270, 270));
+            PlaceText("Name Label", editorPanel, "CHARACTER NAME", 12, Gold, new Rect(16, 319, 276, 19));
             nameField = AddInput("Name Field", editorPanel);
+            SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(16, 342, 214, 36));
             nameField.onEndEdit.AddListener(value =>
             {
                 UiRuntime.NotifyTextInputEnded();
                 if (!suppressNameEvent) bindings?.SetName?.Invoke(value);
+                Refresh();
             });
-            classButton = AddButton("Class", editorPanel, "Class", bindings?.CycleClass, false);
-            raceButton = AddButton("Race", editorPanel, "Race", bindings?.CycleRace, false);
-            originButton = AddButton("Origin", editorPanel, "Origin", bindings?.CycleOrigin, false);
-            sigilButton = AddButton("Sigil", editorPanel, "Sigil", bindings?.CycleSigil, false);
-            randomNameButton = AddButton("Name", editorPanel, "Name", bindings?.RandomName, false);
-            rerollGearButton = AddButton("Reroll Gear", editorPanel, "Reroll Gear", bindings?.RerollGear, false);
-            rerollLookButton = AddButton("Reroll Look", editorPanel, "Reroll Look", bindings?.RerollLook, false);
-            colorButton = AddButton("Color", editorPanel, "Color", bindings?.CycleColor, false);
-            selectedRaceClass = AddText("Selected Race Class", editorPanel, "", 12, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
-            selectedNameLabel = AddText("Selected Name", editorPanel, "", 20, Hex("d7a84e", 1f), TextAnchor.MiddleLeft);
+            PlaceButton("Random Name", editorPanel, "Roll", () => bindings?.RandomName?.Invoke(), new Rect(238, 342, 54, 36));
+            selectedRaceClass = PlaceText("Selected Race Class", editorPanel, "", 17, Cream, new Rect(16, 389, 278, 27));
+            selectedRaceClass.font = UiRuntime.DialogueEmphasisFont;
+            selectedRole = PlaceText("Selected Role", editorPanel, "", 13, Hex("c1af8c"), new Rect(16, 423, 276, 37));
 
-            string[] statNames = { "Strength", "Intelligence", "Agility", "Health" };
-            int[] statCodes = { -1, -2, -3, -4 };
-            for (int i = 0; i < statNames.Length; i++)
+            RectTransform sheet = AddPanel("Character Sheet", editorPanel, Hex("d7c39b"), Gold);
+            SetLocalRect(sheet, new Rect(309, 12, 907, 447));
+            identityTab = PlaceButton("Identity Tab", sheet, "Race & class", () => showingDetails = false, new Rect(15, 12, 189, 34), true);
+            detailsTab = PlaceButton("Details Tab", sheet, "Attributes & details", () => showingDetails = true, new Rect(213, 12, 222, 34));
+            PlaceText("Folio Hint", sheet, "Every race. Every calling. A different story.", 13, MutedInk, new Rect(448, 14, 440, 29), TextAnchor.MiddleRight);
+            identityPage = NewRect("Identity Page", sheet);
+            SetLocalRect(identityPage, new Rect(15, 55, 877, 382));
+            detailsPage = NewRect("Details Page", sheet);
+            SetLocalRect(detailsPage, new Rect(15, 55, 877, 382));
+            BuildIdentityPage();
+            BuildDetailsPage();
+            summaryText = PlaceText("Party Summary", folio, "", 12, Gold, new Rect(27, 687, 1226, 22), TextAnchor.MiddleCenter);
+        }
+
+        private void BuildIdentityPage()
+        {
+            PlaceText("Race Heading", identityPage, "1   CHOOSE A RACE", 14, Ink, new Rect(0, 0, 480, 22));
+            IReadOnlyList<PartySetupChoiceView> races = bindings.RaceChoices ?? Array.Empty<PartySetupChoiceView>();
+            float raceWidth = (877f - Mathf.Max(0, races.Count - 1) * 7f) / Mathf.Max(1, races.Count);
+            for (int i = 0; i < races.Count; i++)
             {
-                int statCode = statCodes[i];
-                AddText("Stat " + statNames[i], editorPanel, statNames[i], 13, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
-                AddButton("Stat Down " + i, editorPanel, "-", () => bindings?.ChangeStat?.Invoke(statCode, -1), false);
-                statValues.Add(AddText("Stat Value " + i, editorPanel, "0", 13, Hex("f3ead7", 1f), TextAnchor.MiddleCenter));
-                AddButton("Stat Up " + i, editorPanel, "+", () => bindings?.ChangeStat?.Invoke(statCode, 1), false);
+                PartySetupChoiceView choice = races[i];
+                Button button = PlaceButton("Race " + choice.Key, identityPage, "", () => bindings?.SetRace?.Invoke(choice.Key), new Rect(i * (raceWidth + 7), 29, raceWidth, 55), false, true);
+                RawImage portrait = AddRawImage("Race Portrait", button.transform);
+                SetLocalRect(portrait.rectTransform, new Rect(4, 4, 47, 47));
+                Text label = PlaceText("Race Name", button.transform, choice.Name, 15, Ink, new Rect(58, 3, raceWidth - 64, 28));
+                label.fontStyle = FontStyle.Bold;
+                Text marker = PlaceText("Race Selection", button.transform, "", 10, MutedInk, new Rect(58, 30, raceWidth - 63, 20));
+                raceButtons.Add(button);
+                racePortraits.Add(portrait);
+                raceMarkers.Add(marker);
             }
+            raceDescription = PlaceText("Race Description", identityPage, "", 13, MutedInk, new Rect(1, 93, 876, 32));
+            AddRule(identityPage, new Rect(0, 130, 877, 1));
+            PlaceText("Class Heading", identityPage, "2   CHOOSE A CLASS", 14, Ink, new Rect(0, 139, 480, 22));
+            IReadOnlyList<PartySetupChoiceView> classes = bindings.ClassChoices ?? Array.Empty<PartySetupChoiceView>();
+            const float cardWidth = 214f;
+            for (int i = 0; i < classes.Count; i++)
+            {
+                PartySetupChoiceView choice = classes[i];
+                Button button = PlaceButton("Class " + choice.Key, identityPage, "", () => bindings?.SetClass?.Invoke(choice.Key), new Rect((i % 4) * 221f, 169f + (i / 4) * 84f, cardWidth, 77f), false, true);
+                RawImage portrait = AddRawImage("Class Portrait", button.transform);
+                SetLocalRect(portrait.rectTransform, new Rect(3, 3, 71, 71));
+                Text label = PlaceText("Class Name", button.transform, choice.Name, 16, Ink, new Rect(83, 7, 125, 25));
+                label.fontStyle = FontStyle.Bold;
+                PlaceText("Class Role", button.transform, ClassRole(choice.Key), 11, MutedInk, new Rect(83, 32, 123, 20));
+                Text marker = PlaceText("Class Selection", button.transform, "", 10, MutedInk, new Rect(83, 53, 123, 18));
+                classButtons.Add(button);
+                classPortraits.Add(portrait);
+                classMarkers.Add(marker);
+            }
+            classDescription = PlaceText("Class Description", identityPage, "", 13, MutedInk, new Rect(1, 343, 876, 36));
+        }
 
+        private void BuildDetailsPage()
+        {
+            PlaceText("Attributes Heading", detailsPage, "ATTRIBUTES", 15, Ink, new Rect(0, 0, 340, 24));
+            budgetText = PlaceText("Attribute Budget", detailsPage, "", 13, MutedInk, new Rect(0, 29, 390, 23));
+            string[] names = { "Strength", "Intelligence", "Agility", "Health" };
+            string[] uses = { "Melee & carrying", "Spells & mana", "Accuracy & evasion", "Life & endurance" };
+            for (int i = 0; i < names.Length; i++)
+            {
+                int statCode = -1 - i;
+                float y = 61 + i * 41;
+                PlaceText("Stat " + names[i], detailsPage, names[i], 15, Ink, new Rect(0, y, 140, 23));
+                PlaceText("Stat Use " + i, detailsPage, uses[i], 10, MutedInk, new Rect(0, y + 21, 157, 16));
+                statDownButtons.Add(PlaceButton("Stat Down " + i, detailsPage, "-", () => bindings?.ChangeStat?.Invoke(statCode, -1), new Rect(166, y, 34, 32), false, true));
+                statValues.Add(PlaceText("Stat Value " + i, detailsPage, "0", 17, Ink, new Rect(204, y, 53, 32), TextAnchor.MiddleCenter));
+                statUpButtons.Add(PlaceButton("Stat Up " + i, detailsPage, "+", () => bindings?.ChangeStat?.Invoke(statCode, 1), new Rect(261, y, 34, 32), false, true));
+            }
+            PlaceText("Training Heading", detailsPage, "TRAINING", 15, Ink, new Rect(0, 233, 340, 23));
+            PlaceText("Training Hint", detailsPage, "Improve a talent. Each has a training limit.", 12, MutedInk, new Rect(0, 259, 393, 24));
+            string[] talentNames = { "Arms", "Missile", "Mend", "Ember", "Hex", "Guard" };
             for (int i = 0; i < PartySetupScreenLayout.TalentKeys.Count; i++)
             {
                 string key = PartySetupScreenLayout.TalentKeys[i];
-                skillButtons.Add(AddButton("Skill " + key, editorPanel, key, () => bindings?.BoostTalent?.Invoke(key), false));
+                skillButtons.Add(PlaceButton("Skill " + key, detailsPage, "+ " + talentNames[i], () => bindings?.BoostTalent?.Invoke(key), new Rect((i % 3) * 122, 290 + (i / 3) * 39, 114, 32), false, true));
             }
-
-            detailsPanel = AddPanel("Details", editorPanel, Hex("11171b", 1f), Hex("3c4544", 1f));
-            selectedNameLabel.transform.SetParent(detailsPanel, false);
-            detailsName = selectedNameLabel;
-            detailsBody = AddText("Details Body", detailsPanel, "", 11, Hex("b7aa90", 1f), TextAnchor.UpperLeft);
-            noteText = AddText("Note", editorPanel, "", 11, Hex("b7aa90", 1f), TextAnchor.UpperLeft);
-        }
-
-        private void ApplyLayout(int memberCount)
-        {
-            lastWidth = Screen.width;
-            lastHeight = Screen.height;
-            lastMemberCount = memberCount;
-            PartySetupScreenGeometry geometry = PartySetupScreenLayout.Calculate(Screen.width, Screen.height);
-            SetScreenRect(topPanel, geometry.Top);
-            SetScreenRect(rosterPanel, geometry.Roster);
-            SetScreenRect(editorPanel, geometry.Editor);
-            SetLocalRect(titleText.rectTransform, new Rect(16f, 5f, 300f, 27f));
-            SetLocalRect(summaryText.rectTransform, new Rect(18f, 34f, Mathf.Max(260f, geometry.Top.width - 760f), 18f));
-            SetLocalRect(beginButton.GetComponent<RectTransform>(), new Rect(geometry.Top.width - 140f, 16f, 104f, 34f));
-            SetLocalRect(quickStartButton.GetComponent<RectTransform>(), new Rect(geometry.Top.width - 254f, 16f, 106f, 34f));
-            SetLocalRect(tavernButton.GetComponent<RectTransform>(), new Rect(geometry.Top.width - 346f, 16f, 82f, 34f));
-
-            SetLocalRect(rosterTitle.rectTransform, new Rect(14f, 12f, geometry.Roster.width - 28f, 25f));
-            EnsureRosterRows(memberCount);
-            for (int i = 0; i < memberCount; i++)
-            {
-                Rect row = PartySetupScreenLayout.RosterRow(geometry.Roster, i);
-                SetLocalRect(rosterButtons[i].GetComponent<RectTransform>(), row);
-                SetLocalRect(rosterSwatches[i].rectTransform, new Rect(8f, 9f, 46f, 46f));
-                SetLocalRect(rosterNames[i].rectTransform, new Rect(66f, 8f, row.width - 78f, 22f));
-                SetLocalRect(rosterSubtitles[i].rectTransform, new Rect(66f, 32f, row.width - 78f, 22f));
-            }
-
-            SetLocalRect(editorTitle.rectTransform, new Rect(18f, 14f, 320f, 28f));
-            SetLocalRect(editorHint.rectTransform, new Rect(18f, 45f, geometry.Editor.width - 36f, 42f));
-            Rect localDetails = new Rect(geometry.Editor.width - geometry.Details.width - 18f, 116f, geometry.Details.width, geometry.Details.height);
-            PartySetupEditorFlowGeometry flow = PartySetupScreenLayout.CalculateEditorFlow(geometry.Editor, localDetails, skillButtons.Count);
-            bool compactIdentityLayout = flow.Compact;
-            if (compactIdentityLayout)
-            {
-                float controlsLeft = 18f;
-                float controlsRight = PartySetupScreenLayout.CompactIdentityControlsRight(localDetails);
-                float controlsWidth = Mathf.Max(1f, controlsRight - controlsLeft);
-
-                const float controlGap = 8f;
-                const float randomNameWidth = 86f;
-                const float nameFieldX = 100f;
-                float randomNameX = controlsRight - randomNameWidth;
-                float compactNameWidth = Mathf.Max(120f, randomNameX - controlGap - nameFieldX);
-                AddOrMoveLabel("Name Label", "Name", new Rect(controlsLeft, 98f, 80f, 24f));
-                SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(nameFieldX, 94f, compactNameWidth, 30f));
-                SetLocalRect(randomNameButton.GetComponent<RectTransform>(), new Rect(randomNameX, 94f, randomNameWidth, 30f));
-
-                float identityWidth = (controlsWidth - controlGap * 3f) / 4f;
-                SetLocalRect(classButton.GetComponent<RectTransform>(), new Rect(controlsLeft, 130f, identityWidth, 30f));
-                SetLocalRect(raceButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (identityWidth + controlGap), 130f, identityWidth, 30f));
-                SetLocalRect(originButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (identityWidth + controlGap) * 2f, 130f, identityWidth, 30f));
-                SetLocalRect(sigilButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (identityWidth + controlGap) * 3f, 130f, identityWidth, 30f));
-
-                float rerollWidth = (controlsWidth - controlGap * 2f) / 3f;
-                SetLocalRect(rerollGearButton.GetComponent<RectTransform>(), new Rect(controlsLeft, 166f, rerollWidth, 28f));
-                SetLocalRect(rerollLookButton.GetComponent<RectTransform>(), new Rect(controlsLeft + rerollWidth + controlGap, 166f, rerollWidth, 28f));
-                SetLocalRect(colorButton.GetComponent<RectTransform>(), new Rect(controlsLeft + (rerollWidth + controlGap) * 2f, 166f, rerollWidth, 28f));
-                SetLocalRect(selectedRaceClass.rectTransform, new Rect(nameFieldX, 200f, Mathf.Max(1f, controlsRight - nameFieldX), 32f));
-            }
-            else
-            {
-                SetLocalRect(nameField.GetComponent<RectTransform>(), new Rect(100f, 94f, 210f, 30f));
-                AddOrMoveLabel("Name Label", "Name", new Rect(18f, 98f, 80f, 24f));
-                SetLocalRect(classButton.GetComponent<RectTransform>(), new Rect(326f, 94f, 76f, 30f));
-                SetLocalRect(raceButton.GetComponent<RectTransform>(), new Rect(410f, 94f, 76f, 30f));
-                SetLocalRect(originButton.GetComponent<RectTransform>(), new Rect(494f, 94f, 76f, 30f));
-                SetLocalRect(sigilButton.GetComponent<RectTransform>(), new Rect(578f, 94f, 76f, 30f));
-                SetLocalRect(randomNameButton.GetComponent<RectTransform>(), new Rect(662f, 94f, 86f, 30f));
-                SetLocalRect(selectedRaceClass.rectTransform, new Rect(100f, 128f, 220f, 44f));
-                SetLocalRect(rerollGearButton.GetComponent<RectTransform>(), new Rect(326f, 128f, 94f, 28f));
-                SetLocalRect(rerollLookButton.GetComponent<RectTransform>(), new Rect(430f, 128f, 92f, 28f));
-                SetLocalRect(colorButton.GetComponent<RectTransform>(), new Rect(532f, 128f, 78f, 28f));
-
-            }
-
-            for (int i = 0; i < 4; i++)
-            {
-                float rowY = PartySetupScreenLayout.StatRowY(compactIdentityLayout, i);
-                SetLocalRect(editorPanel.Find("Stat " + new[] { "Strength", "Intelligence", "Agility", "Health" }[i]).GetComponent<RectTransform>(), new Rect(18f, rowY + 3f, 116f, 24f));
-                SetLocalRect(editorPanel.Find("Stat Down " + i).GetComponent<RectTransform>(), new Rect(140f, rowY, 32f, 30f));
-                SetLocalRect(statValues[i].rectTransform, new Rect(182f, rowY + 3f, 42f, 24f));
-                SetLocalRect(editorPanel.Find("Stat Up " + i).GetComponent<RectTransform>(), new Rect(228f, rowY, 32f, 30f));
-            }
-
-            for (int i = 0; i < skillButtons.Count; i++)
-            {
-                SetLocalRect(skillButtons[i].GetComponent<RectTransform>(), new Rect(18f + i * 78f, flow.SkillControls.y, 72f, 30f));
-            }
-
-            SetLocalRect(detailsPanel, localDetails);
-            SetLocalRect(detailsName.rectTransform, new Rect(18f, 14f, localDetails.width - 36f, 26f));
-            SetLocalRect(detailsBody.rectTransform, new Rect(18f, 48f, localDetails.width - 36f, localDetails.height - 64f));
-            SetLocalRect(noteText.rectTransform, flow.Note);
+            AddRule(detailsPage, new Rect(394, 0, 1, 367));
+            PlaceText("Background Heading", detailsPage, "BACKGROUND & APPEARANCE", 15, Ink, new Rect(418, 0, 455, 24));
+            originButton = PlaceButton("Origin", detailsPage, "Origin", () => bindings?.CycleOrigin?.Invoke(), new Rect(418, 35, 455, 34), false, true);
+            sigilButton = PlaceButton("Sigil", detailsPage, "Sigil", () => bindings?.CycleSigil?.Invoke(), new Rect(418, 77, 455, 34), false, true);
+            colorButton = PlaceButton("Color", detailsPage, "Colour", () => bindings?.CycleColor?.Invoke(), new Rect(418, 119, 248, 34), false, true);
+            PlaceButton("Reroll Look", detailsPage, "Randomize look", () => bindings?.RerollLook?.Invoke(), new Rect(674, 119, 199, 34), false, true);
+            PlaceText("Equipment Heading", detailsPage, "EQUIPMENT & TALENTS", 15, Ink, new Rect(418, 170, 283, 26));
+            PlaceButton("Reroll Gear", detailsPage, "Reroll gear", () => bindings?.RerollGear?.Invoke(), new Rect(749, 168, 124, 31), false, true);
+            detailsBody = PlaceText("Details Body", detailsPage, "", 12, MutedInk, new Rect(418, 210, 455, 124), TextAnchor.UpperLeft);
+            noteText = PlaceText("Party Advice", detailsPage, "", 11, MutedInk, new Rect(418, 343, 455, 36), TextAnchor.UpperLeft);
         }
 
         private void EnsureRosterRows(int count)
@@ -489,85 +546,175 @@ namespace AshenHalls
             while (rosterButtons.Count < count)
             {
                 int index = rosterButtons.Count;
-                Button button = AddButton("Roster " + index, rosterPanel, "", () => bindings?.SelectMember?.Invoke(index), false);
-                Text name = AddText("Roster Name " + index, button.transform, "", 13, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
-                Text subtitle = AddText("Roster Subtitle " + index, button.transform, "", 10, Hex("b7aa90", 1f), TextAnchor.MiddleLeft);
-                Image swatch = AddImage("Roster Swatch " + index, button.transform, Hex("d7a84e", 1f));
+                Button button = PlaceButton("Roster " + index, rosterPanel, "", () => bindings?.SelectMember?.Invoke(index), new Rect());
+                RawImage portrait = AddRawImage("Roster Portrait " + index, button.transform);
+                Text name = PlaceText("Roster Name " + index, button.transform, "", 18, Cream, new Rect());
+                name.font = UiRuntime.DialogueEmphasisFont;
+                Text subtitle = PlaceText("Roster Subtitle " + index, button.transform, "", 12, Hex("ccba98"), new Rect());
+                Text marker = PlaceText("Roster Selection " + index, button.transform, "", 10, Gold, new Rect());
+                Image swatch = AddImage("Heraldic Colour " + index, button.transform, Gold);
+                swatch.raycastTarget = false;
                 rosterButtons.Add(button);
+                rosterPortraits.Add(portrait);
                 rosterNames.Add(name);
                 rosterSubtitles.Add(subtitle);
+                rosterMarkers.Add(marker);
                 rosterSwatches.Add(swatch);
             }
-
+            float width = (1228f - Mathf.Max(0, count - 1) * 10f) / Mathf.Max(1, count);
             for (int i = 0; i < rosterButtons.Count; i++)
             {
                 rosterButtons[i].gameObject.SetActive(i < count);
+                SetLocalRect(rosterButtons[i].GetComponent<RectTransform>(), new Rect(i * (width + 10f), 0, width, 104));
+                SetLocalRect(rosterPortraits[i].rectTransform, new Rect(5, 5, 94, 94));
+                SetLocalRect(rosterNames[i].rectTransform, new Rect(110, 28, width - 120, 30));
+                SetLocalRect(rosterSubtitles[i].rectTransform, new Rect(110, 62, width - 120, 30));
+                SetLocalRect(rosterMarkers[i].rectTransform, new Rect(110, 7, width - 120, 20));
+                SetLocalRect(rosterSwatches[i].rectTransform, new Rect(width - 4, 4, 2, 96));
             }
         }
 
-        private void AddOrMoveLabel(string name, string text, Rect rect)
+        private void RefreshChoices(IReadOnlyList<PartySetupChoiceView> choices, List<Button> buttons, List<RawImage> portraits, List<Text> markers, string selected, string other, bool isRace)
         {
-            Transform existing = editorPanel.Find(name);
-            Text label = existing == null ? AddText(name, editorPanel, text, 13, Hex("f3ead7", 1f), TextAnchor.MiddleLeft) : existing.GetComponent<Text>();
-            SetLocalRect(label.rectTransform, rect);
+            if (choices == null) return;
+            for (int i = 0; i < choices.Count && i < buttons.Count; i++)
+            {
+                bool chosen = string.Equals(choices[i].Key, selected, StringComparison.OrdinalIgnoreCase);
+                SetButtonSelected(buttons[i], chosen, true);
+                markers[i].text = chosen ? "SELECTED" : (isRace ? "CHOOSE RACE" : "CHOOSE CLASS");
+                markers[i].fontStyle = chosen ? FontStyle.Bold : FontStyle.Normal;
+                SetPortrait(portraits[i], isRace ? choices[i].Key : other, isRace ? other : choices[i].Key);
+            }
         }
 
-        private void SetEditorEnabled(bool enabled)
+        private void RefreshTabs()
         {
-            foreach (Selectable selectable in editorPanel.GetComponentsInChildren<Selectable>()) selectable.interactable = enabled;
+            EventSystem navigation = NavigationSystem;
+            GameObject focused = navigation == null ? null : navigation.currentSelectedGameObject;
+            RectTransform pageToHide = showingDetails ? identityPage : detailsPage;
+            bool focusWasOnHiddenPage = focused != null && focused.transform.IsChildOf(pageToHide);
+            identityPage.gameObject.SetActive(!showingDetails);
+            detailsPage.gameObject.SetActive(showingDetails);
+            SetButtonSelected(identityTab, !showingDetails, false);
+            SetButtonSelected(detailsTab, showingDetails, false);
+            if (focusWasOnHiddenPage && canvas.gameObject.activeInHierarchy && navigation != null)
+                navigation.SetSelectedGameObject((showingDetails ? detailsTab : identityTab).gameObject);
+        }
+
+        private static bool HasAssignedAttributes(IReadOnlyList<PartySetupMemberView> members)
+        {
+            if (members.Count == 0) return false;
+            for (int i = 0; i < members.Count; i++)
+                if (members[i] == null || members[i].StatTotal != members[i].StatCap) return false;
+            return true;
+        }
+
+        private void SetPortrait(RawImage image, string race, string characterClass)
+        {
+            Texture2D atlas = bindings.PortraitAtlas?.Invoke(race, characterClass);
+            image.texture = atlas;
+            image.enabled = atlas != null;
+            if (atlas == null) return;
+            int cell = Mathf.Clamp(bindings.PortraitCell?.Invoke(race, characterClass) ?? 0, 0, 7);
+            // Cells are authored in reading order. Half-texel inset keeps neighbouring cells out of the frame.
+            float dx = 0.5f / atlas.width;
+            float dy = 0.5f / atlas.height;
+            image.uvRect = new Rect((cell % 4) * 0.25f + dx, 1f - ((cell / 4) + 1) * 0.5f + dy, 0.25f - 2f * dx, 0.5f - 2f * dy);
+        }
+
+        private void ApplyLayout(float width, float height)
+        {
+            lastWidth = width;
+            lastHeight = height;
+            if (folio == null) return;
+            folio.anchoredPosition = Vector2.zero;
+            folio.sizeDelta = new Vector2(DesignWidth, DesignHeight);
+        }
+
+        private static string ClassRole(string key)
+        {
+            switch ((key ?? "").ToLowerInvariant())
+            {
+                case "rogue": return "Blades & cunning";
+                case "warrior": return "Arms & endurance";
+                case "ranger": return "Bows & wildcraft";
+                case "wizard": return "Arcane mastery";
+                case "mage": return "Elemental power";
+                case "warlock": return "Hexes & shadows";
+                case "priest": return "Healing & faith";
+                case "paladin": return "Steel & devotion";
+                default: return "Choose your calling";
+            }
         }
 
         private InputField AddInput(string name, Transform parent)
         {
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(InputField));
             go.transform.SetParent(parent, false);
-            Image image = go.GetComponent<Image>();
-            image.color = Hex("080b0d", 0.92f);
+            go.GetComponent<Image>().color = Hex("100e0b");
+            Outline outline = go.AddComponent<Outline>();
+            outline.effectColor = Bronze;
+            outline.effectDistance = new Vector2(1f, -1f);
             InputField field = go.GetComponent<InputField>();
-            Text text = AddText("Text", go.transform, "", 14, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
-            Stretch(text.rectTransform, 8f, 3f);
+            Text text = AddText("Text", go.transform, "", 17, Cream, TextAnchor.MiddleLeft);
+            Stretch(text.rectTransform, 9f, 3f);
             field.textComponent = text;
             field.characterLimit = 16;
+            field.lineType = InputField.LineType.SingleLine;
+            field.selectionColor = new Color(0.72f, 0.51f, 0.23f, 0.65f);
             return field;
         }
 
-        private Button AddButton(string name, Transform parent, string label, Action action, bool hero)
+        private Button PlaceButton(string name, Transform parent, string label, Action action, Rect area, bool hero = false, bool paper = false)
         {
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             Image image = go.GetComponent<Image>();
-            image.color = hero ? Hex("1a2026", 0.98f) : Hex("151a1f", 0.96f);
+            image.color = Color.white;
             Button button = go.GetComponent<Button>();
             button.targetGraphic = image;
-            ColorBlock colors = button.colors;
-            colors.normalColor = image.color;
-            colors.highlightedColor = hero ? Hex("2d3440", 1f) : Hex("232a31", 1f);
-            colors.pressedColor = Hex("0b1013", 1f);
-            colors.selectedColor = colors.highlightedColor;
-            button.colors = colors;
-            if (action != null) button.onClick.AddListener(() => action());
-            Text text = AddText("Label", go.transform, label, hero ? 15 : 12, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
+            Outline outline = go.AddComponent<Outline>();
+            outline.effectDistance = new Vector2(1f, -1f);
+            outline.effectColor = hero ? Gold : Bronze;
+            SetButtonSelected(button, hero, paper);
+            if (action != null) button.onClick.AddListener(() => { action(); Refresh(); });
+            Text text = AddText("Label", go.transform, label, 14, paper ? Ink : Cream, TextAnchor.MiddleCenter);
             text.fontStyle = FontStyle.Bold;
             Stretch(text.rectTransform, 6f, 3f);
+            SetLocalRect(go.GetComponent<RectTransform>(), area);
             return button;
         }
 
-        private RectTransform AddPanel(string name, Transform parent, Color fill, Color border)
+        private static void SetButtonSelected(Button button, bool selected, bool paper)
         {
-            RectTransform panel = AddImage(name, parent, fill).rectTransform;
-            Outline outline = panel.gameObject.AddComponent<Outline>();
-            outline.effectColor = border;
-            outline.effectDistance = new Vector2(1f, -1f);
-            return panel;
+            ColorBlock colors = button.colors;
+            colors.normalColor = paper ? (selected ? Hex("e5c283") : Hex("e1cfab")) : (selected ? Hex("634329") : Hex("302820"));
+            colors.highlightedColor = paper ? Hex("f3dfb5") : Hex("755438");
+            colors.pressedColor = paper ? Hex("c09d65") : Hex("4a301c");
+            colors.selectedColor = colors.highlightedColor;
+            colors.disabledColor = paper ? Hex("b3a78e") : Hex("51493e");
+            colors.colorMultiplier = 1f;
+            colors.fadeDuration = 0.09f;
+            button.colors = colors;
+            Outline outline = button.GetComponent<Outline>();
+            if (outline != null)
+            {
+                outline.effectColor = selected ? (paper ? Hex("8a5425") : Gold) : Bronze;
+                outline.effectDistance = selected ? new Vector2(2f, -2f) : new Vector2(1f, -1f);
+            }
         }
 
-        private Image AddImage(string name, Transform parent, Color color)
+        private static void SetButtonLabel(Button button, string value)
         {
-            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-            go.transform.SetParent(parent, false);
-            Image image = go.GetComponent<Image>();
-            image.color = color;
-            return image;
+            Text label = button.transform.Find("Label").GetComponent<Text>();
+            label.text = value;
+        }
+
+        private Text PlaceText(string name, Transform parent, string value, int size, Color color, Rect area, TextAnchor anchor = TextAnchor.MiddleLeft)
+        {
+            Text text = AddText(name, parent, value, size, color, anchor);
+            SetLocalRect(text.rectTransform, area);
+            return text;
         }
 
         private Text AddText(string name, Transform parent, string value, int size, Color color, TextAnchor anchor)
@@ -582,20 +729,55 @@ namespace AshenHalls
             text.alignment = anchor;
             text.horizontalOverflow = HorizontalWrapMode.Wrap;
             text.verticalOverflow = VerticalWrapMode.Truncate;
-            if (size >= 20) text.fontStyle = FontStyle.Bold;
+            text.raycastTarget = false;
             return text;
         }
 
-        private static void SetScreenRect(RectTransform rect, Rect area)
+        private RectTransform AddPanel(string name, Transform parent, Color fill, Color border)
         {
-            SetLocalRect(rect, area);
+            RectTransform panel = AddImage(name, parent, fill).rectTransform;
+            Outline outline = panel.gameObject.AddComponent<Outline>();
+            outline.effectColor = border;
+            outline.effectDistance = new Vector2(1f, -1f);
+            return panel;
+        }
+
+        private static RectTransform NewRect(string name, Transform parent)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            return go.GetComponent<RectTransform>();
+        }
+
+        private static Image AddImage(string name, Transform parent, Color color)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+            go.transform.SetParent(parent, false);
+            Image image = go.GetComponent<Image>();
+            image.color = color;
+            return image;
+        }
+
+        private static RawImage AddRawImage(string name, Transform parent)
+        {
+            GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+            go.transform.SetParent(parent, false);
+            RawImage image = go.GetComponent<RawImage>();
+            image.raycastTarget = false;
+            image.color = Color.white;
+            return image;
+        }
+
+        private static void AddRule(Transform parent, Rect area)
+        {
+            Image rule = AddImage("Folio Rule", parent, Hex("ad9067"));
+            rule.raycastTarget = false;
+            SetLocalRect(rule.rectTransform, area);
         }
 
         private static void SetLocalRect(RectTransform rect, Rect area)
         {
-            if (rect == null) return;
-            rect.anchorMin = new Vector2(0f, 1f);
-            rect.anchorMax = new Vector2(0f, 1f);
+            rect.anchorMin = rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
             rect.anchoredPosition = new Vector2(area.x, -area.y);
             rect.sizeDelta = new Vector2(area.width, area.height);
@@ -612,30 +794,12 @@ namespace AshenHalls
         private static Color ParseColor(string hex, Color fallback)
         {
             if (string.IsNullOrWhiteSpace(hex)) return fallback;
-            try
-            {
-                if (hex.StartsWith("#")) hex = hex.Substring(1);
-                byte r = Convert.ToByte(hex.Substring(0, 2), 16);
-                byte g = Convert.ToByte(hex.Substring(2, 2), 16);
-                byte b = Convert.ToByte(hex.Substring(4, 2), 16);
-                return new Color32(r, g, b, 255);
-            }
-            catch
-            {
-                return fallback;
-            }
+            return ColorUtility.TryParseHtmlString(hex.StartsWith("#") ? hex : "#" + hex, out Color value) ? value : fallback;
         }
 
-        private static Color Hex(string hex, float alpha)
+        private static Color Hex(string hex)
         {
-            Color color = ParseColor(hex, Color.white);
-            color.a = Mathf.Clamp01(alpha);
-            return color;
-        }
-
-        private static void EnsureEventSystem()
-        {
-            UiRuntime.EnsureEventSystemReady();
+            return ParseColor(hex, Color.white);
         }
     }
 }

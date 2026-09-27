@@ -1341,6 +1341,9 @@ namespace AshenHalls
         {
             EventSystem eventSystem = EventSystem.current;
             if (eventSystem == null && !Application.isPlaying) eventSystem = UiRuntime.EnsureEventSystemReady();
+            // OnDeselect can refresh this hidden HUD while another screen takes focus.
+            // The outer selection operation already owns that handoff.
+            if (eventSystem != null && eventSystem.alreadySelecting) return;
             GameObject selected = eventSystem == null ? null : eventSystem.currentSelectedGameObject;
             if (selected == null || !IsCanvasSelection(selected)) return;
             if (!selected.activeInHierarchy)

@@ -343,9 +343,9 @@ namespace AshenHalls
             count = Mathf.Max(0, count);
             float padding = 14f * scale;
             float width = Mathf.Max(1f, sideWidth - padding * 2f);
-            float startY = (detailsOpen ? 278f : 234f) * scale;
+            float startY = (detailsOpen ? 278f : 242f) * scale;
             float step = 30f * scale;
-            float height = (detailsOpen ? 27f : 26f) * scale;
+            float height = (detailsOpen ? 29f : 26f) * scale;
             Rect[] rows = new Rect[count];
             for (int i = 0; i < count; i++)
             {
@@ -535,13 +535,18 @@ namespace AshenHalls
 
         public void Refresh()
         {
+            Refresh(Screen.width, Screen.height);
+        }
+
+        private void Refresh(float width, float height)
+        {
             if (bindings == null || canvas == null) return;
             ExplorationHudView view = bindings.View == null ? null : bindings.View();
             if (view == null) return;
 
-            if (!Mathf.Approximately(lastWidth, Screen.width) || !Mathf.Approximately(lastHeight, Screen.height) || lastDetailsOpen != view.DetailsOpen)
+            if (!Mathf.Approximately(lastWidth, width) || !Mathf.Approximately(lastHeight, height) || lastDetailsOpen != view.DetailsOpen)
             {
-                ApplyLayout(view.DetailsOpen);
+                ApplyLayout(view.DetailsOpen, width, height);
             }
 
             titleText.text = string.IsNullOrEmpty(view.Title) ? "World Map" : view.Title;
@@ -575,7 +580,7 @@ namespace AshenHalls
             actionLabelText.color = view.HasAction ? Hex("f3ead7", 1f) : Hex("9aa7a5", 1f);
             actionLabelText.fontStyle = view.HasAction ? FontStyle.Bold : FontStyle.Normal;
             actionTargetText.color = view.HasAction ? Hex("d0c5ae", 1f) : Hex("8b9996", 1f);
-            LayoutContextualAction(ExplorationHudScreenLayout.InterfaceScale(Screen.width, Screen.height));
+            LayoutContextualAction(ExplorationHudScreenLayout.InterfaceScale(width, height));
             detailsButtonText.text = view.DetailsOpen ? "Close · Q" : "Details · Q";
             mapButtonText.text = string.Equals(view.ViewLabel, "Region Map", StringComparison.OrdinalIgnoreCase)
                 ? "Local\nTab / Y"
@@ -626,37 +631,37 @@ namespace AshenHalls
             canvasGroup = canvas.gameObject.AddComponent<CanvasGroup>();
             Stretch(canvas.GetComponent<RectTransform>());
 
-            topPanel = AddPanel("Top Chrome", canvas.transform, Hex("080d10", 0.78f), Hex("3c4544", 0.56f));
+            topPanel = AddPanel("Top Chrome", canvas.transform, Hex("080d10", 0.88f), Hex("3c4544", 0.36f));
             titleText = AddText("Title", topPanel, VersionInfo.ProductName, ExplorationHudScreenLayout.MinimumTitleFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             titleText.resizeTextForBestFit = true;
             titleText.resizeTextMinSize = 14;
             titleText.resizeTextMaxSize = ExplorationHudScreenLayout.MinimumTitleFontSize;
-            routeText = AddText("Route", topPanel, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("d0c5ae", 1f), TextAnchor.MiddleCenter);
-            focusText = AddText("Focus", topPanel, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleRight);
+            routeText = AddText("Route", topPanel, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("b6b8ab", 1f), TextAnchor.MiddleLeft);
+            focusText = AddText("Focus", topPanel, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("9ab9ad", 1f), TextAnchor.MiddleRight);
             goldText = AddText("Gold", topPanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             suppliesText = AddText("Supplies", topPanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
             elixirsText = AddText("Elixirs", topPanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleCenter);
 
-            sidePanel = AddPanel("Location Panel", canvas.transform, Hex("080b0d", 0.94f), Hex("3c4544", 0.56f));
+            sidePanel = AddPanel("Location Panel", canvas.transform, Hex("080b0d", 0.94f), Hex("3c4544", 0.36f));
             sideTitleText = AddText("Location Title", sidePanel, "Location", ExplorationHudScreenLayout.MinimumTitleFontSize, Hex("e3ba63", 1f), TextAnchor.MiddleLeft);
             sideTitleText.resizeTextForBestFit = true;
             sideDangerText = AddText("Danger", sidePanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleLeft);
             waypointTitleText = AddText("Waypoint Title", sidePanel, "NEXT", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("e3ba63", 1f), TextAnchor.MiddleLeft);
-            objectiveTitleText = AddText("Objective Title", sidePanel, "OBJECTIVE", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleLeft);
-            nearbyTitleText = AddText("Nearby Title", sidePanel, "NEARBY", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("d0c5ae", 1f), TextAnchor.MiddleLeft);
+            objectiveTitleText = AddText("Objective Title", sidePanel, "OBJECTIVE", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("9ab9ad", 1f), TextAnchor.MiddleLeft);
+            nearbyTitleText = AddText("Nearby Title", sidePanel, "NEARBY", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("9ca99f", 1f), TextAnchor.MiddleLeft);
             sideDetailText = AddText("Detail", sidePanel, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("d0c5ae", 1f), TextAnchor.UpperLeft);
             lookText = AddText("Look", sidePanel, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
             objectiveText = AddText("Objective", sidePanel, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
             growthText = AddText("Growth", sidePanel, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("d0c5ae", 1f), TextAnchor.UpperLeft);
-            partyTitleText = AddText("Party Title", sidePanel, "Party", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("66c9b6", 1f), TextAnchor.MiddleLeft);
-            latestTitleText = AddText("Latest Title", sidePanel, "Latest", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("e3ba63", 1f), TextAnchor.MiddleLeft);
+            partyTitleText = AddText("Party Title", sidePanel, "Party", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("9ab9ad", 1f), TextAnchor.MiddleLeft);
+            latestTitleText = AddText("Latest Title", sidePanel, "Latest", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("9ca99f", 1f), TextAnchor.MiddleLeft);
             detailsButton = AddButton("Details", sidePanel, "Details", bindings?.ToggleDetails, false);
             detailsButtonText = detailsButton.GetComponentInChildren<Text>();
 
             for (int i = 0; i < 4; i++) partyRows.Add(CreatePartyRow(sidePanel, i));
             for (int i = 0; i < 3; i++) logRows.Add(CreateLogRow(sidePanel, i));
 
-            commandPanel = AddPanel("Command Bar", canvas.transform, Hex("080b0d", 0.72f), Hex("3c4544", 0.50f));
+            commandPanel = AddPanel("Command Bar", canvas.transform, Hex("080b0d", 0.88f), Hex("3c4544", 0.36f));
             actionButton = AddButton("Use Action", commandPanel, "", bindings?.UseContextual, true);
             actionLabelText = actionButton.GetComponentInChildren<Text>();
             actionTargetText = AddText("Use Target", actionButton.transform, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("d0c5ae", 1f), TextAnchor.LowerCenter);
@@ -694,11 +699,14 @@ namespace AshenHalls
             float resourcesX = geometry.Top.width - resourcesW - 10f * scale;
             float headerX = 14f * scale;
             float headerW = Mathf.Max(360f * scale, resourcesX - headerX - 14f * scale);
-            float titleW = headerW * 0.31f;
-            float routeW = headerW * 0.40f;
+            // Map mode has a short name. Give chapter text the space that a
+            // proportional title column used to leave empty at wider sizes.
+            float titleW = 132f * scale;
+            float focusW = Mathf.Clamp(headerW * 0.24f, 176f * scale, 260f * scale);
+            float routeW = headerW - titleW - focusW - 18f * scale;
             SetLocalRect(titleText.rectTransform, new Rect(headerX, 6f * scale, titleW, 36f * scale));
-            SetLocalRect(routeText.rectTransform, new Rect(headerX + titleW, 6f * scale, routeW, 36f * scale));
-            SetLocalRect(focusText.rectTransform, new Rect(headerX + titleW + routeW, 6f * scale, headerW - titleW - routeW, 36f * scale));
+            SetLocalRect(routeText.rectTransform, new Rect(headerX + titleW + 10f * scale, 6f * scale, routeW, 36f * scale));
+            SetLocalRect(focusText.rectTransform, new Rect(headerX + headerW - focusW, 6f * scale, focusW, 36f * scale));
             SetLocalRect(goldText.rectTransform, new Rect(resourcesX, 6f * scale, resourceW, 36f * scale));
             SetLocalRect(suppliesText.rectTransform, new Rect(resourcesX + resourceW + resourceGap, 6f * scale, resourceW, 36f * scale));
             SetLocalRect(elixirsText.rectTransform, new Rect(resourcesX + (resourceW + resourceGap) * 2f, 6f * scale, resourceW, 36f * scale));
@@ -709,13 +717,13 @@ namespace AshenHalls
             SetLocalRect(sideDangerText.rectTransform, ExplorationHudScreenLayout.LocationDanger(geometry.Side.width, scale));
             if (detailsOpen)
             {
-                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 54f * scale, innerW, 14f * scale));
-                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 68f * scale, innerW, 32f * scale));
-                SetLocalRect(nearbyTitleText.rectTransform, new Rect(sidePad, 104f * scale, innerW, 14f * scale));
-                SetLocalRect(lookText.rectTransform, new Rect(sidePad, 118f * scale, innerW, 34f * scale));
-                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 156f * scale, innerW, 14f * scale));
-                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 170f * scale, innerW, 58f * scale));
-                SetLocalRect(growthText.rectTransform, new Rect(sidePad, 232f * scale, innerW, 28f * scale));
+                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 62f * scale, innerW, 14f * scale));
+                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 78f * scale, innerW, 32f * scale));
+                SetLocalRect(nearbyTitleText.rectTransform, new Rect(sidePad, 114f * scale, innerW, 14f * scale));
+                SetLocalRect(lookText.rectTransform, new Rect(sidePad, 130f * scale, innerW, 34f * scale));
+                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 168f * scale, innerW, 14f * scale));
+                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 184f * scale, innerW, 58f * scale));
+                SetLocalRect(growthText.rectTransform, new Rect(sidePad, 248f * scale, innerW, 28f * scale));
                 SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 258f * scale, innerW, 18f * scale));
                 Rect[] rows = ExplorationHudScreenLayout.PartyRows(geometry.Side.width, scale, true, partyRows.Count);
                 for (int i = 0; i < partyRows.Count; i++)
@@ -746,11 +754,11 @@ namespace AshenHalls
             else
             {
                 detailLogCapacity = 0;
-                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 54f * scale, innerW, 16f * scale));
-                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 72f * scale, innerW, 42f * scale));
-                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 120f * scale, innerW, 16f * scale));
-                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 138f * scale, innerW, 66f * scale));
-                SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 210f * scale, innerW, 20f * scale));
+                SetLocalRect(waypointTitleText.rectTransform, new Rect(sidePad, 62f * scale, innerW, 16f * scale));
+                SetLocalRect(sideDetailText.rectTransform, new Rect(sidePad, 80f * scale, innerW, 42f * scale));
+                SetLocalRect(objectiveTitleText.rectTransform, new Rect(sidePad, 128f * scale, innerW, 16f * scale));
+                SetLocalRect(objectiveText.rectTransform, new Rect(sidePad, 146f * scale, innerW, 66f * scale));
+                SetLocalRect(partyTitleText.rectTransform, new Rect(sidePad, 218f * scale, innerW, 20f * scale));
                 Rect[] rows = ExplorationHudScreenLayout.PartyRows(geometry.Side.width, scale, false, partyRows.Count);
                 for (int i = 0; i < partyRows.Count; i++)
                 {
@@ -833,8 +841,11 @@ namespace AshenHalls
             nearbyTitleText.gameObject.SetActive(detailsOpen);
             lookText.gameObject.SetActive(detailsOpen);
             objectiveText.gameObject.SetActive(true);
-            growthText.gameObject.SetActive(detailsOpen);
-            partyTitleText.gameObject.SetActive(true);
+            // Growth already begins with the party's level. Use it as the
+            // expanded roster heading rather than repeat "Party" below it.
+            bool hasGrowth = detailsOpen && !string.IsNullOrWhiteSpace(growthText.text);
+            growthText.gameObject.SetActive(hasGrowth);
+            partyTitleText.gameObject.SetActive(!hasGrowth);
             latestTitleText.gameObject.SetActive(detailsOpen && detailLogCapacity > 0);
             foreach (PartyRow row in partyRows)
             {
@@ -846,7 +857,7 @@ namespace AshenHalls
 
         private PartyRow CreatePartyRow(Transform parent, int index)
         {
-            RectTransform root = AddImage("Party Row " + index, parent, Hex("151b20", 0.72f)).rectTransform;
+            RectTransform root = AddImage("Party Row " + index, parent, Hex("151b20", 0.28f)).rectTransform;
             Image accent = AddImage("Accent", root, Hex("58b7a5", 1f));
             Text name = AddText("Name", root, "", ExplorationHudScreenLayout.MinimumBodyFontSize, Hex("f3ead7", 1f), TextAnchor.MiddleLeft);
             Text classLine = AddText("Class", root, "", 10, Hex("d0c5ae", 1f), TextAnchor.MiddleLeft);
@@ -863,7 +874,7 @@ namespace AshenHalls
 
         private LogRow CreateLogRow(Transform parent, int index)
         {
-            RectTransform root = AddImage("Log Row " + index, parent, Hex("151b20", 0.72f)).rectTransform;
+            RectTransform root = AddImage("Log Row " + index, parent, Color.clear).rectTransform;
             Image stripe = AddImage("Stripe", root, Hex("7f9d5b", 1f));
             Text text = AddText("Text", root, "", ExplorationHudScreenLayout.MinimumEyebrowFontSize, Hex("f3ead7", 1f), TextAnchor.UpperLeft);
             return new LogRow(root, stripe, text);
@@ -871,11 +882,11 @@ namespace AshenHalls
 
         private static void LayoutPartyRow(PartyRow row, float width, float height, float scale, bool compact)
         {
-            SetLocalRect(row.Accent.rectTransform, new Rect(0f, 0f, 4f * scale, height));
+            SetLocalRect(row.Accent.rectTransform, new Rect(0f, 6f * scale, 2f * scale, height - 12f * scale));
             float vitalsW = (compact ? 124f : 116f) * scale;
             float vitalsX = width - vitalsW - 8f * scale;
             SetLocalRect(row.Name.rectTransform, new Rect(10f * scale, compact ? 3f * scale : 1f * scale, Mathf.Max(72f * scale, vitalsX - 16f * scale), compact ? 20f * scale : 14f * scale));
-            SetLocalRect(row.ClassLine.rectTransform, new Rect(10f * scale, 14f * scale, Mathf.Max(72f * scale, vitalsX - 16f * scale), 11f * scale));
+            SetLocalRect(row.ClassLine.rectTransform, new Rect(10f * scale, 14f * scale, Mathf.Max(72f * scale, vitalsX - 16f * scale), (compact ? 11f : 15f) * scale));
             SetLocalRect(row.HpBg, new Rect(vitalsX, compact ? 7f * scale : 2f * scale, vitalsW, compact ? 12f * scale : 10f * scale));
             SetLocalRect(row.HpText.rectTransform, new Rect(vitalsX, compact ? 4f * scale : 1f * scale, vitalsW, compact ? 17f * scale : 12f * scale));
             SetLocalRect(row.ManaBg, new Rect(vitalsX, 14f * scale, vitalsW, 10f * scale));
@@ -886,7 +897,7 @@ namespace AshenHalls
 
         private static void LayoutLogRow(LogRow row, float width, float height, float scale)
         {
-            SetLocalRect(row.Stripe.rectTransform, new Rect(0f, 0f, 4f * scale, height));
+            SetLocalRect(row.Stripe.rectTransform, new Rect(0f, 6f * scale, 2f * scale, 10f * scale));
             SetLocalRect(row.Text.rectTransform, new Rect(10f * scale, 3f * scale, width - 16f * scale, Mathf.Max(18f * scale, height - 6f * scale)));
         }
 
@@ -895,12 +906,14 @@ namespace AshenHalls
             GameObject go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             Image image = go.GetComponent<Image>();
-            image.color = hero ? Hex("1a2026", 0.98f) : Hex("151a1f", 0.96f);
+            // Selectable tints multiply the image color. A white image keeps
+            // hover and focus states from being crushed into near-black.
+            image.color = Color.white;
             Button button = go.GetComponent<Button>();
             button.targetGraphic = image;
             ColorBlock colors = button.colors;
-            colors.normalColor = image.color;
-            colors.highlightedColor = hero ? Hex("2d3440", 1f) : Hex("232a31", 1f);
+            colors.normalColor = hero ? Hex("1a2425", 0.88f) : Hex("151a1f", 0.36f);
+            colors.highlightedColor = hero ? Hex("2d3c3d", 1f) : Hex("293235", 1f);
             colors.pressedColor = Hex("0b1013", 1f);
             colors.disabledColor = Hex("0b0f12", 0.76f);
             colors.selectedColor = colors.highlightedColor;
@@ -914,7 +927,7 @@ namespace AshenHalls
                 hero ? ExplorationHudScreenLayout.MinimumCommandFontSize + 1 : ExplorationHudScreenLayout.MinimumCommandFontSize,
                 Hex("f3ead7", 1f),
                 TextAnchor.MiddleCenter);
-            text.fontStyle = FontStyle.Bold;
+            text.fontStyle = hero ? FontStyle.Bold : FontStyle.Normal;
             Stretch(text.rectTransform, 8f, hero ? 10f : 4f);
             return button;
         }

@@ -2,6 +2,17 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.28.0 - Portraits by the Fire
+
+- Rebuild character creation around painted fantasy portraits, an illustrated four-member party roster, and direct race and class choices with persistent selection markers.
+- Add 40 original portraits: every combination of five races and eight classes has its own artwork, including distinct Wizard and Mage portraits. The selected hero, party cards and class previews share the same exact art mapping.
+- Explain race bonuses and class roles beside the choices. Keep naming easy to reach and collect attributes, talents, origin, sigil, equipment and color controls in a secondary customization view.
+- Make repeated selection of the current class harmless, preserve each companion's identity, and refresh secondary choices immediately. Keep campaign rules and save schema v27 compatible.
+- Preserve the customized party when Enter starts the journey, provide visible keyboard focus, and defer portrait loading until character creation opens.
+- Refine exploration spacing, group pause actions with reliable keyboard navigation, simplify loot comparisons and resource presentation, and add a subtle original brass-and-ember divider to supporting menus.
+- Remove baked white contours and sign-gap remnants from nine Midgaard building sprites using native Aseprite cleanup. Preserve light smoke, stone details and all eleven untargeted cells; retain the original in an editable source layer.
+- Validate choice callbacks, all 40 art mappings, portrait packaging and compact/wide presentation. Exact release results are recorded in the accompanying release evidence after verification.
+
 ## v2.27.0 - Echoes of the Road
 
 - Full Unity audit, repeated Windows build gates, 12 music contracts, all 26 new SFX checks, clean-source packaging and clean-extracted startup pass from `a706eca4a3f70977be79844749d6b5b17bec37ce`. ZIP SHA-256 is `4f5dc82724231bf6e4797013772edeff583258e8deebf49b5a9f4fdad66090a9`. The hidden-window final visual capture was black and rejected; visible final-player review awaits permission. Earlier NPC/HUD preview review and all limitations are recorded in `Docs/ReleaseEvidence/v2.27.0-summary.json`.

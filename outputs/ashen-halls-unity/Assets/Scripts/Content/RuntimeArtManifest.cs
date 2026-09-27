@@ -18,6 +18,7 @@ namespace AshenHalls
         public const string UniqueItemAtlas = "unique-item-atlas-runtime-v2.20.0.png";
         public const string TavernBackdrop = "title-backdrop-runtime-v2.4.0.png";
         public const string TavernUiAtlas = "tavern-ui-atlas-runtime-v1.5.9.png";
+        public const string UiHearthDivider = "ui-hearth-divider-runtime-v2.28.png";
         public const string TitleMenuScroll = "title-menu-scroll-runtime-v2.12.1.png";
         public const string TitleMenuFocus = "title-menu-focus-runtime-v2.12.1.png";
         public const string TitleMenuIconAtlas = "title-menu-icon-atlas-runtime-v2.16.0.png";
@@ -37,7 +38,7 @@ namespace AshenHalls
         public const string WorldAreaSetpieceAtlas = "world-area-setpiece-atlas-runtime-v2.3.0.png";
         public const string WorldThreatHabitatAtlas = "world-threat-habitat-atlas-runtime-v2.4.0.png";
         public const string PlayerExplorationRoleAtlas = "player-exploration-role-atlas-runtime-v2.4.0.png";
-        public const string MidgaardTownAtlas = "midgaard-town-atlas-runtime-v2.21.0.png";
+        public const string MidgaardTownAtlas = "midgaard-town-atlas-runtime-v2.28.0.png";
         public const string MidgaardTileAtlas = "midgaard-tile-atlas-runtime-v1.6.3.png";
         public const string MidgaardCityPropAtlas = "midgaard-city-prop-atlas-runtime-v1.29.0.png";
         public const string MidgaardStreetLifeAtlas = "midgaard-street-life-atlas-runtime-v1.50.0.png";
@@ -50,6 +51,11 @@ namespace AshenHalls
         public const string MidgaardSewerAtlas = "midgaard-sewer-atlas-runtime-v1.30.0.png";
         public const string NpcPortraitAtlas = "npc-portrait-atlas-runtime-v1.60.0.png";
         public const string CharacterCombatAtlas = "character-combat-atlas-runtime-v1.93.0.png";
+        public const string CharacterPortraitHumanAtlas = "character-portrait-human-atlas-runtime-v2.28.0.png";
+        public const string CharacterPortraitDuskElfAtlas = "character-portrait-dusk-elf-atlas-runtime-v2.28.0.png";
+        public const string CharacterPortraitStonebornAtlas = "character-portrait-stoneborn-atlas-runtime-v2.28.0.png";
+        public const string CharacterPortraitFenkinAtlas = "character-portrait-fenkin-atlas-runtime-v2.28.0.png";
+        public const string CharacterPortraitAshlingAtlas = "character-portrait-ashling-atlas-runtime-v2.28.0.png";
         public const string EnemySpriteAtlas = "enemy-sprite-atlas-runtime-v1.77.0.png";
         public const string DemonSummonAtlas = "demon-summon-atlas-runtime-v1.4.0.png";
         public const string MidgaardInteriorPropAtlas = "midgaard-interior-prop-atlas-runtime-v1.61.0.png";
@@ -79,6 +85,7 @@ namespace AshenHalls
             UniqueItemAtlas,
             TavernBackdrop,
             TavernUiAtlas,
+            UiHearthDivider,
             TitleMenuScroll,
             TitleMenuFocus,
             TitleMenuIconAtlas,
@@ -111,6 +118,11 @@ namespace AshenHalls
             MidgaardSewerAtlas,
             NpcPortraitAtlas,
             CharacterCombatAtlas,
+            CharacterPortraitHumanAtlas,
+            CharacterPortraitDuskElfAtlas,
+            CharacterPortraitStonebornAtlas,
+            CharacterPortraitFenkinAtlas,
+            CharacterPortraitAshlingAtlas,
             EnemySpriteAtlas,
             DemonSummonAtlas,
             MidgaardInteriorPropAtlas,

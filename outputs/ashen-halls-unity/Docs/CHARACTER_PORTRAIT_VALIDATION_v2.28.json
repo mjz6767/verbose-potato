@@ -1,0 +1,324 @@
+{
+  "schemaVersion": 1,
+  "release": "v2.28.0",
+  "generator": "Built-in ImageGen",
+  "sourcePrompts": "Docs/CHARACTER_CREATION_ART_PROMPTS_v2.28.md",
+  "artModifiedAfterGeneration": false,
+  "layout": "Four columns, two rows; fractional UV cells preserve original generated pixels.",
+  "portraitCount": 40,
+  "uniqueSampleCount": 40,
+  "atlases": [
+    {
+      "file": "character-portrait-human-atlas-runtime-v2.28.0.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "f85fb9eba7b050408e2ee15548234f98ca4bceb9795246aa43a11effa1cb26b4"
+    },
+    {
+      "file": "character-portrait-dusk-elf-atlas-runtime-v2.28.0.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "2477474c323ac85ca350649bc70e827141e2d4a0970314310da15608114679e2"
+    },
+    {
+      "file": "character-portrait-stoneborn-atlas-runtime-v2.28.0.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "172bc40196f3671b12466a2fdb8571956f2f0bb06697e0fbead2a4649ba8b30b"
+    },
+    {
+      "file": "character-portrait-fenkin-atlas-runtime-v2.28.0.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "c6b5b3d5b26c63368bdabecb7facd9efe3b20b4733033788f6aea9d90b750eb2"
+    },
+    {
+      "file": "character-portrait-ashling-atlas-runtime-v2.28.0.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "471e8e874498f467d53fa4883d250db1ab445e1370089e931c98bc806f642530"
+    }
+  ],
+  "portraits": [
+    {
+      "race": "human",
+      "class": "rogue",
+      "cell": 0,
+      "sampleSha256": "a2cc9bcd52e5cd768b1a9a758ed11ad78118998b6d33b11ff1be7625bbd8d79a",
+      "luminanceRange": 249
+    },
+    {
+      "race": "human",
+      "class": "warrior",
+      "cell": 1,
+      "sampleSha256": "9b9a7402a83118b2d2eb36e39b08fb1cd2b41e56ddc4e3bc961a72fb86e793c0",
+      "luminanceRange": 246
+    },
+    {
+      "race": "human",
+      "class": "ranger",
+      "cell": 2,
+      "sampleSha256": "d56b8041b07ac5bcec5fa4aafd7c823afe68d7ad71102d506a455c580a366dc2",
+      "luminanceRange": 212
+    },
+    {
+      "race": "human",
+      "class": "wizard",
+      "cell": 3,
+      "sampleSha256": "1faa6081cc6794299686f949d81e152de80e7923750969547714d526aec45485",
+      "luminanceRange": 249
+    },
+    {
+      "race": "human",
+      "class": "mage",
+      "cell": 4,
+      "sampleSha256": "0c344759891eaf4447d69ae0d9f9ab09528b5c9a932af9b9ad590fb2c5e728a2",
+      "luminanceRange": 242
+    },
+    {
+      "race": "human",
+      "class": "warlock",
+      "cell": 5,
+      "sampleSha256": "3986a28753dc61cb14b8e0d4f7a78b7839359d9a5306427a100843b471bf5609",
+      "luminanceRange": 189
+    },
+    {
+      "race": "human",
+      "class": "priest",
+      "cell": 6,
+      "sampleSha256": "4bfc449c8bf079792880b2a9e36ca51167a1110c5a7d47a003c7300d6c12eafe",
+      "luminanceRange": 253
+    },
+    {
+      "race": "human",
+      "class": "paladin",
+      "cell": 7,
+      "sampleSha256": "7c4e7bd8b3962b83452395633fe22a69face97595fa50d1e34a1f66bfc452fb9",
+      "luminanceRange": 253
+    },
+    {
+      "race": "dusk-elf",
+      "class": "rogue",
+      "cell": 0,
+      "sampleSha256": "4740c6ccad789e14494e8ad3f0c5a89e4a94b5c786ce6d809e53f5f7b551b0de",
+      "luminanceRange": 252
+    },
+    {
+      "race": "dusk-elf",
+      "class": "warrior",
+      "cell": 1,
+      "sampleSha256": "0e90caf82dc905b7c87f3fd096aab49f3c05ffc016cd5eb17938d6e87a089213",
+      "luminanceRange": 250
+    },
+    {
+      "race": "dusk-elf",
+      "class": "ranger",
+      "cell": 2,
+      "sampleSha256": "858711535bb9b505623ed82817804dfaec8271f6827c8632ac103d788a23b0b6",
+      "luminanceRange": 211
+    },
+    {
+      "race": "dusk-elf",
+      "class": "wizard",
+      "cell": 3,
+      "sampleSha256": "9063522ba0d30e67fea8a99ca39a769f890f88c472fa0e173ef98a3f280d4130",
+      "luminanceRange": 254
+    },
+    {
+      "race": "dusk-elf",
+      "class": "mage",
+      "cell": 4,
+      "sampleSha256": "bc1b77815cfee30cb203859301422f272f62d4e2050fb9bade053740956f8269",
+      "luminanceRange": 252
+    },
+    {
+      "race": "dusk-elf",
+      "class": "warlock",
+      "cell": 5,
+      "sampleSha256": "f5fba3e3b6d3be06bac5541aaf2c481e114d1c0c84bcca11e7bc96b8bb8c189a",
+      "luminanceRange": 241
+    },
+    {
+      "race": "dusk-elf",
+      "class": "priest",
+      "cell": 6,
+      "sampleSha256": "340d2f71be7c6c4fcbd879435bf406234249fb2aa6db4fa07c6ecfd6a210476d",
+      "luminanceRange": 249
+    },
+    {
+      "race": "dusk-elf",
+      "class": "paladin",
+      "cell": 7,
+      "sampleSha256": "b50bf0bcdbf156af88fe3b250ba1a94d0cfc2d315fcb32af4a6a6f71c13f9e94",
+      "luminanceRange": 252
+    },
+    {
+      "race": "stoneborn",
+      "class": "rogue",
+      "cell": 0,
+      "sampleSha256": "25d6fd238b8e2ff4b4added4330d315e53313fd5fd65dfec6a09c5c4e96955be",
+      "luminanceRange": 238
+    },
+    {
+      "race": "stoneborn",
+      "class": "warrior",
+      "cell": 1,
+      "sampleSha256": "9f07c630d177fc72ac6666ce86e627e6be1df37556aeb29defd14faaa4297162",
+      "luminanceRange": 246
+    },
+    {
+      "race": "stoneborn",
+      "class": "ranger",
+      "cell": 2,
+      "sampleSha256": "c1b83fd67f15813646190184dae838975e7bcf1045969b18ac45475375e85faf",
+      "luminanceRange": 214
+    },
+    {
+      "race": "stoneborn",
+      "class": "wizard",
+      "cell": 3,
+      "sampleSha256": "91128b4f5beff1ba761677f4ba7a67224f91d817ada145767e55b1cbe1043d83",
+      "luminanceRange": 255
+    },
+    {
+      "race": "stoneborn",
+      "class": "mage",
+      "cell": 4,
+      "sampleSha256": "7738957314bd6f476158aeee81603b88398ad3da2ecb6c1f01c36371a87b6126",
+      "luminanceRange": 203
+    },
+    {
+      "race": "stoneborn",
+      "class": "warlock",
+      "cell": 5,
+      "sampleSha256": "2fc8f001f86abd0ff3dd7e6c88d7a75fb95d6b072cfcf3bdf6a00802146a5296",
+      "luminanceRange": 221
+    },
+    {
+      "race": "stoneborn",
+      "class": "priest",
+      "cell": 6,
+      "sampleSha256": "8d608feef0cc915a5b73ec3b0864046c6c2c5b4163ff9ca030cb54b10398a686",
+      "luminanceRange": 243
+    },
+    {
+      "race": "stoneborn",
+      "class": "paladin",
+      "cell": 7,
+      "sampleSha256": "69aaa982c0c4590ede47ff3479974f6bbf3801ab1e524a48821a6ce9e5ec07b1",
+      "luminanceRange": 253
+    },
+    {
+      "race": "fenkin",
+      "class": "rogue",
+      "cell": 0,
+      "sampleSha256": "a35f6e90840cca4c39dbb3c19be82a86dc3675726a02a7f56cc716a7c7611c03",
+      "luminanceRange": 251
+    },
+    {
+      "race": "fenkin",
+      "class": "warrior",
+      "cell": 1,
+      "sampleSha256": "a421f2d285b0b91fa5404ea92fc8ae4246882f5b45b68a98b019fae34e63fa98",
+      "luminanceRange": 250
+    },
+    {
+      "race": "fenkin",
+      "class": "ranger",
+      "cell": 2,
+      "sampleSha256": "67b2608d89ab7eaf8908f4811687f60e8c2207ab411cbc727157596b29246350",
+      "luminanceRange": 192
+    },
+    {
+      "race": "fenkin",
+      "class": "wizard",
+      "cell": 3,
+      "sampleSha256": "c700604538d9b6fbc089f5a57a1d547ee2841eb367548019e9df042232c79251",
+      "luminanceRange": 253
+    },
+    {
+      "race": "fenkin",
+      "class": "mage",
+      "cell": 4,
+      "sampleSha256": "64e832a345f1b6ba8b5d364d95b83cbf4add83217861f626c84ea411916e9112",
+      "luminanceRange": 254
+    },
+    {
+      "race": "fenkin",
+      "class": "warlock",
+      "cell": 5,
+      "sampleSha256": "1ade5312528195943e6579c36a75b97f1edbc42a202799be727c2b8b27211e3a",
+      "luminanceRange": 201
+    },
+    {
+      "race": "fenkin",
+      "class": "priest",
+      "cell": 6,
+      "sampleSha256": "6bc0c9d5fabf105cfe2e13af90f3bef888f3acab6afadc547d89f0e0f52c99b7",
+      "luminanceRange": 249
+    },
+    {
+      "race": "fenkin",
+      "class": "paladin",
+      "cell": 7,
+      "sampleSha256": "8fceb4a5f2714802cef88a41ae22c8e37b0588363d5628b8eb88345359e835ce",
+      "luminanceRange": 253
+    },
+    {
+      "race": "ashling",
+      "class": "rogue",
+      "cell": 0,
+      "sampleSha256": "46074d477920b0f2624fd711d2997bc176462132a411b58ff5112fc34336daa7",
+      "luminanceRange": 243
+    },
+    {
+      "race": "ashling",
+      "class": "warrior",
+      "cell": 1,
+      "sampleSha256": "7433a995b11c3ed1e8506495ef88813f7173bba6b1f22736bbde2d4f646375bc",
+      "luminanceRange": 245
+    },
+    {
+      "race": "ashling",
+      "class": "ranger",
+      "cell": 2,
+      "sampleSha256": "18dc4342a75b85e2856fadeb6d279a9088b50deb6cbea879bebd22f79a868e39",
+      "luminanceRange": 220
+    },
+    {
+      "race": "ashling",
+      "class": "wizard",
+      "cell": 3,
+      "sampleSha256": "52bd973380bd1b6657bd6cfa09fcb52634474ee691b8ca22e0318b98c9254487",
+      "luminanceRange": 219
+    },
+    {
+      "race": "ashling",
+      "class": "mage",
+      "cell": 4,
+      "sampleSha256": "36cafb6d408c5707a1ae6da40742c5feaf22e1bc9fbf8195f5b67e1249b39795",
+      "luminanceRange": 254
+    },
+    {
+      "race": "ashling",
+      "class": "warlock",
+      "cell": 5,
+      "sampleSha256": "9bac5f6dff34c6497319e1f62f9c4fed1653fb0f7a16fe21512ebae8b4017969",
+      "luminanceRange": 244
+    },
+    {
+      "race": "ashling",
+      "class": "priest",
+      "cell": 6,
+      "sampleSha256": "75963e928deaaac6cc1e2ac5fe0181ef102e0591f092ae3b59bd836489c6217a",
+      "luminanceRange": 251
+    },
+    {
+      "race": "ashling",
+      "class": "paladin",
+      "cell": 7,
+      "sampleSha256": "ed38ae9fe279af7b7a167a37b6e65b93a2ed65b3d43c7f326bd364d1f3284d5e",
+      "luminanceRange": 253
+    }
+  ]
+}

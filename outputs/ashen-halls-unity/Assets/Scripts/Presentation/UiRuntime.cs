@@ -321,6 +321,7 @@ namespace AshenHalls
         }
     }
 
+    [ExecuteAlways]
     internal sealed class UiOwnedCanvasLifetime : MonoBehaviour
     {
         private readonly List<GameObject> ownedRoots = new List<GameObject>();
