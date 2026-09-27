@@ -1,6 +1,14 @@
-Ash & Brimstone v2.30.0 - Clearer Choices
+Ash & Brimstone v2.31.0 - Words of Power
 
-Release version: v2.30.0. Save schema: v27.
+Release version: v2.31.0. Save schema: v27.
+
+Words of Power gives 28 spells and 14 martial skills more distinctive class names, including Mercy's Light, Dawnlance, Vanguard Rush and Arrowstorm. These 42 display-name changes preserve formula codes, skill IDs, costs, unlock levels and mechanics; descriptions keep the practical rules clear. Existing names remain supported by presentation aliases. See Docs/POWER_NAMES.md for the complete naming map.
+
+The Development-only Beta Lab now offers direct Mage, Warlock and Priest selection, including all 16 prototype Priest spells at maximum level. Skills Lab provides dedicated maximum-level Warrior, Rogue and Ranger testers with all seven skills per class. Stage prepares appropriate targets for the selected caster; Wound and Cluster support martial testing. These are access improvements to existing powers, not additional campaign unlocks.
+
+The normal retail player keeps Beta Lab unavailable, and lab encounters remain isolated from campaign progression and blocked from saving. Existing campaigns, artwork, music and sound effects are preserved; save schema remains v27. The v2.30 Windows archive is preserved for rollback. v2.31 release verification and final package evidence are pending; no new audit, build or player-review pass is claimed here.
+
+Previous release: v2.30.0 - Clearer Choices
 
 Clearer Choices removes repeated instructions and filler from character creation and the surrounding game screens. Portraits and direct race/class choices take priority, with brief bonuses and class summaries. Attributes & details keeps stats, visible talent ranks, appearance and equipment; unspent points still explain why Begin is unavailable.
 

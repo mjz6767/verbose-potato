@@ -2,6 +2,14 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## v2.31.0 - Words of Power
+
+- Give 28 spells and 14 martial skills distinctive class names while preserving stable formula codes, skill IDs, costs, unlock levels, effects and save data. Keep plain mechanical descriptions and presentation aliases for previous names; document all 42 mappings in Docs/POWER_NAMES.md.
+- Add direct Mage, Warlock and Priest selection to the Development Beta Lab. Unlock all 16 prototype Priest spells at maximum level and stage wounded or afflicted allies, enemies and a dispellable field for real spell testing.
+- Provide dedicated maximum-level Warrior, Rogue and Ranger testers with all seven skills per class. Link Skills Lab and Spells Lab, retain Wound/Cluster setup, clear stale targeting when switching, and require Reset for defeated testers.
+- Keep Beta Lab unavailable in retail, lab encounters save-blocked, and campaign content selection and balance unchanged. Preserve existing artwork, music, sound effects, save schema v27 and the v2.30 archive.
+- Add focused regression coverage for actual book access, full class unlocks, staged targets, production actions, switching and save refusal. v2.31 release verification and final package evidence are pending; no new audit, build or player-review pass is claimed yet.
+
 ## v2.30.0 - Clearer Choices
 
 - Simplify character creation around portraits, names, race/class choices and concise mechanical summaries. Remove repeated selection instructions, role summaries, progress boilerplate and routine party advice.
