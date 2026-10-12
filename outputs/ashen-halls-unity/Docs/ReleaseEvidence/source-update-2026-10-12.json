@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "kind": "source-update-validation",
+  "date": "2026-10-12",
+  "sourceCommit": "d904bd7de18ab494b7ff4534faf4ab09b948d315",
+  "unityVersion": "6000.3.18f1",
+  "newWindowsPackageCreated": false,
+  "windowsPublicationStatus": "held-pending-approved-engine-patch-and-final-player-retest",
+  "changes": [
+    "Region Map wheel and drag pan the bounded visible viewport immediately at edges and reverse without accumulated overscroll delay; keyboard inspection and campaign state remain unchanged.",
+    "Loot receipts disclose additional changed stats omitted by the five-entry comparison preview, without counting equal stats or editable hero names; safe Continue and explicit equipment review remain intact.",
+    "Build and audit tools require the project's exact editor version and revision; source compilation rejects stale or mixed cached compiler inputs before compiling either assembly."
+  ],
+  "validation": {
+    "sourceCompile": {
+      "path": "QA/source-compile/20261012-185035-5152e615",
+      "runtimeFiles": 175,
+      "editorFiles": 75,
+      "diagnostics": 0,
+      "exitCode": 0
+    },
+    "fullAudit": {
+      "file": "QA/project-audit/20261012-185024-b497a6e0/unity.log",
+      "bytes": 194995,
+      "sha256": "fe36a99c04ac6132b9e165c0c0f3a20b15f4e555086bc819b38271f8f588b7fd",
+      "passedGates": 13,
+      "exitCode": 0,
+      "newRegressionCoverage": [
+        "Production map wheel and drag handlers in all four directions, overscroll reversal, release safety and unchanged campaign JSON.",
+        "1,125 map viewport geometry combinations including odd, even, full-map and oversized viewports.",
+        "Loot overflow counts, equal-stat filtering, authored-summary safety, stale-hint clearing and production-bound five/six-change rewards for a hero named A / B."
+      ]
+    },
+    "tooling": {
+      "testScript": "Tools/TestUnityEditorResolution.ps1",
+      "checksPassed": 24,
+      "powershellFilesParsedWithoutErrors": 6
+    },
+    "nativeLootLayout": {
+      "path": "QA/loot-experience/20261012-185125-538",
+      "captureCount": 12,
+      "resolutions": ["960x600", "1280x720", "1920x1080"],
+      "scenarios": ["ordinary-equipment", "travelers-knot", "measurekeeper-jack", "resources-only"],
+      "log": {
+        "file": "QA/loot-update-capture-20261012-185121.log",
+        "bytes": 34987,
+        "sha256": "5bf1c23a450ea28ec9e33910ed96e5a690c84f26be7cf47a5c1f6cd18ae2b9eb"
+      },
+      "report": {
+        "file": "QA/loot-experience/20261012-185125-538/text-fit-and-validation.txt",
+        "bytes": 12444,
+        "sha256": "d5b1db8d9100b3e2b8d0c7e79dac4cca335b38623f8c150dd508800579c6a5e3"
+      },
+      "textFitAndStateAssertionsPassed": true,
+      "directVisualReview": ["travelers-knot-960x600.png", "ordinary-equipment-1280x720.png"],
+      "overflowHintVerification": "Production-bound automated assertions; these four baseline capture scenarios do not exceed five comparison changes.",
+      "method": "Offscreen Unity editor rendering with production loot adapter, original artwork and save-blocked disposable fixtures; not final-player desktop testing."
+    },
+    "independentReviews": [
+      "Map navigation implementation reviewed by loot implementation agent.",
+      "Loot comparison hero-name edge case independently reproduced, corrected and reviewed by map implementation agent.",
+      "Final 15-file source-only review found no blocking issues."
+    ]
+  },
+  "unchangedArchives": [
+    {
+      "file": "../AshAndBrimstone-Windows-v2.37.0.zip",
+      "sha256": "2bd420707f05724e676d09f464ec18276504f6716702e5ef9c09d1e82fdbd46e",
+      "status": "held-candidate"
+    },
+    {
+      "file": "../AshAndBrimstone-Windows-v2.36.0.zip",
+      "sha256": "2103174ae826006e66b63605635a1f15b779ba11ed239733ac1b3aa062bc7464",
+      "status": "preserved"
+    }
+  ],
+  "limitations": [
+    "No editor installation, project engine-pin change, Windows rebuild or new package promotion occurred in this update.",
+    "The recorded Windows accessibility shutdown crash remains unresolved in the installed engine; successful editor audits do not clear that final-player release blocker.",
+    "Save schema and packaged version remain unchanged. Existing evidence for v2.37 is retained, not superseded by these source checks."
+  ]
+}
