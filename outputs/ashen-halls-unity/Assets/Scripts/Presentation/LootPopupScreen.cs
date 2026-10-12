@@ -19,6 +19,9 @@ namespace AshenHalls
         public string EquipNote;
         public string Outcome;
         public string Comparison;
+        // Unformatted source for the bounded equipment preview. Never parse
+        // editable hero names or authored status summaries as comparison data.
+        public string ComparisonStats;
         public string ComparisonTitle;
         public string ComparisonSummary;
         public string ReviewActionLabel;
@@ -207,6 +210,7 @@ namespace AshenHalls
         public bool HasItemCardForTest => iconPanel != null && iconPanel.gameObject.activeSelf;
         public string ItemDetailsForTest => bodyText == null ? "" : bodyText.text;
         public string ComparisonPreviewForTest => comparisonDetailText == null ? "" : comparisonDetailText.text;
+        public string ComparisonHintForTest => comparisonHintText == null ? "" : comparisonHintText.text;
         public string StorageDetailForTest => outcomeDetailText == null ? "" : outcomeDetailText.text;
         public bool HasDefaultFocusForTest
         {
@@ -274,8 +278,8 @@ namespace AshenHalls
             bodyText.text = view.HasItem ? LootRewardPresentationRules.ItemDetails(view.TraitLine, view.Rarity) : "";
             comparisonTitleText.text = string.IsNullOrWhiteSpace(view.ComparisonTitle) ? "Equipment comparison" : view.ComparisonTitle;
             comparisonDetailText.text = !string.IsNullOrWhiteSpace(view.ComparisonSummary)
-                ? view.ComparisonSummary : LootRewardPresentationRules.ComparisonPreview(view.Comparison);
-            comparisonHintText.text = view.CanReview ? "Full details in Inventory" : "";
+                ? view.ComparisonSummary : LootRewardPresentationRules.ComparisonPreview(view.ComparisonStats ?? view.Comparison);
+            comparisonHintText.text = LootRewardPresentationRules.ComparisonHint(view.ComparisonStats, view.CanReview, view.ComparisonSummary);
             comparisonPanel.gameObject.SetActive(view.HasItem && !string.IsNullOrWhiteSpace(comparisonDetailText.text));
             comparisonDivider.gameObject.SetActive(comparisonPanel.gameObject.activeSelf);
             outcomeTitleText.text = string.IsNullOrWhiteSpace(view.Outcome)

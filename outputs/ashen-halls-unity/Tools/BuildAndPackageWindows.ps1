@@ -1,5 +1,5 @@
 param(
-    [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\6000.3.18f1\Editor\Unity.exe",
+    [string]$UnityExe = '',
     [string]$Version = "",
     [switch]$SkipUnityBuild,
     [int]$BuildLogWaitSeconds = 90,
@@ -542,6 +542,8 @@ $ZipPath = Join-Path $OutputsRoot $ZipFileName
 $BuildLog = Join-Path $ProjectRoot "build-$Version.log"
 
 if (-not $SkipUnityBuild) {
+    . (Join-Path $PSScriptRoot 'UnityEditorResolution.ps1')
+    $UnityExe = Resolve-ProjectUnityEditor -ProjectRoot $ProjectRoot -UnityExe $UnityExe
     if (-not (Test-Path -LiteralPath $UnityExe)) {
         throw "Unity executable not found: $UnityExe"
     }

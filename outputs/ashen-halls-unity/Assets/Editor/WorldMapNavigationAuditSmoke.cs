@@ -37,6 +37,81 @@ namespace AshenHalls.Editor
             EdgeControlsRespectBoundsAndInputOwnership();
             EdgePanMovesCameraOnFirstBoundaryClick();
             EdgeHoverDescribesControlsAndRespectsOverlays();
+            PointerPansMoveViewportWithoutEdgeDelay();
+            ViewportPansPreserveBoundsAndUntouchedAxes();
+        }
+
+        private static void PointerPansMoveViewportWithoutEdgeDelay()
+        {
+            WithFixture(true, (game, state, grid, _) =>
+            {
+                string before = JsonUtility.ToJson(state);
+                foreach (bool drag in new[] { false, true })
+                foreach (Vector2 direction in new[] { Vector2.right, Vector2.left, Vector2.up, Vector2.down })
+                {
+                    int startX = direction.x < 0f || direction.y < 0f ? state.Map.Width - 1 : 0;
+                    int startY = direction.x < 0f || direction.y < 0f ? state.Map.Height - 1 : 0;
+                    Invoke(game, "SetRegionMapFocus", startX, startY);
+                    Vector2 point = grid.center;
+                    Func<Point> viewport = () => RegionMapNavigationRules.ViewportOrigin(Focus(game).X, Focus(game).Y,
+                        ViewSize, ViewSize, state.Map.Width, state.Map.Height);
+                    Point original = viewport();
+                    if (drag) Dispatch(game, grid, original, EventType.MouseDown, point, Vector2.zero);
+                    Action<Vector2> pan = delta => Require(Dispatch(game, grid, viewport(),
+                            drag ? EventType.MouseDrag : EventType.ScrollWheel, point,
+                            drag ? -delta * CellSize : delta), "the production pointer handler consumes a Region pan");
+
+                    pan(direction);
+                    Point after = viewport();
+                    Require(after.X == original.X + (int)direction.x && after.Y == original.Y + (int)direction.y,
+                        "the first " + (drag ? "drag" : "wheel notch") + " moves the visible map away from a clamped edge");
+                    Point focus = Focus(game);
+                    Require((direction.x != 0f || focus.X == startX) && (direction.y != 0f || focus.Y == startY),
+                        "pointer panning leaves the unrequested selection axis unchanged");
+
+                    pan(-direction);
+                    Point atEdge = Focus(game);
+                    for (int i = 0; i < 8; i++) pan(-direction);
+                    Require(Focus(game).X == atEdge.X && Focus(game).Y == atEdge.Y,
+                        "overscroll cannot push the selected cell into an invisible camera dead zone");
+                    pan(direction);
+                    after = viewport();
+                    Require(after.X == original.X + (int)direction.x && after.Y == original.Y + (int)direction.y,
+                        "reversing an overscroll moves the camera on the first pointer step");
+                    if (drag)
+                    {
+                        Point beforeRelease = Focus(game);
+                        Dispatch(game, grid, after, EventType.MouseUp, point, Vector2.zero);
+                        Require(!Get<bool>(game, "exploreRegionPointerDragging")
+                            && Focus(game).X == beforeRelease.X && Focus(game).Y == beforeRelease.Y,
+                            "releasing a pan never selects its stale pressed cell");
+                    }
+                    Require(JsonUtility.ToJson(state) == before,
+                        "edge and reverse pointer panning never travel, discover tiles, advance time, or alter campaign state");
+                }
+            });
+        }
+
+        private static void ViewportPansPreserveBoundsAndUntouchedAxes()
+        {
+            const int mapWidth = 58;
+            const int mapHeight = 46;
+            foreach (Point size in new[] { new Point(1, 1), new Point(5, 5), new Point(16, 8), new Point(58, 46), new Point(90, 90) })
+            foreach (int focusX in new[] { 0, mapWidth / 2, mapWidth - 1 })
+            foreach (int focusY in new[] { 0, mapHeight / 2, mapHeight - 1 })
+            foreach (int deltaX in new[] { -100, -1, 0, 1, 100 })
+            foreach (int deltaY in new[] { -100, -1, 0, 1, 100 })
+            {
+                Point origin = RegionMapNavigationRules.ViewportOrigin(focusX, focusY, size.X, size.Y, mapWidth, mapHeight);
+                Point next = RegionMapNavigationRules.ViewportPanFocus(focusX, focusY, deltaX, deltaY,
+                    size.X, size.Y, mapWidth, mapHeight);
+                Point after = RegionMapNavigationRules.ViewportOrigin(next.X, next.Y, size.X, size.Y, mapWidth, mapHeight);
+                Require(after.X == Mathf.Clamp(origin.X + deltaX, 0, Mathf.Max(0, mapWidth - size.X))
+                    && after.Y == Mathf.Clamp(origin.Y + deltaY, 0, Mathf.Max(0, mapHeight - size.Y)),
+                    "odd, even, full-map, and oversized viewports pan by the exact bounded requested distance");
+                Require((after.X != origin.X || next.X == focusX) && (after.Y != origin.Y || next.Y == focusY),
+                    "blocked or untouched viewport axes retain their inspection focus");
+            }
         }
 
         private static void EdgeHoverDescribesControlsAndRespectsOverlays()

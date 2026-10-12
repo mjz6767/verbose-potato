@@ -27,6 +27,7 @@ namespace AshenHalls.Editor
         {
             RewardLayoutsHaveDistinctNonOverlappingLanes();
             SummariesKeepStrategicWarningsAndExactValues();
+            ComparisonHintsDiscloseOnlyOmittedChanges();
             StoredStatusRemovesOnlyRepeatedInstructions();
             RewardKindsRefreshWithoutStaleEquipment();
             DefaultSubmitUsesProductionDismissalWithoutMutatingRewards();
@@ -96,6 +97,30 @@ namespace AshenHalls.Editor
                 "rarity cleanup does not remove a partial trait match");
         }
 
+        private static void ComparisonHintsDiscloseOnlyOmittedChanges()
+        {
+            const string five = "Sword to bow / Lose life drain / 3-6 dmg vs 2-4 / BON 2 (+2) / SPD 9 (+1)";
+            Require(LootRewardPresentationRules.ComparisonHint(five, true) == "Full details in Inventory",
+                "a complete five-change preview does not invent omitted changes");
+            Require(LootRewardPresentationRules.ComparisonHint(five + " / RNG 4 (+3)", true) == "1 more change in Inventory",
+                "one omitted change is disclosed with a singular label");
+            string full = five + " / RNG 4 (+3) / ATTR 1 (+1) / ARM 2 (=) / AGI 1 (=) /   ";
+            Require(LootRewardPresentationRules.ComparisonHint(full, true) == "2 more changes in Inventory",
+                "only meaningful changes omitted by the preview are counted; equal and blank tokens do not inflate the hint");
+            Require(LootRewardPresentationRules.ComparisonPreview(full).Split('\n').Length == 5,
+                "disclosing overflow preserves the compact five-entry comparison");
+            Require(LootRewardPresentationRules.ComparisonHint(null, true) == "Full details in Inventory"
+                && LootRewardPresentationRules.ComparisonHint("ARM 2 (=) / AGI 1 (=)", true) == "Full details in Inventory",
+                "absent or identical comparisons do not claim hidden changes");
+            Require(LootRewardPresentationRules.ComparisonHint(full, false) == "",
+                "a receipt with no review action does not advertise unavailable Inventory navigation");
+            Require(LootRewardPresentationRules.ComparisonHint(full, true, "Authored equipment summary.") == "Full details in Inventory",
+                "an independently authored summary has no assumed five-entry truncation contract");
+            Require(LootRewardPresentationRules.ComparisonHint(full, true, LootRewardPresentationRules.ComparisonPreview(full))
+                    == "2 more changes in Inventory",
+                "a matching bounded summary discloses its exact remaining entries");
+        }
+
         private static void StoredStatusRemovesOnlyRepeatedInstructions()
         {
             Require(LootRewardPresentationRules.StorageDetail("Added to inventory", "Added to inventory") == "",
@@ -141,6 +166,27 @@ namespace AshenHalls.Editor
                     "already-collected rewards default to safe Continue, never an invented Take transaction");
                 Require(screen.ItemDetailsForTest == "4-7 dmg  ·  spd 2" && screen.ComparisonPreviewForTest == view.ComparisonSummary,
                     "item stats and comparison are displayed separately");
+                Require(screen.ComparisonHintForTest == "Full details in Inventory",
+                    "a short comparison keeps the quiet full-details hint");
+                const string detailedComparison = "Sword to bow / Lose life drain / 3-6 dmg vs 2-4 / BON 2 (+2) / SPD 9 (+1) / RNG 4 (+3) / ATTR 1 (+1)";
+                view.Comparison = "Best fit: Cairn  •  Review  •  " + detailedComparison;
+                view.ComparisonStats = detailedComparison;
+                view.ComparisonSummary = LootRewardPresentationRules.ComparisonPreview(detailedComparison);
+                screen.Refresh();
+                Require(screen.ComparisonHintForTest == "2 more changes in Inventory",
+                    "the visible receipt discloses that additional changes require review");
+                view.Comparison = "ARM 2 (+1)";
+                view.ComparisonStats = view.Comparison;
+                view.ComparisonSummary = LootRewardPresentationRules.ComparisonPreview(view.Comparison);
+                screen.Refresh();
+                Require(screen.ComparisonHintForTest == "Full details in Inventory",
+                    "refreshing a shorter comparison clears an old hidden-change count");
+                view.Comparison = "Best fit: A / B  •  Review  •  " + detailedComparison;
+                view.ComparisonStats = null;
+                view.ComparisonSummary = "Authored comparison without a known preview limit.";
+                screen.Refresh();
+                Require(screen.ComparisonHintForTest == "Full details in Inventory",
+                    "a custom summary without raw comparison data does not manufacture an omitted-change count from a name or heading");
                 Require(equipped == 0 && reviewed == 0 && dismissed == 0, "refresh does not mutate rewards or equipment");
                 screen.InvokeQuickEquipForTest(); screen.InvokeReviewForTest(); screen.InvokeDismissForTest();
                 Require(equipped == 1 && reviewed == 1 && dismissed == 1, "actions still invoke exactly once");
@@ -148,7 +194,7 @@ namespace AshenHalls.Editor
                 screen.Refresh();
                 Require(!screen.HasItemCardForTest && !screen.HasReviewActionForTest && !screen.HasQuickEquipActionForTest,
                     "resource-only refresh removes stale artwork and equipment actions");
-                Require(screen.ItemDetailsForTest == "" && screen.ComparisonPreviewForTest == "" && screen.HasDefaultFocusForTest,
+                Require(screen.ItemDetailsForTest == "" && screen.ComparisonPreviewForTest == "" && screen.ComparisonHintForTest == "" && screen.HasDefaultFocusForTest,
                     "resource-only refresh clears old details without losing safe focus");
                 screen.InvokeQuickEquipForTest(); screen.InvokeReviewForTest();
                 Require(equipped == 1 && reviewed == 1, "hidden actions cannot invoke equipment mutations");
@@ -209,6 +255,7 @@ namespace AshenHalls.Editor
                 screen = (LootPopupScreen)typeof(AshenHallsGame).GetField("lootPopupScreen", flags).GetValue(game);
                 screen.transform.SetParent(null, false);
                 screen.gameObject.SetActive(true);
+                ProductionComparisonHintsIgnoreEditableNames(game, screen, member, reward);
                 foreach (bool withItem in new[] { true, false })
                 {
                     RemembranceItemSmoke.Invoke(game, "ShowLootPanel", withItem ? reward : null, 48, 2, 1, "", "Continue safety receipt");
@@ -242,6 +289,46 @@ namespace AshenHalls.Editor
                 if (screen != null) UnityEngine.Object.DestroyImmediate(screen.gameObject);
                 UnityEngine.Object.DestroyImmediate(host);
                 navigation.SetSelectedGameObject(previousSelection);
+            }
+        }
+
+        private static void ProductionComparisonHintsIgnoreEditableNames(AshenHallsGame game, LootPopupScreen screen,
+            PartyMember member, InventoryItem reward)
+        {
+            string originalName = member.Name, originalDisplayName = reward.DisplayName, originalForm = reward.Form;
+            int originalStrength = reward.StrengthBonus;
+            try
+            {
+                member.Name = "A / B";
+                reward.StrengthBonus = 2;
+                foreach (bool sixthChange in new[] { false, true })
+                {
+                    // Life drain, damage, bonus, speed and attributes make five
+                    // changes. A same-reach knife adds the sixth: lower role fit.
+                    reward.Form = sixthChange ? "knife" : "broadsword";
+                    reward.DisplayName = "+4 vampiric iron " + reward.Form;
+                    RemembranceItemSmoke.Invoke(game, "ShowLootPanel", reward, 48, 2, 1, "", "Comparison count safety receipt");
+                    LootPopupView view = (LootPopupView)RemembranceItemSmoke.Invoke(game, "BuildLootPopupView");
+                    string raw = (string)RemembranceItemSmoke.Invoke(game, "InventoryComparisonLine", reward, member);
+                    int changed = 0;
+                    foreach (string entry in raw.Split(new[] { " / " }, StringSplitOptions.RemoveEmptyEntries))
+                        if (!entry.Trim().EndsWith("(=)", StringComparison.Ordinal)) changed++;
+                    Require(changed == (sixthChange ? 6 : 5), "production slash-name fixture has the exact changed-entry boundary");
+                    Require(view.Comparison.Contains("A / B") && view.ComparisonStats == raw
+                        && view.ComparisonSummary == LootRewardPresentationRules.ComparisonPreview(raw),
+                        "production summary and overflow source use the same raw stats independently of the editable name");
+                    Require(screen.ComparisonHintForTest == (sixthChange ? "1 more change in Inventory" : "Full details in Inventory"),
+                        "a slash in a hero name never turns five real changes into a false overflow or inflates a six-change count");
+                    Require(screen.HasDefaultFocusForTest && !screen.HasQuickEquipActionForTest,
+                        "comparison disclosure preserves safe Continue and deliberate life-drain review");
+                }
+            }
+            finally
+            {
+                member.Name = originalName;
+                reward.DisplayName = originalDisplayName;
+                reward.Form = originalForm;
+                reward.StrengthBonus = originalStrength;
             }
         }
 

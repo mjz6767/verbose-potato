@@ -3119,6 +3119,15 @@ namespace AshenHalls
             return SetRegionMapFocus(focus.X + deltaX, focus.Y + deltaY);
         }
 
+        private bool PanRegionMapViewport(int deltaX, int deltaY, int viewW, int viewH)
+        {
+            if (!exploreWideView || state?.Map == null || deltaX == 0 && deltaY == 0) return false;
+            Point focus = EnsureRegionMapFocus();
+            Point next = RegionMapNavigationRules.ViewportPanFocus(focus.X, focus.Y, deltaX, deltaY,
+                viewW, viewH, state.Map.Width, state.Map.Height);
+            return SetRegionMapFocus(next.X, next.Y);
+        }
+
         private bool RegionMapFocusIsParty()
         {
             Point focus = EnsureRegionMapFocus();
@@ -5307,7 +5316,7 @@ namespace AshenHalls
                         exploreRegionDragRemainderY);
                     exploreRegionDragRemainderX = pan.RemainderX;
                     exploreRegionDragRemainderY = pan.RemainderY;
-                    PanRegionMapFocus(pan.DeltaX, pan.DeltaY);
+                    PanRegionMapViewport(pan.DeltaX, pan.DeltaY, viewW, viewH);
                     return true;
                 }
             }
@@ -5323,7 +5332,7 @@ namespace AshenHalls
                 ResetRegionMapPointerGesture();
                 ReleaseRegionMapHudSelection();
                 Point delta = RegionMapNavigationRules.ScrollDelta(pointer.Delta.x, pointer.Delta.y, pointer.HorizontalScroll);
-                PanRegionMapFocus(delta.X, delta.Y);
+                PanRegionMapViewport(delta.X, delta.Y, viewW, viewH);
                 return true;
             }
             // A wheel event reports button zero too. Only an explicit left

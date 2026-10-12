@@ -196,6 +196,23 @@ namespace AshenHalls
                 Mathf.Clamp(focus.Y - boundedViewportHeight / 2, 0, maxY));
         }
 
+        public static Point ViewportPanFocus(int focusX, int focusY, int deltaX, int deltaY,
+            int viewportWidth, int viewportHeight, int mapWidth, int mapHeight)
+        {
+            Point focus = ClampFocus(focusX, focusY, mapWidth, mapHeight);
+            int width = Mathf.Clamp(viewportWidth, 1, Mathf.Max(1, mapWidth));
+            int height = Mathf.Clamp(viewportHeight, 1, Mathf.Max(1, mapHeight));
+            Point origin = ViewportOrigin(focus.X, focus.Y, width, height, mapWidth, mapHeight);
+            int nextX = Mathf.Clamp(origin.X + deltaX, 0, Mathf.Max(0, mapWidth - width));
+            int nextY = Mathf.Clamp(origin.Y + deltaY, 0, Mathf.Max(0, mapHeight - height));
+            // Pointer gestures move the visible map, not a selected cell that
+            // may sit inside a clamped edge. Keeping blocked/untouched axes
+            // unchanged also prevents overscroll from building a reversal delay.
+            return new Point(
+                nextX != origin.X ? nextX + width / 2 : focus.X,
+                nextY != origin.Y ? nextY + height / 2 : focus.Y);
+        }
+
         public static RegionMapNavigationStep ResolveAxes(
             float horizontalAxis,
             float verticalAxis,

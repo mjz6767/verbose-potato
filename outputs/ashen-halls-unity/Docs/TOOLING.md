@@ -17,7 +17,7 @@
 
 ## Recommended External Software
 
-- Unity Hub with Unity 6000.3.18f1: keep the current editor version until a feature milestone requires a change.
+- Unity Hub with the exact editor version/revision in `ProjectSettings/ProjectVersion.txt`. The current 6000.3.18f1 pin has a reproduced Windows accessibility shutdown defect; Unity documents its fix in 6000.3.21f1. Installing the patch, changing the pin and validating the new final player remain pending approval. Do not silently change engines or treat the held v2.37 candidate as verified for desktop shutdown.
 - Aseprite or LibreSprite: best next tools for original pixel sprites, enemy variants, tiles, and UI icons.
 - Audacity: useful for trimming/exporting tiny one-shot WAVs if procedural sound effects are not enough.
 - Bfxr, sfxr, or ChipTone: useful for old-school bleeps, thuds, hits, and spell pings.
@@ -39,6 +39,19 @@
 Run `Tools/InvokeProjectAudit.ps1` from PowerShell for the complete existing rule, inventory/loot, sprite-art, combat-UI, and RuntimeBoot gates. Use `-Suite Rules` for the deterministic suite alone. The command launches the installed Unity editor in batch mode, retains a unique log under `QA/project-audit/`, and requires both a successful editor exit and the suite's completion marker. It waits for the editor itself rather than long-lived licensing child processes. Run it with normal local Unity license access; an isolated account can fail entitlement checks even when the signed-in workstation is licensed.
 
 These checks do not build or promote a Windows package. Release packaging and final-player visual checks remain separate gates.
+
+The audit, retail build, Beta build and source-only compiler share
+`Tools/UnityEditorResolution.ps1`. With no override they resolve the exact project
+pin under Unity Hub's standard editor directory. An explicit executable/root
+override is accepted only when its product version and revision match that pin.
+Missing or mismatched editors fail before launch; no fallback is selected.
+`Tools/TestUnityEditorResolution.ps1` exercises that contract without launching Unity.
+After an approved engine change, run the declared editor to regenerate compilation
+response files before using the source-only compiler. Both cached response files
+must contain the exact patch define and engine/editor core references; editor-owned
+references must belong to the selected editor. Stale or mixed caches fail before
+either assembly compiles and are never rewritten by this tool. A source-only pass is never
+a replacement for the licensed Unity audit, build and final-player checks.
 
 For focused native-UI review, run Unity with `-batchmode -force-d3d11 -quit -executeMethod AshenHalls.Editor.PresentationAccessibilityCapture.Capture` and the canonical `-projectPath` plus a unique `-logFile`. This renders pause/settings and Combat Help top/bottom at 960x600 and 1280x720 under `QA/project-audit/`; it requires graphics (omit `-nographics`). The offscreen captures complement the final-player input/visual pass.
 

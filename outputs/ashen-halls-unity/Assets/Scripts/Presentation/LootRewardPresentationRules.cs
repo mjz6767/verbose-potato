@@ -7,6 +7,8 @@ namespace AshenHalls
     // The complete equipment comparison remains available through Inventory.
     public static class LootRewardPresentationRules
     {
+        private const int ComparisonPreviewLimit = 5;
+
         public static bool HasResources(LootPopupView view)
         {
             return view != null && (view.Gold > 0 || view.Supplies > 0 || view.Elixirs > 0);
@@ -26,24 +28,49 @@ namespace AshenHalls
         {
             string text = (comparison ?? "").Trim();
             if (text.Length == 0) return "";
-            string[] parts = text.Split(new[] { " / " }, StringSplitOptions.RemoveEmptyEntries);
+            List<string> parts = ChangedComparisonParts(text);
             var lines = new List<string>();
             // Form changes and strategic gains/losses precede numerical details in
             // the canonical comparison. Never hide those behind equal-stat noise.
             for (int priority = 0; priority < 3; priority++)
             foreach (string part in parts)
             {
-                string value = part.Trim();
-                if (value.EndsWith("(=)", StringComparison.Ordinal)) continue;
+                string value = part;
                 // Safety/readability: after named form/intrinsic changes and base
                 // damage, numerical sacrifices precede gains in a short preview.
                 bool numeric = IsNumericComparison(value);
                 int tokenPriority = !numeric ? 0 : value.IndexOf("(-", StringComparison.Ordinal) >= 0 ? 1 : 2;
-                if (tokenPriority != priority || lines.Count == 5) continue;
+                if (tokenPriority != priority || lines.Count == ComparisonPreviewLimit) continue;
                 lines.Add(ReadableStat(value));
             }
             if (lines.Count == 0) return "Same core stats as current equipment.";
             return string.Join("\n", lines);
+        }
+
+        public static string ComparisonHint(string comparisonStats, bool canReview, string comparisonSummary = null)
+        {
+            if (!canReview) return "";
+            if (!string.IsNullOrWhiteSpace(comparisonSummary)
+                && !string.Equals(comparisonSummary, ComparisonPreview(comparisonStats), StringComparison.Ordinal))
+                return "Full details in Inventory";
+            // Count the same meaningful entries as the preview, not equal-stat
+            // noise or an editable heading. Authored summaries have no known
+            // truncation contract, so only a matching bounded preview is counted.
+            int hidden = Math.Max(0, ChangedComparisonParts(comparisonStats).Count - ComparisonPreviewLimit);
+            return hidden > 0
+                ? $"{hidden} more {(hidden == 1 ? "change" : "changes")} in Inventory"
+                : "Full details in Inventory";
+        }
+
+        private static List<string> ChangedComparisonParts(string comparison)
+        {
+            var parts = new List<string>();
+            foreach (string part in (comparison ?? "").Split(new[] { " / " }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string value = part.Trim();
+                if (value.Length > 0 && !value.EndsWith("(=)", StringComparison.Ordinal)) parts.Add(value);
+            }
+            return parts;
         }
 
         public static string StorageDetail(string note, string outcome)

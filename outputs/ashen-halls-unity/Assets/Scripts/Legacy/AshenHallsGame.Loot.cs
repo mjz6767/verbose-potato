@@ -147,6 +147,7 @@ namespace AshenHalls
                         ? "Quest item secured"
                         : owner != null ? $"Equipped by {owner.Name}" : "Added to inventory",
                 Comparison = comparison,
+                ComparisonStats = comparisonStats,
                 ComparisonTitle = !hasItem ? "" : !equippable
                     ? "Quest reward"
                     : owner != null ? "Current equipment"

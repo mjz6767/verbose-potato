@@ -2,6 +2,13 @@
 
 All changes are original to Ash & Brimstone, formerly developed under the Ashen Halls name. The game is a spiritual successor to old party-based tactical CRPGs, not a clone of Nahlakh.
 
+## Unreleased — October 12, 2026
+
+- Make Region Map wheel and drag gestures pan the visible viewport immediately at clamped map edges. Reversing after an attempted overscroll no longer requires crossing hidden selection space. Preserve keyboard cell inspection, party position, travel time and campaign state.
+- Tell players when the compact loot comparison omits additional changed stats, while preserving loss priority, explicit equipment review and safe default Continue. Equal-stat entries and editable hero names do not inflate the hidden count.
+- Resolve build/audit tools from the editor version and revision declared by the project, rejecting missing or mismatched editors instead of silently selecting a hard-coded installation. Keep explicit matching-editor overrides available and reject stale or mixed source-compiler caches before compiling either assembly.
+- These are source improvements, not a newly certified Windows release. The existing v2.37 candidate and older archives remain unchanged; its recorded native accessibility shutdown issue is still unresolved pending an approved engine patch and final-player retest.
+
 ## v2.37.0 — Roads and Resonance
 
 - Give eight spell schools distinct release sounds and eleven tactical skills clearer material-specific preparation/impact sequences. Add 21 small authored sound masters, retain imported demon-school overrides, and avoid duplicate Smoke Bomb and bow-shot layers.

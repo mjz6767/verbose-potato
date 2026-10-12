@@ -1,11 +1,13 @@
 param(
-    [string]$UnityExe = "C:\Program Files\Unity\Hub\Editor\6000.3.18f1\Editor\Unity.exe",
+    [string]$UnityExe = '',
     [string]$LogPath = ""
 )
 
 $ErrorActionPreference = "Stop"
 
 $projectRoot = [System.IO.Path]::GetFullPath((Split-Path -Parent $PSScriptRoot))
+. (Join-Path $PSScriptRoot 'UnityEditorResolution.ps1')
+$UnityExe = Resolve-ProjectUnityEditor -ProjectRoot $projectRoot -UnityExe $UnityExe
 if (-not (Test-Path -LiteralPath $UnityExe -PathType Leaf)) {
     throw "Unity editor is missing: $UnityExe"
 }
